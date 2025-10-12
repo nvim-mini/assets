@@ -13,7 +13,7 @@ local make_logo = function(output_basename, letter_filenames)
   -- README logo
   --stylua: ignore
   local cmd_readme = {
-    'convert', output_pixels,
+    'magick', output_pixels,
     '-filter', 'point',
     -- NOTE: Use 105 because it is a multiple of 7 (height of "pixel" version)
     '-resize', '^1x105',
@@ -24,7 +24,7 @@ local make_logo = function(output_basename, letter_filenames)
   -- GitHub social preview
   --stylua: ignore
   local cmd_github = {
-    'convert', output_pixels,
+    'magick', output_pixels,
     '-filter', 'point',
     '-background', 'none',
     '-resize', '1280x^1',
