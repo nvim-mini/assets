@@ -44,6 +44,7 @@ local mini_modules = {
   'bracketed',
   'bufremove',
   'clue',
+  'cmdline',
   'colors',
   'comment',
   'completion',
