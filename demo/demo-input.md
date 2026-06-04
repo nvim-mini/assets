@@ -19,11 +19,11 @@ vim.ui.input({ prompt = 'Hello?', scope = 'cursor' }, print)
 - Configurable view:
 
 ```lua
-local view_stl = MiniInput.gen_view.uiline({ style = 'statusline' })
-MiniInput.get({ prompt = 'Statusline', handlers = { view = view_stl } })
+local view_uiline = MiniInput.gen_view.uiline()
+MiniInput.get({ prompt = 'UI line', handlers = { view = view_uiline } })
 
-local view_above = MiniInput.gen_view.virtual({ style = 'above' })
-MiniInput.get({ prompt = 'Virtual', handlers = { view = view_above } })
+local view_virtual = MiniInput.gen_view.virtual()
+MiniInput.get({ prompt = 'Virtual', handlers = { view = view_virtual } })
 ```
 
 - Integrates with other 'mini.nvim' modules.
