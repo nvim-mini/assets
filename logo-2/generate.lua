@@ -75,6 +75,7 @@ local mini_modules = {
   'snippets',
   'splitjoin',
   'starter',
+  'statuscolumn',
   'statusline',
   'surround',
   'tabline',
