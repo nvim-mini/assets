@@ -6,6 +6,7 @@
 -- - Execute relevant global function(s).
 --   Like for the new module: `:lua _G.logo_mini_module('xxx')`.
 --   This will create/update all relevant files in 'logo-3' directory.
+--   Requires `imagemagick`.
 
 -- Font =======================================================================
 -- Each letter is drawn on a 24x48 grid. There should be at least some stroke
@@ -163,6 +164,28 @@ local with_azure_prefix = function(prefix_lines, suffix_lines)
   return lines
 end
 
+local make_social_png = function(path, opts)
+  local default_opts = { resize = '1280x^1', extent = '1280x640', output = path:gsub('%.svg$', '_github.png') }
+  opts = vim.tbl_extend('force', default_opts, opts or {})
+  -- Convert `basename.svg` to `basename.png`
+  --stylua: ignore
+  local cmd_github = {
+    'magick', 'mogrify',
+    '-format', 'png',
+    '-density', '300',
+    '-background', 'none',
+    '-resize', opts.resize,
+    '-gravity', 'center',
+    '-extent', opts.extent,
+    path,
+  }
+  vim.system(cmd_github):wait()
+
+  -- Rename `basename.png` to `basename_github.png`
+  local tmp_png = path:gsub('%.svg$', '.png')
+  vim.uv.fs_rename(tmp_png, opts.output)
+end
+
 -- 'mini.nvim' ================================================================
 local with_azure_mini_prefix = function(suffix_lines)
   local prefix_lines = {
@@ -185,10 +208,10 @@ _G.logo_mini_nvim = function()
   }
   local lines = with_azure_mini_prefix(suffix_lines)
 
-  -- Save '*.svg'
-  vim.fn.writefile(lines, 'logo-3/logo-mini-nvim.svg')
-
-  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+  -- Save
+  local out = 'logo-3/logo-mini-nvim.svg'
+  vim.fn.writefile(lines, out)
+  make_social_png(out)
 end
 
 _G.logo_mini_module = function(name)
@@ -199,8 +222,11 @@ _G.logo_mini_module = function(name)
   end
   local lines = with_azure_mini_prefix(suffix_lines)
 
-  -- Save '*.svg'
-  vim.fn.writefile(lines, 'logo-3/logo-mini-module-' .. name .. '.svg')
+  -- Save
+  local out = 'logo-3/logo-mini-module-' .. name .. '.svg'
+  vim.fn.writefile(lines, out)
+  make_social_png(out)
+end
 
   -- TODO: Create necessary '*.png' files. Like for GitHub social image.
 end
@@ -252,16 +278,21 @@ _G.logo_mini = function()
   append(2, '</g>')
   append(0, '</svg>')
 
-  -- Save '*.svg'
-  vim.fn.writefile(lines, 'logo-3/logo-mini.svg')
+  -- Save
+  local out_mini = 'logo-3/logo-mini.svg'
+  local out_mini_social = 'logo-3/logo-mini_social.png'
+  vim.fn.writefile(lines, out_mini)
+  make_social_png(out_mini, { resize = '1200x630', extent = '1200x630', output = out_mini_social })
 
   local lines_circle = vim.deepcopy(lines)
   local cx = 0.5 * height - offset_hor
   local cy = 0.5 * height - offset_ver
   lines_circle[3] = string.format('    <circle cx="%d" cy="%d" r="50%%"/>', cx, cy)
-  vim.fn.writefile(lines_circle, 'logo-3/logo-mini_circle.svg')
 
-  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+  local out_mini_circle = 'logo-3/logo-mini_circle.svg'
+  local out_mini_circle_social = 'logo-3/logo-mini_circle_social.png'
+  vim.fn.writefile(lines_circle, out_mini_circle)
+  make_social_png(out_mini_circle, { resize = '1000x1000', extent = '1000x1000', output = out_mini_circle_social })
 end
 
 -- MiniMax ====================================================================
@@ -291,10 +322,10 @@ _G.logo_minimax = function(suffix_lines)
   append(2, '</g>')
   append(0, '</svg>')
 
-  -- Save '*.svg'
-  vim.fn.writefile(lines, 'logo-3/logo-minimax.svg')
-
-  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+  -- Save
+  local out = 'logo-3/logo-minimax.svg'
+  vim.fn.writefile(lines, out)
+  make_social_png(out)
 end
 
 -- 'lang.nvim' ================================================================
@@ -319,10 +350,10 @@ _G.logo_lang_nvim = function()
   }
   local lines = with_azure_lang_prefix(suffix_lines)
 
-  -- Save '*.svg'
-  vim.fn.writefile(lines, 'logo-3/logo-lang-nvim.svg')
-
-  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+  -- Save
+  local out = 'logo-3/logo-lang-nvim.svg'
+  vim.fn.writefile(lines, out)
+  make_social_png(out)
 end
 
 _G.logo_lang_module = function(name)
@@ -333,8 +364,8 @@ _G.logo_lang_module = function(name)
   end
   local lines = with_azure_lang_prefix(suffix_lines)
 
-  -- Save '*.svg'
-  vim.fn.writefile(lines, 'logo-3/logo-lang-module-' .. name .. '.svg')
-
-  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+  -- Save
+  local out = 'logo-3/logo-lang-module-' .. name .. '.svg'
+  vim.fn.writefile(lines, out)
+  make_social_png(out)
 end
