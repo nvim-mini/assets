@@ -4,7 +4,7 @@
 -- - `:source` this file.
 -- - Ensure that cwd is at the project root (not `logo-3` subdirectory).
 -- - Execute relevant global function(s).
---   Like for the new module: `:lua _G.logo_nvim_module('xxx')`.
+--   Like for the new module: `:lua _G.logo_mini_module('xxx')`.
 --   This will create/update all relevant files in 'logo-3' directory.
 
 -- Font =======================================================================
@@ -115,9 +115,28 @@ local make_bg_rect = function()
   return string.format('<rect x="-%d" y="-%d" width="100%%" height="100%%"/>', off, off)
 end
 
--- 'mini.nvim' ================================================================
-local with_azure_mini_prefix = function(suffix_lines)
-  local lines = make_header(5 + #suffix_lines, 1)
+_G.show_font = function()
+  local lines = make_header(9, 4)
+  local append = function(indent, l) table.insert(lines, string.rep(' ', indent) .. l) end
+
+  append(4, make_bg_rect())
+
+  append(4, string.format('<g stroke="%s">', colors.yellow))
+  local off_col, off_row = 48 + letter_offset, 24 + letter_offset
+  for i, char in ipairs(vim.split('abcdefghijklmnopqrstuvwxyz0123456789', '')) do
+    local row, col = (i - 1) % 9, math.floor((i - 1) / 9)
+    append(6, '<!-- ' .. char:upper() .. ' --> ' .. move(font[char], row * off_row, col * off_col))
+  end
+  append(4, '</g>')
+
+  -- Save '*.svg'
+  vim.fn.writefile(lines, 'logo-3/font.svg')
+end
+
+-- Helpers ====================================================================
+local with_azure_prefix = function(prefix_lines, suffix_lines)
+  local n_prefix = #prefix_lines
+  local lines = make_header(n_prefix + #suffix_lines, 1)
   local append = function(indent, l) table.insert(lines, string.rep(' ', indent) .. l) end
 
   append(4, make_bg_rect())
@@ -125,17 +144,15 @@ local with_azure_mini_prefix = function(suffix_lines)
   -- Prefix
   local off = 24 + letter_offset
   append(4, string.format('<g stroke="%s">', colors.azure))
-  append(6, '<!-- M --> ' .. move(font.m, 0 * off, 0))
-  append(6, '<!-- I --> ' .. move(font.i, 1 * off, 0))
-  append(6, '<!-- N --> ' .. move(font.n, 2 * off, 0))
-  append(6, '<!-- I --> ' .. move(font.i, 3 * off, 0))
-  append(6, '<!-- . --> ' .. move(font['.'], 4 * off, 0))
+  for i, l in ipairs(prefix_lines) do
+    append(6, move(l, (i - 1) * off, 0))
+  end
   append(4, '</g>')
 
   -- Suffix
   append(4, string.format('<g stroke="%s">', colors.yellow))
   for i, l in ipairs(suffix_lines) do
-    append(6, move(l, (4 + i) * off, 0))
+    append(6, move(l, (n_prefix - 1 + i) * off, 0))
   end
   append(4, '</g>')
 
@@ -146,7 +163,19 @@ local with_azure_mini_prefix = function(suffix_lines)
   return lines
 end
 
-_G.logo_nvim = function()
+-- 'mini.nvim' ================================================================
+local with_azure_mini_prefix = function(suffix_lines)
+  local prefix_lines = {
+    '<!-- M --> ' .. font.m,
+    '<!-- I --> ' .. font.i,
+    '<!-- N --> ' .. font.n,
+    '<!-- I --> ' .. font.i,
+    '<!-- . --> ' .. font['.'],
+  }
+  return with_azure_prefix(prefix_lines, suffix_lines)
+end
+
+_G.logo_mini_nvim = function()
   -- Construct svg content
   local suffix_lines = {
     '<!-- N --> ' .. color(font.n_1, colors.cyan) .. ' ' .. color(font.n_2, colors.green),
@@ -162,7 +191,7 @@ _G.logo_nvim = function()
   -- TODO: Create necessary '*.png' files. Like for GitHub social image.
 end
 
-_G.logo_nvim_module = function(name)
+_G.logo_mini_module = function(name)
   -- Construct svg content
   local suffix_lines = {}
   for i, l in ipairs(vim.split(name, '')) do
@@ -264,6 +293,48 @@ _G.logo_minimax = function(suffix_lines)
 
   -- Save '*.svg'
   vim.fn.writefile(lines, 'logo-3/logo-minimax.svg')
+
+  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+end
+
+-- 'lang.nvim' ================================================================
+local with_azure_lang_prefix = function(suffix_lines)
+  local prefix_lines = {
+    '<!-- L --> ' .. font.l,
+    '<!-- A --> ' .. font.a,
+    '<!-- N --> ' .. font.n,
+    '<!-- G --> ' .. font.g,
+    '<!-- . --> ' .. font['.'],
+  }
+  return with_azure_prefix(prefix_lines, suffix_lines)
+end
+
+_G.logo_lang_nvim = function()
+  -- Construct svg content
+  local suffix_lines = {
+    '<!-- N --> ' .. color(font.n_1, colors.cyan) .. ' ' .. color(font.n_2, colors.green),
+    '<!-- V --> ' .. font.v,
+    '<!-- I --> ' .. font.i,
+    '<!-- M --> ' .. font.m,
+  }
+  local lines = with_azure_lang_prefix(suffix_lines)
+
+  -- Save '*.svg'
+  vim.fn.writefile(lines, 'logo-3/logo-lang-nvim.svg')
+
+  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
+end
+
+_G.logo_lang_module = function(name)
+  -- Construct svg content
+  local suffix_lines = {}
+  for i, l in ipairs(vim.split(name, '')) do
+    table.insert(suffix_lines, string.format('<!-- %s --> %s', l:upper(), font[l]))
+  end
+  local lines = with_azure_lang_prefix(suffix_lines)
+
+  -- Save '*.svg'
+  vim.fn.writefile(lines, 'logo-3/logo-lang-module-' .. name .. '.svg')
 
   -- TODO: Create necessary '*.png' files. Like for GitHub social image.
 end
