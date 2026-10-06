@@ -228,9 +228,6 @@ _G.logo_mini_module = function(name)
   make_social_png(out)
 end
 
-  -- TODO: Create necessary '*.png' files. Like for GitHub social image.
-end
-
 -- MINI =======================================================================
 -- The idea is to have a square view with a text in a center that also
 -- organically fits in the inscribed circle:
