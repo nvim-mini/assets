@@ -1,0 +1,192 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Modern terminals now handle undercurl appropriately, and we already use it with spell-checking diagnostics. Following that, undercurl for LSP diagnostics feels like a natural transition, and the possibility to opt in would be, I believe, quite welcome :)\r\n\r\nHere's a draft implementation that can serve as the basis:\r\n\r\n```diff\r\nFrom 0d2b08461e0f6ac5ef74c3a22caab7409454bce3 Mon Sep 17 00:00:00 2001\r\nFrom: William Roy <wroy@proton.me>\r\nDate: Thu, 5 Oct 2023 17:58:32 -0400\r\nSubject: [PATCH] (mini.base16) Undercurl diagnostic configuration\r\n\r\n---\r\n lua/mini/base16.lua | 27 ++++++++++++++++++++-------\r\n 1 file changed, 20 insertions(+), 7 deletions(-)\r\n\r\ndiff --git a/lua/mini/base16.lua b/lua/mini/base16.lua\r\nindex a4c45a5..1e0cd96 100644\r\n--- a/lua/mini/base16.lua\r\n+++ b/lua/mini/base16.lua\r\n@@ -200,6 +200,11 @@ MiniBase16.config = {\r\n   -- more information.\r\n   use_cterm = nil,\r\n \r\n+  -- Whether to support modern terminal undercurl diagnostic. Can be boolean,\r\n+  -- or `nil` (same as `false`). See `setup()` documentation for\r\n+  -- more information.\r\n+  use_undercurl_diagnostic = nil,\r\n+\r\n   -- Plugin integrations. Use `default = false` to disable all integrations.\r\n   -- Also can be set per plugin (see |MiniBase16.config|).\r\n   plugins = { default = true },\r\n@@ -361,7 +366,8 @@ end\r\n H.apply_config = function(config)\r\n   MiniBase16.config = config\r\n \r\n-  H.apply_palette(config.palette, config.use_cterm)\r\n+  H.apply_palette(\r\n+    config.palette, config.use_cterm, config.use_undercurl_diagnostic)\r\n end\r\n \r\n -- Validators -----------------------------------------------------------------\r\n@@ -434,7 +440,7 @@ H.validate_hex = function(x, x_name)\r\n end\r\n \r\n -- Highlighting ---------------------------------------------------------------\r\n-H.apply_palette = function(palette, use_cterm)\r\n+H.apply_palette = function(palette, use_cterm, use_undercurl_diagnostic)\r\n   -- Prepare highlighting application. Notes:\r\n   -- - Clear current highlight only if other theme was loaded previously.\r\n   -- - No need to `syntax reset` because *all* syntax groups are defined later.\r\n@@ -450,6 +456,13 @@ H.apply_palette = function(palette, use_cterm)\r\n     p, hi = palette, H.highlight_gui\r\n   end\r\n \r\n+  local dattr\r\n+  if use_undercurl_diagnostic then\r\n+    dattr = 'undercurl'\r\n+  else\r\n+    dattr = 'underline'\r\n+  end\r\n+\r\n   -- NOTE: recommendations for adding new highlight groups:\r\n   -- - Put all related groups (like for new plugin) in single paragraph.\r\n   -- - Sort within group alphabetically (by hl-group name) ignoring case.\r\n@@ -612,11 +625,11 @@ H.apply_palette = function(palette, use_cterm)\r\n   hi('DiagnosticSignOk',    {link='DiagnosticFloatingOk'})\r\n   hi('DiagnosticSignWarn',  {link='DiagnosticFloatingWarn'})\r\n \r\n-  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr='underline', sp=p.base08})\r\n-  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr='underline', sp=p.base0D})\r\n-  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr='underline', sp=p.base0C})\r\n-  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr='underline', sp=p.base0B})\r\n-  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr='underline', sp=p.base0E})\r\n+  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr=dattr, sp=p.base08})\r\n+  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr=dattr, sp=p.base0D})\r\n+  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr=dattr, sp=p.base0C})\r\n+  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr=dattr, sp=p.base0B})\r\n+  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr=dattr, sp=p.base0E})\r\n \r\n   -- Built-in LSP\r\n   hi('LspReferenceText',  {fg=nil, bg=p.base02, attr=nil, sp=nil})\r\n-- \r\n2.41.0\r\n```\r\n",
+    "bodyHTML": "<p dir=\"auto\">Modern terminals now handle undercurl appropriately, and we already use it with spell-checking diagnostics. Following that, undercurl for LSP diagnostics feels like a natural transition, and the possibility to opt in would be, I believe, quite welcome :)</p>\n<p dir=\"auto\">Here's a draft implementation that can serve as the basis:</p>\n<div class=\"highlight highlight-source-diff notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"From 0d2b08461e0f6ac5ef74c3a22caab7409454bce3 Mon Sep 17 00:00:00 2001\nFrom: William Roy &lt;wroy@proton.me&gt;\nDate: Thu, 5 Oct 2023 17:58:32 -0400\nSubject: [PATCH] (mini.base16) Undercurl diagnostic configuration\n\n---\n lua/mini/base16.lua | 27 ++++++++++++++++++++-------\n 1 file changed, 20 insertions(+), 7 deletions(-)\n\ndiff --git a/lua/mini/base16.lua b/lua/mini/base16.lua\nindex a4c45a5..1e0cd96 100644\n--- a/lua/mini/base16.lua\n+++ b/lua/mini/base16.lua\n@@ -200,6 +200,11 @@ MiniBase16.config = {\n   -- more information.\n   use_cterm = nil,\n \n+  -- Whether to support modern terminal undercurl diagnostic. Can be boolean,\n+  -- or `nil` (same as `false`). See `setup()` documentation for\n+  -- more information.\n+  use_undercurl_diagnostic = nil,\n+\n   -- Plugin integrations. Use `default = false` to disable all integrations.\n   -- Also can be set per plugin (see |MiniBase16.config|).\n   plugins = { default = true },\n@@ -361,7 +366,8 @@ end\n H.apply_config = function(config)\n   MiniBase16.config = config\n \n-  H.apply_palette(config.palette, config.use_cterm)\n+  H.apply_palette(\n+    config.palette, config.use_cterm, config.use_undercurl_diagnostic)\n end\n \n -- Validators -----------------------------------------------------------------\n@@ -434,7 +440,7 @@ H.validate_hex = function(x, x_name)\n end\n \n -- Highlighting ---------------------------------------------------------------\n-H.apply_palette = function(palette, use_cterm)\n+H.apply_palette = function(palette, use_cterm, use_undercurl_diagnostic)\n   -- Prepare highlighting application. Notes:\n   -- - Clear current highlight only if other theme was loaded previously.\n   -- - No need to `syntax reset` because *all* syntax groups are defined later.\n@@ -450,6 +456,13 @@ H.apply_palette = function(palette, use_cterm)\n     p, hi = palette, H.highlight_gui\n   end\n \n+  local dattr\n+  if use_undercurl_diagnostic then\n+    dattr = 'undercurl'\n+  else\n+    dattr = 'underline'\n+  end\n+\n   -- NOTE: recommendations for adding new highlight groups:\n   -- - Put all related groups (like for new plugin) in single paragraph.\n   -- - Sort within group alphabetically (by hl-group name) ignoring case.\n@@ -612,11 +625,11 @@ H.apply_palette = function(palette, use_cterm)\n   hi('DiagnosticSignOk',    {link='DiagnosticFloatingOk'})\n   hi('DiagnosticSignWarn',  {link='DiagnosticFloatingWarn'})\n \n-  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr='underline', sp=p.base08})\n-  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr='underline', sp=p.base0D})\n-  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr='underline', sp=p.base0C})\n-  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr='underline', sp=p.base0B})\n-  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr='underline', sp=p.base0E})\n+  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr=dattr, sp=p.base08})\n+  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr=dattr, sp=p.base0D})\n+  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr=dattr, sp=p.base0C})\n+  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr=dattr, sp=p.base0B})\n+  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr=dattr, sp=p.base0E})\n \n   -- Built-in LSP\n   hi('LspReferenceText',  {fg=nil, bg=p.base02, attr=nil, sp=nil})\n-- \n2.41.0\"><pre class=\"notranslate\">From 0d2b08461e0f6ac5ef74c3a22caab7409454bce3 Mon Sep 17 00:00:00 2001\nFrom: William Roy &lt;wroy@proton.me&gt;\nDate: Thu, 5 Oct 2023 17:58:32 -0400\nSubject: [PATCH] (mini.base16) Undercurl diagnostic configuration\n\n<span class=\"pl-ms\">---</span>\n lua/mini/base16.lua | 27 ++++++++++++++++++++-------\n 1 file changed, 20 insertions(+), 7 deletions(-)\n\n<span class=\"pl-c1\">diff --git a/lua/mini/base16.lua b/lua/mini/base16.lua</span>\nindex a4c45a5..1e0cd96 100644\n<span class=\"pl-md\">--- a/lua/mini/base16.lua</span>\n<span class=\"pl-mi1\">+++ b/lua/mini/base16.lua</span>\n<span class=\"pl-mdr\">@@ -200,6 +200,11 @@</span> MiniBase16.config = {\n   -- more information.\n   use_cterm = nil,\n \n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  -- Whether to support modern terminal undercurl diagnostic. Can be boolean,</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  -- or `nil` (same as `false`). See `setup()` documentation for</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  -- more information.</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  use_undercurl_diagnostic = nil,</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span></span>\n   -- Plugin integrations. Use `default = false` to disable all integrations.\n   -- Also can be set per plugin (see |MiniBase16.config|).\n   plugins = { default = true },\n<span class=\"pl-mdr\">@@ -361,7 +366,8 @@</span> end\n H.apply_config = function(config)\n   MiniBase16.config = config\n \n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  H.apply_palette(config.palette, config.use_cterm)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  H.apply_palette(</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    config.palette, config.use_cterm, config.use_undercurl_diagnostic)</span>\n end\n \n -- Validators -----------------------------------------------------------------\n<span class=\"pl-mdr\">@@ -434,7 +440,7 @@</span> H.validate_hex = function(x, x_name)\n end\n \n -- Highlighting ---------------------------------------------------------------\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>H.apply_palette = function(palette, use_cterm)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>H.apply_palette = function(palette, use_cterm, use_undercurl_diagnostic)</span>\n   -- Prepare highlighting application. Notes:\n   -- - Clear current highlight only if other theme was loaded previously.\n   -- - No need to `syntax reset` because *all* syntax groups are defined later.\n<span class=\"pl-mdr\">@@ -450,6 +456,13 @@</span> H.apply_palette = function(palette, use_cterm)\n     p, hi = palette, H.highlight_gui\n   end\n \n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  local dattr</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  if use_undercurl_diagnostic then</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    dattr = 'undercurl'</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  else</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    dattr = 'underline'</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  end</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span></span>\n   -- NOTE: recommendations for adding new highlight groups:\n   -- - Put all related groups (like for new plugin) in single paragraph.\n   -- - Sort within group alphabetically (by hl-group name) ignoring case.\n<span class=\"pl-mdr\">@@ -612,11 +625,11 @@</span> H.apply_palette = function(palette, use_cterm)\n   hi('DiagnosticSignOk',    {link='DiagnosticFloatingOk'})\n   hi('DiagnosticSignWarn',  {link='DiagnosticFloatingWarn'})\n \n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr='underline', sp=p.base08})</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr='underline', sp=p.base0D})</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr='underline', sp=p.base0C})</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr='underline', sp=p.base0B})</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr='underline', sp=p.base0E})</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr=dattr, sp=p.base08})</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr=dattr, sp=p.base0D})</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr=dattr, sp=p.base0C})</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr=dattr, sp=p.base0B})</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr=dattr, sp=p.base0E})</span>\n \n   -- Built-in LSP\n   hi('LspReferenceText',  {fg=nil, bg=p.base02, attr=nil, sp=nil})\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>- </span>\n2.41.0</pre></div>",
+    "bodyText": "Modern terminals now handle undercurl appropriately, and we already use it with spell-checking diagnostics. Following that, undercurl for LSP diagnostics feels like a natural transition, and the possibility to opt in would be, I believe, quite welcome :)\nHere's a draft implementation that can serve as the basis:\nFrom 0d2b08461e0f6ac5ef74c3a22caab7409454bce3 Mon Sep 17 00:00:00 2001\nFrom: William Roy <wroy@proton.me>\nDate: Thu, 5 Oct 2023 17:58:32 -0400\nSubject: [PATCH] (mini.base16) Undercurl diagnostic configuration\n\n---\n lua/mini/base16.lua | 27 ++++++++++++++++++++-------\n 1 file changed, 20 insertions(+), 7 deletions(-)\n\ndiff --git a/lua/mini/base16.lua b/lua/mini/base16.lua\nindex a4c45a5..1e0cd96 100644\n--- a/lua/mini/base16.lua\n+++ b/lua/mini/base16.lua\n@@ -200,6 +200,11 @@ MiniBase16.config = {\n   -- more information.\n   use_cterm = nil,\n \n+  -- Whether to support modern terminal undercurl diagnostic. Can be boolean,\n+  -- or `nil` (same as `false`). See `setup()` documentation for\n+  -- more information.\n+  use_undercurl_diagnostic = nil,\n+\n   -- Plugin integrations. Use `default = false` to disable all integrations.\n   -- Also can be set per plugin (see |MiniBase16.config|).\n   plugins = { default = true },\n@@ -361,7 +366,8 @@ end\n H.apply_config = function(config)\n   MiniBase16.config = config\n \n-  H.apply_palette(config.palette, config.use_cterm)\n+  H.apply_palette(\n+    config.palette, config.use_cterm, config.use_undercurl_diagnostic)\n end\n \n -- Validators -----------------------------------------------------------------\n@@ -434,7 +440,7 @@ H.validate_hex = function(x, x_name)\n end\n \n -- Highlighting ---------------------------------------------------------------\n-H.apply_palette = function(palette, use_cterm)\n+H.apply_palette = function(palette, use_cterm, use_undercurl_diagnostic)\n   -- Prepare highlighting application. Notes:\n   -- - Clear current highlight only if other theme was loaded previously.\n   -- - No need to `syntax reset` because *all* syntax groups are defined later.\n@@ -450,6 +456,13 @@ H.apply_palette = function(palette, use_cterm)\n     p, hi = palette, H.highlight_gui\n   end\n \n+  local dattr\n+  if use_undercurl_diagnostic then\n+    dattr = 'undercurl'\n+  else\n+    dattr = 'underline'\n+  end\n+\n   -- NOTE: recommendations for adding new highlight groups:\n   -- - Put all related groups (like for new plugin) in single paragraph.\n   -- - Sort within group alphabetically (by hl-group name) ignoring case.\n@@ -612,11 +625,11 @@ H.apply_palette = function(palette, use_cterm)\n   hi('DiagnosticSignOk',    {link='DiagnosticFloatingOk'})\n   hi('DiagnosticSignWarn',  {link='DiagnosticFloatingWarn'})\n \n-  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr='underline', sp=p.base08})\n-  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr='underline', sp=p.base0D})\n-  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr='underline', sp=p.base0C})\n-  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr='underline', sp=p.base0B})\n-  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr='underline', sp=p.base0E})\n+  hi('DiagnosticUnderlineError', {fg=nil, bg=nil, attr=dattr, sp=p.base08})\n+  hi('DiagnosticUnderlineHint',  {fg=nil, bg=nil, attr=dattr, sp=p.base0D})\n+  hi('DiagnosticUnderlineInfo',  {fg=nil, bg=nil, attr=dattr, sp=p.base0C})\n+  hi('DiagnosticUnderlineOk',    {fg=nil, bg=nil, attr=dattr, sp=p.base0B})\n+  hi('DiagnosticUnderlineWarn',  {fg=nil, bg=nil, attr=dattr, sp=p.base0E})\n \n   -- Built-in LSP\n   hi('LspReferenceText',  {fg=nil, bg=p.base02, attr=nil, sp=nil})\n-- \n2.41.0",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2023-10-06T09:18:45Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for suggestion!\r\n\r\nHaving this type of granular configuration in color scheme is something I perceive as \"unnecessary complication\". Users can override those without much troubles on their end.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for suggestion!</p>\n<p dir=\"auto\">Having this type of granular configuration in color scheme is something I perceive as \"unnecessary complication\". Users can override those without much troubles on their end.</p>",
+            "bodyText": "Thanks for suggestion!\nHaving this type of granular configuration in color scheme is something I perceive as \"unnecessary complication\". Users can override those without much troubles on their end.",
+            "createdAt": "2023-10-06T09:18:45Z",
+            "createdViaEmail": false,
+            "databaseId": 7207695,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AbfsP",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-10-06T09:18:45Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/506#discussioncomment-7207695",
+            "updatedAt": "2023-10-06T09:18:46Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/506#discussioncomment-7207695"
+        }
+    ],
+    "createdAt": "2023-10-05T22:07:13Z",
+    "createdViaEmail": false,
+    "databaseId": 5706092,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AVxFs",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1uPB",
+                "name": "mini.base16"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 506,
+    "poll": null,
+    "publishedAt": "2023-10-05T22:07:13Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/506",
+    "stateReason": "RESOLVED",
+    "title": "mini.base16: undercurl for LSP diagnostics",
+    "updatedAt": "2023-10-06T09:18:45Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/506"
+}

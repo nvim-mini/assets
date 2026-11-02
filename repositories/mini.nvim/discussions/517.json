@@ -1,0 +1,373 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 7286139,
+        "id": "DC_kwDOFoksYM4Aby17",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286139"
+    },
+    "answerChosenAt": "2023-10-15T18:00:46Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1154912?u=c5844a16e7897cd2f4f18f29d2f7df9e52b83cac&v=4",
+        "login": "heygarrett",
+        "resourcePath": "/heygarrett",
+        "url": "https://github.com/heygarrett"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1154912?u=c5844a16e7897cd2f4f18f29d2f7df9e52b83cac&v=4",
+        "login": "heygarrett",
+        "resourcePath": "/heygarrett",
+        "url": "https://github.com/heygarrett"
+    },
+    "authorAssociation": "NONE",
+    "body": "Currently I'm using the built-in omnicomplete, with `<c-x><c-o>`, and [nvim-snippy](https://github.com/dcampos/nvim-snippy) to expand LSP snippets. I understand that mini.completion doesn't support snippet expansion, but is there a way to include LSP snippets in the completion results so I can expand them with nvim-snippy?",
+    "bodyHTML": "<p dir=\"auto\">Currently I'm using the built-in omnicomplete, with <code class=\"notranslate\">&lt;c-x&gt;&lt;c-o&gt;</code>, and <a href=\"https://github.com/dcampos/nvim-snippy\">nvim-snippy</a> to expand LSP snippets. I understand that mini.completion doesn't support snippet expansion, but is there a way to include LSP snippets in the completion results so I can expand them with nvim-snippy?</p>",
+    "bodyText": "Currently I'm using the built-in omnicomplete, with <c-x><c-o>, and nvim-snippy to expand LSP snippets. I understand that mini.completion doesn't support snippet expansion, but is there a way to include LSP snippets in the completion results so I can expand them with nvim-snippy?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2023-10-15T17:54:32Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Yes, there is a way, but it is not pretty.\r\n\r\nSnippets are filtered out when processing LSP response before creating an actual list of completion entries. This part can be configured by `config.lsp_completion.process_items()`. But the thing is, there is no exported way which doesn't filter out snippets. But you can try something like this, which is a cherry-picked version of 'mini.completion' code:\r\n\r\n```lua\r\nlocal get_completion_word =\r\n  function(item) return (item.textEdit or {}).newText or item.insertText or item.label or '' end\r\n\r\nlocal process_items_with_snippets = function(items, base)\r\n  local res = vim.tbl_filter(function(item) return vim.startswith(get_completion_word(item), base) end, items)\r\n  table.sort(res, function(a, b) return (a.sortText or a.label) < (b.sortText or b.label) end)\r\n  return res\r\nend\r\n\r\nrequire('mini.completion').setup({ lsp_completion = { process_items = process_items_with_snippets } })\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Yes, there is a way, but it is not pretty.</p>\n<p dir=\"auto\">Snippets are filtered out when processing LSP response before creating an actual list of completion entries. This part can be configured by <code class=\"notranslate\">config.lsp_completion.process_items()</code>. But the thing is, there is no exported way which doesn't filter out snippets. But you can try something like this, which is a cherry-picked version of 'mini.completion' code:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local get_completion_word =\n  function(item) return (item.textEdit or {}).newText or item.insertText or item.label or '' end\n\nlocal process_items_with_snippets = function(items, base)\n  local res = vim.tbl_filter(function(item) return vim.startswith(get_completion_word(item), base) end, items)\n  table.sort(res, function(a, b) return (a.sortText or a.label) &lt; (b.sortText or b.label) end)\n  return res\nend\n\nrequire('mini.completion').setup({ lsp_completion = { process_items = process_items_with_snippets } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">get_completion_word</span> <span class=\"pl-k\">=</span>\n  <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>) <span class=\"pl-k\">return</span> (<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">textEdit</span> <span class=\"pl-k\">or</span> {}).<span class=\"pl-e\">newText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">insertText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">label</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">process_items_with_snippets</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">startswith</span>(<span class=\"pl-c1\">get_completion_word</span>(<span class=\"pl-smi\">item</span>), <span class=\"pl-smi\">base</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items</span>)\n  <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>) <span class=\"pl-k\">return</span> (<span class=\"pl-smi\">a</span>.<span class=\"pl-e\">sortText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">a</span>.<span class=\"pl-e\">label</span>) <span class=\"pl-k\">&lt;</span> (<span class=\"pl-smi\">b</span>.<span class=\"pl-e\">sortText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">b</span>.<span class=\"pl-e\">label</span>) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.completion<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">lsp_completion</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">process_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">process_items_with_snippets</span> } })</pre></div>",
+            "bodyText": "Yes, there is a way, but it is not pretty.\nSnippets are filtered out when processing LSP response before creating an actual list of completion entries. This part can be configured by config.lsp_completion.process_items(). But the thing is, there is no exported way which doesn't filter out snippets. But you can try something like this, which is a cherry-picked version of 'mini.completion' code:\nlocal get_completion_word =\n  function(item) return (item.textEdit or {}).newText or item.insertText or item.label or '' end\n\nlocal process_items_with_snippets = function(items, base)\n  local res = vim.tbl_filter(function(item) return vim.startswith(get_completion_word(item), base) end, items)\n  table.sort(res, function(a, b) return (a.sortText or a.label) < (b.sortText or b.label) end)\n  return res\nend\n\nrequire('mini.completion').setup({ lsp_completion = { process_items = process_items_with_snippets } })",
+            "createdAt": "2023-10-15T17:54:32Z",
+            "createdViaEmail": false,
+            "databaseId": 7286139,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Aby17",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-10-15T17:54:32Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/1154912?u=c5844a16e7897cd2f4f18f29d2f7df9e52b83cac&v=4",
+                        "login": "heygarrett",
+                        "resourcePath": "/heygarrett",
+                        "url": "https://github.com/heygarrett"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks! Do you have any plans to provide this as a configurable option? Maybe even if undocumented? 😅",
+                    "bodyHTML": "<p dir=\"auto\">Thanks! Do you have any plans to provide this as a configurable option? Maybe even if undocumented? 😅</p>",
+                    "bodyText": "Thanks! Do you have any plans to provide this as a configurable option? Maybe even if undocumented? 😅",
+                    "createdAt": "2023-10-15T18:00:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 7286160,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aby2Q",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2023-10-15T18:00:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 7286139,
+                        "id": "DC_kwDOFoksYM4Aby17",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286139"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286160",
+                    "updatedAt": "2023-10-15T18:00:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286160"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Probably not until 'mini.snippets' is actually a thing. Which might be sooner than I hoped (but still not days/weeks ahead).",
+                    "bodyHTML": "<p dir=\"auto\">Probably not until 'mini.snippets' is actually a thing. Which might be sooner than I hoped (but still not days/weeks ahead).</p>",
+                    "bodyText": "Probably not until 'mini.snippets' is actually a thing. Which might be sooner than I hoped (but still not days/weeks ahead).",
+                    "createdAt": "2023-10-15T18:05:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 7286181,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aby2l",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2023-10-15T18:05:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 7286139,
+                        "id": "DC_kwDOFoksYM4Aby17",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286139"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286181",
+                    "updatedAt": "2023-10-15T18:05:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286181"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286139",
+            "updatedAt": "2023-10-15T17:54:33Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/517#discussioncomment-7286139"
+        }
+    ],
+    "createdAt": "2023-10-15T17:42:01Z",
+    "createdViaEmail": false,
+    "databaseId": 5739206,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1154912?u=c5844a16e7897cd2f4f18f29d2f7df9e52b83cac&v=4",
+        "login": "heygarrett",
+        "resourcePath": "/heygarrett",
+        "url": "https://github.com/heygarrett"
+    },
+    "id": "D_kwDOFoksYM4AV5LG",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2023-10-15T17:42:17Z",
+    "locked": false,
+    "number": 517,
+    "poll": null,
+    "publishedAt": "2023-10-15T17:42:01Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/517",
+    "stateReason": "RESOLVED",
+    "title": "mini.completion: Is there a way to not filter out LSP snippets?",
+    "updatedAt": "2023-10-15T18:05:11Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/517"
+}

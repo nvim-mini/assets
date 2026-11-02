@@ -1,0 +1,190 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/6607187?u=aa7363e9e653be5daf9d40a56c52e3adf6988ed0&v=4",
+        "login": "justus2510",
+        "resourcePath": "/justus2510",
+        "url": "https://github.com/justus2510"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "I noticed that the LSP completion is sometimes not listing all items. After some investigation, I believe this is because CompletionList.isIncomplete isn't handled. The [spec](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion) says: \r\n\r\n> for speed clients should be able to filter an already received completion list if the user continues typing. Servers can opt out of this using a [CompletionList](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionList) and mark it as isIncomplete.\r\n\r\nThis leads to weird situations where typing slow and typing fast leads to different results (because of the delay):\r\n![slow](https://github.com/user-attachments/assets/04089dda-dc88-4938-9795-53331437119d)\r\n![fast](https://github.com/user-attachments/assets/28675d41-16e7-4495-b7d5-8ec7adce13f6)\r\n\r\nI prefer to have the delay set to 0, which just makes it worse. The only way around this is to use ctrl+space to force another request.\r\n\r\nI'm not sure if this is intended to keep the plugin minimal or not (like the situation with workspace symbols), so I didn't want to open an issue.",
+    "bodyHTML": "<p dir=\"auto\">I noticed that the LSP completion is sometimes not listing all items. After some investigation, I believe this is because CompletionList.isIncomplete isn't handled. The <a href=\"https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion\" rel=\"nofollow\">spec</a> says:</p>\n<blockquote>\n<p dir=\"auto\">for speed clients should be able to filter an already received completion list if the user continues typing. Servers can opt out of this using a <a href=\"https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionList\" rel=\"nofollow\">CompletionList</a> and mark it as isIncomplete.</p>\n</blockquote>\n<p dir=\"auto\">This leads to weird situations where typing slow and typing fast leads to different results (because of the delay):<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/6607187/348463722-04089dda-dc88-4938-9795-53331437119d.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MjYsIm5iZiI6MTc5MzU1MzEyNiwicGF0aCI6Ii82NjA3MTg3LzM0ODQ2MzcyMi0wNDA4OWRkYS1kYzg4LTQ5MzgtOTc5NS01MzMzMTQzNzExOWQuZ2lmP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMjA2WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NWEzZTIxNDgzODMxOTA1ZGUyZjRmMGEzOTljMDYwYjlmZjhkN2QxODgzZTg3MmNmOTBmMmJhZGJmMTZkNmFlZCZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGZ2lmIn0._ROxFFo9T26EJXipt42dTlHzOpkPIteQRIXPNufWzls\"><img src=\"https://private-user-images.githubusercontent.com/6607187/348463722-04089dda-dc88-4938-9795-53331437119d.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MjYsIm5iZiI6MTc5MzU1MzEyNiwicGF0aCI6Ii82NjA3MTg3LzM0ODQ2MzcyMi0wNDA4OWRkYS1kYzg4LTQ5MzgtOTc5NS01MzMzMTQzNzExOWQuZ2lmP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMjA2WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NWEzZTIxNDgzODMxOTA1ZGUyZjRmMGEzOTljMDYwYjlmZjhkN2QxODgzZTg3MmNmOTBmMmJhZGJmMTZkNmFlZCZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGZ2lmIn0._ROxFFo9T26EJXipt42dTlHzOpkPIteQRIXPNufWzls\" alt=\"slow\" data-animated-image=\"\" style=\"max-width: 100%;\"></a><br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/6607187/348463725-28675d41-16e7-4495-b7d5-8ec7adce13f6.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MjYsIm5iZiI6MTc5MzU1MzEyNiwicGF0aCI6Ii82NjA3MTg3LzM0ODQ2MzcyNS0yODY3NWQ0MS0xNmU3LTQ0OTUtYjdkNS04ZWM3YWRjZTEzZjYuZ2lmP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMjA2WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NGU2ZTYyZGExZTBhMWU1ZDcxMmJmNjcxZWQ5NTYwNGQ0OTI2M2UwMzE1MTRkNjllZDc3NjAyZDRmZjNkYzVkMSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGZ2lmIn0.v_lt9WWP0ji-uDC13T4Gc_qDGJhU4qaSb67QbvkZ5v4\"><img src=\"https://private-user-images.githubusercontent.com/6607187/348463725-28675d41-16e7-4495-b7d5-8ec7adce13f6.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MjYsIm5iZiI6MTc5MzU1MzEyNiwicGF0aCI6Ii82NjA3MTg3LzM0ODQ2MzcyNS0yODY3NWQ0MS0xNmU3LTQ0OTUtYjdkNS04ZWM3YWRjZTEzZjYuZ2lmP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMjA2WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NGU2ZTYyZGExZTBhMWU1ZDcxMmJmNjcxZWQ5NTYwNGQ0OTI2M2UwMzE1MTRkNjllZDc3NjAyZDRmZjNkYzVkMSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGZ2lmIn0.v_lt9WWP0ji-uDC13T4Gc_qDGJhU4qaSb67QbvkZ5v4\" alt=\"fast\" data-animated-image=\"\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">I prefer to have the delay set to 0, which just makes it worse. The only way around this is to use ctrl+space to force another request.</p>\n<p dir=\"auto\">I'm not sure if this is intended to keep the plugin minimal or not (like the situation with workspace symbols), so I didn't want to open an issue.</p>",
+    "bodyText": "I noticed that the LSP completion is sometimes not listing all items. After some investigation, I believe this is because CompletionList.isIncomplete isn't handled. The spec says:\n\nfor speed clients should be able to filter an already received completion list if the user continues typing. Servers can opt out of this using a CompletionList and mark it as isIncomplete.\n\nThis leads to weird situations where typing slow and typing fast leads to different results (because of the delay):\n\n\nI prefer to have the delay set to 0, which just makes it worse. The only way around this is to use ctrl+space to force another request.\nI'm not sure if this is intended to keep the plugin minimal or not (like the situation with workspace symbols), so I didn't want to open an issue.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-07-13T11:07:48Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> I'm not sure if this is intended to keep the plugin minimal or not (like the situation with workspace symbols), so I didn't want to open an issue.\r\n\r\nThanks for the thought, I appreciate that!\r\n\r\nIt is indeed a known behavior which probably won't get resolved. The reason for this is that 'mini.completion' is designed to rely on built-in completion capabilities as much as possible. In particular, this means that after the results are received from the LSP server, they are shown/filtered/unfiltered with built-in mechanics. Which doesn't have the concept of \"this *might* be not all completion candidates, please request the rest\".\r\n\r\nForcing with `<C-Space>` is the suggested approach here. And overall design is tailored to having not trivial delay, which indeed might be useful here.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">I'm not sure if this is intended to keep the plugin minimal or not (like the situation with workspace symbols), so I didn't want to open an issue.</p>\n</blockquote>\n<p dir=\"auto\">Thanks for the thought, I appreciate that!</p>\n<p dir=\"auto\">It is indeed a known behavior which probably won't get resolved. The reason for this is that 'mini.completion' is designed to rely on built-in completion capabilities as much as possible. In particular, this means that after the results are received from the LSP server, they are shown/filtered/unfiltered with built-in mechanics. Which doesn't have the concept of \"this <em>might</em> be not all completion candidates, please request the rest\".</p>\n<p dir=\"auto\">Forcing with <code class=\"notranslate\">&lt;C-Space&gt;</code> is the suggested approach here. And overall design is tailored to having not trivial delay, which indeed might be useful here.</p>",
+            "bodyText": "I'm not sure if this is intended to keep the plugin minimal or not (like the situation with workspace symbols), so I didn't want to open an issue.\n\nThanks for the thought, I appreciate that!\nIt is indeed a known behavior which probably won't get resolved. The reason for this is that 'mini.completion' is designed to rely on built-in completion capabilities as much as possible. In particular, this means that after the results are received from the LSP server, they are shown/filtered/unfiltered with built-in mechanics. Which doesn't have the concept of \"this might be not all completion candidates, please request the rest\".\nForcing with <C-Space> is the suggested approach here. And overall design is tailored to having not trivial delay, which indeed might be useful here.",
+            "createdAt": "2024-07-13T11:07:48Z",
+            "createdViaEmail": false,
+            "databaseId": 10038484,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AmSzU",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-13T11:07:48Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1057#discussioncomment-10038484",
+            "updatedAt": "2024-07-13T11:07:48Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1057#discussioncomment-10038484"
+        }
+    ],
+    "createdAt": "2024-07-13T09:55:30Z",
+    "createdViaEmail": false,
+    "databaseId": 6929401,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/6607187?u=aa7363e9e653be5daf9d40a56c52e3adf6988ed0&v=4",
+        "login": "justus2510",
+        "resourcePath": "/justus2510",
+        "url": "https://github.com/justus2510"
+    },
+    "id": "D_kwDOFoksYM4Aabv5",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [],
+        "totalCount": 0
+    },
+    "lastEditedAt": "2024-07-13T09:57:58Z",
+    "locked": false,
+    "number": 1057,
+    "poll": null,
+    "publishedAt": "2024-07-13T09:55:30Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1057",
+    "stateReason": "RESOLVED",
+    "title": "[mini.completion] LSP completion items can be incomplete",
+    "updatedAt": "2024-07-13T11:07:48Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1057"
+}

@@ -1,0 +1,296 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12136572,
+        "id": "DC_kwDOFoksYM4AuTB8",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12136572"
+    },
+    "answerChosenAt": "2025-02-11T08:46:34Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/99310348?u=afe88f5df235e6af8f6f4a29ca17c3f59ced5b75&v=4",
+        "login": "nmfirdausw",
+        "resourcePath": "/nmfirdausw",
+        "url": "https://github.com/nmfirdausw"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [x] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.files\n\n### Question\n\nI did this autocmd but it broken synchronization detection, \r\n\r\nvim.api.nvim_create_autocmd(\"WinResized\", {\r\n    pattern = \"*\",\r\n    callback = function()\r\n      require(\"mini.files\").setup({\r\n        windows = {\r\n          width_preview = vim.o.columns - 41,\r\n        },\r\n      })\r\n    end,\r\n  })",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.files</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I did this autocmd but it broken synchronization detection,</p>\n<p dir=\"auto\">vim.api.nvim_create_autocmd(\"WinResized\", {<br>\npattern = \"*\",<br>\ncallback = function()<br>\nrequire(\"mini.files\").setup({<br>\nwindows = {<br>\nwidth_preview = vim.o.columns - 41,<br>\n},<br>\n})<br>\nend,<br>\n})</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.files\nQuestion\nI did this autocmd but it broken synchronization detection,\nvim.api.nvim_create_autocmd(\"WinResized\", {\npattern = \"*\",\ncallback = function()\nrequire(\"mini.files\").setup({\nwindows = {\nwidth_preview = vim.o.columns - 41,\n},\n})\nend,\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-02-11T08:46:31Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There are several issues here:\r\n- `WinResized` is not the right event for this as it triggers whenever regular *Neovim* window is resized. You'd want `VimResized` to detect when terminal's instance is resized.\r\n- Executing `setup()` is a bit too much in this particular context. In general, executing `setup()` for any 'mini.nvim' module is recommended to 1) enable plugin with its initial config; or 2) perform an action that is specific to `setup()` (like create mappings). For \"on the fly\" config modification it is *usually* enough to modify `config` field (in this case `MiniFiles.config`) directly. See more [\"Setup\" section of \"General principles\"](https://github.com/echasnovski/mini.nvim?tab=readme-ov-file#general-principles).\r\n- There is [`MiniFiles.refresh()`](https://github.com/echasnovski/mini.nvim/blob/c3e3cc925217b59f1b39264c6981eb1692a86466/doc/mini-files.txt#L735) to update the config of the currently shown explorer.\r\n\r\nTaking into account all of that, the following setup works:\r\n\r\n```lua\r\nrequire('mini.files').setup({\r\n  windows = {\r\n    preview = true,\r\n    width_focus = 37,\r\n    width_preview = vim.o.columns - 41,\r\n  },\r\n})\r\n\r\nvim.api.nvim_create_autocmd('VimResized', {\r\n  callback = function()\r\n    local new_width_preview = vim.o.columns - 41\r\n    -- Update current explorer (if any)\r\n    MiniFiles.refresh({ windows = { width_preview = new_width_preview } })\r\n    -- Update config for all future explorers\r\n    MiniFiles.config.windows.width_preview = new_width_preview\r\n  end,\r\n})\r\n```",
+            "bodyHTML": "<p dir=\"auto\">There are several issues here:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">WinResized</code> is not the right event for this as it triggers whenever regular <em>Neovim</em> window is resized. You'd want <code class=\"notranslate\">VimResized</code> to detect when terminal's instance is resized.</li>\n<li>Executing <code class=\"notranslate\">setup()</code> is a bit too much in this particular context. In general, executing <code class=\"notranslate\">setup()</code> for any 'mini.nvim' module is recommended to 1) enable plugin with its initial config; or 2) perform an action that is specific to <code class=\"notranslate\">setup()</code> (like create mappings). For \"on the fly\" config modification it is <em>usually</em> enough to modify <code class=\"notranslate\">config</code> field (in this case <code class=\"notranslate\">MiniFiles.config</code>) directly. See more <a href=\"https://github.com/echasnovski/mini.nvim?tab=readme-ov-file#general-principles\">\"Setup\" section of \"General principles\"</a>.</li>\n<li>There is <a href=\"https://github.com/echasnovski/mini.nvim/blob/c3e3cc925217b59f1b39264c6981eb1692a86466/doc/mini-files.txt#L735\"><code class=\"notranslate\">MiniFiles.refresh()</code></a> to update the config of the currently shown explorer.</li>\n</ul>\n<p dir=\"auto\">Taking into account all of that, the following setup works:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.files').setup({\n  windows = {\n    preview = true,\n    width_focus = 37,\n    width_preview = vim.o.columns - 41,\n  },\n})\n\nvim.api.nvim_create_autocmd('VimResized', {\n  callback = function()\n    local new_width_preview = vim.o.columns - 41\n    -- Update current explorer (if any)\n    MiniFiles.refresh({ windows = { width_preview = new_width_preview } })\n    -- Update config for all future explorers\n    MiniFiles.config.windows.width_preview = new_width_preview\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.files<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n    <span class=\"pl-smi\">width_focus</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">37</span>,\n    <span class=\"pl-smi\">width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">41</span>,\n  },\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>VimResized<span class=\"pl-pds\">'</span></span>, {\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">41</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Update current explorer (if any)</span>\n    <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">refresh</span>({ <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_width_preview</span> } })\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Update config for all future explorers</span>\n    <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_width_preview</span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>",
+            "bodyText": "There are several issues here:\n\nWinResized is not the right event for this as it triggers whenever regular Neovim window is resized. You'd want VimResized to detect when terminal's instance is resized.\nExecuting setup() is a bit too much in this particular context. In general, executing setup() for any 'mini.nvim' module is recommended to 1) enable plugin with its initial config; or 2) perform an action that is specific to setup() (like create mappings). For \"on the fly\" config modification it is usually enough to modify config field (in this case MiniFiles.config) directly. See more \"Setup\" section of \"General principles\".\nThere is MiniFiles.refresh() to update the config of the currently shown explorer.\n\nTaking into account all of that, the following setup works:\nrequire('mini.files').setup({\n  windows = {\n    preview = true,\n    width_focus = 37,\n    width_preview = vim.o.columns - 41,\n  },\n})\n\nvim.api.nvim_create_autocmd('VimResized', {\n  callback = function()\n    local new_width_preview = vim.o.columns - 41\n    -- Update current explorer (if any)\n    MiniFiles.refresh({ windows = { width_preview = new_width_preview } })\n    -- Update config for all future explorers\n    MiniFiles.config.windows.width_preview = new_width_preview\n  end,\n})",
+            "createdAt": "2025-02-11T08:46:31Z",
+            "createdViaEmail": false,
+            "databaseId": 12136572,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AuTB8",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-02-11T08:46:31Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/99310348?u=afe88f5df235e6af8f6f4a29ca17c3f59ced5b75&v=4",
+                        "login": "nmfirdausw",
+                        "resourcePath": "/nmfirdausw",
+                        "url": "https://github.com/nmfirdausw"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks a lot for fast reply and for the solutions. With this config, I can replace oil.nvim already. Thanks",
+                    "bodyHTML": "<p dir=\"auto\">Thanks a lot for fast reply and for the solutions. With this config, I can replace oil.nvim already. Thanks</p>",
+                    "bodyText": "Thanks a lot for fast reply and for the solutions. With this config, I can replace oil.nvim already. Thanks",
+                    "createdAt": "2025-02-11T10:59:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12139177,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AuTqp",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-11T10:59:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12136572,
+                        "id": "DC_kwDOFoksYM4AuTB8",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12136572"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12139177",
+                    "updatedAt": "2025-02-11T10:59:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12139177"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12136572",
+            "updatedAt": "2025-02-11T08:46:32Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12136572"
+        }
+    ],
+    "createdAt": "2025-02-11T06:29:16Z",
+    "createdViaEmail": false,
+    "databaseId": 7944738,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/99310348?u=afe88f5df235e6af8f6f4a29ca17c3f59ced5b75&v=4",
+        "login": "nmfirdausw",
+        "resourcePath": "/nmfirdausw",
+        "url": "https://github.com/nmfirdausw"
+    },
+    "id": "D_kwDOFoksYM4AeToi",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-02-11T10:59:40Z",
+    "locked": false,
+    "number": 1564,
+    "poll": null,
+    "publishedAt": "2025-02-11T06:29:16Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1564",
+    "stateReason": "RESOLVED",
+    "title": "[mini.files] Auto resize preview window width when resize terminal windows.",
+    "updatedAt": "2025-02-11T10:59:40Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1564"
+}

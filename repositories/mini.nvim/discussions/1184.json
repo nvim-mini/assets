@@ -1,0 +1,359 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/67447889?v=4",
+        "login": "iparnelly",
+        "resourcePath": "/iparnelly",
+        "url": "https://github.com/iparnelly"
+    },
+    "authorAssociation": "NONE",
+    "body": "I wrote a quick autocommand to automatically traverse directories that are empty outside of a single nested directory.\r\n\r\nhttps://github.com/user-attachments/assets/08ce054e-c92e-4904-ac5b-e771c59ded01\r\n\r\nDirectory Structure for demo above:\r\n```sh\r\n> tree\r\n\r\n.\r\n├── README.md\r\n└── a\r\n    └── b\r\n        └── c\r\n            ├── d\r\n            │   └── e\r\n            │       └── node.lua\r\n            └── node.lua\r\n\r\n6 directories, 3 files\r\n```\r\n\r\n### Implementation\r\nI basically just check if there is only 1 line in the buffer, and confirm that the entry is a directory. If it is, then I call `go_in`. \r\n\r\nI'm not lua-fluent (or even vim-api fluent) so if there are any issues you see that this might run into, let me know! \r\n\r\nI ran into a nice recursive loop situation, hence the `vim.schedule`. Otherwise, things are pretty straightforward.\r\n\r\n\r\n### Code:\r\n```lua\r\nvim.api.nvim_create_autocmd({ \"User\" }, {\r\n  pattern = { \"MiniFilesWindowOpen\" },\r\n  group = require(\"config.autocmds\").create_augroup_name(\"minifiles_auto_expand\"),\r\n  callback = function(data)\r\n    local bufnr = data.data.buf_id\r\n    local line_count = vim.api.nvim_buf_line_count(bufnr)\r\n    if line_count ~= 1 then\r\n      return\r\n    end\r\n\r\n    local entry = require(\"mini.files\").get_fs_entry(bufnr, 1)\r\n    if entry and entry.fs_type == \"directory\" then\r\n      vim.schedule(function()\r\n        require(\"mini.files\").go_in()\r\n      end)\r\n    end\r\n  end,\r\n})\r\n```\r\n\r\nThanks ",
+    "bodyHTML": "<p dir=\"auto\">I wrote a quick autocommand to automatically traverse directories that are empty outside of a single nested directory.</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">Screen.Recording.2024-08-29.at.2.40.58.PM.mov</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/67447889/362874793-08ce054e-c92e-4904-ac5b-e771c59ded01.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNzIsIm5iZiI6MTc5MzU1MzA3MiwicGF0aCI6Ii82NzQ0Nzg4OS8zNjI4NzQ3OTMtMDhjZTA1NGUtYzkyZS00OTA0LWFjNWItZTc3MWM1OWRlZDAxLm1vdj9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTExMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTJiYzMyNzllYTg0ZmEyN2MxNGVkOWUxMDdiMDJiMWRmODUyMzQyNWYwN2U2NWYwN2M0YzE3NzVhNzFjNzU2MzAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRnF1aWNrdGltZSJ9.8m3zZ5iLVK2oe9okRoJv4Rh-vvLxoaHUcbt8yZ9JCec\" data-canonical-src=\"https://private-user-images.githubusercontent.com/67447889/362874793-08ce054e-c92e-4904-ac5b-e771c59ded01.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNzIsIm5iZiI6MTc5MzU1MzA3MiwicGF0aCI6Ii82NzQ0Nzg4OS8zNjI4NzQ3OTMtMDhjZTA1NGUtYzkyZS00OTA0LWFjNWItZTc3MWM1OWRlZDAxLm1vdj9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTExMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTJiYzMyNzllYTg0ZmEyN2MxNGVkOWUxMDdiMDJiMWRmODUyMzQyNWYwN2U2NWYwN2M0YzE3NzVhNzFjNzU2MzAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRnF1aWNrdGltZSJ9.8m3zZ5iLVK2oe9okRoJv4Rh-vvLxoaHUcbt8yZ9JCec\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">Directory Structure for demo above:</p>\n<div class=\"highlight highlight-source-shell notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"&gt; tree\n\n.\n├── README.md\n└── a\n    └── b\n        └── c\n            ├── d\n            │   └── e\n            │       └── node.lua\n            └── node.lua\n\n6 directories, 3 files\"><pre class=\"notranslate\"><span class=\"pl-k\">&gt;</span> tree\n\n<span class=\"pl-c1\">.</span>\n├── README.md\n└── a\n    └── b\n        └── c\n            ├── d\n            │   └── e\n            │       └── node.lua\n            └── node.lua\n\n6 directories, 3 files</pre></div>\n<h3 dir=\"auto\">Implementation</h3>\n<p dir=\"auto\">I basically just check if there is only 1 line in the buffer, and confirm that the entry is a directory. If it is, then I call <code class=\"notranslate\">go_in</code>.</p>\n<p dir=\"auto\">I'm not lua-fluent (or even vim-api fluent) so if there are any issues you see that this might run into, let me know!</p>\n<p dir=\"auto\">I ran into a nice recursive loop situation, hence the <code class=\"notranslate\">vim.schedule</code>. Otherwise, things are pretty straightforward.</p>\n<h3 dir=\"auto\">Code:</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd({ &quot;User&quot; }, {\n  pattern = { &quot;MiniFilesWindowOpen&quot; },\n  group = require(&quot;config.autocmds&quot;).create_augroup_name(&quot;minifiles_auto_expand&quot;),\n  callback = function(data)\n    local bufnr = data.data.buf_id\n    local line_count = vim.api.nvim_buf_line_count(bufnr)\n    if line_count ~= 1 then\n      return\n    end\n\n    local entry = require(&quot;mini.files&quot;).get_fs_entry(bufnr, 1)\n    if entry and entry.fs_type == &quot;directory&quot; then\n      vim.schedule(function()\n        require(&quot;mini.files&quot;).go_in()\n      end)\n    end\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesWindowOpen<span class=\"pl-pds\">\" </span></span>},\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>config.autocmds<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">create_augroup_name</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minifiles_auto_expand<span class=\"pl-pds\">\"</span></span>),\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">data</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line_count</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_line_count</span>(<span class=\"pl-smi\">bufnr</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">line_count</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">get_fs_entry</span>(<span class=\"pl-smi\">bufnr</span>, <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">entry</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">entry</span>.<span class=\"pl-e\">fs_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>directory<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n        <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">go_in</span>()\n      <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">Thanks</p>",
+    "bodyText": "I wrote a quick autocommand to automatically traverse directories that are empty outside of a single nested directory.\n\n  \n    \n    \n\n    Screen.Recording.2024-08-29.at.2.40.58.PM.mov\n    \n  \n\n  \n\n  \n\n\nDirectory Structure for demo above:\n> tree\n\n.\n├── README.md\n└── a\n    └── b\n        └── c\n            ├── d\n            │   └── e\n            │       └── node.lua\n            └── node.lua\n\n6 directories, 3 files\nImplementation\nI basically just check if there is only 1 line in the buffer, and confirm that the entry is a directory. If it is, then I call go_in.\nI'm not lua-fluent (or even vim-api fluent) so if there are any issues you see that this might run into, let me know!\nI ran into a nice recursive loop situation, hence the vim.schedule. Otherwise, things are pretty straightforward.\nCode:\nvim.api.nvim_create_autocmd({ \"User\" }, {\n  pattern = { \"MiniFilesWindowOpen\" },\n  group = require(\"config.autocmds\").create_augroup_name(\"minifiles_auto_expand\"),\n  callback = function(data)\n    local bufnr = data.data.buf_id\n    local line_count = vim.api.nvim_buf_line_count(bufnr)\n    if line_count ~= 1 then\n      return\n    end\n\n    local entry = require(\"mini.files\").get_fs_entry(bufnr, 1)\n    if entry and entry.fs_type == \"directory\" then\n      vim.schedule(function()\n        require(\"mini.files\").go_in()\n      end)\n    end\n  end,\n})\nThanks",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing! This looks nice!\r\n\r\nThe way I'd approach this, though, is via custom mapping. This looks more robust than `MiniFilesWindowOpen` autocommand (mainly because it will also work when windows are still open). So something like this:\r\n\r\n```lua\r\nlocal expand_single_dir\r\nexpand_single_dir = vim.schedule_wrap(function()\r\n  local is_one_dir = vim.api.nvim_buf_line_count(0) == 1 and (MiniFiles.get_fs_entry() or {}).fs_type == 'directory'\r\n  if not is_one_dir then return end\r\n  MiniFiles.go_in()\r\n  expand_single_dir()\r\nend)\r\n\r\nlocal go_in_and_expand = function()\r\n  MiniFiles.go_in()\r\n  expand_single_dir()\r\nend\r\n\r\nvim.api.nvim_create_autocmd('User', {\r\n  pattern = 'MiniFilesBufferCreate',\r\n  callback = function(args) vim.keymap.set('n', 'l', go_in_and_expand, { buffer = args.data.buf_id }) end,\r\n})\r\n\r\nrequire('mini.files').setup({ mappings = { go_in = '' } })\r\n```\r\n\r\nMapping's LHS can be change to be something other than `l`, which is mostly a matter of taste here.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing! This looks nice!</p>\n<p dir=\"auto\">The way I'd approach this, though, is via custom mapping. This looks more robust than <code class=\"notranslate\">MiniFilesWindowOpen</code> autocommand (mainly because it will also work when windows are still open). So something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local expand_single_dir\nexpand_single_dir = vim.schedule_wrap(function()\n  local is_one_dir = vim.api.nvim_buf_line_count(0) == 1 and (MiniFiles.get_fs_entry() or {}).fs_type == 'directory'\n  if not is_one_dir then return end\n  MiniFiles.go_in()\n  expand_single_dir()\nend)\n\nlocal go_in_and_expand = function()\n  MiniFiles.go_in()\n  expand_single_dir()\nend\n\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args) vim.keymap.set('n', 'l', go_in_and_expand, { buffer = args.data.buf_id }) end,\n})\n\nrequire('mini.files').setup({ mappings = { go_in = '' } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">expand_single_dir</span>\n<span class=\"pl-smi\">expand_single_dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_one_dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_line_count</span>(<span class=\"pl-c1\">0</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> (<span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_fs_entry</span>() <span class=\"pl-k\">or</span> {}).<span class=\"pl-e\">fs_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>directory<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">is_one_dir</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">go_in</span>()\n  <span class=\"pl-c1\">expand_single_dir</span>()\n<span class=\"pl-k\">end</span>)\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">go_in_and_expand</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">go_in</span>()\n  <span class=\"pl-c1\">expand_single_dir</span>()\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniFilesBufferCreate<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">go_in_and_expand</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span> }) <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.files<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">go_in</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span>} })</pre></div>\n<p dir=\"auto\">Mapping's LHS can be change to be something other than <code class=\"notranslate\">l</code>, which is mostly a matter of taste here.</p>",
+            "bodyText": "Thanks for sharing! This looks nice!\nThe way I'd approach this, though, is via custom mapping. This looks more robust than MiniFilesWindowOpen autocommand (mainly because it will also work when windows are still open). So something like this:\nlocal expand_single_dir\nexpand_single_dir = vim.schedule_wrap(function()\n  local is_one_dir = vim.api.nvim_buf_line_count(0) == 1 and (MiniFiles.get_fs_entry() or {}).fs_type == 'directory'\n  if not is_one_dir then return end\n  MiniFiles.go_in()\n  expand_single_dir()\nend)\n\nlocal go_in_and_expand = function()\n  MiniFiles.go_in()\n  expand_single_dir()\nend\n\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args) vim.keymap.set('n', 'l', go_in_and_expand, { buffer = args.data.buf_id }) end,\n})\n\nrequire('mini.files').setup({ mappings = { go_in = '' } })\nMapping's LHS can be change to be something other than l, which is mostly a matter of taste here.",
+            "createdAt": "2024-08-30T10:51:01Z",
+            "createdViaEmail": false,
+            "databaseId": 10497598,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AoC4-",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-30T10:51:01Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/67447889?v=4",
+                        "login": "iparnelly",
+                        "resourcePath": "/iparnelly",
+                        "url": "https://github.com/iparnelly"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Hey thanks for the feedback! \r\n\r\nI didn't follow this though, can you expand?\r\n> mainly because it will also work when windows are still open\r\n\r\n\r\n\r\n\r\nI'll take your word for it though. I ended up modifying your `go_in_and_expand` function to allow for passing in args to `go_in()` (e.g. `{close_on_true}`)\r\n\r\n```lua\r\nlocal go_in_and_expand = function(...)\r\n  local fs_entry = MiniFiles.get_fs_entry()\r\n  if not fs_entry then\r\n    return\r\n  end\r\n\r\n  MiniFiles.go_in(...)\r\n  if fs_entry.fs_type == \"directory\" then\r\n    expand_single_dir()\r\n  end\r\nend\r\n\r\nvim.api.nvim_create_autocmd('User', {\r\n  pattern = 'MiniFilesBufferCreate',\r\n  callback = function(args) \r\n    vim.keymap.set(\"n\", \"l\", function()\r\n      go_in_and_expand({ close_on_file = true })\r\n    end, { buffer = args.data.buf_id })\r\n    vim.keymap.set(\"n\", \"L\", function()\r\n      go_in_and_expand()\r\n    end, { buffer = args.data.buf_id })\r\n  end,\r\n})\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Hey thanks for the feedback!</p>\n<p dir=\"auto\">I didn't follow this though, can you expand?</p>\n<blockquote>\n<p dir=\"auto\">mainly because it will also work when windows are still open</p>\n</blockquote>\n<p dir=\"auto\">I'll take your word for it though. I ended up modifying your <code class=\"notranslate\">go_in_and_expand</code> function to allow for passing in args to <code class=\"notranslate\">go_in()</code> (e.g. <code class=\"notranslate\">{close_on_true}</code>)</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local go_in_and_expand = function(...)\n  local fs_entry = MiniFiles.get_fs_entry()\n  if not fs_entry then\n    return\n  end\n\n  MiniFiles.go_in(...)\n  if fs_entry.fs_type == &quot;directory&quot; then\n    expand_single_dir()\n  end\nend\n\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args) \n    vim.keymap.set(&quot;n&quot;, &quot;l&quot;, function()\n      go_in_and_expand({ close_on_file = true })\n    end, { buffer = args.data.buf_id })\n    vim.keymap.set(&quot;n&quot;, &quot;L&quot;, function()\n      go_in_and_expand()\n    end, { buffer = args.data.buf_id })\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">go_in_and_expand</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(...)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fs_entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_fs_entry</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">fs_entry</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">go_in</span>(<span class=\"pl-c1\">...</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">fs_entry</span>.<span class=\"pl-e\">fs_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>directory<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">expand_single_dir</span>()\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniFilesBufferCreate<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>) \n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">go_in_and_expand</span>({ <span class=\"pl-smi\">close_on_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n    <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>L<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">go_in_and_expand</span>()\n    <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span> })\n  <span class=\"pl-k\">end</span>,\n})</pre></div>",
+                    "bodyText": "Hey thanks for the feedback!\nI didn't follow this though, can you expand?\n\nmainly because it will also work when windows are still open\n\nI'll take your word for it though. I ended up modifying your go_in_and_expand function to allow for passing in args to go_in() (e.g. {close_on_true})\nlocal go_in_and_expand = function(...)\n  local fs_entry = MiniFiles.get_fs_entry()\n  if not fs_entry then\n    return\n  end\n\n  MiniFiles.go_in(...)\n  if fs_entry.fs_type == \"directory\" then\n    expand_single_dir()\n  end\nend\n\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args) \n    vim.keymap.set(\"n\", \"l\", function()\n      go_in_and_expand({ close_on_file = true })\n    end, { buffer = args.data.buf_id })\n    vim.keymap.set(\"n\", \"L\", function()\n      go_in_and_expand()\n    end, { buffer = args.data.buf_id })\n  end,\n})",
+                    "createdAt": "2024-08-30T15:53:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10500885,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoDsV",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-30T15:53:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10497598,
+                        "id": "DC_kwDOFoksYM4AoC4-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10497598"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10500885",
+                    "updatedAt": "2024-08-30T15:53:35Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10500885"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I didn't follow this though, can you expand?\r\n\r\nOn what exactly? It creates a buffer-local mapping for every buffer inside 'mini.files' explorer. When that mapping is executed, it calls `go_in()` followed by a recursive \"expand single directory\" action. This is both more straightforward to reason about (for example, because it is executed on demand and not as a side effect of an autocommand) and should work in more cases (like when there is already an open window to the right which contains single directory; it will be skipped with this version and not skipped with `MiniFilesWindowOpen` autocommand).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I didn't follow this though, can you expand?</p>\n</blockquote>\n<p dir=\"auto\">On what exactly? It creates a buffer-local mapping for every buffer inside 'mini.files' explorer. When that mapping is executed, it calls <code class=\"notranslate\">go_in()</code> followed by a recursive \"expand single directory\" action. This is both more straightforward to reason about (for example, because it is executed on demand and not as a side effect of an autocommand) and should work in more cases (like when there is already an open window to the right which contains single directory; it will be skipped with this version and not skipped with <code class=\"notranslate\">MiniFilesWindowOpen</code> autocommand).</p>",
+                    "bodyText": "I didn't follow this though, can you expand?\n\nOn what exactly? It creates a buffer-local mapping for every buffer inside 'mini.files' explorer. When that mapping is executed, it calls go_in() followed by a recursive \"expand single directory\" action. This is both more straightforward to reason about (for example, because it is executed on demand and not as a side effect of an autocommand) and should work in more cases (like when there is already an open window to the right which contains single directory; it will be skipped with this version and not skipped with MiniFilesWindowOpen autocommand).",
+                    "createdAt": "2024-08-30T17:16:01Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10501743,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoD5v",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-30T17:16:01Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10497598,
+                        "id": "DC_kwDOFoksYM4AoC4-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10497598"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10501743",
+                    "updatedAt": "2024-08-30T17:16:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10501743"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10497598",
+            "updatedAt": "2024-08-30T10:51:01Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1184#discussioncomment-10497598"
+        }
+    ],
+    "createdAt": "2024-08-29T20:12:08Z",
+    "createdViaEmail": false,
+    "databaseId": 7110217,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AbH5J",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1184,
+    "poll": null,
+    "publishedAt": "2024-08-29T20:12:08Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1184",
+    "stateReason": null,
+    "title": "[mini.files] Auto-expand empty & nested dirs",
+    "updatedAt": "2024-08-30T17:16:01Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1184"
+}

@@ -1,0 +1,302 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12620110,
+        "id": "DC_kwDOFoksYM4AwJFO",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1699#discussioncomment-12620110"
+    },
+    "answerChosenAt": "2025-03-25T20:20:43Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.ai\r\n\r\n### Question\r\n\r\nHi echasnovski! Is there any way to make mappings in mini.ai to achieve the functionality similar to matchit.vim which basically is pressing % key to traverse between if and else keywords or function and end keywords. This would be of great help for me if possible some way since the default matchit plugin does not support filetypes like svelte :( . \r\nOne last question I had was if we can use mini.ai to navigate to the else keyword of a if-else chain in any manner possible.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Hi echasnovski! Is there any way to make mappings in mini.ai to achieve the functionality similar to matchit.vim which basically is pressing % key to traverse between if and else keywords or function and end keywords. This would be of great help for me if possible some way since the default matchit plugin does not support filetypes like svelte :( .<br>\nOne last question I had was if we can use mini.ai to navigate to the else keyword of a if-else chain in any manner possible.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai\nQuestion\nHi echasnovski! Is there any way to make mappings in mini.ai to achieve the functionality similar to matchit.vim which basically is pressing % key to traverse between if and else keywords or function and end keywords. This would be of great help for me if possible some way since the default matchit plugin does not support filetypes like svelte :( .\nOne last question I had was if we can use mini.ai to navigate to the else keyword of a if-else chain in any manner possible.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-03-25T20:20:39Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There is [`move_cursor()`](https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L586-L596). It is also used for [`goto_xxx` mappings](https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L441-L443). For example, `g])` goes to the right `)`. With `'cover'` search method (either global or set directly in `MiniAi.move_cursor()` call inside custom mappings) it will not go to the next `)` textobject which can be used to imitate `%`.\r\n\r\nAlternatively, there is a slightly more low-level [`find_textobject()`](https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L560) which can be used to decide where to put cursor.\r\n\r\nA more `%`-like alternative is [`find` or `find_left` actions](https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-surround.txt#L504-L505) from 'mini.surround'. Pressing `sf)` multiple times will act like `%` when traversing expression in parenthesis. Note, that it will possibly traverse through four cursor positions of surrounding (left start - left end - right start - right end).\r\n\r\n---\r\n\r\nThe problem with `if-else` case in particular is that it 1) needs to be a separate textobject/surrounding; 2) that textobject/surrounding needs to start at `if` and end at `else`. Creating this textobject/surrounding robustly should be possible via [tree-sitter-based textobject](https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L707) and possibly some custom queries. I am afraid this is as far as there can be given an advice, short of actually writing the queries.\r\n\r\nA **much** less accurate approach is to use the rule \"any text from `if` to the next `else`\". So something like this:\r\n\r\n```lua\r\nrequire('mini.ai').setup({\r\n  custom_textobjects = {\r\n    o = { 'if.-else', '^if().*()else$' },\r\n  },\r\n})\r\n\r\nrequire('mini.surround').setup({\r\n  custom_surroundings = {\r\n    o = {\r\n      input = { 'if.-else', '^if().*()else$' },\r\n      output = { left = 'if', right = 'else' },\r\n    },\r\n  },\r\n})\r\n```\r\n\r\nHope this helps.",
+            "bodyHTML": "<p dir=\"auto\">There is <a href=\"https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L586-L596\"><code class=\"notranslate\">move_cursor()</code></a>. It is also used for <a href=\"https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L441-L443\"><code class=\"notranslate\">goto_xxx</code> mappings</a>. For example, <code class=\"notranslate\">g])</code> goes to the right <code class=\"notranslate\">)</code>. With <code class=\"notranslate\">'cover'</code> search method (either global or set directly in <code class=\"notranslate\">MiniAi.move_cursor()</code> call inside custom mappings) it will not go to the next <code class=\"notranslate\">)</code> textobject which can be used to imitate <code class=\"notranslate\">%</code>.</p>\n<p dir=\"auto\">Alternatively, there is a slightly more low-level <a href=\"https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L560\"><code class=\"notranslate\">find_textobject()</code></a> which can be used to decide where to put cursor.</p>\n<p dir=\"auto\">A more <code class=\"notranslate\">%</code>-like alternative is <a href=\"https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-surround.txt#L504-L505\"><code class=\"notranslate\">find</code> or <code class=\"notranslate\">find_left</code> actions</a> from 'mini.surround'. Pressing <code class=\"notranslate\">sf)</code> multiple times will act like <code class=\"notranslate\">%</code> when traversing expression in parenthesis. Note, that it will possibly traverse through four cursor positions of surrounding (left start - left end - right start - right end).</p>\n<hr>\n<p dir=\"auto\">The problem with <code class=\"notranslate\">if-else</code> case in particular is that it 1) needs to be a separate textobject/surrounding; 2) that textobject/surrounding needs to start at <code class=\"notranslate\">if</code> and end at <code class=\"notranslate\">else</code>. Creating this textobject/surrounding robustly should be possible via <a href=\"https://github.com/echasnovski/mini.nvim/blob/3ad46cdb7a51281e0024416023b56cf5c7909ae7/doc/mini-ai.txt#L707\">tree-sitter-based textobject</a> and possibly some custom queries. I am afraid this is as far as there can be given an advice, short of actually writing the queries.</p>\n<p dir=\"auto\">A <strong>much</strong> less accurate approach is to use the rule \"any text from <code class=\"notranslate\">if</code> to the next <code class=\"notranslate\">else</code>\". So something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.ai').setup({\n  custom_textobjects = {\n    o = { 'if.-else', '^if().*()else$' },\n  },\n})\n\nrequire('mini.surround').setup({\n  custom_surroundings = {\n    o = {\n      input = { 'if.-else', '^if().*()else$' },\n      output = { left = 'if', right = 'else' },\n    },\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">o</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>if.-else<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^if().*()else$<span class=\"pl-pds\">' </span></span>},\n  },\n})\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.surround<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_surroundings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">o</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>if.-else<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^if().*()else$<span class=\"pl-pds\">' </span></span>},\n      <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>if<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>else<span class=\"pl-pds\">' </span></span>},\n    },\n  },\n})</pre></div>\n<p dir=\"auto\">Hope this helps.</p>",
+            "bodyText": "There is move_cursor(). It is also used for goto_xxx mappings. For example, g]) goes to the right ). With 'cover' search method (either global or set directly in MiniAi.move_cursor() call inside custom mappings) it will not go to the next ) textobject which can be used to imitate %.\nAlternatively, there is a slightly more low-level find_textobject() which can be used to decide where to put cursor.\nA more %-like alternative is find or find_left actions from 'mini.surround'. Pressing sf) multiple times will act like % when traversing expression in parenthesis. Note, that it will possibly traverse through four cursor positions of surrounding (left start - left end - right start - right end).\n\nThe problem with if-else case in particular is that it 1) needs to be a separate textobject/surrounding; 2) that textobject/surrounding needs to start at if and end at else. Creating this textobject/surrounding robustly should be possible via tree-sitter-based textobject and possibly some custom queries. I am afraid this is as far as there can be given an advice, short of actually writing the queries.\nA much less accurate approach is to use the rule \"any text from if to the next else\". So something like this:\nrequire('mini.ai').setup({\n  custom_textobjects = {\n    o = { 'if.-else', '^if().*()else$' },\n  },\n})\n\nrequire('mini.surround').setup({\n  custom_surroundings = {\n    o = {\n      input = { 'if.-else', '^if().*()else$' },\n      output = { left = 'if', right = 'else' },\n    },\n  },\n})\nHope this helps.",
+            "createdAt": "2025-03-25T20:20:39Z",
+            "createdViaEmail": false,
+            "databaseId": 12620110,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AwJFO",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-03-25T20:20:39Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you :)",
+                    "bodyHTML": "<p dir=\"auto\">Thank you :)</p>",
+                    "bodyText": "Thank you :)",
+                    "createdAt": "2025-03-26T02:33:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12622491,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AwJqb",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-26T02:33:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12620110,
+                        "id": "DC_kwDOFoksYM4AwJFO",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1699#discussioncomment-12620110"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1699#discussioncomment-12622491",
+                    "updatedAt": "2025-03-26T02:33:38Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1699#discussioncomment-12622491"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1699#discussioncomment-12620110",
+            "updatedAt": "2025-03-25T20:20:40Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1699#discussioncomment-12620110"
+        }
+    ],
+    "createdAt": "2025-03-25T19:31:23Z",
+    "createdViaEmail": false,
+    "databaseId": 8128739,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "id": "D_kwDOFoksYM4AfAjj",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vpB",
+                "name": "mini.surround"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2025-03-25T19:52:43Z",
+    "locked": false,
+    "number": 1699,
+    "poll": null,
+    "publishedAt": "2025-03-25T19:31:23Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1699",
+    "stateReason": "RESOLVED",
+    "title": "Any way to use mini.ai to work like something similar to matchit.vim",
+    "updatedAt": "2025-03-26T02:33:37Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1699"
+}

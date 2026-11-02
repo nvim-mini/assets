@@ -1,0 +1,207 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 14772146,
+        "id": "DC_kwDOFoksYM4A4Wey",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2083#discussioncomment-14772146"
+    },
+    "answerChosenAt": "2025-10-24T11:38:23Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/3841359?u=16e414a46e1403565308f60f51afb52481919ce7&v=4",
+        "login": "boxdot",
+        "resourcePath": "/boxdot",
+        "url": "https://github.com/boxdot"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.surround\n\n### Question\n\n`sdf` is super super useful for removing function calls. In languages with templates (Rust, C++), the same functionality would be very useful whenever removing a template e.g. doing `sdf` on `Vec<SomeType>` should just keep `SomeType`. \r\n\r\nIs there a way to customize `sdf` for that, or maybe introduce another shortcut? \r\n\r\nAlso slightly orthogonal but similar. Often function calls have a path in them e.g. `module::function(args)`, but `sdf` does not work on it. Is it possible to customize it to remove `module::function(...)`?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.surround</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\"><code class=\"notranslate\">sdf</code> is super super useful for removing function calls. In languages with templates (Rust, C++), the same functionality would be very useful whenever removing a template e.g. doing <code class=\"notranslate\">sdf</code> on <code class=\"notranslate\">Vec&lt;SomeType&gt;</code> should just keep <code class=\"notranslate\">SomeType</code>.</p>\n<p dir=\"auto\">Is there a way to customize <code class=\"notranslate\">sdf</code> for that, or maybe introduce another shortcut?</p>\n<p dir=\"auto\">Also slightly orthogonal but similar. Often function calls have a path in them e.g. <code class=\"notranslate\">module::function(args)</code>, but <code class=\"notranslate\">sdf</code> does not work on it. Is it possible to customize it to remove <code class=\"notranslate\">module::function(...)</code>?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.surround\nQuestion\nsdf is super super useful for removing function calls. In languages with templates (Rust, C++), the same functionality would be very useful whenever removing a template e.g. doing sdf on Vec<SomeType> should just keep SomeType.\nIs there a way to customize sdf for that, or maybe introduce another shortcut?\nAlso slightly orthogonal but similar. Often function calls have a path in them e.g. module::function(args), but sdf does not work on it. Is it possible to customize it to remove module::function(...)?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-10-24T11:38:20Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> In languages with templates (Rust, C++), the same functionality would be very useful whenever removing a template e.g. doing `sdf` on `Vec<SomeType>` should just keep `SomeType`.\r\n> \r\n> Is there a way to customize `sdf` for that, or maybe introduce another shortcut?\r\n\r\nOf course. You can pretty much reuse [how `f` itself is defined](https://github.com/nvim-mini/mini.nvim/blob/64a23d04cce6d600f18d5d1610d319f6efa08958/lua/mini/surround.lua#L1130-L1137). Here is an example of how to do it for `t` surrounding (will override \"tag\" surrounding). Here is how to do it globally:\r\n\r\n```lua\r\nrequire('mini.surround').setup({\r\n  custom_surroundings = {\r\n    t = {\r\n      input = { '%f[%w_%.][%w_%.]+%b<>', '^.-<().*()>$' },\r\n      output = function()\r\n        local fun_name = MiniSurround.user_input('Template name')\r\n        if fun_name == nil then return nil end\r\n        return { left = fun_name .. '<', right = '>' }\r\n      end,\r\n    },\r\n  },\r\n})\r\n```\r\n\r\nA more reasonable approach would be to only redefine this surrounding for filetypes that you want. For example:\r\n- Create '~/.config/nvim/after/ftplugin/rust.lua' file (if not already).\r\n- Add creation of the following [buffer-local config](https://nvim-mini.org/mini.nvim/doc/mini-surround.html#module-setup):\r\n\r\n    ```lua\r\n    vim.b.minisurround_config = {\r\n      custom_surroundings = {\r\n        t = {\r\n          input = { '%f[%w_%.][%w_%.]+%b<>', '^.-<().*()>$' },\r\n          output = function()\r\n            local fun_name = MiniSurround.user_input('Template name')\r\n            if fun_name == nil then return nil end\r\n            return { left = fun_name .. '<', right = '>' }\r\n          end,\r\n        },\r\n      },\r\n    }\r\n    ```\r\n\r\n> Also slightly orthogonal but similar. Often function calls have a path in them e.g. `module::function(args)`, but `sdf` does not work on it. Is it possible to customize it to remove `module::function(...)`?\r\n\r\nBy default `f` recognizes function name as the string that [contains only alphanumeric+`_`+`.` characters](https://github.com/nvim-mini/mini.nvim/blob/5121416626b82bb2d2198f3ee40261a84a4813f5/doc/mini-surround.txt#L23-L24). To adjust that (globally) follow the same approach as above, but customize only `input` part of `f` surrounding:\r\n\r\n```lua\r\nrequire('mini.surround').setup({\r\n  custom_surroundings = {\r\n    f = { input = { '%f[%w_%.:][%w_%.:]+%b()', '^.-%(().*()%)$' } },\r\n  },\r\n})\r\n```",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">In languages with templates (Rust, C++), the same functionality would be very useful whenever removing a template e.g. doing <code class=\"notranslate\">sdf</code> on <code class=\"notranslate\">Vec&lt;SomeType&gt;</code> should just keep <code class=\"notranslate\">SomeType</code>.</p>\n<p dir=\"auto\">Is there a way to customize <code class=\"notranslate\">sdf</code> for that, or maybe introduce another shortcut?</p>\n</blockquote>\n<p dir=\"auto\">Of course. You can pretty much reuse <a href=\"https://github.com/nvim-mini/mini.nvim/blob/64a23d04cce6d600f18d5d1610d319f6efa08958/lua/mini/surround.lua#L1130-L1137\">how <code class=\"notranslate\">f</code> itself is defined</a>. Here is an example of how to do it for <code class=\"notranslate\">t</code> surrounding (will override \"tag\" surrounding). Here is how to do it globally:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.surround').setup({\n  custom_surroundings = {\n    t = {\n      input = { '%f[%w_%.][%w_%.]+%b&lt;&gt;', '^.-&lt;().*()&gt;$' },\n      output = function()\n        local fun_name = MiniSurround.user_input('Template name')\n        if fun_name == nil then return nil end\n        return { left = fun_name .. '&lt;', right = '&gt;' }\n      end,\n    },\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.surround<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_surroundings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">t</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[%w_%.][%w_%.]+%b&lt;&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^.-&lt;().*()&gt;$<span class=\"pl-pds\">' </span></span>},\n      <span class=\"pl-en\">output</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fun_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniSurround</span>.<span class=\"pl-c1\">user_input</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Template name<span class=\"pl-pds\">'</span></span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">fun_name</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">end</span>\n        <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fun_name</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&gt;<span class=\"pl-pds\">' </span></span>}\n      <span class=\"pl-k\">end</span>,\n    },\n  },\n})</pre></div>\n<p dir=\"auto\">A more reasonable approach would be to only redefine this surrounding for filetypes that you want. For example:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Create '~/.config/nvim/after/ftplugin/rust.lua' file (if not already).</p>\n</li>\n<li>\n<p dir=\"auto\">Add creation of the following <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-surround.html#module-setup\" rel=\"nofollow\">buffer-local config</a>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.b.minisurround_config = {\n  custom_surroundings = {\n    t = {\n      input = { '%f[%w_%.][%w_%.]+%b&lt;&gt;', '^.-&lt;().*()&gt;$' },\n      output = function()\n        local fun_name = MiniSurround.user_input('Template name')\n        if fun_name == nil then return nil end\n        return { left = fun_name .. '&lt;', right = '&gt;' }\n      end,\n    },\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">minisurround_config</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">custom_surroundings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">t</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[%w_%.][%w_%.]+%b&lt;&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^.-&lt;().*()&gt;$<span class=\"pl-pds\">' </span></span>},\n      <span class=\"pl-en\">output</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fun_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniSurround</span>.<span class=\"pl-c1\">user_input</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Template name<span class=\"pl-pds\">'</span></span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">fun_name</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">end</span>\n        <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fun_name</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&gt;<span class=\"pl-pds\">' </span></span>}\n      <span class=\"pl-k\">end</span>,\n    },\n  },\n}</pre></div>\n</li>\n</ul>\n<blockquote>\n<p dir=\"auto\">Also slightly orthogonal but similar. Often function calls have a path in them e.g. <code class=\"notranslate\">module::function(args)</code>, but <code class=\"notranslate\">sdf</code> does not work on it. Is it possible to customize it to remove <code class=\"notranslate\">module::function(...)</code>?</p>\n</blockquote>\n<p dir=\"auto\">By default <code class=\"notranslate\">f</code> recognizes function name as the string that <a href=\"https://github.com/nvim-mini/mini.nvim/blob/5121416626b82bb2d2198f3ee40261a84a4813f5/doc/mini-surround.txt#L23-L24\">contains only alphanumeric+<code class=\"notranslate\">_</code>+<code class=\"notranslate\">.</code> characters</a>. To adjust that (globally) follow the same approach as above, but customize only <code class=\"notranslate\">input</code> part of <code class=\"notranslate\">f</code> surrounding:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.surround').setup({\n  custom_surroundings = {\n    f = { input = { '%f[%w_%.:][%w_%.:]+%b()', '^.-%(().*()%)$' } },\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.surround<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_surroundings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">f</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[%w_%.:][%w_%.:]+%b()<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^.-%(().*()%)$<span class=\"pl-pds\">' </span></span>} },\n  },\n})</pre></div>",
+            "bodyText": "In languages with templates (Rust, C++), the same functionality would be very useful whenever removing a template e.g. doing sdf on Vec<SomeType> should just keep SomeType.\nIs there a way to customize sdf for that, or maybe introduce another shortcut?\n\nOf course. You can pretty much reuse how f itself is defined. Here is an example of how to do it for t surrounding (will override \"tag\" surrounding). Here is how to do it globally:\nrequire('mini.surround').setup({\n  custom_surroundings = {\n    t = {\n      input = { '%f[%w_%.][%w_%.]+%b<>', '^.-<().*()>$' },\n      output = function()\n        local fun_name = MiniSurround.user_input('Template name')\n        if fun_name == nil then return nil end\n        return { left = fun_name .. '<', right = '>' }\n      end,\n    },\n  },\n})\nA more reasonable approach would be to only redefine this surrounding for filetypes that you want. For example:\n\n\nCreate '~/.config/nvim/after/ftplugin/rust.lua' file (if not already).\n\n\nAdd creation of the following buffer-local config:\nvim.b.minisurround_config = {\n  custom_surroundings = {\n    t = {\n      input = { '%f[%w_%.][%w_%.]+%b<>', '^.-<().*()>$' },\n      output = function()\n        local fun_name = MiniSurround.user_input('Template name')\n        if fun_name == nil then return nil end\n        return { left = fun_name .. '<', right = '>' }\n      end,\n    },\n  },\n}\n\n\n\nAlso slightly orthogonal but similar. Often function calls have a path in them e.g. module::function(args), but sdf does not work on it. Is it possible to customize it to remove module::function(...)?\n\nBy default f recognizes function name as the string that contains only alphanumeric+_+. characters. To adjust that (globally) follow the same approach as above, but customize only input part of f surrounding:\nrequire('mini.surround').setup({\n  custom_surroundings = {\n    f = { input = { '%f[%w_%.:][%w_%.:]+%b()', '^.-%(().*()%)$' } },\n  },\n})",
+            "createdAt": "2025-10-24T11:38:20Z",
+            "createdViaEmail": false,
+            "databaseId": 14772146,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A4Wey",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-24T11:38:20Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2083#discussioncomment-14772146",
+            "updatedAt": "2025-10-24T11:38:22Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2083#discussioncomment-14772146"
+        }
+    ],
+    "createdAt": "2025-10-24T11:01:40Z",
+    "createdViaEmail": false,
+    "databaseId": 9066353,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Aildx",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vpB",
+                "name": "mini.surround"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2083,
+    "poll": null,
+    "publishedAt": "2025-10-24T11:01:40Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2083",
+    "stateReason": "RESOLVED",
+    "title": "`sdf` but for templates/generics",
+    "updatedAt": "2025-10-24T11:38:23Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2083"
+}

@@ -1,0 +1,291 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 11738530,
+        "id": "DC_kwDOFoksYM4Asx2i",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1459#discussioncomment-11738530"
+    },
+    "answerChosenAt": "2025-01-05T10:34:29Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/13679650?u=d8b06687d436745c7f1f707246b9cfbd8d63fdfd&v=4",
+        "login": "bennorichters",
+        "resourcePath": "/bennorichters",
+        "url": "https://github.com/bennorichters"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.test\n\n### Question\n\nIs it possible to test user interaction with `vim.ui.select`? In this example, the test hangs. \r\n\r\n```lua\r\nchild.lua(\"vim.ui.select({'a', 'b'}, {}, function(c) end)\")\r\nchild.type_keys(\"<CR>\")\r\n```\r\n\r\nThe documentation about a hanging process says:\r\n> Common causes are active hit-enter-prompt (solution: increase prompt height to a bigger value)\r\n\r\nIs that relevant here? And if so, how can that be achieved?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.test</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Is it possible to test user interaction with <code class=\"notranslate\">vim.ui.select</code>? In this example, the test hangs.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"child.lua(&quot;vim.ui.select({'a', 'b'}, {}, function(c) end)&quot;)\nchild.type_keys(&quot;&lt;CR&gt;&quot;)\"><pre class=\"notranslate\"><span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim.ui.select({'a', 'b'}, {}, function(c) end)<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">type_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;CR&gt;<span class=\"pl-pds\">\"</span></span>)</pre></div>\n<p dir=\"auto\">The documentation about a hanging process says:</p>\n<blockquote>\n<p dir=\"auto\">Common causes are active hit-enter-prompt (solution: increase prompt height to a bigger value)</p>\n</blockquote>\n<p dir=\"auto\">Is that relevant here? And if so, how can that be achieved?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.test\nQuestion\nIs it possible to test user interaction with vim.ui.select? In this example, the test hangs.\nchild.lua(\"vim.ui.select({'a', 'b'}, {}, function(c) end)\")\nchild.type_keys(\"<CR>\")\nThe documentation about a hanging process says:\n\nCommon causes are active hit-enter-prompt (solution: increase prompt height to a bigger value)\n\nIs that relevant here? And if so, how can that be achieved?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-01-05T10:34:27Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> The documentation about a hanging process says:\r\n> \r\n> > Common causes are active hit-enter-prompt (solution: increase prompt height to a bigger value)\r\n> \r\n> Is that relevant here? And if so, how can that be achieved?\r\n\r\nNot hit-enter-prompt but it is indeed blocked and waits for user input. You can see how it looks by executing `:lua vim.ui.select({'a', 'b'}, {}, function(c) _G.info = c end)` inside `nvim --clean`: it \"blocks\" Neovim and waits for user to type a number followed by `<CR>`. To test exactly that, [this advice](https://github.com/echasnovski/mini.nvim/blob/f968becf44b05d8c54d4fa95c9ca699df4de363b/doc/mini-test.txt#L743) works here:\r\n\r\n```lua\r\nchild.lua_notify(\"vim.ui.select({'a', 'b'}, {}, function(item, idx) _G.info = { item, idx } end)\")\r\nchild.type_keys('1<CR>')\r\neq(child.lua_get('_G.info'), { 'a', 1 })\r\n```\r\n\r\nHowever, the `vim.ui.select` is meant to be overridable, so I find it better to override it inside child process for easier testing. Here is [an example from 'mini.snippets' tests](https://github.com/echasnovski/mini.nvim/blob/f968becf44b05d8c54d4fa95c9ca699df4de363b/tests/test_snippets.lua#L69-L83). And [here is how to use it](https://github.com/echasnovski/mini.nvim/blob/f968becf44b05d8c54d4fa95c9ca699df4de363b/tests/test_snippets.lua#L289-L290): mock `vim.ui.select` which will select particular choice and then execute code which will use `vim.ui.select`. No `lua_notify` needed and you can test that `vim.ui.select` was called with the arguments you expect.\r\n\r\n",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">The documentation about a hanging process says:</p>\n<blockquote>\n<p dir=\"auto\">Common causes are active hit-enter-prompt (solution: increase prompt height to a bigger value)</p>\n</blockquote>\n<p dir=\"auto\">Is that relevant here? And if so, how can that be achieved?</p>\n</blockquote>\n<p dir=\"auto\">Not hit-enter-prompt but it is indeed blocked and waits for user input. You can see how it looks by executing <code class=\"notranslate\">:lua vim.ui.select({'a', 'b'}, {}, function(c) _G.info = c end)</code> inside <code class=\"notranslate\">nvim --clean</code>: it \"blocks\" Neovim and waits for user to type a number followed by <code class=\"notranslate\">&lt;CR&gt;</code>. To test exactly that, <a href=\"https://github.com/echasnovski/mini.nvim/blob/f968becf44b05d8c54d4fa95c9ca699df4de363b/doc/mini-test.txt#L743\">this advice</a> works here:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"child.lua_notify(&quot;vim.ui.select({'a', 'b'}, {}, function(item, idx) _G.info = { item, idx } end)&quot;)\nchild.type_keys('1&lt;CR&gt;')\neq(child.lua_get('_G.info'), { 'a', 1 })\"><pre class=\"notranslate\"><span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim.ui.select({'a', 'b'}, {}, function(item, idx) _G.info = { item, idx } end)<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">type_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>1&lt;CR&gt;<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-c1\">eq</span>(<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>_G.info<span class=\"pl-pds\">'</span></span>), { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">1</span> })</pre></div>\n<p dir=\"auto\">However, the <code class=\"notranslate\">vim.ui.select</code> is meant to be overridable, so I find it better to override it inside child process for easier testing. Here is <a href=\"https://github.com/echasnovski/mini.nvim/blob/f968becf44b05d8c54d4fa95c9ca699df4de363b/tests/test_snippets.lua#L69-L83\">an example from 'mini.snippets' tests</a>. And <a href=\"https://github.com/echasnovski/mini.nvim/blob/f968becf44b05d8c54d4fa95c9ca699df4de363b/tests/test_snippets.lua#L289-L290\">here is how to use it</a>: mock <code class=\"notranslate\">vim.ui.select</code> which will select particular choice and then execute code which will use <code class=\"notranslate\">vim.ui.select</code>. No <code class=\"notranslate\">lua_notify</code> needed and you can test that <code class=\"notranslate\">vim.ui.select</code> was called with the arguments you expect.</p>",
+            "bodyText": "The documentation about a hanging process says:\n\nCommon causes are active hit-enter-prompt (solution: increase prompt height to a bigger value)\n\nIs that relevant here? And if so, how can that be achieved?\n\nNot hit-enter-prompt but it is indeed blocked and waits for user input. You can see how it looks by executing :lua vim.ui.select({'a', 'b'}, {}, function(c) _G.info = c end) inside nvim --clean: it \"blocks\" Neovim and waits for user to type a number followed by <CR>. To test exactly that, this advice works here:\nchild.lua_notify(\"vim.ui.select({'a', 'b'}, {}, function(item, idx) _G.info = { item, idx } end)\")\nchild.type_keys('1<CR>')\neq(child.lua_get('_G.info'), { 'a', 1 })\nHowever, the vim.ui.select is meant to be overridable, so I find it better to override it inside child process for easier testing. Here is an example from 'mini.snippets' tests. And here is how to use it: mock vim.ui.select which will select particular choice and then execute code which will use vim.ui.select. No lua_notify needed and you can test that vim.ui.select was called with the arguments you expect.",
+            "createdAt": "2025-01-05T10:34:27Z",
+            "createdViaEmail": false,
+            "databaseId": 11738530,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Asx2i",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-01-05T10:34:27Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/13679650?u=d8b06687d436745c7f1f707246b9cfbd8d63fdfd&v=4",
+                        "login": "bennorichters",
+                        "resourcePath": "/bennorichters",
+                        "url": "https://github.com/bennorichters"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you for your fast and clear answer!",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for your fast and clear answer!</p>",
+                    "bodyText": "Thank you for your fast and clear answer!",
+                    "createdAt": "2025-01-05T10:50:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11738598,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Asx3m",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-01-05T10:50:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11738530,
+                        "id": "DC_kwDOFoksYM4Asx2i",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1459#discussioncomment-11738530"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1459#discussioncomment-11738598",
+                    "updatedAt": "2025-01-05T10:50:24Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1459#discussioncomment-11738598"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1459#discussioncomment-11738530",
+            "updatedAt": "2025-01-05T10:34:28Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1459#discussioncomment-11738530"
+        }
+    ],
+    "createdAt": "2025-01-05T10:07:26Z",
+    "createdViaEmail": false,
+    "databaseId": 7779058,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AdrLy",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7_iXcP",
+                "name": "mini.test"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1459,
+    "poll": null,
+    "publishedAt": "2025-01-05T10:07:26Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1459",
+    "stateReason": "RESOLVED",
+    "title": "[mini.test] interaction with vim.ui.select",
+    "updatedAt": "2025-01-05T10:50:23Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1459"
+}

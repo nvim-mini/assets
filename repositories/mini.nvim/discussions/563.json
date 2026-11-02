@@ -1,0 +1,350 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": null,
+    "authorAssociation": "NONE",
+    "body": "Hello!\r\n\r\nForemost, thank you for all the great plugins, the time you are putting into _mini.nvim_ and the outstanding support. \r\n\r\n**Introduction**\r\nI have one small observation in mini.files. To enable LSP features, I created a custom handler that applies file renames to the workspace to update imports in all files that are using code from the renamed file. This works great and is another great layer on top of mini.files.\r\n\r\n**My problem**\r\nNeovim will open all updated files in buffers _in the background_, while _mini.files_ will remain opened. Most of the time, this works without any problems but sometimes, it prints me the following error:\r\n\r\n```text\r\nError executing vim.schedule lua callback: ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: attempt to index a nil value\r\n\r\nstack traceback:\r\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: in function 'explorer_update_cursors'\r\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:791: in function 'close'\r\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function ''\r\n        vim/_editor.lua: in function <vim/_editor.lua:0>\r\n```\r\n\r\nAfter that, I am not able to interact with _mini.files_ any more. Trying to close it manually with `lua MiniFiles.close()` is also not having any effect.\r\n\r\nI know this might be hard to verify for you, but I think it is somehow related to _mini.files_ cursor of the buffers. I am currently using version `8e18eb9`.\r\n\r\nThanks a lot!\r\n\r\n---\r\n\r\n**My current implementation**\r\n\r\n```lua\r\n-- Handler for `HandlerFilesActionRename`\r\nM.file_on_rename = function(from, to)\r\n  if vim.lsp.get_active_clients then\r\n    local clients = vim.lsp.get_active_clients()\r\n\r\n    for _, client in ipairs(clients) do\r\n      if client.supports_method(\"workspace/willRenameFiles\") then\r\n        local resp = client.request_sync(\"workspace/willRenameFiles\", {\r\n          files = {\r\n            {\r\n              oldUri = vim.uri_from_fname(from),\r\n              newUri = vim.uri_from_fname(to),\r\n            },\r\n          },\r\n        }, 1000, 0)\r\n        -- I think I could close mini.files here, but I prefer to leave it open to maybe do more operations\r\n        if resp and resp.result ~= nil then vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding) end\r\n      end\r\n    end\r\n  end\r\nend\r\n```\r\n\r\n```lua\r\n-- Autocmd\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesActionRename\",\r\n  callback = function(event)      \r\n    file_on_rename(event.data.from, event.data.to)\r\n  end,\r\n})\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Hello!</p>\n<p dir=\"auto\">Foremost, thank you for all the great plugins, the time you are putting into <em>mini.nvim</em> and the outstanding support.</p>\n<p dir=\"auto\"><strong>Introduction</strong><br>\nI have one small observation in mini.files. To enable LSP features, I created a custom handler that applies file renames to the workspace to update imports in all files that are using code from the renamed file. This works great and is another great layer on top of mini.files.</p>\n<p dir=\"auto\"><strong>My problem</strong><br>\nNeovim will open all updated files in buffers <em>in the background</em>, while <em>mini.files</em> will remain opened. Most of the time, this works without any problems but sometimes, it prints me the following error:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"Error executing vim.schedule lua callback: ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: attempt to index a nil value\n\nstack traceback:\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: in function 'explorer_update_cursors'\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:791: in function 'close'\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function ''\n        vim/_editor.lua: in function &lt;vim/_editor.lua:0&gt;\"><pre lang=\"text\" class=\"notranslate\"><code class=\"notranslate\">Error executing vim.schedule lua callback: ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: attempt to index a nil value\n\nstack traceback:\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: in function 'explorer_update_cursors'\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:791: in function 'close'\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function ''\n        vim/_editor.lua: in function &lt;vim/_editor.lua:0&gt;\n</code></pre></div>\n<p dir=\"auto\">After that, I am not able to interact with <em>mini.files</em> any more. Trying to close it manually with <code class=\"notranslate\">lua MiniFiles.close()</code> is also not having any effect.</p>\n<p dir=\"auto\">I know this might be hard to verify for you, but I think it is somehow related to <em>mini.files</em> cursor of the buffers. I am currently using version <code class=\"notranslate\">8e18eb9</code>.</p>\n<p dir=\"auto\">Thanks a lot!</p>\n<hr>\n<p dir=\"auto\"><strong>My current implementation</strong></p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Handler for `HandlerFilesActionRename`\nM.file_on_rename = function(from, to)\n  if vim.lsp.get_active_clients then\n    local clients = vim.lsp.get_active_clients()\n\n    for _, client in ipairs(clients) do\n      if client.supports_method(&quot;workspace/willRenameFiles&quot;) then\n        local resp = client.request_sync(&quot;workspace/willRenameFiles&quot;, {\n          files = {\n            {\n              oldUri = vim.uri_from_fname(from),\n              newUri = vim.uri_from_fname(to),\n            },\n          },\n        }, 1000, 0)\n        -- I think I could close mini.files here, but I prefer to leave it open to maybe do more operations\n        if resp and resp.result ~= nil then vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding) end\n      end\n    end\n  end\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Handler for `HandlerFilesActionRename`</span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">file_on_rename</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-e\">get_active_clients</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">get_active_clients</span>()\n\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">client</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">clients</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">client</span>.<span class=\"pl-c1\">supports_method</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/willRenameFiles<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">resp</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">client</span>.<span class=\"pl-c1\">request_sync</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/willRenameFiles<span class=\"pl-pds\">\"</span></span>, {\n          <span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> {\n            {\n              <span class=\"pl-smi\">oldUri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">from</span>),\n              <span class=\"pl-smi\">newUri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">to</span>),\n            },\n          },\n        }, <span class=\"pl-c1\">1000</span>, <span class=\"pl-c1\">0</span>)\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> I think I could close mini.files here, but I prefer to leave it open to maybe do more operations</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">resp</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">resp</span>.<span class=\"pl-e\">result</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-e\">util</span>.<span class=\"pl-c1\">apply_workspace_edit</span>(<span class=\"pl-smi\">resp</span>.<span class=\"pl-e\">result</span>, <span class=\"pl-smi\">client</span>.<span class=\"pl-e\">offset_encoding</span>) <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span></pre></div>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Autocmd\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesActionRename&quot;,\n  callback = function(event)      \n    file_on_rename(event.data.from, event.data.to)\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Autocmd</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesActionRename<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">event</span>)      \n    <span class=\"pl-c1\">file_on_rename</span>(<span class=\"pl-smi\">event</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">from</span>, <span class=\"pl-smi\">event</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">to</span>)\n  <span class=\"pl-k\">end</span>,\n})</pre></div>",
+    "bodyText": "Hello!\nForemost, thank you for all the great plugins, the time you are putting into mini.nvim and the outstanding support.\nIntroduction\nI have one small observation in mini.files. To enable LSP features, I created a custom handler that applies file renames to the workspace to update imports in all files that are using code from the renamed file. This works great and is another great layer on top of mini.files.\nMy problem\nNeovim will open all updated files in buffers in the background, while mini.files will remain opened. Most of the time, this works without any problems but sometimes, it prints me the following error:\nError executing vim.schedule lua callback: ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: attempt to index a nil value\n\nstack traceback:\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1460: in function 'explorer_update_cursors'\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:791: in function 'close'\n        ...i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function ''\n        vim/_editor.lua: in function <vim/_editor.lua:0>\n\nAfter that, I am not able to interact with mini.files any more. Trying to close it manually with lua MiniFiles.close() is also not having any effect.\nI know this might be hard to verify for you, but I think it is somehow related to mini.files cursor of the buffers. I am currently using version 8e18eb9.\nThanks a lot!\n\nMy current implementation\n-- Handler for `HandlerFilesActionRename`\nM.file_on_rename = function(from, to)\n  if vim.lsp.get_active_clients then\n    local clients = vim.lsp.get_active_clients()\n\n    for _, client in ipairs(clients) do\n      if client.supports_method(\"workspace/willRenameFiles\") then\n        local resp = client.request_sync(\"workspace/willRenameFiles\", {\n          files = {\n            {\n              oldUri = vim.uri_from_fname(from),\n              newUri = vim.uri_from_fname(to),\n            },\n          },\n        }, 1000, 0)\n        -- I think I could close mini.files here, but I prefer to leave it open to maybe do more operations\n        if resp and resp.result ~= nil then vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding) end\n      end\n    end\n  end\nend\n-- Autocmd\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesActionRename\",\n  callback = function(event)      \n    file_on_rename(event.data.from, event.data.to)\n  end,\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Nice dedication to creating something for yourself!\r\n\r\nI am not really sure why this is happening. I've added this slightly refactored version inside the autocommand and could not reproduce this:\r\n```lua\r\nlocal file_on_rename = function(from, to)\r\n  local ok, clients = pcall(vim.lsp.get_active_clients)\r\n  if not ok or type(clients) ~= 'table' then return end\r\n\r\n  clients = vim.tbl_filter(function(x) return x.supports_method('workspace/willRenameFiles') end, clients)\r\n\r\n  for _, client in ipairs(clients) do\r\n    local resp = client.request_sync(\r\n      'workspace/willRenameFiles',\r\n      { files = { { oldUri = vim.uri_from_fname(from), newUri = vim.uri_from_fname(to) } } },\r\n      1000,\r\n      0\r\n    )\r\n\r\n    -- I think I could close mini.files here, but I prefer to leave it open to maybe do more operations\r\n    if resp and resp.result ~= nil then vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding) end\r\n  end\r\nend\r\n```\r\n\r\nAlthough, I don't think there is an active proper LSP which utilizes \"workspace/willRenameFiles\" method.\r\n\r\nBased on the `i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function ''` line in log, this happens inside [tracking for lost focus](https://github.com/echasnovski/mini.nvim/blob/8e18eb9ba849d737acac1873cd78fc8058c1700a/lua/mini/files.lua#L1300) *when it decided that the focus is lost*. Meaning that some of the changes already lead to 'mini.files' not being current and thus starting closing.\r\n\r\nThere is an easy (and probably a worthwhile) fix to call that `MiniFiles.close()` with `pcall` (which will not propagate errors), but I am hesitant about adding it. Mostly because this will silence what might be useful errors (like this one).\r\n\r\n------\r\n\r\nUnfortunately, I can not help here without more details. For example:\r\n- What are the exact steps leading to this happening? I understand that this is not happening reliably, but it makes helping not easy.\r\n- What LSP servers are active when this error happens?",
+            "bodyHTML": "<p dir=\"auto\">Nice dedication to creating something for yourself!</p>\n<p dir=\"auto\">I am not really sure why this is happening. I've added this slightly refactored version inside the autocommand and could not reproduce this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local file_on_rename = function(from, to)\n  local ok, clients = pcall(vim.lsp.get_active_clients)\n  if not ok or type(clients) ~= 'table' then return end\n\n  clients = vim.tbl_filter(function(x) return x.supports_method('workspace/willRenameFiles') end, clients)\n\n  for _, client in ipairs(clients) do\n    local resp = client.request_sync(\n      'workspace/willRenameFiles',\n      { files = { { oldUri = vim.uri_from_fname(from), newUri = vim.uri_from_fname(to) } } },\n      1000,\n      0\n    )\n\n    -- I think I could close mini.files here, but I prefer to leave it open to maybe do more operations\n    if resp and resp.result ~= nil then vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding) end\n  end\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">file_on_rename</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-e\">get_active_clients</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">clients</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>table<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">x</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">x</span>.<span class=\"pl-c1\">supports_method</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>workspace/willRenameFiles<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">clients</span>)\n\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">client</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">clients</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">resp</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">client</span>.<span class=\"pl-c1\">request_sync</span>(\n      <span class=\"pl-s\"><span class=\"pl-pds\">'</span>workspace/willRenameFiles<span class=\"pl-pds\">'</span></span>,\n      { <span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-smi\">oldUri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">from</span>), <span class=\"pl-smi\">newUri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">to</span>) } } },\n      <span class=\"pl-c1\">1000</span>,\n      <span class=\"pl-c1\">0</span>\n    )\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> I think I could close mini.files here, but I prefer to leave it open to maybe do more operations</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">resp</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">resp</span>.<span class=\"pl-e\">result</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-e\">util</span>.<span class=\"pl-c1\">apply_workspace_edit</span>(<span class=\"pl-smi\">resp</span>.<span class=\"pl-e\">result</span>, <span class=\"pl-smi\">client</span>.<span class=\"pl-e\">offset_encoding</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Although, I don't think there is an active proper LSP which utilizes \"workspace/willRenameFiles\" method.</p>\n<p dir=\"auto\">Based on the <code class=\"notranslate\">i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function ''</code> line in log, this happens inside <a href=\"https://github.com/echasnovski/mini.nvim/blob/8e18eb9ba849d737acac1873cd78fc8058c1700a/lua/mini/files.lua#L1300\">tracking for lost focus</a> <em>when it decided that the focus is lost</em>. Meaning that some of the changes already lead to 'mini.files' not being current and thus starting closing.</p>\n<p dir=\"auto\">There is an easy (and probably a worthwhile) fix to call that <code class=\"notranslate\">MiniFiles.close()</code> with <code class=\"notranslate\">pcall</code> (which will not propagate errors), but I am hesitant about adding it. Mostly because this will silence what might be useful errors (like this one).</p>\n<hr>\n<p dir=\"auto\">Unfortunately, I can not help here without more details. For example:</p>\n<ul dir=\"auto\">\n<li>What are the exact steps leading to this happening? I understand that this is not happening reliably, but it makes helping not easy.</li>\n<li>What LSP servers are active when this error happens?</li>\n</ul>",
+            "bodyText": "Nice dedication to creating something for yourself!\nI am not really sure why this is happening. I've added this slightly refactored version inside the autocommand and could not reproduce this:\nlocal file_on_rename = function(from, to)\n  local ok, clients = pcall(vim.lsp.get_active_clients)\n  if not ok or type(clients) ~= 'table' then return end\n\n  clients = vim.tbl_filter(function(x) return x.supports_method('workspace/willRenameFiles') end, clients)\n\n  for _, client in ipairs(clients) do\n    local resp = client.request_sync(\n      'workspace/willRenameFiles',\n      { files = { { oldUri = vim.uri_from_fname(from), newUri = vim.uri_from_fname(to) } } },\n      1000,\n      0\n    )\n\n    -- I think I could close mini.files here, but I prefer to leave it open to maybe do more operations\n    if resp and resp.result ~= nil then vim.lsp.util.apply_workspace_edit(resp.result, client.offset_encoding) end\n  end\nend\nAlthough, I don't think there is an active proper LSP which utilizes \"workspace/willRenameFiles\" method.\nBased on the i5of/.local/share/nvim/lazy/mini.nvim/lua/mini/files.lua:1300: in function '' line in log, this happens inside tracking for lost focus when it decided that the focus is lost. Meaning that some of the changes already lead to 'mini.files' not being current and thus starting closing.\nThere is an easy (and probably a worthwhile) fix to call that MiniFiles.close() with pcall (which will not propagate errors), but I am hesitant about adding it. Mostly because this will silence what might be useful errors (like this one).\n\nUnfortunately, I can not help here without more details. For example:\n\nWhat are the exact steps leading to this happening? I understand that this is not happening reliably, but it makes helping not easy.\nWhat LSP servers are active when this error happens?",
+            "createdAt": "2023-11-07T11:52:40Z",
+            "createdViaEmail": false,
+            "databaseId": 7523366,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Acswm",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-11-07T11:52:40Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/563#discussioncomment-7523366",
+            "updatedAt": "2023-11-09T14:47:13Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/563#discussioncomment-7523366"
+        },
+        {
+            "author": null,
+            "authorAssociation": "NONE",
+            "body": "Thanks for the feedback and the refactoring. I learned a new thing! ♥️\r\n\r\n> What LSP servers are active when this error happens?\r\n\r\nIt happened while using `tsserver`. This server is definitely capable of `workspace/willRenameFiles`. It did not happen in other projects with other LSP servers I think. Or I was just lucky that everything went right.\r\n\r\n> What are the exact steps leading to this happening? \r\n\r\n- I have some buffers open\r\n- I open buffer one (it does not matter which one, but just as an example)\r\n- I open mini.files rename a file and synchronise my changes\r\n- LSP will be triggered, Neovim will open all files as buffers that have an import to the renamed file\r\n- Neovim will print the mentioned error\r\n- I can interact with all the buffers, do my changes as usual, but I cannot (manually) close or interact with mini.files any more\r\n\r\n---\r\n\r\nThis is happening very sporadic. So, we can also close this Issue and if I have figured out more scenarios and I really see a problem with mini.files here, we could open that again. That would be fine with me, since it is very difficult to reproduce for you.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the feedback and the refactoring. I learned a new thing! <g-emoji class=\"g-emoji\" alias=\"hearts\">♥️</g-emoji></p>\n<blockquote>\n<p dir=\"auto\">What LSP servers are active when this error happens?</p>\n</blockquote>\n<p dir=\"auto\">It happened while using <code class=\"notranslate\">tsserver</code>. This server is definitely capable of <code class=\"notranslate\">workspace/willRenameFiles</code>. It did not happen in other projects with other LSP servers I think. Or I was just lucky that everything went right.</p>\n<blockquote>\n<p dir=\"auto\">What are the exact steps leading to this happening?</p>\n</blockquote>\n<ul dir=\"auto\">\n<li>I have some buffers open</li>\n<li>I open buffer one (it does not matter which one, but just as an example)</li>\n<li>I open mini.files rename a file and synchronise my changes</li>\n<li>LSP will be triggered, Neovim will open all files as buffers that have an import to the renamed file</li>\n<li>Neovim will print the mentioned error</li>\n<li>I can interact with all the buffers, do my changes as usual, but I cannot (manually) close or interact with mini.files any more</li>\n</ul>\n<hr>\n<p dir=\"auto\">This is happening very sporadic. So, we can also close this Issue and if I have figured out more scenarios and I really see a problem with mini.files here, we could open that again. That would be fine with me, since it is very difficult to reproduce for you.</p>",
+            "bodyText": "Thanks for the feedback and the refactoring. I learned a new thing! ♥️\n\nWhat LSP servers are active when this error happens?\n\nIt happened while using tsserver. This server is definitely capable of workspace/willRenameFiles. It did not happen in other projects with other LSP servers I think. Or I was just lucky that everything went right.\n\nWhat are the exact steps leading to this happening?\n\n\nI have some buffers open\nI open buffer one (it does not matter which one, but just as an example)\nI open mini.files rename a file and synchronise my changes\nLSP will be triggered, Neovim will open all files as buffers that have an import to the renamed file\nNeovim will print the mentioned error\nI can interact with all the buffers, do my changes as usual, but I cannot (manually) close or interact with mini.files any more\n\n\nThis is happening very sporadic. So, we can also close this Issue and if I have figured out more scenarios and I really see a problem with mini.files here, we could open that again. That would be fine with me, since it is very difficult to reproduce for you.",
+            "createdAt": "2023-11-09T14:35:54Z",
+            "createdViaEmail": false,
+            "databaseId": 7523367,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Acswn",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2023-11-09T14:36:45Z",
+            "minimizedReason": null,
+            "publishedAt": "2023-11-09T14:35:54Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/563#discussioncomment-7523367",
+            "updatedAt": "2023-11-09T14:47:13Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/563#discussioncomment-7523367"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> This is happening very sporadic. So, we can also close this Issue and if I have figured out more scenarios and I really see a problem with mini.files here, we could open that again. That would be fine with me, since it is very difficult to reproduce for you.\r\n\r\nYeah, without reliable way to reproduce this, it is hard to know what is going on.\r\n\r\nI will move this to discussions instead of closing. Thanks for understanding!",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">This is happening very sporadic. So, we can also close this Issue and if I have figured out more scenarios and I really see a problem with mini.files here, we could open that again. That would be fine with me, since it is very difficult to reproduce for you.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, without reliable way to reproduce this, it is hard to know what is going on.</p>\n<p dir=\"auto\">I will move this to discussions instead of closing. Thanks for understanding!</p>",
+            "bodyText": "This is happening very sporadic. So, we can also close this Issue and if I have figured out more scenarios and I really see a problem with mini.files here, we could open that again. That would be fine with me, since it is very difficult to reproduce for you.\n\nYeah, without reliable way to reproduce this, it is hard to know what is going on.\nI will move this to discussions instead of closing. Thanks for understanding!",
+            "createdAt": "2023-11-09T14:46:54Z",
+            "createdViaEmail": false,
+            "databaseId": 7523368,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Acswo",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-11-09T14:46:54Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/563#discussioncomment-7523368",
+            "updatedAt": "2023-11-09T14:47:13Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/563#discussioncomment-7523368"
+        }
+    ],
+    "createdAt": "2023-11-07T08:44:02Z",
+    "createdViaEmail": false,
+    "databaseId": 5832658,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AWP_S",
+    "includesCreatedEdit": true,
+    "isAnswered": false,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2023-11-07T08:49:56Z",
+    "locked": false,
+    "number": 563,
+    "poll": null,
+    "publishedAt": "2023-11-07T08:44:02Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/563",
+    "stateReason": null,
+    "title": "(mini.files) Stops working after editing workspace via LSP actions",
+    "updatedAt": "2023-11-09T14:47:12Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/563"
+}

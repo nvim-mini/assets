@@ -1,0 +1,703 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 10253753,
+        "id": "DC_kwDOFoksYM4AnHW5",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10253753"
+    },
+    "answerChosenAt": "2024-08-06T13:15:44Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/176803464?v=4",
+        "login": "qtyra",
+        "resourcePath": "/qtyra",
+        "url": "https://github.com/qtyra"
+    },
+    "authorAssociation": "NONE",
+    "body": "Related: https://github.com/echasnovski/mini.nvim/discussions/266 and https://github.com/echasnovski/mini.nvim/issues/261\r\n\r\nBased on the [docs](https://github.com/echasnovski/mini.ai/blob/main/doc/mini-ai.txt#L294), it seems the best approach is to return a list of paragraph positions. Is there a [neo]vim function to get the selected region of a native text object? The implementation would be quite trivial in that case. I prefer to ask before implementing a buggy paragraph text object and then realize there's an easier way :laughing:\r\n\r\nAnyway, i think adding at least the 'p' text object to mini.ai would be a great addition, i miss doing something like 'cinp', and the next best option is '}jcip', which is rather inconvenient. For 'w' and 'W', the alternatives 'wcw', 'WcW' are just as good or even better.",
+    "bodyHTML": "<p dir=\"auto\">Related: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"4955036\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/266\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/266/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/266\">#266</a> and <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1617896584\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/261\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/261/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/261\">#261</a></p>\n<p dir=\"auto\">Based on the <a href=\"https://github.com/echasnovski/mini.ai/blob/main/doc/mini-ai.txt#L294\">docs</a>, it seems the best approach is to return a list of paragraph positions. Is there a [neo]vim function to get the selected region of a native text object? The implementation would be quite trivial in that case. I prefer to ask before implementing a buggy paragraph text object and then realize there's an easier way 😆</p>\n<p dir=\"auto\">Anyway, i think adding at least the 'p' text object to mini.ai would be a great addition, i miss doing something like 'cinp', and the next best option is '}jcip', which is rather inconvenient. For 'w' and 'W', the alternatives 'wcw', 'WcW' are just as good or even better.</p>",
+    "bodyText": "Related: #266 and #261\nBased on the docs, it seems the best approach is to return a list of paragraph positions. Is there a [neo]vim function to get the selected region of a native text object? The implementation would be quite trivial in that case. I prefer to ask before implementing a buggy paragraph text object and then realize there's an easier way 😆\nAnyway, i think adding at least the 'p' text object to mini.ai would be a great addition, i miss doing something like 'cinp', and the next best option is '}jcip', which is rather inconvenient. For 'w' and 'W', the alternatives 'wcw', 'WcW' are just as good or even better.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-08-06T13:15:39Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I am not aware of a better way for paragraph textobject than writing a function which returns either a single target region or an array of regions. I think the latter is easier to implement.\r\n\r\nHere is a partial solution showcasing basic approach:\r\n\r\n```lua\r\nlocal inner_paragraph = function()\r\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\r\n  local res, cur_paragraph = {}, { vis_mode = 'V' }\r\n  for i, l in ipairs(lines) do\r\n    if l:find('^%s*$') ~= nil then\r\n      if cur_paragraph.from ~= nil then\r\n        cur_paragraph.to = { line = i - 1, col = 1 }\r\n        table.insert(res, cur_paragraph)\r\n        cur_paragraph = { vis_mode = 'V' }\r\n      end\r\n    else\r\n      if cur_paragraph.from == nil then cur_paragraph.from = { line = i, col = 1 } end\r\n    end\r\n  end\r\n\r\n  if cur_paragraph.from ~= nil then\r\n    cur_paragraph.to = { line = #lines, col = 1 }\r\n    table.insert(res, cur_paragraph)\r\n  end\r\n\r\n  return res\r\nend\r\n\r\nlocal outer_paragraph = function()\r\n  -- Left as homework\r\nend\r\n\r\nlocal paragraph = function(ai_type, _, _)\r\n  return ai_type == 'i' and inner_paragraph() or outer_paragraph()\r\nend\r\n\r\nrequire('mini.ai').setup({\r\n  -- Is needed otherwise paragraphs more than `n_lines` lines will not be selected\r\n  n_lines = 9999,\r\n  custom_textobjects = {\r\n    p = paragraph,\r\n  },\r\n})\r\n```\r\n\r\nAdding built-in paragraph textobject is an interesting idea and even probably doable in as `MiniExtra.gen_ai_spec.paragraph`, but the (deliberate) restriction of `config.n_lines` makes it somewhat not usable. So let's leave it as it (at least for now).\r\n\r\n------\r\n\r\n**Note**: make sure to update to latest `main`, as it has the fix to respect `vis_mode` when output is an array of regions.\r\n**Note 2**: there is a somewhat funny coincidence that almost exactly two years ago (2022-08-05) 'mini.ai' was updated to allow callable with array of regions as output. Life is strange sometimes.",
+            "bodyHTML": "<p dir=\"auto\">I am not aware of a better way for paragraph textobject than writing a function which returns either a single target region or an array of regions. I think the latter is easier to implement.</p>\n<p dir=\"auto\">Here is a partial solution showcasing basic approach:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local inner_paragraph = function()\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n  local res, cur_paragraph = {}, { vis_mode = 'V' }\n  for i, l in ipairs(lines) do\n    if l:find('^%s*$') ~= nil then\n      if cur_paragraph.from ~= nil then\n        cur_paragraph.to = { line = i - 1, col = 1 }\n        table.insert(res, cur_paragraph)\n        cur_paragraph = { vis_mode = 'V' }\n      end\n    else\n      if cur_paragraph.from == nil then cur_paragraph.from = { line = i, col = 1 } end\n    end\n  end\n\n  if cur_paragraph.from ~= nil then\n    cur_paragraph.to = { line = #lines, col = 1 }\n    table.insert(res, cur_paragraph)\n  end\n\n  return res\nend\n\nlocal outer_paragraph = function()\n  -- Left as homework\nend\n\nlocal paragraph = function(ai_type, _, _)\n  return ai_type == 'i' and inner_paragraph() or outer_paragraph()\nend\n\nrequire('mini.ai').setup({\n  -- Is needed otherwise paragraphs more than `n_lines` lines will not be selected\n  n_lines = 9999,\n  custom_textobjects = {\n    p = paragraph,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">inner_paragraph</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">cur_paragraph</span> <span class=\"pl-k\">=</span> {}, { <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>V<span class=\"pl-pds\">' </span></span>}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">lines</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^%s*$<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }\n        <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">cur_paragraph</span>)\n        <span class=\"pl-smi\">cur_paragraph</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>V<span class=\"pl-pds\">' </span></span>}\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> } <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">lines</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">cur_paragraph</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">outer_paragraph</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Left as homework</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">paragraph</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">inner_paragraph</span>() <span class=\"pl-k\">or</span> <span class=\"pl-c1\">outer_paragraph</span>()\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Is needed otherwise paragraphs more than `n_lines` lines will not be selected</span>\n  <span class=\"pl-smi\">n_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">9999</span>,\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">p</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">paragraph</span>,\n  },\n})</pre></div>\n<p dir=\"auto\">Adding built-in paragraph textobject is an interesting idea and even probably doable in as <code class=\"notranslate\">MiniExtra.gen_ai_spec.paragraph</code>, but the (deliberate) restriction of <code class=\"notranslate\">config.n_lines</code> makes it somewhat not usable. So let's leave it as it (at least for now).</p>\n<hr>\n<p dir=\"auto\"><strong>Note</strong>: make sure to update to latest <code class=\"notranslate\">main</code>, as it has the fix to respect <code class=\"notranslate\">vis_mode</code> when output is an array of regions.<br>\n<strong>Note 2</strong>: there is a somewhat funny coincidence that almost exactly two years ago (2022-08-05) 'mini.ai' was updated to allow callable with array of regions as output. Life is strange sometimes.</p>",
+            "bodyText": "I am not aware of a better way for paragraph textobject than writing a function which returns either a single target region or an array of regions. I think the latter is easier to implement.\nHere is a partial solution showcasing basic approach:\nlocal inner_paragraph = function()\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n  local res, cur_paragraph = {}, { vis_mode = 'V' }\n  for i, l in ipairs(lines) do\n    if l:find('^%s*$') ~= nil then\n      if cur_paragraph.from ~= nil then\n        cur_paragraph.to = { line = i - 1, col = 1 }\n        table.insert(res, cur_paragraph)\n        cur_paragraph = { vis_mode = 'V' }\n      end\n    else\n      if cur_paragraph.from == nil then cur_paragraph.from = { line = i, col = 1 } end\n    end\n  end\n\n  if cur_paragraph.from ~= nil then\n    cur_paragraph.to = { line = #lines, col = 1 }\n    table.insert(res, cur_paragraph)\n  end\n\n  return res\nend\n\nlocal outer_paragraph = function()\n  -- Left as homework\nend\n\nlocal paragraph = function(ai_type, _, _)\n  return ai_type == 'i' and inner_paragraph() or outer_paragraph()\nend\n\nrequire('mini.ai').setup({\n  -- Is needed otherwise paragraphs more than `n_lines` lines will not be selected\n  n_lines = 9999,\n  custom_textobjects = {\n    p = paragraph,\n  },\n})\nAdding built-in paragraph textobject is an interesting idea and even probably doable in as MiniExtra.gen_ai_spec.paragraph, but the (deliberate) restriction of config.n_lines makes it somewhat not usable. So let's leave it as it (at least for now).\n\nNote: make sure to update to latest main, as it has the fix to respect vis_mode when output is an array of regions.\nNote 2: there is a somewhat funny coincidence that almost exactly two years ago (2022-08-05) 'mini.ai' was updated to allow callable with array of regions as output. Life is strange sometimes.",
+            "createdAt": "2024-08-06T13:15:39Z",
+            "createdViaEmail": false,
+            "databaseId": 10253753,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4AnHW5",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2024-08-06T13:21:58Z",
+            "minimizedReason": null,
+            "publishedAt": "2024-08-06T13:15:39Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10253753",
+            "updatedAt": "2024-08-06T13:21:58Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10253753"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/176803464?v=4",
+                "login": "qtyra",
+                "resourcePath": "/qtyra",
+                "url": "https://github.com/qtyra"
+            },
+            "authorAssociation": "NONE",
+            "body": "Thanks @echasnovski , i did my homework and implemented outer_paragraph :), in case it helps anyone:\r\n\r\n```lua\r\nlocal outer_paragraph = function()\r\n    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\r\n    local res, cur_paragraph = {}, { vis_mode = \"V\" }\r\n    for i, l in ipairs(lines) do\r\n        if not l:find(\"^%s*$\") and cur_paragraph.to then\r\n            table.insert(res, cur_paragraph)\r\n            cur_paragraph = { vis_mode = \"V\" }\r\n        end\r\n        if not l:find(\"^%s*$\") and not cur_paragraph.from and not cur_paragraph.to then\r\n            cur_paragraph.from = { line = i, col = 1 }\r\n        elseif l:find(\"^%s*$\") then\r\n            cur_paragraph.to = { line = i, col = 1 }\r\n        end\r\n    end\r\n    local last_from = cur_paragraph.from.line - 1 > 0 and cur_paragraph.from.line - 1 or 1\r\n    cur_paragraph.from = { line = last_from, col = 1 }\r\n    cur_paragraph.to = { line = #lines, col = 1 }\r\n    table.insert(res, cur_paragraph)\r\n    return res\r\nend\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Thanks <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> , i did my homework and implemented outer_paragraph :), in case it helps anyone:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local outer_paragraph = function()\n    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n    local res, cur_paragraph = {}, { vis_mode = &quot;V&quot; }\n    for i, l in ipairs(lines) do\n        if not l:find(&quot;^%s*$&quot;) and cur_paragraph.to then\n            table.insert(res, cur_paragraph)\n            cur_paragraph = { vis_mode = &quot;V&quot; }\n        end\n        if not l:find(&quot;^%s*$&quot;) and not cur_paragraph.from and not cur_paragraph.to then\n            cur_paragraph.from = { line = i, col = 1 }\n        elseif l:find(&quot;^%s*$&quot;) then\n            cur_paragraph.to = { line = i, col = 1 }\n        end\n    end\n    local last_from = cur_paragraph.from.line - 1 &gt; 0 and cur_paragraph.from.line - 1 or 1\n    cur_paragraph.from = { line = last_from, col = 1 }\n    cur_paragraph.to = { line = #lines, col = 1 }\n    table.insert(res, cur_paragraph)\n    return res\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">outer_paragraph</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">cur_paragraph</span> <span class=\"pl-k\">=</span> {}, { <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>V<span class=\"pl-pds\">\" </span></span>}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">lines</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%s*$<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">then</span>\n            <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">cur_paragraph</span>)\n            <span class=\"pl-smi\">cur_paragraph</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>V<span class=\"pl-pds\">\" </span></span>}\n        <span class=\"pl-k\">end</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%s*$<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">then</span>\n            <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }\n        <span class=\"pl-k\">elseif</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%s*$<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n            <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }\n        <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">last_from</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>\n    <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">last_from</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }\n    <span class=\"pl-smi\">cur_paragraph</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">lines</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">cur_paragraph</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "Thanks @echasnovski , i did my homework and implemented outer_paragraph :), in case it helps anyone:\nlocal outer_paragraph = function()\n    local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n    local res, cur_paragraph = {}, { vis_mode = \"V\" }\n    for i, l in ipairs(lines) do\n        if not l:find(\"^%s*$\") and cur_paragraph.to then\n            table.insert(res, cur_paragraph)\n            cur_paragraph = { vis_mode = \"V\" }\n        end\n        if not l:find(\"^%s*$\") and not cur_paragraph.from and not cur_paragraph.to then\n            cur_paragraph.from = { line = i, col = 1 }\n        elseif l:find(\"^%s*$\") then\n            cur_paragraph.to = { line = i, col = 1 }\n        end\n    end\n    local last_from = cur_paragraph.from.line - 1 > 0 and cur_paragraph.from.line - 1 or 1\n    cur_paragraph.from = { line = last_from, col = 1 }\n    cur_paragraph.to = { line = #lines, col = 1 }\n    table.insert(res, cur_paragraph)\n    return res\nend",
+            "createdAt": "2024-08-07T06:03:08Z",
+            "createdViaEmail": false,
+            "databaseId": 10260596,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnJB0",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-07T06:03:08Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 5,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Nice! A- :)\r\nOne reason why I didn't want to spend time on this is that handling all edge cases gets tedious. Here are cases in which this will not work as well as built-in `ap`:\r\n- Built-in `ap` prefers including all blank lines after paragraph (this function does also), but for last paragraph which does not have any it falls back on preferring all blank lines before it. This is not the case here.\r\n- It throws error if buffer contains only blank lines. That said, the `inner_paragraph` also doesn't behave consistently (built-in `ip` selects whole buffer, this implementation does nothing), which is another argument as to why implementing this gets tedious.",
+                    "bodyHTML": "<p dir=\"auto\">Nice! A- :)<br>\nOne reason why I didn't want to spend time on this is that handling all edge cases gets tedious. Here are cases in which this will not work as well as built-in <code class=\"notranslate\">ap</code>:</p>\n<ul dir=\"auto\">\n<li>Built-in <code class=\"notranslate\">ap</code> prefers including all blank lines after paragraph (this function does also), but for last paragraph which does not have any it falls back on preferring all blank lines before it. This is not the case here.</li>\n<li>It throws error if buffer contains only blank lines. That said, the <code class=\"notranslate\">inner_paragraph</code> also doesn't behave consistently (built-in <code class=\"notranslate\">ip</code> selects whole buffer, this implementation does nothing), which is another argument as to why implementing this gets tedious.</li>\n</ul>",
+                    "bodyText": "Nice! A- :)\nOne reason why I didn't want to spend time on this is that handling all edge cases gets tedious. Here are cases in which this will not work as well as built-in ap:\n\nBuilt-in ap prefers including all blank lines after paragraph (this function does also), but for last paragraph which does not have any it falls back on preferring all blank lines before it. This is not the case here.\nIt throws error if buffer contains only blank lines. That said, the inner_paragraph also doesn't behave consistently (built-in ip selects whole buffer, this implementation does nothing), which is another argument as to why implementing this gets tedious.",
+                    "createdAt": "2024-08-07T07:21:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10261308,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnJM8",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-07T07:21:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10260596,
+                        "id": "DC_kwDOFoksYM4AnJB0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10261308",
+                    "updatedAt": "2024-08-07T07:21:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10261308"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/176803464?v=4",
+                        "login": "qtyra",
+                        "resourcePath": "/qtyra",
+                        "url": "https://github.com/qtyra"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@echasnovski I've run into a problem with the way mini.ai chooses the best match. Consider this file (with the empty lines around the text):\r\n\r\n```\r\n\r\nabc\r\n\r\n```\r\n\r\nand this function\r\n\r\n```lua\r\nlocal outer_paragraph = function()\r\n    return {\r\n        { from = { line = 1, col = 1 }, to = { line = 2, col = 1 }, vis_mode = \"V\" },\r\n        { from = { line = 2, col = 1 }, to = { line = 3, col = 1 }, vis_mode = \"V\" },\r\n    }\r\nend\r\n```\r\n\r\nIt behaves like Vim's 'ap' except when the cursor is exactly at the start of 'abc', it selects the region before the paragraph (check it out with visual mode). Initially, I thought, \"Well, since both are the best match following `search_method = cover`, then mini.ai picks the first one\". However, this behavior is inconsistent when the cursor is on 'b' or 'c' where selects the empty line *after* the paragraph. I've updated to the latest version, so i don't know if it's a `vis_mode` thing.\r\n\r\nIs this behavior expected or it's a bug? If it's expected, I'd greatly appreciate to know if there's a way (even a hacky one) to control it.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> I've run into a problem with the way mini.ai chooses the best match. Consider this file (with the empty lines around the text):</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"\nabc\n\"><pre class=\"notranslate\"><code class=\"notranslate\">\nabc\n\n</code></pre></div>\n<p dir=\"auto\">and this function</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local outer_paragraph = function()\n    return {\n        { from = { line = 1, col = 1 }, to = { line = 2, col = 1 }, vis_mode = &quot;V&quot; },\n        { from = { line = 2, col = 1 }, to = { line = 3, col = 1 }, vis_mode = &quot;V&quot; },\n    }\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">outer_paragraph</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">return</span> {\n        { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }, <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>V<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">3</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }, <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>V<span class=\"pl-pds\">\" </span></span>},\n    }\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">It behaves like Vim's 'ap' except when the cursor is exactly at the start of 'abc', it selects the region before the paragraph (check it out with visual mode). Initially, I thought, \"Well, since both are the best match following <code class=\"notranslate\">search_method = cover</code>, then mini.ai picks the first one\". However, this behavior is inconsistent when the cursor is on 'b' or 'c' where selects the empty line <em>after</em> the paragraph. I've updated to the latest version, so i don't know if it's a <code class=\"notranslate\">vis_mode</code> thing.</p>\n<p dir=\"auto\">Is this behavior expected or it's a bug? If it's expected, I'd greatly appreciate to know if there's a way (even a hacky one) to control it.</p>",
+                    "bodyText": "@echasnovski I've run into a problem with the way mini.ai chooses the best match. Consider this file (with the empty lines around the text):\n\nabc\n\n\nand this function\nlocal outer_paragraph = function()\n    return {\n        { from = { line = 1, col = 1 }, to = { line = 2, col = 1 }, vis_mode = \"V\" },\n        { from = { line = 2, col = 1 }, to = { line = 3, col = 1 }, vis_mode = \"V\" },\n    }\nend\nIt behaves like Vim's 'ap' except when the cursor is exactly at the start of 'abc', it selects the region before the paragraph (check it out with visual mode). Initially, I thought, \"Well, since both are the best match following search_method = cover, then mini.ai picks the first one\". However, this behavior is inconsistent when the cursor is on 'b' or 'c' where selects the empty line after the paragraph. I've updated to the latest version, so i don't know if it's a vis_mode thing.\nIs this behavior expected or it's a bug? If it's expected, I'd greatly appreciate to know if there's a way (even a hacky one) to control it.",
+                    "createdAt": "2024-08-07T09:01:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10262194,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnJay",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-07T09:01:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10260596,
+                        "id": "DC_kwDOFoksYM4AnJB0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10262194",
+                    "updatedAt": "2024-08-07T09:01:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10262194"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> It behaves like Vim's 'ap' except when the cursor is exactly at the start of 'abc', it selects the region before the paragraph (check it out with visual mode). Initially, I thought, \"Well, since both are the best match following `search_method = cover`, then mini.ai picks the first one\". However, this behavior is inconsistent when the cursor is on 'b' or 'c' where selects the empty line _after_ the paragraph. I've updated to the latest version, so i don't know if it's a `vis_mode` thing.\r\n> \r\n> Is this behavior expected or it's a bug? If it's expected, I'd greatly appreciate to know if there's a way (even a hacky one) to control it.\r\n\r\nIt is somewhat expected. `vis_mode` only controls which visual mode will be used to select textobject, it has nothing to do with computation of best region match.\r\n\r\nWhen cursor is on \"b\" and onward, it selects second one because it is the only region that covers current single cell selection.\r\nWhen cursor is on \"a\", both regions are covering and so happens that have same actual width, so the first one is chosen. If lines are 'xxxxxx', 'abcb', '', then the second one is preferred as *it* has the smaller width. Preferring tighter match in case of several covering regions is [documented](https://github.com/echasnovski/mini.nvim/blob/d8faae693d266ee4f3a2bf1fb7ca4bc81314c3e9/doc/mini-ai.txt#L382-L383).\r\n\r\nThe best you can do is to properly compute `to.col` to be an actual last column of the line. In this case any cursor position on the line will result into overlapping covering regions and \"the smallest width wins\" will be consistently applied.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">It behaves like Vim's 'ap' except when the cursor is exactly at the start of 'abc', it selects the region before the paragraph (check it out with visual mode). Initially, I thought, \"Well, since both are the best match following <code class=\"notranslate\">search_method = cover</code>, then mini.ai picks the first one\". However, this behavior is inconsistent when the cursor is on 'b' or 'c' where selects the empty line <em>after</em> the paragraph. I've updated to the latest version, so i don't know if it's a <code class=\"notranslate\">vis_mode</code> thing.</p>\n<p dir=\"auto\">Is this behavior expected or it's a bug? If it's expected, I'd greatly appreciate to know if there's a way (even a hacky one) to control it.</p>\n</blockquote>\n<p dir=\"auto\">It is somewhat expected. <code class=\"notranslate\">vis_mode</code> only controls which visual mode will be used to select textobject, it has nothing to do with computation of best region match.</p>\n<p dir=\"auto\">When cursor is on \"b\" and onward, it selects second one because it is the only region that covers current single cell selection.<br>\nWhen cursor is on \"a\", both regions are covering and so happens that have same actual width, so the first one is chosen. If lines are 'xxxxxx', 'abcb', '', then the second one is preferred as <em>it</em> has the smaller width. Preferring tighter match in case of several covering regions is <a href=\"https://github.com/echasnovski/mini.nvim/blob/d8faae693d266ee4f3a2bf1fb7ca4bc81314c3e9/doc/mini-ai.txt#L382-L383\">documented</a>.</p>\n<p dir=\"auto\">The best you can do is to properly compute <code class=\"notranslate\">to.col</code> to be an actual last column of the line. In this case any cursor position on the line will result into overlapping covering regions and \"the smallest width wins\" will be consistently applied.</p>",
+                    "bodyText": "It behaves like Vim's 'ap' except when the cursor is exactly at the start of 'abc', it selects the region before the paragraph (check it out with visual mode). Initially, I thought, \"Well, since both are the best match following search_method = cover, then mini.ai picks the first one\". However, this behavior is inconsistent when the cursor is on 'b' or 'c' where selects the empty line after the paragraph. I've updated to the latest version, so i don't know if it's a vis_mode thing.\nIs this behavior expected or it's a bug? If it's expected, I'd greatly appreciate to know if there's a way (even a hacky one) to control it.\n\nIt is somewhat expected. vis_mode only controls which visual mode will be used to select textobject, it has nothing to do with computation of best region match.\nWhen cursor is on \"b\" and onward, it selects second one because it is the only region that covers current single cell selection.\nWhen cursor is on \"a\", both regions are covering and so happens that have same actual width, so the first one is chosen. If lines are 'xxxxxx', 'abcb', '', then the second one is preferred as it has the smaller width. Preferring tighter match in case of several covering regions is documented.\nThe best you can do is to properly compute to.col to be an actual last column of the line. In this case any cursor position on the line will result into overlapping covering regions and \"the smallest width wins\" will be consistently applied.",
+                    "createdAt": "2024-08-07T09:26:17Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10262452,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnJe0",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-07T09:26:17Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10260596,
+                        "id": "DC_kwDOFoksYM4AnJB0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10262452",
+                    "updatedAt": "2024-08-07T09:26:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10262452"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/176803464?v=4",
+                        "login": "qtyra",
+                        "resourcePath": "/qtyra",
+                        "url": "https://github.com/qtyra"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> It is somewhat expected. vis_mode only controls which visual mode will be used to select textobject, it has nothing to do with computation of best region match.\r\n\r\nOk I wrongly assumed that `vis_mode = 'V'` would make mini.ai ignore `col`, it made sense in my mind haha.\r\n\r\n> The best you can do is to properly compute to.col to be an actual last column of the line. In this case any cursor position on the line will result into overlapping covering regions and \"the smallest width wins\" will be consistently applied.\r\n\r\nThis solution consistently selects the region *before* the paragraph at any position of 'abc', but that's different from the vim's 'ip' behavior which selects the empty lines *after* the paragraph when the cursor is over the text.\r\n\r\nI briefly experimented with vim's 'ap' in empty lines between paragraphs and i think i'll stick to the default p as this is getting complicated.\r\n\r\nBtw, unrelated but one of the examples in the [docs](https://github.com/echasnovski/mini.nvim/blob/main/doc/mini-ai.txt#L341) works with lowercase snake_case but not with the uppercase version. I managed to make it work for both, but since it only says '... with camel case support.', I'm not sure whether to put it in [show and tell](https://github.com/echasnovski/mini.nvim/discussions/categories/show-and-tell) or make a pull request.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">It is somewhat expected. vis_mode only controls which visual mode will be used to select textobject, it has nothing to do with computation of best region match.</p>\n</blockquote>\n<p dir=\"auto\">Ok I wrongly assumed that <code class=\"notranslate\">vis_mode = 'V'</code> would make mini.ai ignore <code class=\"notranslate\">col</code>, it made sense in my mind haha.</p>\n<blockquote>\n<p dir=\"auto\">The best you can do is to properly compute to.col to be an actual last column of the line. In this case any cursor position on the line will result into overlapping covering regions and \"the smallest width wins\" will be consistently applied.</p>\n</blockquote>\n<p dir=\"auto\">This solution consistently selects the region <em>before</em> the paragraph at any position of 'abc', but that's different from the vim's 'ip' behavior which selects the empty lines <em>after</em> the paragraph when the cursor is over the text.</p>\n<p dir=\"auto\">I briefly experimented with vim's 'ap' in empty lines between paragraphs and i think i'll stick to the default p as this is getting complicated.</p>\n<p dir=\"auto\">Btw, unrelated but one of the examples in the <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/doc/mini-ai.txt#L341\">docs</a> works with lowercase snake_case but not with the uppercase version. I managed to make it work for both, but since it only says '... with camel case support.', I'm not sure whether to put it in <a href=\"https://github.com/echasnovski/mini.nvim/discussions/categories/show-and-tell\">show and tell</a> or make a pull request.</p>",
+                    "bodyText": "It is somewhat expected. vis_mode only controls which visual mode will be used to select textobject, it has nothing to do with computation of best region match.\n\nOk I wrongly assumed that vis_mode = 'V' would make mini.ai ignore col, it made sense in my mind haha.\n\nThe best you can do is to properly compute to.col to be an actual last column of the line. In this case any cursor position on the line will result into overlapping covering regions and \"the smallest width wins\" will be consistently applied.\n\nThis solution consistently selects the region before the paragraph at any position of 'abc', but that's different from the vim's 'ip' behavior which selects the empty lines after the paragraph when the cursor is over the text.\nI briefly experimented with vim's 'ap' in empty lines between paragraphs and i think i'll stick to the default p as this is getting complicated.\nBtw, unrelated but one of the examples in the docs works with lowercase snake_case but not with the uppercase version. I managed to make it work for both, but since it only says '... with camel case support.', I'm not sure whether to put it in show and tell or make a pull request.",
+                    "createdAt": "2024-08-07T11:27:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10263648,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnJxg",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-07T11:27:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10260596,
+                        "id": "DC_kwDOFoksYM4AnJB0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10263648",
+                    "updatedAt": "2024-08-07T11:27:02Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10263648"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Btw, unrelated but one of the examples in the [docs](https://github.com/echasnovski/mini.nvim/blob/main/doc/mini-ai.txt#L341) works with lowercase snake_case but not with the uppercase version. I managed to make it work for both, but since it only says '... with camel case support.', I'm not sure whether to put it in [show and tell](https://github.com/echasnovski/mini.nvim/discussions/categories/show-and-tell) or make a pull request.\r\n\r\nNo need to change the docs, as it *is* an example for camel case support, not snake case.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Btw, unrelated but one of the examples in the <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/doc/mini-ai.txt#L341\">docs</a> works with lowercase snake_case but not with the uppercase version. I managed to make it work for both, but since it only says '... with camel case support.', I'm not sure whether to put it in <a href=\"https://github.com/echasnovski/mini.nvim/discussions/categories/show-and-tell\">show and tell</a> or make a pull request.</p>\n</blockquote>\n<p dir=\"auto\">No need to change the docs, as it <em>is</em> an example for camel case support, not snake case.</p>",
+                    "bodyText": "Btw, unrelated but one of the examples in the docs works with lowercase snake_case but not with the uppercase version. I managed to make it work for both, but since it only says '... with camel case support.', I'm not sure whether to put it in show and tell or make a pull request.\n\nNo need to change the docs, as it is an example for camel case support, not snake case.",
+                    "createdAt": "2024-08-07T11:43:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10263804,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnJz8",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-07T11:43:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10260596,
+                        "id": "DC_kwDOFoksYM4AnJB0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10263804",
+                    "updatedAt": "2024-08-07T11:43:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10263804"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596",
+            "updatedAt": "2024-08-07T06:03:09Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119#discussioncomment-10260596"
+        }
+    ],
+    "createdAt": "2024-08-06T07:41:49Z",
+    "createdViaEmail": false,
+    "databaseId": 7017106,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AaxKS",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1119,
+    "poll": null,
+    "publishedAt": "2024-08-06T07:41:49Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1119",
+    "stateReason": "RESOLVED",
+    "title": "[mini.ai]: Paragraph textobject?",
+    "updatedAt": "2024-08-07T11:43:47Z",
+    "upvoteCount": 3,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1119"
+}

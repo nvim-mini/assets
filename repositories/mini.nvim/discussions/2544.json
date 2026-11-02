@@ -1,0 +1,385 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 18230847,
+        "id": "DC_kwDOFoksYM4BFi4_",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18230847"
+    },
+    "answerChosenAt": "2026-09-01T08:53:42Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/2665411?u=a569cbfd109a8876e58cceea977f645433cb5fbb&v=4",
+        "login": "rexroof",
+        "resourcePath": "/rexroof",
+        "url": "https://github.com/rexroof"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.ai, mini.surround\r\n\r\n### Question\r\n\r\nOne problem I'm regularly running into while maintaining bash scripts is a quick keystroke to surround a bash variable use in quotes.   I have a neovim configuration mostly built around the mini modules so I'd be happy to add this config in the most mini-way possible. \r\n\r\nI think what I need to do is write a mini.ai custom_textobject pattern that matches `$VAR` or `${VAR}`?  from searching the treesitter docs I don't believe that is a pre-existing textobject defined by treesitter?\r\n\r\nHas anyone done this before, or is there a simpler solution that I'm not seeing?\r\n\r\nApologies if this is the wrong forum for a question like this, but I'm struggling to put together the pieces to solve this problem.\r\n\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai, mini.surround</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">One problem I'm regularly running into while maintaining bash scripts is a quick keystroke to surround a bash variable use in quotes.   I have a neovim configuration mostly built around the mini modules so I'd be happy to add this config in the most mini-way possible.</p>\n<p dir=\"auto\">I think what I need to do is write a mini.ai custom_textobject pattern that matches <code class=\"notranslate\">$VAR</code> or <code class=\"notranslate\">${VAR}</code>?  from searching the treesitter docs I don't believe that is a pre-existing textobject defined by treesitter?</p>\n<p dir=\"auto\">Has anyone done this before, or is there a simpler solution that I'm not seeing?</p>\n<p dir=\"auto\">Apologies if this is the wrong forum for a question like this, but I'm struggling to put together the pieces to solve this problem.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai, mini.surround\nQuestion\nOne problem I'm regularly running into while maintaining bash scripts is a quick keystroke to surround a bash variable use in quotes.   I have a neovim configuration mostly built around the mini modules so I'd be happy to add this config in the most mini-way possible.\nI think what I need to do is write a mini.ai custom_textobject pattern that matches $VAR or ${VAR}?  from searching the treesitter docs I don't believe that is a pre-existing textobject defined by treesitter?\nHas anyone done this before, or is there a simpler solution that I'm not seeing?\nApologies if this is the wrong forum for a question like this, but I'm struggling to put together the pieces to solve this problem.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-09-01T08:53:35Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> One problem I'm regularly running into while maintaining bash scripts is a quick keystroke to surround a bash variable use in quotes.\r\n> ...\r\n> I think what I need to do is write a mini.ai custom_textobject pattern that matches `$VAR` or `${VAR}`?\r\n\r\nThis indeed sounds like a correct direction: 1) create a custom 'mini.ai' textobject, like with `v` (variable) identifier; 2) use 'mini.surround' `add` mapping to surround the whole variable.\r\n\r\nHere is how to create a custom 'mini.ai' textobject that would be active only in files with `sh` filetype (which bash scripts mostly are):\r\n- Create a file `~/.config/after/ftplugin/sh.lua`. This is a filetype plugin for for `sh` filetype. I'd also probably recommend copying the future contents of this file to `~/.config/after/ftplugin/bash.lua`.\r\n- Add the following lines to it:\r\n\r\n    ```lua\r\n    vim.b.miniai_config = {\r\n      custom_textobjects = {\r\n        -- Bash variable: $VAR, ${VAR}, $_VAR, $var, $_var123, etc.\r\n        -- See `:h MiniAi-textobject-specification` for more details.\r\n        v = { { '%$()[%a_][%w_]*()', '%${()[%a_][%w_]*()}' } },\r\n      },\r\n    }\r\n    ```\r\n\r\nNow opening the file with `sh` filetype (not necessarily the one that has `*.sh` extension, but the one which has `:=vim.bo.filetype` print `sh`) will have `av` select the whole variable (with `$` and `{}`) and `iv` select the variable name.\r\n\r\nSurrounding now is done by the following sequence: `sa` (surround add) - `av` (around variable) - `\"` (double quote). If you want this to be something faster (although I'd recommend sticking to this type of explicit surrounding), you can create a buffer-local keymap by adding the following call to the filetype plugin(s):\r\n\r\n```lua\r\nvim.keymap.set('n', '<Leader>v', 'saav\"', { buf = 0, remap = true })\r\n```\r\n\r\nHope this helps!\r\n\r\n---\r\n\r\n> Apologies if this is the wrong forum for a question like this, but I'm struggling to put together the pieces to solve this problem.\r\n\r\nThis is absolutely the intended use of the `Q&A` type of discussions here :+1:",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">One problem I'm regularly running into while maintaining bash scripts is a quick keystroke to surround a bash variable use in quotes.<br>\n...<br>\nI think what I need to do is write a mini.ai custom_textobject pattern that matches <code class=\"notranslate\">$VAR</code> or <code class=\"notranslate\">${VAR}</code>?</p>\n</blockquote>\n<p dir=\"auto\">This indeed sounds like a correct direction: 1) create a custom 'mini.ai' textobject, like with <code class=\"notranslate\">v</code> (variable) identifier; 2) use 'mini.surround' <code class=\"notranslate\">add</code> mapping to surround the whole variable.</p>\n<p dir=\"auto\">Here is how to create a custom 'mini.ai' textobject that would be active only in files with <code class=\"notranslate\">sh</code> filetype (which bash scripts mostly are):</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Create a file <code class=\"notranslate\">~/.config/after/ftplugin/sh.lua</code>. This is a filetype plugin for for <code class=\"notranslate\">sh</code> filetype. I'd also probably recommend copying the future contents of this file to <code class=\"notranslate\">~/.config/after/ftplugin/bash.lua</code>.</p>\n</li>\n<li>\n<p dir=\"auto\">Add the following lines to it:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.b.miniai_config = {\n  custom_textobjects = {\n    -- Bash variable: $VAR, ${VAR}, $_VAR, $var, $_var123, etc.\n    -- See `:h MiniAi-textobject-specification` for more details.\n    v = { { '%$()[%a_][%w_]*()', '%${()[%a_][%w_]*()}' } },\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Bash variable: $VAR, ${VAR}, $_VAR, $var, $_var123, etc.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> See `:h MiniAi-textobject-specification` for more details.</span>\n    <span class=\"pl-smi\">v</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%$()[%a_][%w_]*()<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%${()[%a_][%w_]*()}<span class=\"pl-pds\">' </span></span>} },\n  },\n}</pre></div>\n</li>\n</ul>\n<p dir=\"auto\">Now opening the file with <code class=\"notranslate\">sh</code> filetype (not necessarily the one that has <code class=\"notranslate\">*.sh</code> extension, but the one which has <code class=\"notranslate\">:=vim.bo.filetype</code> print <code class=\"notranslate\">sh</code>) will have <code class=\"notranslate\">av</code> select the whole variable (with <code class=\"notranslate\">$</code> and <code class=\"notranslate\">{}</code>) and <code class=\"notranslate\">iv</code> select the variable name.</p>\n<p dir=\"auto\">Surrounding now is done by the following sequence: <code class=\"notranslate\">sa</code> (surround add) - <code class=\"notranslate\">av</code> (around variable) - <code class=\"notranslate\">\"</code> (double quote). If you want this to be something faster (although I'd recommend sticking to this type of explicit surrounding), you can create a buffer-local keymap by adding the following call to the filetype plugin(s):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set('n', '&lt;Leader&gt;v', 'saav&quot;', { buf = 0, remap = true })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Leader&gt;v<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>saav\"<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n<p dir=\"auto\">Hope this helps!</p>\n<hr>\n<blockquote>\n<p dir=\"auto\">Apologies if this is the wrong forum for a question like this, but I'm struggling to put together the pieces to solve this problem.</p>\n</blockquote>\n<p dir=\"auto\">This is absolutely the intended use of the <code class=\"notranslate\">Q&amp;A</code> type of discussions here 👍</p>",
+            "bodyText": "One problem I'm regularly running into while maintaining bash scripts is a quick keystroke to surround a bash variable use in quotes.\n...\nI think what I need to do is write a mini.ai custom_textobject pattern that matches $VAR or ${VAR}?\n\nThis indeed sounds like a correct direction: 1) create a custom 'mini.ai' textobject, like with v (variable) identifier; 2) use 'mini.surround' add mapping to surround the whole variable.\nHere is how to create a custom 'mini.ai' textobject that would be active only in files with sh filetype (which bash scripts mostly are):\n\n\nCreate a file ~/.config/after/ftplugin/sh.lua. This is a filetype plugin for for sh filetype. I'd also probably recommend copying the future contents of this file to ~/.config/after/ftplugin/bash.lua.\n\n\nAdd the following lines to it:\nvim.b.miniai_config = {\n  custom_textobjects = {\n    -- Bash variable: $VAR, ${VAR}, $_VAR, $var, $_var123, etc.\n    -- See `:h MiniAi-textobject-specification` for more details.\n    v = { { '%$()[%a_][%w_]*()', '%${()[%a_][%w_]*()}' } },\n  },\n}\n\n\nNow opening the file with sh filetype (not necessarily the one that has *.sh extension, but the one which has :=vim.bo.filetype print sh) will have av select the whole variable (with $ and {}) and iv select the variable name.\nSurrounding now is done by the following sequence: sa (surround add) - av (around variable) - \" (double quote). If you want this to be something faster (although I'd recommend sticking to this type of explicit surrounding), you can create a buffer-local keymap by adding the following call to the filetype plugin(s):\nvim.keymap.set('n', '<Leader>v', 'saav\"', { buf = 0, remap = true })\nHope this helps!\n\n\nApologies if this is the wrong forum for a question like this, but I'm struggling to put together the pieces to solve this problem.\n\nThis is absolutely the intended use of the Q&A type of discussions here 👍",
+            "createdAt": "2026-09-01T08:53:34Z",
+            "createdViaEmail": false,
+            "databaseId": 18230847,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BFi4_",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-09-01T08:53:34Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/2665411?u=a569cbfd109a8876e58cceea977f645433cb5fbb&v=4",
+                        "login": "rexroof",
+                        "resourcePath": "/rexroof",
+                        "url": "https://github.com/rexroof"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you so much!   I experimented with an after/ftplugin like this but couldn't get the pattern quite right.  and I debated if this was really the best place for it.      this works like a charm! \r\n\r\nI've been a fan of your work on neovim plugins for quite a few years, I really appreciate all of your contributions to the neovim ecosystem.    I know that https://github.com/nvim-mini/mini.nvim/issues/917 exists, but I do wish there was a way I could donate monetarily!",
+                    "bodyHTML": "<p dir=\"auto\">Thank you so much!   I experimented with an after/ftplugin like this but couldn't get the pattern quite right.  and I debated if this was really the best place for it.      this works like a charm!</p>\n<p dir=\"auto\">I've been a fan of your work on neovim plugins for quite a few years, I really appreciate all of your contributions to the neovim ecosystem.    I know that <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2317947924\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/917\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/917/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/917\">#917</a> exists, but I do wish there was a way I could donate monetarily!</p>",
+                    "bodyText": "Thank you so much!   I experimented with an after/ftplugin like this but couldn't get the pattern quite right.  and I debated if this was really the best place for it.      this works like a charm!\nI've been a fan of your work on neovim plugins for quite a few years, I really appreciate all of your contributions to the neovim ecosystem.    I know that #917 exists, but I do wish there was a way I could donate monetarily!",
+                    "createdAt": "2026-09-01T12:41:52Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18233745,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BFjmR",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-01T12:41:52Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18230847,
+                        "id": "DC_kwDOFoksYM4BFi4_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18230847"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18233745",
+                    "updatedAt": "2026-09-01T12:41:52Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18233745"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I experimented with an after/ftplugin like this but couldn't get the pattern quite right.\r\n\r\nYeah, it is a bit overcomplicated, but it is quite flexible in return. I also had to read the help to remember the details about the patterns 😅️\r\n\r\n> I've been a fan of your work on neovim plugins for quite a few years, I really appreciate all of your contributions to the neovim ecosystem. I know that #917 exists, but I do wish there was a way I could donate monetarily!\r\n\r\nThank you so much for your kind words and wanting to donate! It means a lot!\r\n\r\nSome aspects of enabling donations are (currently) not quite within my power. So we'll get there, when we get there :) In the meantime, using and sharing a word about the project is very much appreciated,\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I experimented with an after/ftplugin like this but couldn't get the pattern quite right.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, it is a bit overcomplicated, but it is quite flexible in return. I also had to read the help to remember the details about the patterns 😅️</p>\n<blockquote>\n<p dir=\"auto\">I've been a fan of your work on neovim plugins for quite a few years, I really appreciate all of your contributions to the neovim ecosystem. I know that <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2317947924\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/917\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/917/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/917\">#917</a> exists, but I do wish there was a way I could donate monetarily!</p>\n</blockquote>\n<p dir=\"auto\">Thank you so much for your kind words and wanting to donate! It means a lot!</p>\n<p dir=\"auto\">Some aspects of enabling donations are (currently) not quite within my power. So we'll get there, when we get there :) In the meantime, using and sharing a word about the project is very much appreciated,</p>",
+                    "bodyText": "I experimented with an after/ftplugin like this but couldn't get the pattern quite right.\n\nYeah, it is a bit overcomplicated, but it is quite flexible in return. I also had to read the help to remember the details about the patterns 😅️\n\nI've been a fan of your work on neovim plugins for quite a few years, I really appreciate all of your contributions to the neovim ecosystem. I know that #917 exists, but I do wish there was a way I could donate monetarily!\n\nThank you so much for your kind words and wanting to donate! It means a lot!\nSome aspects of enabling donations are (currently) not quite within my power. So we'll get there, when we get there :) In the meantime, using and sharing a word about the project is very much appreciated,",
+                    "createdAt": "2026-09-01T12:50:55Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18233866,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BFjoK",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-01T12:50:55Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18230847,
+                        "id": "DC_kwDOFoksYM4BFi4_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18230847"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18233866",
+                    "updatedAt": "2026-09-01T12:50:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18233866"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18230847",
+            "updatedAt": "2026-09-01T08:53:34Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544#discussioncomment-18230847"
+        }
+    ],
+    "createdAt": "2026-08-31T18:24:59Z",
+    "createdViaEmail": false,
+    "databaseId": 10722349,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "id": "D_kwDOFoksYM4Ao5wt",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vpB",
+                "name": "mini.surround"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2026-09-01T08:13:31Z",
+    "locked": false,
+    "number": 2544,
+    "poll": null,
+    "publishedAt": "2026-08-31T18:24:59Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2544",
+    "stateReason": "RESOLVED",
+    "title": "wrapping a bash variable name in quotes",
+    "updatedAt": "2026-09-01T12:50:55Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2544"
+}

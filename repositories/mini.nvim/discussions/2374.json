@@ -1,0 +1,213 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 16612216,
+        "id": "DC_kwDOFoksYM4A_Xt4",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2374#discussioncomment-16612216"
+    },
+    "answerChosenAt": "2026-04-18T13:15:46Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/97080720?u=cf4830a5214e96af2fe2690be6f0b81b16de7711&v=4",
+        "login": "aidancz",
+        "resourcePath": "/aidancz",
+        "url": "https://github.com/aidancz"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.snippets\n\n### Question\n\nThis binding isn't taking effect, and I don’t know why:\r\n\r\n```lua\r\nrequire('mini.snippets').setup({\r\n\tmappings = {\r\n\t         jump_prev = \"<c-r>\",\r\n\t},\r\n})\r\n```",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.snippets</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">This binding isn't taking effect, and I don’t know why:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.snippets').setup({\n\tmappings = {\n\t         jump_prev = &quot;&lt;c-r&gt;&quot;,\n\t},\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.snippets<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n\t<span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n\t         <span class=\"pl-smi\">jump_prev</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-r&gt;<span class=\"pl-pds\">\"</span></span>,\n\t},\n})</pre></div>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.snippets\nQuestion\nThis binding isn't taking effect, and I don’t know why:\nrequire('mini.snippets').setup({\n\tmappings = {\n\t         jump_prev = \"<c-r>\",\n\t},\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-04-18T13:15:43Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "That is an interesting use case. I could reproduce, but partially: pressing `<C-r>` with the above setup did not jump within snippet but acted as default `:h i_CTRL-R` mapping (waited for a register key). It did work if cursor moved manually after snippet start or previous jump.\r\n\r\nThe culprit turned out to be an issue in Neovim (or rather Vim) itself. See vim/vim#20004. The reason for this is somewhat technical: 'mini.snippets' [calls `vim.fn.complete()` with no candidates](https://github.com/nvim-mini/mini.nvim/blob/418ef4930ddabe80f449c6f1323f8b6abb172d1c/lua/mini/snippets.lua#L2776-L2779) whenever it moves cursor. This is meant as the best compromise to hide a possible completion menu (see [these details](https://github.com/nvim-mini/mini.nvim/blob/418ef4930ddabe80f449c6f1323f8b6abb172d1c/lua/mini/snippets.lua#L2812-L2819)) which can be present even if `vim.fn.pumvisible()` says otherwise.\r\n\r\nIt turns out that specifically `<C-r>` mapping itself doesn't work in this situation and it does look like an issue in Vim/Neovim. Let's hope it will be resolved soon. In the meantime my suggestion is to not use `<C-r>` for jumping, I am afraid. It is also fairly useful for its built-in purpose: insert text from registers.",
+            "bodyHTML": "<p dir=\"auto\">That is an interesting use case. I could reproduce, but partially: pressing <code class=\"notranslate\">&lt;C-r&gt;</code> with the above setup did not jump within snippet but acted as default <code class=\"notranslate\">:h i_CTRL-R</code> mapping (waited for a register key). It did work if cursor moved manually after snippet start or previous jump.</p>\n<p dir=\"auto\">The culprit turned out to be an issue in Neovim (or rather Vim) itself. See <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"4288058786\" data-permission-text=\"Title is private\" data-url=\"https://github.com/vim/vim/issues/20004\" data-hovercard-type=\"issue\" data-hovercard-url=\"/vim/vim/issues/20004/hovercard\" href=\"https://github.com/vim/vim/issues/20004\">vim/vim#20004</a>. The reason for this is somewhat technical: 'mini.snippets' <a href=\"https://github.com/nvim-mini/mini.nvim/blob/418ef4930ddabe80f449c6f1323f8b6abb172d1c/lua/mini/snippets.lua#L2776-L2779\">calls <code class=\"notranslate\">vim.fn.complete()</code> with no candidates</a> whenever it moves cursor. This is meant as the best compromise to hide a possible completion menu (see <a href=\"https://github.com/nvim-mini/mini.nvim/blob/418ef4930ddabe80f449c6f1323f8b6abb172d1c/lua/mini/snippets.lua#L2812-L2819\">these details</a>) which can be present even if <code class=\"notranslate\">vim.fn.pumvisible()</code> says otherwise.</p>\n<p dir=\"auto\">It turns out that specifically <code class=\"notranslate\">&lt;C-r&gt;</code> mapping itself doesn't work in this situation and it does look like an issue in Vim/Neovim. Let's hope it will be resolved soon. In the meantime my suggestion is to not use <code class=\"notranslate\">&lt;C-r&gt;</code> for jumping, I am afraid. It is also fairly useful for its built-in purpose: insert text from registers.</p>",
+            "bodyText": "That is an interesting use case. I could reproduce, but partially: pressing <C-r> with the above setup did not jump within snippet but acted as default :h i_CTRL-R mapping (waited for a register key). It did work if cursor moved manually after snippet start or previous jump.\nThe culprit turned out to be an issue in Neovim (or rather Vim) itself. See vim/vim#20004. The reason for this is somewhat technical: 'mini.snippets' calls vim.fn.complete() with no candidates whenever it moves cursor. This is meant as the best compromise to hide a possible completion menu (see these details) which can be present even if vim.fn.pumvisible() says otherwise.\nIt turns out that specifically <C-r> mapping itself doesn't work in this situation and it does look like an issue in Vim/Neovim. Let's hope it will be resolved soon. In the meantime my suggestion is to not use <C-r> for jumping, I am afraid. It is also fairly useful for its built-in purpose: insert text from registers.",
+            "createdAt": "2026-04-18T13:15:43Z",
+            "createdViaEmail": false,
+            "databaseId": 16612216,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A_Xt4",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-18T13:15:43Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2374#discussioncomment-16612216",
+            "updatedAt": "2026-04-18T13:15:43Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2374#discussioncomment-16612216"
+        }
+    ],
+    "createdAt": "2026-04-18T02:10:47Z",
+    "createdViaEmail": false,
+    "databaseId": 9904604,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AlyHc",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "C9C2C1",
+                "description": "Related to how Neovim works",
+                "id": "LA_kwDOFoksYM8AAAABDNnVwA",
+                "name": "neovim-upstream"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2374,
+    "poll": null,
+    "publishedAt": "2026-04-18T02:10:47Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2374",
+    "stateReason": "RESOLVED",
+    "title": "mini.snippets: Cannot bind `<c-r>` to jump_prev",
+    "updatedAt": "2026-04-18T13:15:46Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2374"
+}

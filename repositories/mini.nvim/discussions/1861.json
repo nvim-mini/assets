@@ -1,0 +1,302 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13500368,
+        "id": "DC_kwDOFoksYM4Azf_Q",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1861#discussioncomment-13500368"
+    },
+    "answerChosenAt": "2025-06-17T18:52:24Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.clue\r\n\r\n### Question\r\n\r\nHi echasnovski! Is there any way to make mini.clue show up for every key press and show the keys similar to how nvzone/showkeys does it. Or is it possible to achieve this with the combination of mini.notify and mini.keymap.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.clue</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Hi echasnovski! Is there any way to make mini.clue show up for every key press and show the keys similar to how nvzone/showkeys does it. Or is it possible to achieve this with the combination of mini.notify and mini.keymap.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.clue\nQuestion\nHi echasnovski! Is there any way to make mini.clue show up for every key press and show the keys similar to how nvzone/showkeys does it. Or is it possible to achieve this with the combination of mini.notify and mini.keymap.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-06-17T18:52:22Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Both 'mini.clue' and 'mini.keymap' are meant to work with mappings. This is far from \"showing any key press\".\r\n\r\nNeovim itself has a pretty good (since Neovim 0.11) built-in way of acting on every keypress: `:h vim.on_key()`. It can be used without any plugin to show typed keys with something like this:\r\n\r\n```lua\r\nlocal do_show_keys = false\r\nlocal ns_id = vim.api.nvim_create_namespace('show-keys')\r\n\r\n_G.toggle_show_keys = function()\r\n  do_show_keys = not do_show_keys\r\n  if not do_show_keys then return vim.on_key(nil, ns_id) end\r\n  vim.on_key(function(_, typed)\r\n    if typed ~= '' then vim.notify(vim.fn.keytrans(typed)) end\r\n  end, ns_id)\r\nend\r\n```\r\n\r\nExecuting `:lua _G.toggle_show_keys()` starts to show with `vim.notify()` key presses if not showing, stops otherwise. It is not without its quirks, but works pretty well. Together with 'vim.notify = require('mini.notify').make_notify()' it shows a \"trail\" of keys also (as notifications will be shown for some time until removed).\r\n\r\nBut I'd strongly suggest using a higher level key casting tool, as it will be more robust. I prefer [screenkey](https://www.thregr.org/wavexx/software/screenkey/).",
+            "bodyHTML": "<p dir=\"auto\">Both 'mini.clue' and 'mini.keymap' are meant to work with mappings. This is far from \"showing any key press\".</p>\n<p dir=\"auto\">Neovim itself has a pretty good (since Neovim 0.11) built-in way of acting on every keypress: <code class=\"notranslate\">:h vim.on_key()</code>. It can be used without any plugin to show typed keys with something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local do_show_keys = false\nlocal ns_id = vim.api.nvim_create_namespace('show-keys')\n\n_G.toggle_show_keys = function()\n  do_show_keys = not do_show_keys\n  if not do_show_keys then return vim.on_key(nil, ns_id) end\n  vim.on_key(function(_, typed)\n    if typed ~= '' then vim.notify(vim.fn.keytrans(typed)) end\n  end, ns_id)\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">do_show_keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">ns_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>show-keys<span class=\"pl-pds\">'</span></span>)\n\n<span class=\"pl-c1\">_G</span>.<span class=\"pl-en\">toggle_show_keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">do_show_keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">do_show_keys</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">do_show_keys</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">on_key</span>(<span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">ns_id</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">on_key</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">typed</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">typed</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">keytrans</span>(<span class=\"pl-smi\">typed</span>)) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">ns_id</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Executing <code class=\"notranslate\">:lua _G.toggle_show_keys()</code> starts to show with <code class=\"notranslate\">vim.notify()</code> key presses if not showing, stops otherwise. It is not without its quirks, but works pretty well. Together with 'vim.notify = require('mini.notify').make_notify()' it shows a \"trail\" of keys also (as notifications will be shown for some time until removed).</p>\n<p dir=\"auto\">But I'd strongly suggest using a higher level key casting tool, as it will be more robust. I prefer <a href=\"https://www.thregr.org/wavexx/software/screenkey/\" rel=\"nofollow\">screenkey</a>.</p>",
+            "bodyText": "Both 'mini.clue' and 'mini.keymap' are meant to work with mappings. This is far from \"showing any key press\".\nNeovim itself has a pretty good (since Neovim 0.11) built-in way of acting on every keypress: :h vim.on_key(). It can be used without any plugin to show typed keys with something like this:\nlocal do_show_keys = false\nlocal ns_id = vim.api.nvim_create_namespace('show-keys')\n\n_G.toggle_show_keys = function()\n  do_show_keys = not do_show_keys\n  if not do_show_keys then return vim.on_key(nil, ns_id) end\n  vim.on_key(function(_, typed)\n    if typed ~= '' then vim.notify(vim.fn.keytrans(typed)) end\n  end, ns_id)\nend\nExecuting :lua _G.toggle_show_keys() starts to show with vim.notify() key presses if not showing, stops otherwise. It is not without its quirks, but works pretty well. Together with 'vim.notify = require('mini.notify').make_notify()' it shows a \"trail\" of keys also (as notifications will be shown for some time until removed).\nBut I'd strongly suggest using a higher level key casting tool, as it will be more robust. I prefer screenkey.",
+            "createdAt": "2025-06-17T18:52:22Z",
+            "createdViaEmail": false,
+            "databaseId": 13500368,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Azf_Q",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-17T18:52:22Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks! Will check this out.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks! Will check this out.</p>",
+                    "bodyText": "Thanks! Will check this out.",
+                    "createdAt": "2025-06-17T20:34:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13501257,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzgNJ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-17T20:34:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13500368,
+                        "id": "DC_kwDOFoksYM4Azf_Q",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1861#discussioncomment-13500368"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1861#discussioncomment-13501257",
+                    "updatedAt": "2025-06-17T20:34:35Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1861#discussioncomment-13501257"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1861#discussioncomment-13500368",
+            "updatedAt": "2025-06-17T18:52:24Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1861#discussioncomment-13500368"
+        }
+    ],
+    "createdAt": "2025-06-17T17:19:27Z",
+    "createdViaEmail": false,
+    "databaseId": 8464534,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "id": "D_kwDOFoksYM4AgSiW",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABWZsqRQ",
+                "name": "mini.clue"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABfPzADQ",
+                "name": "mini.notify"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2025-06-17T17:20:05Z",
+    "locked": false,
+    "number": 1861,
+    "poll": null,
+    "publishedAt": "2025-06-17T17:19:27Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1861",
+    "stateReason": "RESOLVED",
+    "title": "Any way to make mini.clue work like nvzone/showkeys and show all the pressed keys",
+    "updatedAt": "2025-06-17T20:34:34Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1861"
+}

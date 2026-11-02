@@ -1,0 +1,445 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "While I really like the functionality provided by 'mini.bracketed', I struggle with the default mappings. I'm simply unable to quickly execute bindings that start with `[` or `]`, so repeated presses are especially challenging. I'm not sure if this is because I type in Dvorak, which maps the brackets to `-`/`=` keys, or my right pinky is just defective, but this is why I like to use 'mini.clues' `postkeys` for all of my bracketed targets. It greatly simplifies repeated target invocation for me, but it only works when navigating in a **single direction**. As soon as I want to reverse direction, I need to cancel the current `postkeys` operation and then reach for the other bracket key to change direction.\r\n\r\nThis morning while reviewing my 'mini.bracketed' configuration, I realized that I never use the first or last targets bound to the uppercase version of the suffix. So I thought why not remap the uppercase suffix to go in the reverse direction. For example, `[D` would move forward instead of going to the first. Likewise `]D` would move backward instead of going to the last. When combined with `postkeys`, this lets me **very quickly** navigate back and forth between targets—especially useful if you overshoot.\r\n\r\nI thought I'd share my configuration in case others have the same struggles that I have with the defaults:\r\n```lua\r\nlater(function() -- mini.bracketed\r\n  require('mini.bracketed').setup() \r\n\r\n  local clues = {}\r\n  for target, opts in pairs(MiniBracketed.config) do\r\n    local lower_suffix = opts.suffix\r\n    local upper_suffix = opts.suffix:upper()\r\n    local replacements = {\r\n      [\"[\"]  = { old = \"first\", new = \"forward\" },\r\n      [\"]\"]  = { old = \"last\", new = \"backward\" },\r\n    }\r\n\r\n    for bracket, pattern in pairs(replacements) do\r\n      -- Use hydra mode for all bracketed targets\r\n      table.insert(clues, { mode = \"n\", keys = bracket .. lower_suffix, postkeys = bracket })\r\n      table.insert(clues, { mode = \"n\", keys = bracket .. upper_suffix, postkeys = bracket })\r\n  \r\n      -- Make uppercase navigate in other direction instead of first/last\r\n      local map = vim.fn.maparg(bracket .. upper_suffix, \"n\", false, true)\r\n      local new_rhs = map.rhs:gsub(pattern.old, pattern.new)\r\n      local new_desc = map.desc:gsub(pattern.old, pattern.new)\r\n      vim.keymap.set(\"n\", bracket .. upper_suffix, new_rhs, { desc = new_desc })\r\n    end\r\n  end\r\n\r\n  -- These will be used later when mini.clues is setup\r\n  _G.Config.bracketed_clues = clues\r\nend)\r\n",
+    "bodyHTML": "<p dir=\"auto\">While I really like the functionality provided by 'mini.bracketed', I struggle with the default mappings. I'm simply unable to quickly execute bindings that start with <code class=\"notranslate\">[</code> or <code class=\"notranslate\">]</code>, so repeated presses are especially challenging. I'm not sure if this is because I type in Dvorak, which maps the brackets to <code class=\"notranslate\">-</code>/<code class=\"notranslate\">=</code> keys, or my right pinky is just defective, but this is why I like to use 'mini.clues' <code class=\"notranslate\">postkeys</code> for all of my bracketed targets. It greatly simplifies repeated target invocation for me, but it only works when navigating in a <strong>single direction</strong>. As soon as I want to reverse direction, I need to cancel the current <code class=\"notranslate\">postkeys</code> operation and then reach for the other bracket key to change direction.</p>\n<p dir=\"auto\">This morning while reviewing my 'mini.bracketed' configuration, I realized that I never use the first or last targets bound to the uppercase version of the suffix. So I thought why not remap the uppercase suffix to go in the reverse direction. For example, <code class=\"notranslate\">[D</code> would move forward instead of going to the first. Likewise <code class=\"notranslate\">]D</code> would move backward instead of going to the last. When combined with <code class=\"notranslate\">postkeys</code>, this lets me <strong>very quickly</strong> navigate back and forth between targets—especially useful if you overshoot.</p>\n<p dir=\"auto\">I thought I'd share my configuration in case others have the same struggles that I have with the defaults:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"later(function() -- mini.bracketed\n  require('mini.bracketed').setup() \n\n  local clues = {}\n  for target, opts in pairs(MiniBracketed.config) do\n    local lower_suffix = opts.suffix\n    local upper_suffix = opts.suffix:upper()\n    local replacements = {\n      [&quot;[&quot;]  = { old = &quot;first&quot;, new = &quot;forward&quot; },\n      [&quot;]&quot;]  = { old = &quot;last&quot;, new = &quot;backward&quot; },\n    }\n\n    for bracket, pattern in pairs(replacements) do\n      -- Use hydra mode for all bracketed targets\n      table.insert(clues, { mode = &quot;n&quot;, keys = bracket .. lower_suffix, postkeys = bracket })\n      table.insert(clues, { mode = &quot;n&quot;, keys = bracket .. upper_suffix, postkeys = bracket })\n  \n      -- Make uppercase navigate in other direction instead of first/last\n      local map = vim.fn.maparg(bracket .. upper_suffix, &quot;n&quot;, false, true)\n      local new_rhs = map.rhs:gsub(pattern.old, pattern.new)\n      local new_desc = map.desc:gsub(pattern.old, pattern.new)\n      vim.keymap.set(&quot;n&quot;, bracket .. upper_suffix, new_rhs, { desc = new_desc })\n    end\n  end\n\n  -- These will be used later when mini.clues is setup\n  _G.Config.bracketed_clues = clues\nend)\"><pre class=\"notranslate\"><span class=\"pl-c1\">later</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> mini.bracketed</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.bracketed<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>() \n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">target</span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">MiniBracketed</span>.<span class=\"pl-e\">config</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lower_suffix</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">suffix</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">upper_suffix</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-en\">suffix</span>:<span class=\"pl-c1\">upper</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">replacements</span> <span class=\"pl-k\">=</span> {\n      [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[<span class=\"pl-pds\">\"</span></span>]  <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">old</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>first<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">new</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>forward<span class=\"pl-pds\">\" </span></span>},\n      [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]<span class=\"pl-pds\">\"</span></span>]  <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">old</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>last<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">new</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>backward<span class=\"pl-pds\">\" </span></span>},\n    }\n\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">bracket</span>, <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">replacements</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Use hydra mode for all bracketed targets</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">lower_suffix</span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bracket</span> })\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">upper_suffix</span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bracket</span> })\n  \n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Make uppercase navigate in other direction instead of first/last</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">map</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">maparg</span>(<span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">upper_suffix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_rhs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">map</span>.<span class=\"pl-en\">rhs</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-smi\">pattern</span>.<span class=\"pl-e\">old</span>, <span class=\"pl-smi\">pattern</span>.<span class=\"pl-e\">new</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">map</span>.<span class=\"pl-en\">desc</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-smi\">pattern</span>.<span class=\"pl-e\">old</span>, <span class=\"pl-smi\">pattern</span>.<span class=\"pl-e\">new</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">upper_suffix</span>, <span class=\"pl-smi\">new_rhs</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_desc</span> })\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> These will be used later when mini.clues is setup</span>\n  <span class=\"pl-c1\">_G</span>.<span class=\"pl-e\">Config</span>.<span class=\"pl-e\">bracketed_clues</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">clues</span>\n<span class=\"pl-k\">end</span>)</pre></div>",
+    "bodyText": "While I really like the functionality provided by 'mini.bracketed', I struggle with the default mappings. I'm simply unable to quickly execute bindings that start with [ or ], so repeated presses are especially challenging. I'm not sure if this is because I type in Dvorak, which maps the brackets to -/= keys, or my right pinky is just defective, but this is why I like to use 'mini.clues' postkeys for all of my bracketed targets. It greatly simplifies repeated target invocation for me, but it only works when navigating in a single direction. As soon as I want to reverse direction, I need to cancel the current postkeys operation and then reach for the other bracket key to change direction.\nThis morning while reviewing my 'mini.bracketed' configuration, I realized that I never use the first or last targets bound to the uppercase version of the suffix. So I thought why not remap the uppercase suffix to go in the reverse direction. For example, [D would move forward instead of going to the first. Likewise ]D would move backward instead of going to the last. When combined with postkeys, this lets me very quickly navigate back and forth between targets—especially useful if you overshoot.\nI thought I'd share my configuration in case others have the same struggles that I have with the defaults:\nlater(function() -- mini.bracketed\n  require('mini.bracketed').setup() \n\n  local clues = {}\n  for target, opts in pairs(MiniBracketed.config) do\n    local lower_suffix = opts.suffix\n    local upper_suffix = opts.suffix:upper()\n    local replacements = {\n      [\"[\"]  = { old = \"first\", new = \"forward\" },\n      [\"]\"]  = { old = \"last\", new = \"backward\" },\n    }\n\n    for bracket, pattern in pairs(replacements) do\n      -- Use hydra mode for all bracketed targets\n      table.insert(clues, { mode = \"n\", keys = bracket .. lower_suffix, postkeys = bracket })\n      table.insert(clues, { mode = \"n\", keys = bracket .. upper_suffix, postkeys = bracket })\n  \n      -- Make uppercase navigate in other direction instead of first/last\n      local map = vim.fn.maparg(bracket .. upper_suffix, \"n\", false, true)\n      local new_rhs = map.rhs:gsub(pattern.old, pattern.new)\n      local new_desc = map.desc:gsub(pattern.old, pattern.new)\n      vim.keymap.set(\"n\", bracket .. upper_suffix, new_rhs, { desc = new_desc })\n    end\n  end\n\n  -- These will be used later when mini.clues is setup\n  _G.Config.bracketed_clues = clues\nend)",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Screenshots showing what the mappings look like afterwards:\r\n\r\n<img width=\"819\" alt=\"image\" src=\"https://github.com/user-attachments/assets/0971b36f-469d-45b2-9136-26a177231259\" />\r\n<img width=\"863\" alt=\"image\" src=\"https://github.com/user-attachments/assets/86b16b64-1b0a-45d4-991e-6b5d74de73d7\" />\r\n\r\n\r\n",
+            "bodyHTML": "<p dir=\"auto\">Screenshots showing what the mappings look like afterwards:</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/442515849-0971b36f-469d-45b2-9136-26a177231259.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzcsIm5iZiI6MTc5MzU1MjczNywicGF0aCI6Ii83NDc4NTUvNDQyNTE1ODQ5LTA5NzFiMzZmLTQ2OWQtNDViMi05MTM2LTI2YTE3NzIzMTI1OS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05NjJlNmUxN2E1MmUzYzA1ZDBlNDJiNjAwMGQ0MDgxMmRkNmZjNTY5YWFkMmQyZDZjZmQ1NDJkOGIxNDNlMDUyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.10EOpAzwozpmnzseHweAhZSiua9LF3x7RFd1b7fwLFw\"><img width=\"819\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/747855/442515849-0971b36f-469d-45b2-9136-26a177231259.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzcsIm5iZiI6MTc5MzU1MjczNywicGF0aCI6Ii83NDc4NTUvNDQyNTE1ODQ5LTA5NzFiMzZmLTQ2OWQtNDViMi05MTM2LTI2YTE3NzIzMTI1OS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05NjJlNmUxN2E1MmUzYzA1ZDBlNDJiNjAwMGQ0MDgxMmRkNmZjNTY5YWFkMmQyZDZjZmQ1NDJkOGIxNDNlMDUyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.10EOpAzwozpmnzseHweAhZSiua9LF3x7RFd1b7fwLFw\" style=\"max-width: 100%;\"></a>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/442515863-86b16b64-1b0a-45d4-991e-6b5d74de73d7.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzcsIm5iZiI6MTc5MzU1MjczNywicGF0aCI6Ii83NDc4NTUvNDQyNTE1ODYzLTg2YjE2YjY0LTFiMGEtNDVkNC05OTFlLTZiNWQ3NGRlNzNkNy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kM2IwNWFhYmE3YmRjNWRkN2Q0ZmVjYWJiZDg5MzJjNzA1MTY4MDMyZTY4NmFmMGE3ZGEyNjk0ZjBkM2E5OWJjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.mRxyQAtkFKyPBYDJ8O-nArgAU_28hA-GN0njkIOcxWY\"><img width=\"863\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/747855/442515863-86b16b64-1b0a-45d4-991e-6b5d74de73d7.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzcsIm5iZiI6MTc5MzU1MjczNywicGF0aCI6Ii83NDc4NTUvNDQyNTE1ODYzLTg2YjE2YjY0LTFiMGEtNDVkNC05OTFlLTZiNWQ3NGRlNzNkNy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1kM2IwNWFhYmE3YmRjNWRkN2Q0ZmVjYWJiZDg5MzJjNzA1MTY4MDMyZTY4NmFmMGE3ZGEyNjk0ZjBkM2E5OWJjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.mRxyQAtkFKyPBYDJ8O-nArgAU_28hA-GN0njkIOcxWY\" style=\"max-width: 100%;\"></a>",
+            "bodyText": "Screenshots showing what the mappings look like afterwards:",
+            "createdAt": "2025-05-11T15:09:04Z",
+            "createdViaEmail": false,
+            "databaseId": 13107896,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "id": "DC_kwDOFoksYM4AyAK4",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-05-11T15:34:27Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-05-11T15:09:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13107896",
+            "updatedAt": "2025-05-11T15:34:27Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13107896"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> ... but this is why I like to use 'mini.clues' `postkeys` for all of my bracketed targets. It greatly simplifies repeated target invocation for me, but it only works when navigating in a **single direction**. As soon as I want to reverse direction, I need to cancel the current `postkeys` operation and then reach for the other bracket key to change direction.\r\n\r\nYeah, this is the most visible shortcoming of 'mini.clue' approach to \"submodes\" when it comes to 'mini.bracketed'. But it is what it is: `[` / `]` keys meaning \"previous\" and \"next\" is a fairly established rule at this point.\r\n\r\n> This morning while reviewing my 'mini.bracketed' configuration, I realized that I never use the first or last targets bound to the uppercase version of the suffix. So I thought why not remap the uppercase suffix to go in the reverse direction.\r\n\r\nThat does sound interesting and good that it works for you! I personally use \"first\"/\"last\" too much to find it comfortable without them. My usual cases are:\r\n- `[B` / `]B` to go to first/last buffer (based on 'mini.tabline'). Combined with `[count]` to go second/third/n-th first/last is how I usually navigate buffers. The `:Pick buffers` usually comes if there are more buffers than fits the screen (which is not that often).\r\n- Ensure to go first instance of something in a buffer where regular navigation I prefer to wrap. Like \"first diagnostic\", \"first merge conflict\", \"first git hunk\", etc. Yes, these can be managed with something like `gg]d` and `G[d`, but that is not 1005 solution because first/last lines can be part of first/last instance.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">... but this is why I like to use 'mini.clues' <code class=\"notranslate\">postkeys</code> for all of my bracketed targets. It greatly simplifies repeated target invocation for me, but it only works when navigating in a <strong>single direction</strong>. As soon as I want to reverse direction, I need to cancel the current <code class=\"notranslate\">postkeys</code> operation and then reach for the other bracket key to change direction.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, this is the most visible shortcoming of 'mini.clue' approach to \"submodes\" when it comes to 'mini.bracketed'. But it is what it is: <code class=\"notranslate\">[</code> / <code class=\"notranslate\">]</code> keys meaning \"previous\" and \"next\" is a fairly established rule at this point.</p>\n<blockquote>\n<p dir=\"auto\">This morning while reviewing my 'mini.bracketed' configuration, I realized that I never use the first or last targets bound to the uppercase version of the suffix. So I thought why not remap the uppercase suffix to go in the reverse direction.</p>\n</blockquote>\n<p dir=\"auto\">That does sound interesting and good that it works for you! I personally use \"first\"/\"last\" too much to find it comfortable without them. My usual cases are:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">[B</code> / <code class=\"notranslate\">]B</code> to go to first/last buffer (based on 'mini.tabline'). Combined with <code class=\"notranslate\">[count]</code> to go second/third/n-th first/last is how I usually navigate buffers. The <code class=\"notranslate\">:Pick buffers</code> usually comes if there are more buffers than fits the screen (which is not that often).</li>\n<li>Ensure to go first instance of something in a buffer where regular navigation I prefer to wrap. Like \"first diagnostic\", \"first merge conflict\", \"first git hunk\", etc. Yes, these can be managed with something like <code class=\"notranslate\">gg]d</code> and <code class=\"notranslate\">G[d</code>, but that is not 1005 solution because first/last lines can be part of first/last instance.</li>\n</ul>",
+            "bodyText": "... but this is why I like to use 'mini.clues' postkeys for all of my bracketed targets. It greatly simplifies repeated target invocation for me, but it only works when navigating in a single direction. As soon as I want to reverse direction, I need to cancel the current postkeys operation and then reach for the other bracket key to change direction.\n\nYeah, this is the most visible shortcoming of 'mini.clue' approach to \"submodes\" when it comes to 'mini.bracketed'. But it is what it is: [ / ] keys meaning \"previous\" and \"next\" is a fairly established rule at this point.\n\nThis morning while reviewing my 'mini.bracketed' configuration, I realized that I never use the first or last targets bound to the uppercase version of the suffix. So I thought why not remap the uppercase suffix to go in the reverse direction.\n\nThat does sound interesting and good that it works for you! I personally use \"first\"/\"last\" too much to find it comfortable without them. My usual cases are:\n\n[B / ]B to go to first/last buffer (based on 'mini.tabline'). Combined with [count] to go second/third/n-th first/last is how I usually navigate buffers. The :Pick buffers usually comes if there are more buffers than fits the screen (which is not that often).\nEnsure to go first instance of something in a buffer where regular navigation I prefer to wrap. Like \"first diagnostic\", \"first merge conflict\", \"first git hunk\", etc. Yes, these can be managed with something like gg]d and G[d, but that is not 1005 solution because first/last lines can be part of first/last instance.",
+            "createdAt": "2025-05-11T16:27:04Z",
+            "createdViaEmail": false,
+            "databaseId": 13108227,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AyAQD",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-11T16:27:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> * `[B` / `]B` to go to first/last buffer (based on 'mini.tabline'). Combined with `[count]` to go second/third/n-th first/last is how I usually navigate buffers. The `:Pick buffers` usually comes if there are more buffers than fits the screen (which is not that often).\r\n\r\nFor switching buffers in the tabline, I still feel that `H` and `L` are most intuitive just because of the horizontal orientation of the tabline, so I generally use these bindings:\r\n```lua\r\nmap(\"n\", \"H\",         C\"lua MiniBracketed.buffer('backward')\", \"Prev buffer\")\r\nmap(\"n\", \"L\",         C\"lua MiniBracketed.buffer('forward')\",  \"Next buffer\")\r\n```\r\n",
+                    "bodyHTML": "<blockquote>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">[B</code> / <code class=\"notranslate\">]B</code> to go to first/last buffer (based on 'mini.tabline'). Combined with <code class=\"notranslate\">[count]</code> to go second/third/n-th first/last is how I usually navigate buffers. The <code class=\"notranslate\">:Pick buffers</code> usually comes if there are more buffers than fits the screen (which is not that often).</li>\n</ul>\n</blockquote>\n<p dir=\"auto\">For switching buffers in the tabline, I still feel that <code class=\"notranslate\">H</code> and <code class=\"notranslate\">L</code> are most intuitive just because of the horizontal orientation of the tabline, so I generally use these bindings:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"map(&quot;n&quot;, &quot;H&quot;,         C&quot;lua MiniBracketed.buffer('backward')&quot;, &quot;Prev buffer&quot;)\nmap(&quot;n&quot;, &quot;L&quot;,         C&quot;lua MiniBracketed.buffer('forward')&quot;,  &quot;Next buffer&quot;)\"><pre class=\"notranslate\"><span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>H<span class=\"pl-pds\">\"</span></span>,         <span class=\"pl-c1\">C</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua MiniBracketed.buffer('backward')<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Prev buffer<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>L<span class=\"pl-pds\">\"</span></span>,         <span class=\"pl-c1\">C</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua MiniBracketed.buffer('forward')<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Next buffer<span class=\"pl-pds\">\"</span></span>)</pre></div>",
+                    "bodyText": "[B / ]B to go to first/last buffer (based on 'mini.tabline'). Combined with [count] to go second/third/n-th first/last is how I usually navigate buffers. The :Pick buffers usually comes if there are more buffers than fits the screen (which is not that often).\n\n\nFor switching buffers in the tabline, I still feel that H and L are most intuitive just because of the horizontal orientation of the tabline, so I generally use these bindings:\nmap(\"n\", \"H\",         C\"lua MiniBracketed.buffer('backward')\", \"Prev buffer\")\nmap(\"n\", \"L\",         C\"lua MiniBracketed.buffer('forward')\",  \"Next buffer\")",
+                    "createdAt": "2025-05-11T18:46:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13109222,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AyAfm",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-11T18:46:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13108227,
+                        "id": "DC_kwDOFoksYM4AyAQD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13108227"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13109222",
+                    "updatedAt": "2025-05-11T18:46:25Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13109222"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yes, I thought about that too. Turns out I use default `H` and `L` a lot during navigation. To each their own, I guess :)",
+                    "bodyHTML": "<p dir=\"auto\">Yes, I thought about that too. Turns out I use default <code class=\"notranslate\">H</code> and <code class=\"notranslate\">L</code> a lot during navigation. To each their own, I guess :)</p>",
+                    "bodyText": "Yes, I thought about that too. Turns out I use default H and L a lot during navigation. To each their own, I guess :)",
+                    "createdAt": "2025-05-11T18:58:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13109296,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AyAgw",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-11T18:58:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13108227,
+                        "id": "DC_kwDOFoksYM4AyAQD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13108227"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13109296",
+                    "updatedAt": "2025-05-11T18:58:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13109296"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13108227",
+            "updatedAt": "2025-05-11T16:27:05Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792#discussioncomment-13108227"
+        }
+    ],
+    "createdAt": "2025-05-11T15:02:36Z",
+    "createdViaEmail": false,
+    "databaseId": 8308723,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Afsfz",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABNNRv0w",
+                "name": "mini.bracketed"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1792,
+    "poll": null,
+    "publishedAt": "2025-05-11T15:02:36Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1792",
+    "stateReason": null,
+    "title": "[mini.bracketed] Alternate mappings optimized for bidirectional navigation",
+    "updatedAt": "2025-05-11T18:58:10Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1792"
+}

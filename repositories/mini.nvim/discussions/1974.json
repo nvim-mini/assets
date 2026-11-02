@@ -1,0 +1,445 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/52180870?u=850e2c4322f391a0724f784137457c3599f77892&v=4",
+        "login": "diego-velez",
+        "resourcePath": "/diego-velez",
+        "url": "https://github.com/diego-velez"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Ever since [fff.nvim](https://github.com/dmtrKovalenko/fff.nvim) came out, I've been wanting to use it, but I did not want to use their picker UI. Now, I managed to integrate their backend with mini.pick :)\r\n\r\n### Screenshot\r\n\r\n<img width=\"2034\" height=\"1382\" alt=\"Picker Screenshot\" src=\"https://github.com/user-attachments/assets/3892cfbc-77ed-4d03-a7e2-308c7bf38d2f\" />\r\n\r\n### Install fff.nvim\r\nI use [rustup](https://rustup.rs/) to manage my rust toolchains, you could change the cmd to just `cargo build --release` if you don't use that. Also, I have a lot of `vim.notify` because I like to let myself know what is happening. You could remove that if you wanted to.\r\n\r\n```lua\r\nlater(function()\r\n  ---@param args { path: string, name: string, source: string }\r\n  local function build_fff(args)\r\n    local cmd = { 'rustup', 'run', 'nightly', 'cargo', 'build', '--release' }\r\n    local opts = { cwd = args.path, text = true }\r\n\r\n    vim.notify('Building ' .. args.name, vim.log.levels.INFO)\r\n    vim.cmd.redraw()\r\n\r\n    local out = vim.system(cmd, opts):wait()\r\n    if out.code ~= 0 then\r\n      vim.notify('Failed to build fff.nvim', vim.log.levels.ERROR)\r\n      vim.notify(out.stderr, vim.log.levels.ERROR)\r\n    else\r\n      vim.notify(args.name .. ' Built', vim.log.levels.INFO)\r\n    end\r\n  end\r\n\r\n  add {\r\n    source = 'dmtrKovalenko/fff.nvim',\r\n    hooks = {\r\n      post_install = build_fff,\r\n      post_checkout = build_fff,\r\n    },\r\n  }\r\nend)\r\n\r\n```\r\n\r\n### fff.nvim picker\r\n\r\nRemember to source this **after** adding the fff.nvim plugin. You can run the picker from anywhere by using `MiniPick.registry.fffiles()`.\r\n\r\n```lua\r\n---@class FFFItem\r\n---@field name string\r\n---@field path string\r\n---@field relative_path string\r\n---@field size number\r\n---@field modified number\r\n---@field total_frecency_score number\r\n---@field modification_frecency_score number\r\n---@field access_frecency_score number\r\n---@field git_status string\r\n\r\n---@class PickerItem\r\n---@field text string\r\n---@field path string\r\n---@field score number\r\n\r\n---@class FFFPickerState\r\n---@field current_file_cache string\r\nlocal state = {}\r\n\r\nlocal ns_id = vim.api.nvim_create_namespace 'MiniPick FFFiles Picker'\r\nvim.api.nvim_set_hl(0, 'FFFileScore', { fg = '#FFFF00' })\r\n\r\n---@param query string|nil\r\n---@return PickerItem[]\r\nlocal function find(query)\r\n  local file_picker = require 'fff.file_picker'\r\n\r\n  query = query or ''\r\n  ---@type FFFItem[]\r\n  local fff_result = file_picker.search_files(query, 100, 4, state.current_file_cache, false)\r\n\r\n  local items = {}\r\n  for _, fff_item in ipairs(fff_result) do\r\n    local item = {\r\n      text = fff_item.relative_path,\r\n      path = fff_item.path,\r\n      score = fff_item.total_frecency_score,\r\n    }\r\n    table.insert(items, item)\r\n  end\r\n\r\n  return items\r\nend\r\n\r\n---@param items PickerItem[]\r\nlocal function show(buf_id, items)\r\n  local icon_data = {}\r\n\r\n  -- Show items\r\n  local items_to_show = {}\r\n  for i, item in ipairs(items) do\r\n    local icon, hl, _ = MiniIcons.get('file', item.text)\r\n    icon_data[i] = { icon = icon, hl = hl }\r\n\r\n    items_to_show[i] = string.format('%s %s %d', icon, item.text, item.score)\r\n  end\r\n  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, items_to_show)\r\n\r\n  vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)\r\n\r\n  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\r\n  for i, item in ipairs(items) do\r\n    -- Highlight Icons\r\n    icon_extmark_opts.hl_group = icon_data[i].hl\r\n    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, 1\r\n    vim.api.nvim_buf_set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\r\n\r\n    -- Highlight score\r\n    local col = #items_to_show[i] - #tostring(item.score) - 3\r\n    icon_extmark_opts.hl_group = 'FFFileScore'\r\n    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, #items_to_show[i]\r\n    vim.api.nvim_buf_set_extmark(buf_id, ns_id, i - 1, col, icon_extmark_opts)\r\n  end\r\nend\r\n\r\nlocal function run()\r\n  -- Setup fff.nvim\r\n  local file_picker = require 'fff.file_picker'\r\n  if not file_picker.is_initialized() then\r\n    local setup_success = file_picker.setup()\r\n    if not setup_success then\r\n      vim.notify('Could not setup fff.nvim', vim.log.levels.ERROR)\r\n      return\r\n    end\r\n  end\r\n\r\n  -- Cache current file to deprioritize in fff.nvim\r\n  if not state.current_file_cache then\r\n    local current_buf = vim.api.nvim_get_current_buf()\r\n    if current_buf and vim.api.nvim_buf_is_valid(current_buf) then\r\n      local current_file = vim.api.nvim_buf_get_name(current_buf)\r\n      if current_file ~= '' and vim.fn.filereadable(current_file) == 1 then\r\n        local relative_path = vim.fs.relpath(vim.uv.cwd(), current_file)\r\n        state.current_file_cache = relative_path\r\n      else\r\n        state.current_file_cache = nil\r\n      end\r\n    end\r\n  end\r\n\r\n  -- Start picker\r\n  MiniPick.start {\r\n    source = {\r\n      name = 'FFFiles',\r\n      items = find,\r\n      match = function(_, _, query)\r\n        local items = find(table.concat(query))\r\n        MiniPick.set_picker_items(items, { do_match = false })\r\n      end,\r\n      show = show,\r\n    },\r\n  }\r\n\r\n  state.current_file_cache = nil -- Reset cache\r\nend\r\n\r\nMiniPick.registry.fffiles = run\r\n\r\nvim.keymap.set('n', '<leader><space>', MiniPick.registry.fffiles)\r\n```\r\n\r\n### PS\r\n\r\nThe end result should be the same UI as the default mini.pick file picker, except that it also has the frecency score for each file. You can also add Git status if you wanted too. The `search_files` function from fff.nvim returns a few things per file (as I documented with the `FFFItem` LuaDoc class) like size, modified time and git status.",
+    "bodyHTML": "<p dir=\"auto\">Ever since <a href=\"https://github.com/dmtrKovalenko/fff.nvim\">fff.nvim</a> came out, I've been wanting to use it, but I did not want to use their picker UI. Now, I managed to integrate their backend with mini.pick :)</p>\n<h3 dir=\"auto\">Screenshot</h3>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/52180870/483897713-3892cfbc-77ed-4d03-a7e2-308c7bf38d2f.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1ODUsIm5iZiI6MTc5MzU1MjI4NSwicGF0aCI6Ii81MjE4MDg3MC80ODM4OTc3MTMtMzg5MmNmYmMtNzdlZC00ZDAzLWE3ZTItMzA4YzdiZjM4ZDJmLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE2NTgwNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTAzYWU3MzYxM2M5MDYyM2VlNzIxMmY4YWY3MDk4ODdmM2RmZTQ0MGZiNjlhMmE0MGIzMzcxOWEwY2Q5Y2VkZDkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.wFQMDzaqGDL6O6FQ6mY-Y9ZJ09bXkECwFKCBlPTCanU\"><img width=\"2000\" height=\"1359\" alt=\"Picker Screenshot\" src=\"https://private-user-images.githubusercontent.com/52180870/483897713-3892cfbc-77ed-4d03-a7e2-308c7bf38d2f.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1ODUsIm5iZiI6MTc5MzU1MjI4NSwicGF0aCI6Ii81MjE4MDg3MC80ODM4OTc3MTMtMzg5MmNmYmMtNzdlZC00ZDAzLWE3ZTItMzA4YzdiZjM4ZDJmLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE2NTgwNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTAzYWU3MzYxM2M5MDYyM2VlNzIxMmY4YWY3MDk4ODdmM2RmZTQ0MGZiNjlhMmE0MGIzMzcxOWEwY2Q5Y2VkZDkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.wFQMDzaqGDL6O6FQ6mY-Y9ZJ09bXkECwFKCBlPTCanU\" style=\"max-width: 100%; height: auto; max-height: 1359px;; aspect-ratio: 2000 / 1359; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<h3 dir=\"auto\">Install fff.nvim</h3>\n<p dir=\"auto\">I use <a href=\"https://rustup.rs/\" rel=\"nofollow\">rustup</a> to manage my rust toolchains, you could change the cmd to just <code class=\"notranslate\">cargo build --release</code> if you don't use that. Also, I have a lot of <code class=\"notranslate\">vim.notify</code> because I like to let myself know what is happening. You could remove that if you wanted to.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"later(function()\n  ---@param args { path: string, name: string, source: string }\n  local function build_fff(args)\n    local cmd = { 'rustup', 'run', 'nightly', 'cargo', 'build', '--release' }\n    local opts = { cwd = args.path, text = true }\n\n    vim.notify('Building ' .. args.name, vim.log.levels.INFO)\n    vim.cmd.redraw()\n\n    local out = vim.system(cmd, opts):wait()\n    if out.code ~= 0 then\n      vim.notify('Failed to build fff.nvim', vim.log.levels.ERROR)\n      vim.notify(out.stderr, vim.log.levels.ERROR)\n    else\n      vim.notify(args.name .. ' Built', vim.log.levels.INFO)\n    end\n  end\n\n  add {\n    source = 'dmtrKovalenko/fff.nvim',\n    hooks = {\n      post_install = build_fff,\n      post_checkout = build_fff,\n    },\n  }\nend)\n\"><pre class=\"notranslate\"><span class=\"pl-c1\">later</span>(<span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">args</span> <span class=\"pl-k\">{ </span><span class=\"pl-c1\">path</span><span class=\"pl-k\">: </span><span class=\"pl-c1\">string</span><span class=\"pl-k\">, </span><span class=\"pl-c1\">name</span><span class=\"pl-k\">: </span><span class=\"pl-c1\">string</span><span class=\"pl-k\">, </span><span class=\"pl-c1\">source</span><span class=\"pl-k\">: </span><span class=\"pl-c1\">string </span><span class=\"pl-k\">}</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">build_fff</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>rustup<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>run<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>nightly<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>cargo<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>build<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>--release<span class=\"pl-pds\">' </span></span>}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">path</span>, <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Building <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">name</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">redraw</span>()\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">out</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-smi\">cmd</span>, <span class=\"pl-smi\">opts</span>):<span class=\"pl-c1\">wait</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">out</span>.<span class=\"pl-e\">code</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Failed to build fff.nvim<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-smi\">out</span>.<span class=\"pl-e\">stderr</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">name</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span> Built<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c1\">add</span> {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>dmtrKovalenko/fff.nvim<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-smi\">hooks</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">post_install</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">build_fff</span>,\n      <span class=\"pl-smi\">post_checkout</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">build_fff</span>,\n    },\n  }\n<span class=\"pl-k\">end</span>)\n</pre></div>\n<h3 dir=\"auto\">fff.nvim picker</h3>\n<p dir=\"auto\">Remember to source this <strong>after</strong> adding the fff.nvim plugin. You can run the picker from anywhere by using <code class=\"notranslate\">MiniPick.registry.fffiles()</code>.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@class FFFItem\n---@field name string\n---@field path string\n---@field relative_path string\n---@field size number\n---@field modified number\n---@field total_frecency_score number\n---@field modification_frecency_score number\n---@field access_frecency_score number\n---@field git_status string\n\n---@class PickerItem\n---@field text string\n---@field path string\n---@field score number\n\n---@class FFFPickerState\n---@field current_file_cache string\nlocal state = {}\n\nlocal ns_id = vim.api.nvim_create_namespace 'MiniPick FFFiles Picker'\nvim.api.nvim_set_hl(0, 'FFFileScore', { fg = '#FFFF00' })\n\n---@param query string|nil\n---@return PickerItem[]\nlocal function find(query)\n  local file_picker = require 'fff.file_picker'\n\n  query = query or ''\n  ---@type FFFItem[]\n  local fff_result = file_picker.search_files(query, 100, 4, state.current_file_cache, false)\n\n  local items = {}\n  for _, fff_item in ipairs(fff_result) do\n    local item = {\n      text = fff_item.relative_path,\n      path = fff_item.path,\n      score = fff_item.total_frecency_score,\n    }\n    table.insert(items, item)\n  end\n\n  return items\nend\n\n---@param items PickerItem[]\nlocal function show(buf_id, items)\n  local icon_data = {}\n\n  -- Show items\n  local items_to_show = {}\n  for i, item in ipairs(items) do\n    local icon, hl, _ = MiniIcons.get('file', item.text)\n    icon_data[i] = { icon = icon, hl = hl }\n\n    items_to_show[i] = string.format('%s %s %d', icon, item.text, item.score)\n  end\n  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, items_to_show)\n\n  vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)\n\n  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\n  for i, item in ipairs(items) do\n    -- Highlight Icons\n    icon_extmark_opts.hl_group = icon_data[i].hl\n    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, 1\n    vim.api.nvim_buf_set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\n\n    -- Highlight score\n    local col = #items_to_show[i] - #tostring(item.score) - 3\n    icon_extmark_opts.hl_group = 'FFFileScore'\n    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, #items_to_show[i]\n    vim.api.nvim_buf_set_extmark(buf_id, ns_id, i - 1, col, icon_extmark_opts)\n  end\nend\n\nlocal function run()\n  -- Setup fff.nvim\n  local file_picker = require 'fff.file_picker'\n  if not file_picker.is_initialized() then\n    local setup_success = file_picker.setup()\n    if not setup_success then\n      vim.notify('Could not setup fff.nvim', vim.log.levels.ERROR)\n      return\n    end\n  end\n\n  -- Cache current file to deprioritize in fff.nvim\n  if not state.current_file_cache then\n    local current_buf = vim.api.nvim_get_current_buf()\n    if current_buf and vim.api.nvim_buf_is_valid(current_buf) then\n      local current_file = vim.api.nvim_buf_get_name(current_buf)\n      if current_file ~= '' and vim.fn.filereadable(current_file) == 1 then\n        local relative_path = vim.fs.relpath(vim.uv.cwd(), current_file)\n        state.current_file_cache = relative_path\n      else\n        state.current_file_cache = nil\n      end\n    end\n  end\n\n  -- Start picker\n  MiniPick.start {\n    source = {\n      name = 'FFFiles',\n      items = find,\n      match = function(_, _, query)\n        local items = find(table.concat(query))\n        MiniPick.set_picker_items(items, { do_match = false })\n      end,\n      show = show,\n    },\n  }\n\n  state.current_file_cache = nil -- Reset cache\nend\n\nMiniPick.registry.fffiles = run\n\nvim.keymap.set('n', '&lt;leader&gt;&lt;space&gt;', MiniPick.registry.fffiles)\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@class</span> <span class=\"pl-c1\">FFFItem</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">name</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">path</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">relative_path</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">size</span> <span class=\"pl-c1\">number</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">modified</span> <span class=\"pl-c1\">number</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">total_frecency_score</span> <span class=\"pl-c1\">number</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">modification_frecency_score</span> <span class=\"pl-c1\">number</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">access_frecency_score</span> <span class=\"pl-c1\">number</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">git_status</span> <span class=\"pl-c1\">string</span></span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@class</span> <span class=\"pl-c1\">PickerItem</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">text</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">path</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">score</span> <span class=\"pl-c1\">number</span></span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@class</span> <span class=\"pl-c1\">FFFPickerState</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">current_file_cache</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">ns_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniPick FFFiles Picker<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_hl</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>FFFileScore<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">fg</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>#FFFF00<span class=\"pl-pds\">' </span></span>})\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">query</span> <span class=\"pl-c1\">string</span><span class=\"pl-k\">|</span><span class=\"pl-c1\">nil</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">PickerItem[]</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">find</span>(<span class=\"pl-smi\">query</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">file_picker</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>fff.file_picker<span class=\"pl-pds\">'</span></span>\n\n  <span class=\"pl-smi\">query</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">query</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@type</span> <span class=\"pl-c1\">FFFItem[]</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fff_result</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">file_picker</span>.<span class=\"pl-c1\">search_files</span>(<span class=\"pl-smi\">query</span>, <span class=\"pl-c1\">100</span>, <span class=\"pl-c1\">4</span>, <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">current_file_cache</span>, <span class=\"pl-c1\">false</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">fff_item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">fff_result</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fff_item</span>.<span class=\"pl-e\">relative_path</span>,\n      <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fff_item</span>.<span class=\"pl-e\">path</span>,\n      <span class=\"pl-smi\">score</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fff_item</span>.<span class=\"pl-e\">total_frecency_score</span>,\n    }\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">item</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">items</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">items</span> <span class=\"pl-c1\">PickerItem[]</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">icon_data</span> <span class=\"pl-k\">=</span> {}\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Show items</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items_to_show</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">icon</span>, <span class=\"pl-smi\">hl</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniIcons</span>.<span class=\"pl-c1\">get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>file<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">text</span>)\n    <span class=\"pl-smi\">icon_data</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">icon</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">icon</span>, <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hl</span> }\n\n    <span class=\"pl-smi\">items_to_show</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s %s %d<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">icon</span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">text</span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">score</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">items_to_show</span>)\n\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_clear_namespace</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">icon_extmark_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">hl_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>combine<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">priority</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">200</span> }\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Highlight Icons</span>\n    <span class=\"pl-smi\">icon_extmark_opts</span>.<span class=\"pl-e\">hl_group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">icon_data</span>[<span class=\"pl-smi\">i</span>].<span class=\"pl-e\">hl</span>\n    <span class=\"pl-smi\">icon_extmark_opts</span>.<span class=\"pl-e\">end_row</span>, <span class=\"pl-smi\">icon_extmark_opts</span>.<span class=\"pl-e\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">1</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_extmark</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns_id</span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">icon_extmark_opts</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Highlight score</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">items_to_show</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">-</span> <span class=\"pl-k\">#</span><span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">score</span>) <span class=\"pl-k\">-</span> <span class=\"pl-c1\">3</span>\n    <span class=\"pl-smi\">icon_extmark_opts</span>.<span class=\"pl-e\">hl_group</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>FFFileScore<span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-smi\">icon_extmark_opts</span>.<span class=\"pl-e\">end_row</span>, <span class=\"pl-smi\">icon_extmark_opts</span>.<span class=\"pl-e\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">items_to_show</span>[<span class=\"pl-smi\">i</span>]\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_extmark</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns_id</span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">col</span>, <span class=\"pl-smi\">icon_extmark_opts</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">run</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Setup fff.nvim</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">file_picker</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>fff.file_picker<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">file_picker</span>.<span class=\"pl-c1\">is_initialized</span>() <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">setup_success</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">file_picker</span>.<span class=\"pl-c1\">setup</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">setup_success</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Could not setup fff.nvim<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Cache current file to deprioritize in fff.nvim</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">current_file_cache</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">current_buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current_buf</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_is_valid</span>(<span class=\"pl-smi\">current_buf</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">current_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">current_buf</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current_file</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">filereadable</span>(<span class=\"pl-smi\">current_file</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">relative_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">relpath</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">cwd</span>(), <span class=\"pl-smi\">current_file</span>)\n        <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">current_file_cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">relative_path</span>\n      <span class=\"pl-k\">else</span>\n        <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">current_file_cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Start picker</span>\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span> {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>FFFiles<span class=\"pl-pds\">'</span></span>,\n      <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">find</span>,\n      <span class=\"pl-en\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">query</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">find</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">query</span>))\n        <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_items</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-smi\">do_match</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n      <span class=\"pl-k\">end</span>,\n      <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span>,\n    },\n  }\n\n  <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">current_file_cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> Reset cache</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-e\">fffiles</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">run</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;leader&gt;&lt;space&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-e\">fffiles</span>)</pre></div>\n<h3 dir=\"auto\">PS</h3>\n<p dir=\"auto\">The end result should be the same UI as the default mini.pick file picker, except that it also has the frecency score for each file. You can also add Git status if you wanted too. The <code class=\"notranslate\">search_files</code> function from fff.nvim returns a few things per file (as I documented with the <code class=\"notranslate\">FFFItem</code> LuaDoc class) like size, modified time and git status.</p>",
+    "bodyText": "Ever since fff.nvim came out, I've been wanting to use it, but I did not want to use their picker UI. Now, I managed to integrate their backend with mini.pick :)\nScreenshot\n\nInstall fff.nvim\nI use rustup to manage my rust toolchains, you could change the cmd to just cargo build --release if you don't use that. Also, I have a lot of vim.notify because I like to let myself know what is happening. You could remove that if you wanted to.\nlater(function()\n  ---@param args { path: string, name: string, source: string }\n  local function build_fff(args)\n    local cmd = { 'rustup', 'run', 'nightly', 'cargo', 'build', '--release' }\n    local opts = { cwd = args.path, text = true }\n\n    vim.notify('Building ' .. args.name, vim.log.levels.INFO)\n    vim.cmd.redraw()\n\n    local out = vim.system(cmd, opts):wait()\n    if out.code ~= 0 then\n      vim.notify('Failed to build fff.nvim', vim.log.levels.ERROR)\n      vim.notify(out.stderr, vim.log.levels.ERROR)\n    else\n      vim.notify(args.name .. ' Built', vim.log.levels.INFO)\n    end\n  end\n\n  add {\n    source = 'dmtrKovalenko/fff.nvim',\n    hooks = {\n      post_install = build_fff,\n      post_checkout = build_fff,\n    },\n  }\nend)\n\nfff.nvim picker\nRemember to source this after adding the fff.nvim plugin. You can run the picker from anywhere by using MiniPick.registry.fffiles().\n---@class FFFItem\n---@field name string\n---@field path string\n---@field relative_path string\n---@field size number\n---@field modified number\n---@field total_frecency_score number\n---@field modification_frecency_score number\n---@field access_frecency_score number\n---@field git_status string\n\n---@class PickerItem\n---@field text string\n---@field path string\n---@field score number\n\n---@class FFFPickerState\n---@field current_file_cache string\nlocal state = {}\n\nlocal ns_id = vim.api.nvim_create_namespace 'MiniPick FFFiles Picker'\nvim.api.nvim_set_hl(0, 'FFFileScore', { fg = '#FFFF00' })\n\n---@param query string|nil\n---@return PickerItem[]\nlocal function find(query)\n  local file_picker = require 'fff.file_picker'\n\n  query = query or ''\n  ---@type FFFItem[]\n  local fff_result = file_picker.search_files(query, 100, 4, state.current_file_cache, false)\n\n  local items = {}\n  for _, fff_item in ipairs(fff_result) do\n    local item = {\n      text = fff_item.relative_path,\n      path = fff_item.path,\n      score = fff_item.total_frecency_score,\n    }\n    table.insert(items, item)\n  end\n\n  return items\nend\n\n---@param items PickerItem[]\nlocal function show(buf_id, items)\n  local icon_data = {}\n\n  -- Show items\n  local items_to_show = {}\n  for i, item in ipairs(items) do\n    local icon, hl, _ = MiniIcons.get('file', item.text)\n    icon_data[i] = { icon = icon, hl = hl }\n\n    items_to_show[i] = string.format('%s %s %d', icon, item.text, item.score)\n  end\n  vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, items_to_show)\n\n  vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)\n\n  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\n  for i, item in ipairs(items) do\n    -- Highlight Icons\n    icon_extmark_opts.hl_group = icon_data[i].hl\n    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, 1\n    vim.api.nvim_buf_set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\n\n    -- Highlight score\n    local col = #items_to_show[i] - #tostring(item.score) - 3\n    icon_extmark_opts.hl_group = 'FFFileScore'\n    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, #items_to_show[i]\n    vim.api.nvim_buf_set_extmark(buf_id, ns_id, i - 1, col, icon_extmark_opts)\n  end\nend\n\nlocal function run()\n  -- Setup fff.nvim\n  local file_picker = require 'fff.file_picker'\n  if not file_picker.is_initialized() then\n    local setup_success = file_picker.setup()\n    if not setup_success then\n      vim.notify('Could not setup fff.nvim', vim.log.levels.ERROR)\n      return\n    end\n  end\n\n  -- Cache current file to deprioritize in fff.nvim\n  if not state.current_file_cache then\n    local current_buf = vim.api.nvim_get_current_buf()\n    if current_buf and vim.api.nvim_buf_is_valid(current_buf) then\n      local current_file = vim.api.nvim_buf_get_name(current_buf)\n      if current_file ~= '' and vim.fn.filereadable(current_file) == 1 then\n        local relative_path = vim.fs.relpath(vim.uv.cwd(), current_file)\n        state.current_file_cache = relative_path\n      else\n        state.current_file_cache = nil\n      end\n    end\n  end\n\n  -- Start picker\n  MiniPick.start {\n    source = {\n      name = 'FFFiles',\n      items = find,\n      match = function(_, _, query)\n        local items = find(table.concat(query))\n        MiniPick.set_picker_items(items, { do_match = false })\n      end,\n      show = show,\n    },\n  }\n\n  state.current_file_cache = nil -- Reset cache\nend\n\nMiniPick.registry.fffiles = run\n\nvim.keymap.set('n', '<leader><space>', MiniPick.registry.fffiles)\nPS\nThe end result should be the same UI as the default mini.pick file picker, except that it also has the frecency score for each file. You can also add Git status if you wanted too. The search_files function from fff.nvim returns a few things per file (as I documented with the FFFItem LuaDoc class) like size, modified time and git status.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI personally don't really like the (subjectively) over complicated approach to how 'fff.nvim' handles file picking, but guess it is a matter of taste :)\r\n\r\nNothing particularly wrong stood out to me after scanning code. One question though: why do use `querytick = 0` in `set_picker_opts`?",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I personally don't really like the (subjectively) over complicated approach to how 'fff.nvim' handles file picking, but guess it is a matter of taste :)</p>\n<p dir=\"auto\">Nothing particularly wrong stood out to me after scanning code. One question though: why do use <code class=\"notranslate\">querytick = 0</code> in <code class=\"notranslate\">set_picker_opts</code>?</p>",
+            "bodyText": "Thanks for sharing!\nI personally don't really like the (subjectively) over complicated approach to how 'fff.nvim' handles file picking, but guess it is a matter of taste :)\nNothing particularly wrong stood out to me after scanning code. One question though: why do use querytick = 0 in set_picker_opts?",
+            "createdAt": "2025-08-30T17:51:02Z",
+            "createdViaEmail": false,
+            "databaseId": 14264097,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A2ach",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-08-30T17:51:02Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/52180870?u=850e2c4322f391a0724f784137457c3599f77892&v=4",
+                        "login": "diego-velez",
+                        "resourcePath": "/diego-velez",
+                        "url": "https://github.com/diego-velez"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> I personally don't really like the (subjectively) over complicated approach to how 'fff.nvim' handles file picking, but guess it is a matter of taste :)\r\n\r\nYeah, I think that even though it definitely is way more complex compared to the way that mini.pick does things by default, I personally think it is worth it. It is resilient to typos, and it finds what I want better, especially in bigger codebases. I most certainly probably could do the same with default mini.pick if I learn to use the refine and glob workflow. But at least right now, I'd rather do this and just type what I want and have the first result be the file I'm looking for.\r\n\r\n> Nothing particularly wrong stood out to me after scanning code. One question though: why do use `querytick = 0` in `set_picker_opts`?\r\n\r\nI could've sworn that the picker didn't work without that, but it seems that it does now (I updated the code to reflect). If you may, could you clarify what `querytick` does for mini.pick?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I personally don't really like the (subjectively) over complicated approach to how 'fff.nvim' handles file picking, but guess it is a matter of taste :)</p>\n</blockquote>\n<p dir=\"auto\">Yeah, I think that even though it definitely is way more complex compared to the way that mini.pick does things by default, I personally think it is worth it. It is resilient to typos, and it finds what I want better, especially in bigger codebases. I most certainly probably could do the same with default mini.pick if I learn to use the refine and glob workflow. But at least right now, I'd rather do this and just type what I want and have the first result be the file I'm looking for.</p>\n<blockquote>\n<p dir=\"auto\">Nothing particularly wrong stood out to me after scanning code. One question though: why do use <code class=\"notranslate\">querytick = 0</code> in <code class=\"notranslate\">set_picker_opts</code>?</p>\n</blockquote>\n<p dir=\"auto\">I could've sworn that the picker didn't work without that, but it seems that it does now (I updated the code to reflect). If you may, could you clarify what <code class=\"notranslate\">querytick</code> does for mini.pick?</p>",
+                    "bodyText": "I personally don't really like the (subjectively) over complicated approach to how 'fff.nvim' handles file picking, but guess it is a matter of taste :)\n\nYeah, I think that even though it definitely is way more complex compared to the way that mini.pick does things by default, I personally think it is worth it. It is resilient to typos, and it finds what I want better, especially in bigger codebases. I most certainly probably could do the same with default mini.pick if I learn to use the refine and glob workflow. But at least right now, I'd rather do this and just type what I want and have the first result be the file I'm looking for.\n\nNothing particularly wrong stood out to me after scanning code. One question though: why do use querytick = 0 in set_picker_opts?\n\nI could've sworn that the picker didn't work without that, but it seems that it does now (I updated the code to reflect). If you may, could you clarify what querytick does for mini.pick?",
+                    "createdAt": "2025-08-30T18:10:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14264171,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2adr",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-30T18:10:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14264097,
+                        "id": "DC_kwDOFoksYM4A2ach",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264097"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264171",
+                    "updatedAt": "2025-08-30T18:10:14Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264171"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> > Nothing particularly wrong stood out to me after scanning code. One question though: why do use `querytick = 0` in `set_picker_opts`?\r\n> \r\n> I could've sworn that the picker didn't work without that, but it seems that it does now (I updated the code to reflect). If you may, could you clarify what `querytick` does for mini.pick?\r\n\r\nIt increases every time query is updated (including picker start and stop). See [this](https://github.com/nvim-mini/mini.nvim/blob/b5bae7dd5802b47bb03babfb374fdfdab02b9d8b/doc/mini-pick.txt#L1436-L1447).",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">Nothing particularly wrong stood out to me after scanning code. One question though: why do use <code class=\"notranslate\">querytick = 0</code> in <code class=\"notranslate\">set_picker_opts</code>?</p>\n</blockquote>\n<p dir=\"auto\">I could've sworn that the picker didn't work without that, but it seems that it does now (I updated the code to reflect). If you may, could you clarify what <code class=\"notranslate\">querytick</code> does for mini.pick?</p>\n</blockquote>\n<p dir=\"auto\">It increases every time query is updated (including picker start and stop). See <a href=\"https://github.com/nvim-mini/mini.nvim/blob/b5bae7dd5802b47bb03babfb374fdfdab02b9d8b/doc/mini-pick.txt#L1436-L1447\">this</a>.</p>",
+                    "bodyText": "Nothing particularly wrong stood out to me after scanning code. One question though: why do use querytick = 0 in set_picker_opts?\n\nI could've sworn that the picker didn't work without that, but it seems that it does now (I updated the code to reflect). If you may, could you clarify what querytick does for mini.pick?\n\nIt increases every time query is updated (including picker start and stop). See this.",
+                    "createdAt": "2025-08-30T18:33:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14264248,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2ae4",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-30T18:33:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14264097,
+                        "id": "DC_kwDOFoksYM4A2ach",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264097"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264248",
+                    "updatedAt": "2025-08-30T18:33:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264248"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264097",
+            "updatedAt": "2025-08-30T17:51:03Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974#discussioncomment-14264097"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/2947276?u=bef0300dde7e714eda2556e3078ca4381137eceb&v=4",
+                "login": "leiserfg",
+                "resourcePath": "/leiserfg",
+                "url": "https://github.com/leiserfg"
+            },
+            "authorAssociation": "NONE",
+            "body": "In case someone else is trying to use this, I had to update this call:\r\n```lua\r\nfile_picker.search_files(query, state.current_file_cache, 100, 4, nil)\r\n```",
+            "bodyHTML": "<p dir=\"auto\">In case someone else is trying to use this, I had to update this call:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"file_picker.search_files(query, state.current_file_cache, 100, 4, nil)\"><pre class=\"notranslate\"><span class=\"pl-smi\">file_picker</span>.<span class=\"pl-c1\">search_files</span>(<span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">current_file_cache</span>, <span class=\"pl-c1\">100</span>, <span class=\"pl-c1\">4</span>, <span class=\"pl-c1\">nil</span>)</pre></div>",
+            "bodyText": "In case someone else is trying to use this, I had to update this call:\nfile_picker.search_files(query, state.current_file_cache, 100, 4, nil)",
+            "createdAt": "2026-10-07T08:42:07Z",
+            "createdViaEmail": false,
+            "databaseId": 18791663,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BHrzv",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-10-07T08:42:07Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1974#discussioncomment-18791663",
+            "updatedAt": "2026-10-07T08:42:07Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974#discussioncomment-18791663"
+        }
+    ],
+    "createdAt": "2025-08-30T17:42:43Z",
+    "createdViaEmail": false,
+    "databaseId": 8818248,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/52180870?u=850e2c4322f391a0724f784137457c3599f77892&v=4",
+        "login": "diego-velez",
+        "resourcePath": "/diego-velez",
+        "url": "https://github.com/diego-velez"
+    },
+    "id": "D_kwDOFoksYM4Aho5I",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-08-30T18:06:46Z",
+    "locked": false,
+    "number": 1974,
+    "poll": null,
+    "publishedAt": "2025-08-30T17:42:43Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 2
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 4
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1974",
+    "stateReason": null,
+    "title": "[mini.pick] fff.nvim integration",
+    "updatedAt": "2026-10-07T08:42:07Z",
+    "upvoteCount": 4,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1974"
+}

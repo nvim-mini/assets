@@ -1,0 +1,276 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/8370058?u=4a511a0e5460909727e336e140aec2b6c7969acd&v=4",
+        "login": "richin13",
+        "resourcePath": "/richin13",
+        "url": "https://github.com/richin13"
+    },
+    "authorAssociation": "NONE",
+    "body": "I'm in the process of migrating from heirline to mini.{tabline && statusline}. So far I'm enjoying the transition except for the lack of colors here and there. I was wondering if it would be possible to add colors to the file icons in the tabline by using `get_icon_color` from devicons (challenge being it returns a hex code instead of a highlight group name)\r\n\r\n![image](https://github.com/echasnovski/mini.nvim/assets/8370058/696a5044-44b2-49f8-9c2d-8d336988f2a4)\r\n\r\n![image](https://github.com/echasnovski/mini.nvim/assets/8370058/313030aa-8bcc-4239-84e1-2757f232c5a9)\r\n\r\nI can live without the other customizations but the lack of colors here is throwing me off a bit (😆)\r\n\r\nSo far I've taken it pretty close with this patch:\r\n\r\n```diff\r\ndiff --git a/lua/mini/tabline.lua b/lua/mini/tabline.lua\r\nindex a7d879b..fba873a 100644\r\n--- a/lua/mini/tabline.lua\r\n+++ b/lua/mini/tabline.lua\r\n@@ -364,10 +364,13 @@ H.finalize_labels = function()\r\n   for _, tab in pairs(H.tabs) do\r\n     if show_icons and has_devicons then\r\n       local extension = vim.fn.fnamemodify(tab.label, ':e')\r\n-      local icon = devicons.get_icon(tab.label, extension, { default = true })\r\n-      tab.label = string.format(' %s %s ', icon, tab.label)\r\n+      local icon, color = devicons.get_icon_color(tab.label, extension, { default = true })\r\n+      local hl = \"CustomIconColor\"..extension\r\n+      vim.api.nvim_set_hl(0, hl, { fg = color })\r\n+      tab.icon = \"%#\"..hl..\"#\" .. string.format(' %s ', icon)\r\n     else\r\n       tab.label = string.format(' %s ', tab.label)\r\n+      tab.icon = \"\"\r\n     end\r\n   end\r\n end\r\n@@ -472,7 +475,7 @@ H.concat_tabs = function()\r\n   local t = {}\r\n   for _, tab in ipairs(H.tabs) do\r\n     -- Escape '%' in labels\r\n-    table.insert(t, ('%s%s%s'):format(tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))\r\n+    table.insert(t, ('%s%s%s%s'):format(tab.icon, tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))\r\n   end\r\n \r\n   -- Usage of `%X` makes filled space to the right 'non-clickable'\r\n```\r\n\r\nBut there are some issues (such as the icon not being clickable and the highlight being weird (the bg mostly)) but I wanted to survey the interest in something like this or if it has been discussed/considered in the past but discarded for other reasons/philosophies before I continue down this rabbit hole (not too knowledgeable on lua tbh)\r\n\r\n![image](https://github.com/echasnovski/mini.nvim/assets/8370058/9983dc42-b16c-414d-b85f-0d8e836a60db)\r\n",
+    "bodyHTML": "<p dir=\"auto\">I'm in the process of migrating from heirline to mini.{tabline &amp;&amp; statusline}. So far I'm enjoying the transition except for the lack of colors here and there. I was wondering if it would be possible to add colors to the file icons in the tabline by using <code class=\"notranslate\">get_icon_color</code> from devicons (challenge being it returns a hex code instead of a highlight group name)</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/8370058/321313190-696a5044-44b2-49f8-9c2d-8d336988f2a4.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDUsIm5iZiI6MTc5MzU1MzIwNSwicGF0aCI6Ii84MzcwMDU4LzMyMTMxMzE5MC02OTZhNTA0NC00NGIyLTQ5ZjgtOWMyZC04ZDMzNjk4OGYyYTQucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzI1WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YzFlN2MyZjk3NjNmZjgyN2NiNTEwNWIyZDlmNTNmNWU4MTIxMzI0NDU3OWM5NDFmMWUyZDkwMjU1OTcwNjI5OSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.9dVP2Ij_po2qj-DtNHr5MNrX97Owy8xTlgKbebT0Twk\"><img src=\"https://private-user-images.githubusercontent.com/8370058/321313190-696a5044-44b2-49f8-9c2d-8d336988f2a4.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDUsIm5iZiI6MTc5MzU1MzIwNSwicGF0aCI6Ii84MzcwMDU4LzMyMTMxMzE5MC02OTZhNTA0NC00NGIyLTQ5ZjgtOWMyZC04ZDMzNjk4OGYyYTQucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzI1WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YzFlN2MyZjk3NjNmZjgyN2NiNTEwNWIyZDlmNTNmNWU4MTIxMzI0NDU3OWM5NDFmMWUyZDkwMjU1OTcwNjI5OSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.9dVP2Ij_po2qj-DtNHr5MNrX97Owy8xTlgKbebT0Twk\" alt=\"image\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/8370058/321313339-313030aa-8bcc-4239-84e1-2757f232c5a9.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDUsIm5iZiI6MTc5MzU1MzIwNSwicGF0aCI6Ii84MzcwMDU4LzMyMTMxMzMzOS0zMTMwMzBhYS04YmNjLTQyMzktODRlMS0yNzU3ZjIzMmM1YTkucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzI1WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NjM4NGZjMjRiMThmYTRhMmRlOWUzNjQ2M2U2MTQ4NTAyYmYxYzJjMGFlMmEzZWUzZTFlZTRkNzVmM2NjZGI4NiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.F4hOC6HXgMtu_8lch0_jpMN6x1cfb752Z5-T9uj4rsw\"><img src=\"https://private-user-images.githubusercontent.com/8370058/321313339-313030aa-8bcc-4239-84e1-2757f232c5a9.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDUsIm5iZiI6MTc5MzU1MzIwNSwicGF0aCI6Ii84MzcwMDU4LzMyMTMxMzMzOS0zMTMwMzBhYS04YmNjLTQyMzktODRlMS0yNzU3ZjIzMmM1YTkucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzI1WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NjM4NGZjMjRiMThmYTRhMmRlOWUzNjQ2M2U2MTQ4NTAyYmYxYzJjMGFlMmEzZWUzZTFlZTRkNzVmM2NjZGI4NiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.F4hOC6HXgMtu_8lch0_jpMN6x1cfb752Z5-T9uj4rsw\" alt=\"image\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">I can live without the other customizations but the lack of colors here is throwing me off a bit (😆)</p>\n<p dir=\"auto\">So far I've taken it pretty close with this patch:</p>\n<div class=\"highlight highlight-source-diff notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"diff --git a/lua/mini/tabline.lua b/lua/mini/tabline.lua\nindex a7d879b..fba873a 100644\n--- a/lua/mini/tabline.lua\n+++ b/lua/mini/tabline.lua\n@@ -364,10 +364,13 @@ H.finalize_labels = function()\n   for _, tab in pairs(H.tabs) do\n     if show_icons and has_devicons then\n       local extension = vim.fn.fnamemodify(tab.label, ':e')\n-      local icon = devicons.get_icon(tab.label, extension, { default = true })\n-      tab.label = string.format(' %s %s ', icon, tab.label)\n+      local icon, color = devicons.get_icon_color(tab.label, extension, { default = true })\n+      local hl = &quot;CustomIconColor&quot;..extension\n+      vim.api.nvim_set_hl(0, hl, { fg = color })\n+      tab.icon = &quot;%#&quot;..hl..&quot;#&quot; .. string.format(' %s ', icon)\n     else\n       tab.label = string.format(' %s ', tab.label)\n+      tab.icon = &quot;&quot;\n     end\n   end\n end\n@@ -472,7 +475,7 @@ H.concat_tabs = function()\n   local t = {}\n   for _, tab in ipairs(H.tabs) do\n     -- Escape '%' in labels\n-    table.insert(t, ('%s%s%s'):format(tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))\n+    table.insert(t, ('%s%s%s%s'):format(tab.icon, tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))\n   end\n \n   -- Usage of `%X` makes filled space to the right 'non-clickable'\"><pre class=\"notranslate\"><span class=\"pl-c1\">diff --git a/lua/mini/tabline.lua b/lua/mini/tabline.lua</span>\nindex a7d879b..fba873a 100644\n<span class=\"pl-md\">--- a/lua/mini/tabline.lua</span>\n<span class=\"pl-mi1\">+++ b/lua/mini/tabline.lua</span>\n<span class=\"pl-mdr\">@@ -364,10 +364,13 @@</span> H.finalize_labels = function()\n   for _, tab in pairs(H.tabs) do\n     if show_icons and has_devicons then\n       local extension = vim.fn.fnamemodify(tab.label, ':e')\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>      local icon = devicons.get_icon(tab.label, extension, { default = true })</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>      tab.label = string.format(' %s %s ', icon, tab.label)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      local icon, color = devicons.get_icon_color(tab.label, extension, { default = true })</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      local hl = \"CustomIconColor\"..extension</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      vim.api.nvim_set_hl(0, hl, { fg = color })</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      tab.icon = \"%#\"..hl..\"#\" .. string.format(' %s ', icon)</span>\n     else\n       tab.label = string.format(' %s ', tab.label)\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      tab.icon = \"\"</span>\n     end\n   end\n end\n<span class=\"pl-mdr\">@@ -472,7 +475,7 @@</span> H.concat_tabs = function()\n   local t = {}\n   for _, tab in ipairs(H.tabs) do\n     -- Escape '%' in labels\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>    table.insert(t, ('%s%s%s'):format(tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    table.insert(t, ('%s%s%s%s'):format(tab.icon, tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))</span>\n   end\n \n   -- Usage of `%X` makes filled space to the right 'non-clickable'</pre></div>\n<p dir=\"auto\">But there are some issues (such as the icon not being clickable and the highlight being weird (the bg mostly)) but I wanted to survey the interest in something like this or if it has been discussed/considered in the past but discarded for other reasons/philosophies before I continue down this rabbit hole (not too knowledgeable on lua tbh)</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/8370058/321317313-9983dc42-b16c-414d-b85f-0d8e836a60db.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDUsIm5iZiI6MTc5MzU1MzIwNSwicGF0aCI6Ii84MzcwMDU4LzMyMTMxNzMxMy05OTgzZGM0Mi1iMTZjLTQxNGQtYjg1Zi0wZDhlODM2YTYwZGIucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzI1WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YTI3MmZhNGUyMjNkNTRlZjgwNDc5NzI3NTAzOTc1MGEyZTAwY2EzMDkyNjhiZDlmYTkzZDdjNTI4OGE0YzRiNiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.NNDk1b1kG8lmbf7xRN1jgNavgK5H__6G9z6fCOY-rU0\"><img src=\"https://private-user-images.githubusercontent.com/8370058/321317313-9983dc42-b16c-414d-b85f-0d8e836a60db.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDUsIm5iZiI6MTc5MzU1MzIwNSwicGF0aCI6Ii84MzcwMDU4LzMyMTMxNzMxMy05OTgzZGM0Mi1iMTZjLTQxNGQtYjg1Zi0wZDhlODM2YTYwZGIucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzI1WiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YTI3MmZhNGUyMjNkNTRlZjgwNDc5NzI3NTAzOTc1MGEyZTAwY2EzMDkyNjhiZDlmYTkzZDdjNTI4OGE0YzRiNiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.NNDk1b1kG8lmbf7xRN1jgNavgK5H__6G9z6fCOY-rU0\" alt=\"image\" style=\"max-width: 100%;\"></a></p>",
+    "bodyText": "I'm in the process of migrating from heirline to mini.{tabline && statusline}. So far I'm enjoying the transition except for the lack of colors here and there. I was wondering if it would be possible to add colors to the file icons in the tabline by using get_icon_color from devicons (challenge being it returns a hex code instead of a highlight group name)\n\n\nI can live without the other customizations but the lack of colors here is throwing me off a bit (😆)\nSo far I've taken it pretty close with this patch:\ndiff --git a/lua/mini/tabline.lua b/lua/mini/tabline.lua\nindex a7d879b..fba873a 100644\n--- a/lua/mini/tabline.lua\n+++ b/lua/mini/tabline.lua\n@@ -364,10 +364,13 @@ H.finalize_labels = function()\n   for _, tab in pairs(H.tabs) do\n     if show_icons and has_devicons then\n       local extension = vim.fn.fnamemodify(tab.label, ':e')\n-      local icon = devicons.get_icon(tab.label, extension, { default = true })\n-      tab.label = string.format(' %s %s ', icon, tab.label)\n+      local icon, color = devicons.get_icon_color(tab.label, extension, { default = true })\n+      local hl = \"CustomIconColor\"..extension\n+      vim.api.nvim_set_hl(0, hl, { fg = color })\n+      tab.icon = \"%#\"..hl..\"#\" .. string.format(' %s ', icon)\n     else\n       tab.label = string.format(' %s ', tab.label)\n+      tab.icon = \"\"\n     end\n   end\n end\n@@ -472,7 +475,7 @@ H.concat_tabs = function()\n   local t = {}\n   for _, tab in ipairs(H.tabs) do\n     -- Escape '%' in labels\n-    table.insert(t, ('%s%s%s'):format(tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))\n+    table.insert(t, ('%s%s%s%s'):format(tab.icon, tab.hl, tab.tabfunc, tab.label:gsub('%%', '%%%%')))\n   end\n \n   -- Usage of `%X` makes filled space to the right 'non-clickable'\nBut there are some issues (such as the icon not being clickable and the highlight being weird (the bg mostly)) but I wanted to survey the interest in something like this or if it has been discussed/considered in the past but discarded for other reasons/philosophies before I continue down this rabbit hole (not too knowledgeable on lua tbh)",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-04-10T17:00:11Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for your interest in 'mini.tabline'!\r\n\r\nYes, it was suggested earlier in #153. The resolution is in [this comment](https://github.com/echasnovski/mini.nvim/issues/153#issuecomment-1445121506) with one of the points being similar to what you describe about highlighting colors.\r\n\r\nI *might* revisit this soon after some new planned 'mini.nvim' modules come out which *might* make this issue more solvable.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for your interest in 'mini.tabline'!</p>\n<p dir=\"auto\">Yes, it was suggested earlier in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1437316688\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/153\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/153/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/153\">#153</a>. The resolution is in <a href=\"https://github.com/echasnovski/mini.nvim/issues/153#issuecomment-1445121506\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/153/hovercard\">this comment</a> with one of the points being similar to what you describe about highlighting colors.</p>\n<p dir=\"auto\">I <em>might</em> revisit this soon after some new planned 'mini.nvim' modules come out which <em>might</em> make this issue more solvable.</p>",
+            "bodyText": "Thanks for your interest in 'mini.tabline'!\nYes, it was suggested earlier in #153. The resolution is in this comment with one of the points being similar to what you describe about highlighting colors.\nI might revisit this soon after some new planned 'mini.nvim' modules come out which might make this issue more solvable.",
+            "createdAt": "2024-04-10T17:00:10Z",
+            "createdViaEmail": false,
+            "databaseId": 9073997,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AinVN",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-04-10T17:00:10Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/8370058?u=4a511a0e5460909727e336e140aec2b6c7969acd&v=4",
+                        "login": "richin13",
+                        "resourcePath": "/richin13",
+                        "url": "https://github.com/richin13"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Understandable, thank you very much!",
+                    "bodyHTML": "<p dir=\"auto\">Understandable, thank you very much!</p>",
+                    "bodyText": "Understandable, thank you very much!",
+                    "createdAt": "2024-04-10T17:09:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9074097,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AinWx",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-04-10T17:09:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9073997,
+                        "id": "DC_kwDOFoksYM4AinVN",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/799#discussioncomment-9073997"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/799#discussioncomment-9074097",
+                    "updatedAt": "2024-04-10T17:09:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/799#discussioncomment-9074097"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/799#discussioncomment-9073997",
+            "updatedAt": "2024-04-10T17:00:11Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/799#discussioncomment-9073997"
+        }
+    ],
+    "createdAt": "2024-04-10T16:26:17Z",
+    "createdViaEmail": false,
+    "databaseId": 6487979,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AYv-r",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vu7",
+                "name": "mini.tabline"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 799,
+    "poll": null,
+    "publishedAt": "2024-04-10T16:26:17Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/799",
+    "stateReason": "RESOLVED",
+    "title": "Thoughts on using `get_icon_color` in tabline",
+    "updatedAt": "2024-04-10T17:09:11Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/799"
+}

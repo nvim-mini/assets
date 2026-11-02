@@ -1,0 +1,538 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Related:\r\n- https://github.com/nvim-mini/mini.nvim/discussions/2152\r\n\r\nThis is a proof of concept:\r\n\r\n> [!CAUTION]\r\n> This code relies on [snacks.nvim](https://github.com/folke/snacks.nvim). Don’t use it.\r\n\r\n> [!CAUTION]\r\n> No match highlighting.\r\n> No caching.\r\n\r\n> [!NOTE]\r\n> Doesn’t highlight multiline `if` statements in Lua.\r\n> ```lua\r\n> if true then\r\n> end\r\n> ```\r\n\r\n<img width=\"1198\" height=\"638\" alt=\"image\" src=\"https://github.com/user-attachments/assets/35888e30-c2b6-4d74-9c09-dcd46565bc7d\" />\r\n\r\n>\r\n<details><summary>(don't use)</summary>\r\n\r\n```lua\r\nvim.pack.add({\r\n  { src = \"https://github.com/nvim-mini/mini.nvim\" },\r\n  { src = \"https://github.com/folke/snacks.nvim\" },\r\n  { src = \"https://github.com/folke/tokyonight.nvim\" },\r\n  { src = \"https://github.com/nvim-treesitter/nvim-treesitter\", version = \"main\" },\r\n})\r\n\r\nvim.cmd.colorscheme(\"tokyonight\")\r\n\r\n-- require(\"nvim-treesitter\").install({ \"lua\" })\r\n-- vim.api.nvim_create_autocmd(\"FileType\", {\r\n--   desc = \"Setup treesitter for a buffer\",\r\n--   pattern = { \"lua\" },\r\n--   group = vim.api.nvim_create_augroup(\"ts_setup\", { clear = true }),\r\n--   callback = function(e)\r\n--     vim.treesitter.start(e.buf)\r\n--   end,\r\n-- })\r\n\r\nrequire(\"mini.pick\").setup()\r\nvim.keymap.set(\"n\", \"<Space>sg\", \":Pick grep_live<CR>\", { desc = \"Search grep\" })\r\n\r\nlocal H = require(\"snacks.picker.util.highlight\")\r\nlocal get_highlights = function(code, ft, offset)\r\n  local highlights = H.get_highlights({ code = code, ft = ft })[1]\r\n  for _, hl in ipairs(highlights) do\r\n    hl.col = hl.col + offset\r\n    hl.end_col = hl.end_col + offset\r\n  end\r\n  return highlights\r\nend\r\n\r\nlocal ns = vim.api.nvim_create_namespace(\"pick_grep\")\r\nMiniPick.default_show_ts = function(buf_id, data, query, opts)\r\n  vim.api.nvim_buf_clear_namespace(buf_id, ns, 0, -1)\r\n  local items = {}\r\n  local lines = {}\r\n  for _, dt in ipairs(data) do\r\n    local file, row, col, code = unpack(vim.split(dt, \"%z\"))\r\n    local ft = vim.filetype.match({ filename = file })\r\n    local prepend = string.format(\"%s:%d:%d \", file, row, col)\r\n    local highlights = {}\r\n    local row_start, row_end = string.find(prepend, row, #file + 1)\r\n    local col_start, col_end = string.find(prepend, col, row_end + 1)\r\n    vim.list_extend(highlights, {\r\n      { col = row_start - 1, end_col = row_end, hl_group = \"Conceal\", priority = 100 },\r\n      { col = col_start - 1, end_col = col_end, hl_group = \"Added\", priority = 100 },\r\n    })\r\n    vim.list_extend(highlights, get_highlights(code, ft, #prepend))\r\n    local item = {\r\n      text = prepend .. code,\r\n      highlights = highlights,\r\n    }\r\n    table.insert(items, item)\r\n    table.insert(lines, item.text)\r\n  end\r\n  vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, lines)\r\n  for i, item in ipairs(items) do\r\n    for _, extm in ipairs(item.highlights) do\r\n      local row, col = i - 1, extm.col\r\n      extm.col = nil\r\n      local ok, err = pcall(vim.api.nvim_buf_set_extmark, buf_id, ns, row, col, extm)\r\n      if not ok then\r\n        vim.notify(err, vim.log.levels.ERROR)\r\n      end\r\n    end\r\n  end\r\nend\r\n\r\nMiniPick.registry.grep_live = function(local_opts, opts)\r\n  return MiniPick.builtin.grep_live(\r\n    local_opts,\r\n    vim.tbl_deep_extend(\"keep\", opts or {}, {\r\n      source = {\r\n        show = MiniPick.default_show_ts,\r\n      },\r\n    })\r\n  )\r\nend\r\n```\r\n\r\n</details>\r\n\r\nIf `mini.nvim` had a function similar to [H.get_highlights](https://github.com/folke/snacks.nvim/blob/fe7cfe9800a182274d0f868a74b7263b8c0c020b/lua/snacks/picker/util/highlight.lua#L25-L110) from [snacks.nvim](https://github.com/folke/snacks.nvim), adding syntax highlighting to the `grep` picker would be relatively easy. It could be under `misc` or `extra`.\r\n\r\nAm I missing something? Is there already a way to do so?",
+    "bodyHTML": "<p dir=\"auto\">Related:</p>\n<ul dir=\"auto\">\n<li><a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"9208281\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/2152\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2152/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/2152\">#2152</a></li>\n</ul>\n<p dir=\"auto\">This is a proof of concept:</p>\n<div class=\"markdown-alert markdown-alert-caution\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-stop mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Caution</p><p dir=\"auto\">This code relies on <a href=\"https://github.com/folke/snacks.nvim\">snacks.nvim</a>. Don’t use it.</p>\n</div>\n<div class=\"markdown-alert markdown-alert-caution\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-stop mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Caution</p><p dir=\"auto\">No match highlighting.<br>\nNo caching.</p>\n</div>\n<div class=\"markdown-alert markdown-alert-note\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-info mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Note</p><p dir=\"auto\">Doesn’t highlight multiline <code class=\"notranslate\">if</code> statements in Lua.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"if true then\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">if</span> <span class=\"pl-c1\">true</span> <span class=\"pl-k\">then</span>\n<span class=\"pl-k\">end</span></pre></div>\n</div>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/521038842-35888e30-c2b6-4d74-9c09-dcd46565bc7d.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MzIsIm5iZiI6MTc5MzU1MjUzMiwicGF0aCI6Ii8xMTk4NDUwNDUvNTIxMDM4ODQyLTM1ODg4ZTMwLWMyYjYtNGQ3NC05YzA5LWRjZDQ2NTY1YmM3ZC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMTJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iOGQxMGU5YTUyODBiZTM1OTg2OTgzN2VhZDkwZjdiNmE0YTU0YTliMTJmYjMyNWM0NzJkMTc2ODYzYTE4ZGJkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.O4TBRA51S3MIgDSERZ_663ADttTf9z0a15EsNPpmtHU\"><img width=\"1198\" height=\"638\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/521038842-35888e30-c2b6-4d74-9c09-dcd46565bc7d.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MzIsIm5iZiI6MTc5MzU1MjUzMiwicGF0aCI6Ii8xMTk4NDUwNDUvNTIxMDM4ODQyLTM1ODg4ZTMwLWMyYjYtNGQ3NC05YzA5LWRjZDQ2NTY1YmM3ZC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMTJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iOGQxMGU5YTUyODBiZTM1OTg2OTgzN2VhZDkwZjdiNmE0YTU0YTliMTJmYjMyNWM0NzJkMTc2ODYzYTE4ZGJkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.O4TBRA51S3MIgDSERZ_663ADttTf9z0a15EsNPpmtHU\" style=\"max-width: 100%; height: auto; max-height: 638px;; aspect-ratio: 1198 / 638; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<blockquote>\n</blockquote>\n<details><summary>(don't use)</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.pack.add({\n  { src = &quot;https://github.com/nvim-mini/mini.nvim&quot; },\n  { src = &quot;https://github.com/folke/snacks.nvim&quot; },\n  { src = &quot;https://github.com/folke/tokyonight.nvim&quot; },\n  { src = &quot;https://github.com/nvim-treesitter/nvim-treesitter&quot;, version = &quot;main&quot; },\n})\n\nvim.cmd.colorscheme(&quot;tokyonight&quot;)\n\n-- require(&quot;nvim-treesitter&quot;).install({ &quot;lua&quot; })\n-- vim.api.nvim_create_autocmd(&quot;FileType&quot;, {\n--   desc = &quot;Setup treesitter for a buffer&quot;,\n--   pattern = { &quot;lua&quot; },\n--   group = vim.api.nvim_create_augroup(&quot;ts_setup&quot;, { clear = true }),\n--   callback = function(e)\n--     vim.treesitter.start(e.buf)\n--   end,\n-- })\n\nrequire(&quot;mini.pick&quot;).setup()\nvim.keymap.set(&quot;n&quot;, &quot;&lt;Space&gt;sg&quot;, &quot;:Pick grep_live&lt;CR&gt;&quot;, { desc = &quot;Search grep&quot; })\n\nlocal H = require(&quot;snacks.picker.util.highlight&quot;)\nlocal get_highlights = function(code, ft, offset)\n  local highlights = H.get_highlights({ code = code, ft = ft })[1]\n  for _, hl in ipairs(highlights) do\n    hl.col = hl.col + offset\n    hl.end_col = hl.end_col + offset\n  end\n  return highlights\nend\n\nlocal ns = vim.api.nvim_create_namespace(&quot;pick_grep&quot;)\nMiniPick.default_show_ts = function(buf_id, data, query, opts)\n  vim.api.nvim_buf_clear_namespace(buf_id, ns, 0, -1)\n  local items = {}\n  local lines = {}\n  for _, dt in ipairs(data) do\n    local file, row, col, code = unpack(vim.split(dt, &quot;%z&quot;))\n    local ft = vim.filetype.match({ filename = file })\n    local prepend = string.format(&quot;%s:%d:%d &quot;, file, row, col)\n    local highlights = {}\n    local row_start, row_end = string.find(prepend, row, #file + 1)\n    local col_start, col_end = string.find(prepend, col, row_end + 1)\n    vim.list_extend(highlights, {\n      { col = row_start - 1, end_col = row_end, hl_group = &quot;Conceal&quot;, priority = 100 },\n      { col = col_start - 1, end_col = col_end, hl_group = &quot;Added&quot;, priority = 100 },\n    })\n    vim.list_extend(highlights, get_highlights(code, ft, #prepend))\n    local item = {\n      text = prepend .. code,\n      highlights = highlights,\n    }\n    table.insert(items, item)\n    table.insert(lines, item.text)\n  end\n  vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, lines)\n  for i, item in ipairs(items) do\n    for _, extm in ipairs(item.highlights) do\n      local row, col = i - 1, extm.col\n      extm.col = nil\n      local ok, err = pcall(vim.api.nvim_buf_set_extmark, buf_id, ns, row, col, extm)\n      if not ok then\n        vim.notify(err, vim.log.levels.ERROR)\n      end\n    end\n  end\nend\n\nMiniPick.registry.grep_live = function(local_opts, opts)\n  return MiniPick.builtin.grep_live(\n    local_opts,\n    vim.tbl_deep_extend(&quot;keep&quot;, opts or {}, {\n      source = {\n        show = MiniPick.default_show_ts,\n      },\n    })\n  )\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({\n  { <span class=\"pl-smi\">src</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.nvim<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-smi\">src</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/folke/snacks.nvim<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-smi\">src</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/folke/tokyonight.nvim<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-smi\">src</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-treesitter/nvim-treesitter<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">version</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>main<span class=\"pl-pds\">\" </span></span>},\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">colorscheme</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>tokyonight<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> require(\"nvim-treesitter\").install({ \"lua\" })</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> vim.api.nvim_create_autocmd(\"FileType\", {</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   desc = \"Setup treesitter for a buffer\",</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   pattern = { \"lua\" },</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   group = vim.api.nvim_create_augroup(\"ts_setup\", { clear = true }),</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   callback = function(e)</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>     vim.treesitter.start(e.buf)</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   end,</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> })</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Space&gt;sg<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:Pick grep_live&lt;CR&gt;<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Search grep<span class=\"pl-pds\">\" </span></span>})\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>snacks.picker.util.highlight<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">get_highlights</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">code</span>, <span class=\"pl-smi\">ft</span>, <span class=\"pl-smi\">offset</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlights</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">get_highlights</span>({ <span class=\"pl-smi\">code</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">code</span>, <span class=\"pl-smi\">ft</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ft</span> })[<span class=\"pl-c1\">1</span>]\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">highlights</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">offset</span>\n    <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">end_col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">offset</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">highlights</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">ns</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pick_grep<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-en\">default_show_ts</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">data</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_clear_namespace</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">dt</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">data</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">file</span>, <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span>, <span class=\"pl-smi\">code</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">unpack</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">dt</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%z<span class=\"pl-pds\">\"</span></span>))\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ft</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">filetype</span>.<span class=\"pl-c1\">match</span>({ <span class=\"pl-smi\">filename</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">file</span> })\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prepend</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s:%d:%d <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">file</span>, <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlights</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">row_start</span>, <span class=\"pl-smi\">row_end</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">prepend</span>, <span class=\"pl-smi\">row</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">file</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">col_start</span>, <span class=\"pl-smi\">col_end</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">prepend</span>, <span class=\"pl-smi\">col</span>, <span class=\"pl-smi\">row_end</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">highlights</span>, {\n      { <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">row_start</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">row_end</span>, <span class=\"pl-smi\">hl_group</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Conceal<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">priority</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">100</span> },\n      { <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">col_start</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">col_end</span>, <span class=\"pl-smi\">hl_group</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Added<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">priority</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">100</span> },\n    })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">highlights</span>, <span class=\"pl-c1\">get_highlights</span>(<span class=\"pl-smi\">code</span>, <span class=\"pl-smi\">ft</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">prepend</span>))\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prepend</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">code</span>,\n      <span class=\"pl-smi\">highlights</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">highlights</span>,\n    }\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">item</span>)\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">text</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">lines</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">extm</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">highlights</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">extm</span>.<span class=\"pl-e\">col</span>\n      <span class=\"pl-smi\">extm</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">err</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-e\">nvim_buf_set_extmark</span>, <span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns</span>, <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span>, <span class=\"pl-smi\">extm</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-smi\">err</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">grep_live</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">grep_live</span>(\n    <span class=\"pl-smi\">local_opts</span>,\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, {\n      <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">default_show_ts</span>,\n      },\n    })\n  )\n<span class=\"pl-k\">end</span></pre></div>\n</details>\n<p dir=\"auto\">If <code class=\"notranslate\">mini.nvim</code> had a function similar to <a href=\"https://github.com/folke/snacks.nvim/blob/fe7cfe9800a182274d0f868a74b7263b8c0c020b/lua/snacks/picker/util/highlight.lua#L25-L110\">H.get_highlights</a> from <a href=\"https://github.com/folke/snacks.nvim\">snacks.nvim</a>, adding syntax highlighting to the <code class=\"notranslate\">grep</code> picker would be relatively easy. It could be under <code class=\"notranslate\">misc</code> or <code class=\"notranslate\">extra</code>.</p>\n<p dir=\"auto\">Am I missing something? Is there already a way to do so?</p>",
+    "bodyText": "Related:\n\n#2152\n\nThis is a proof of concept:\nCautionThis code relies on snacks.nvim. Don’t use it.\n\nCautionNo match highlighting.\nNo caching.\n\nNoteDoesn’t highlight multiline if statements in Lua.\nif true then\nend\n\n\n\n\n(don't use)\nvim.pack.add({\n  { src = \"https://github.com/nvim-mini/mini.nvim\" },\n  { src = \"https://github.com/folke/snacks.nvim\" },\n  { src = \"https://github.com/folke/tokyonight.nvim\" },\n  { src = \"https://github.com/nvim-treesitter/nvim-treesitter\", version = \"main\" },\n})\n\nvim.cmd.colorscheme(\"tokyonight\")\n\n-- require(\"nvim-treesitter\").install({ \"lua\" })\n-- vim.api.nvim_create_autocmd(\"FileType\", {\n--   desc = \"Setup treesitter for a buffer\",\n--   pattern = { \"lua\" },\n--   group = vim.api.nvim_create_augroup(\"ts_setup\", { clear = true }),\n--   callback = function(e)\n--     vim.treesitter.start(e.buf)\n--   end,\n-- })\n\nrequire(\"mini.pick\").setup()\nvim.keymap.set(\"n\", \"<Space>sg\", \":Pick grep_live<CR>\", { desc = \"Search grep\" })\n\nlocal H = require(\"snacks.picker.util.highlight\")\nlocal get_highlights = function(code, ft, offset)\n  local highlights = H.get_highlights({ code = code, ft = ft })[1]\n  for _, hl in ipairs(highlights) do\n    hl.col = hl.col + offset\n    hl.end_col = hl.end_col + offset\n  end\n  return highlights\nend\n\nlocal ns = vim.api.nvim_create_namespace(\"pick_grep\")\nMiniPick.default_show_ts = function(buf_id, data, query, opts)\n  vim.api.nvim_buf_clear_namespace(buf_id, ns, 0, -1)\n  local items = {}\n  local lines = {}\n  for _, dt in ipairs(data) do\n    local file, row, col, code = unpack(vim.split(dt, \"%z\"))\n    local ft = vim.filetype.match({ filename = file })\n    local prepend = string.format(\"%s:%d:%d \", file, row, col)\n    local highlights = {}\n    local row_start, row_end = string.find(prepend, row, #file + 1)\n    local col_start, col_end = string.find(prepend, col, row_end + 1)\n    vim.list_extend(highlights, {\n      { col = row_start - 1, end_col = row_end, hl_group = \"Conceal\", priority = 100 },\n      { col = col_start - 1, end_col = col_end, hl_group = \"Added\", priority = 100 },\n    })\n    vim.list_extend(highlights, get_highlights(code, ft, #prepend))\n    local item = {\n      text = prepend .. code,\n      highlights = highlights,\n    }\n    table.insert(items, item)\n    table.insert(lines, item.text)\n  end\n  vim.api.nvim_buf_set_lines(buf_id, 0, -1, true, lines)\n  for i, item in ipairs(items) do\n    for _, extm in ipairs(item.highlights) do\n      local row, col = i - 1, extm.col\n      extm.col = nil\n      local ok, err = pcall(vim.api.nvim_buf_set_extmark, buf_id, ns, row, col, extm)\n      if not ok then\n        vim.notify(err, vim.log.levels.ERROR)\n      end\n    end\n  end\nend\n\nMiniPick.registry.grep_live = function(local_opts, opts)\n  return MiniPick.builtin.grep_live(\n    local_opts,\n    vim.tbl_deep_extend(\"keep\", opts or {}, {\n      source = {\n        show = MiniPick.default_show_ts,\n      },\n    })\n  )\nend\n\nIf mini.nvim had a function similar to H.get_highlights from snacks.nvim, adding syntax highlighting to the grep picker would be relatively easy. It could be under misc or extra.\nAm I missing something? Is there already a way to do so?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-12-02T09:58:37Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Loosely related is the discussion here: https://github.com/nvim-mini/mini.nvim/discussions/988",
+            "bodyHTML": "<p dir=\"auto\">Loosely related is the discussion here: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6859222\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/988\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/988/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/988\">#988</a></p>",
+            "bodyText": "Loosely related is the discussion here: #988",
+            "createdAt": "2025-12-02T00:24:31Z",
+            "createdViaEmail": false,
+            "databaseId": 15129948,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A5t1c",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-12-02T00:24:31Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15129948",
+            "updatedAt": "2025-12-02T00:24:32Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15129948"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\n> This code relies on [snacks.nvim](https://github.com/folke/snacks.nvim). Don’t use it.\r\n\r\nTo be perfectly honest, if an advice is to *not* use it, then here is probably not the best place to post.\r\n\r\n> If `mini.nvim` had a function similar to [H.get_highlights](https://github.com/folke/snacks.nvim/blob/fe7cfe9800a182274d0f868a74b7263b8c0c020b/lua/snacks/picker/util/highlight.lua#L25-L110) from [snacks.nvim](https://github.com/folke/snacks.nvim), adding syntax highlighting to the `grep` picker would be relatively easy. It could be under `misc` or `extra`.\r\n\r\nI think the correct place for this kind of thing is Neovim core. I think there would be an interest in having *some variant* of this under `vim.treesitter`. But only if somebody is willing to go through making a issue+PR on top of back-and-fourth discussions about scope/implementation.\r\n\r\n---\r\n\r\nAlso, couple of quick notes:\r\n\r\n- Please, don't recommend solutions that monkey-patch global `MiniXxx` tables. The `MiniPick.default_show_ts` can be `local default_show_ts`.\r\n- If you share useful code snippets here, please make them as minimal and 'mini.nvim' related as possible. For example, there is no need to install 'tokyonight.nvim' in the example. Probably, the same goes for 'nvim-treesitter' (just a mention of set up tree-sitter highlighting is enough).",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<blockquote>\n<p dir=\"auto\">This code relies on <a href=\"https://github.com/folke/snacks.nvim\">snacks.nvim</a>. Don’t use it.</p>\n</blockquote>\n<p dir=\"auto\">To be perfectly honest, if an advice is to <em>not</em> use it, then here is probably not the best place to post.</p>\n<blockquote>\n<p dir=\"auto\">If <code class=\"notranslate\">mini.nvim</code> had a function similar to <a href=\"https://github.com/folke/snacks.nvim/blob/fe7cfe9800a182274d0f868a74b7263b8c0c020b/lua/snacks/picker/util/highlight.lua#L25-L110\">H.get_highlights</a> from <a href=\"https://github.com/folke/snacks.nvim\">snacks.nvim</a>, adding syntax highlighting to the <code class=\"notranslate\">grep</code> picker would be relatively easy. It could be under <code class=\"notranslate\">misc</code> or <code class=\"notranslate\">extra</code>.</p>\n</blockquote>\n<p dir=\"auto\">I think the correct place for this kind of thing is Neovim core. I think there would be an interest in having <em>some variant</em> of this under <code class=\"notranslate\">vim.treesitter</code>. But only if somebody is willing to go through making a issue+PR on top of back-and-fourth discussions about scope/implementation.</p>\n<hr>\n<p dir=\"auto\">Also, couple of quick notes:</p>\n<ul dir=\"auto\">\n<li>Please, don't recommend solutions that monkey-patch global <code class=\"notranslate\">MiniXxx</code> tables. The <code class=\"notranslate\">MiniPick.default_show_ts</code> can be <code class=\"notranslate\">local default_show_ts</code>.</li>\n<li>If you share useful code snippets here, please make them as minimal and 'mini.nvim' related as possible. For example, there is no need to install 'tokyonight.nvim' in the example. Probably, the same goes for 'nvim-treesitter' (just a mention of set up tree-sitter highlighting is enough).</li>\n</ul>",
+            "bodyText": "Thanks for sharing!\n\nThis code relies on snacks.nvim. Don’t use it.\n\nTo be perfectly honest, if an advice is to not use it, then here is probably not the best place to post.\n\nIf mini.nvim had a function similar to H.get_highlights from snacks.nvim, adding syntax highlighting to the grep picker would be relatively easy. It could be under misc or extra.\n\nI think the correct place for this kind of thing is Neovim core. I think there would be an interest in having some variant of this under vim.treesitter. But only if somebody is willing to go through making a issue+PR on top of back-and-fourth discussions about scope/implementation.\n\nAlso, couple of quick notes:\n\nPlease, don't recommend solutions that monkey-patch global MiniXxx tables. The MiniPick.default_show_ts can be local default_show_ts.\nIf you share useful code snippets here, please make them as minimal and 'mini.nvim' related as possible. For example, there is no need to install 'tokyonight.nvim' in the example. Probably, the same goes for 'nvim-treesitter' (just a mention of set up tree-sitter highlighting is enough).",
+            "createdAt": "2025-12-02T09:31:05Z",
+            "createdViaEmail": false,
+            "databaseId": 15133467,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A5usb",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-12-02T09:31:05Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Fair enough, sorry about that. I didn’t mean it as an implementation, but I get that others might see it that way. The code was only meant to show one possible way to solve the problem, but it seems you're not interested in adding the feature until it's part of the core. So I might update it later with a simplified version of the `snacks.nvim` function.",
+                    "bodyHTML": "<p dir=\"auto\">Fair enough, sorry about that. I didn’t mean it as an implementation, but I get that others might see it that way. The code was only meant to show one possible way to solve the problem, but it seems you're not interested in adding the feature until it's part of the core. So I might update it later with a simplified version of the <code class=\"notranslate\">snacks.nvim</code> function.</p>",
+                    "bodyText": "Fair enough, sorry about that. I didn’t mean it as an implementation, but I get that others might see it that way. The code was only meant to show one possible way to solve the problem, but it seems you're not interested in adding the feature until it's part of the core. So I might update it later with a simplified version of the snacks.nvim function.",
+                    "createdAt": "2025-12-02T09:44:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15133612,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5uus",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-02T10:21:30Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-02T09:44:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15133467,
+                        "id": "DC_kwDOFoksYM4A5usb",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133467"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133612",
+                    "updatedAt": "2025-12-02T10:21:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133612"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... but it seems you're not interested in adding the feature until it's part of the core.\r\n\r\nYeah, I'd really like to not have to deal with not trivial use of tree-sitter or LSP. These proved to add too much of a maintenance burden. So if there is a relatively straightforward *and robust* way via `vim.treesitter` helper, it might be reasonable to have another look.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... but it seems you're not interested in adding the feature until it's part of the core.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, I'd really like to not have to deal with not trivial use of tree-sitter or LSP. These proved to add too much of a maintenance burden. So if there is a relatively straightforward <em>and robust</em> way via <code class=\"notranslate\">vim.treesitter</code> helper, it might be reasonable to have another look.</p>",
+                    "bodyText": "... but it seems you're not interested in adding the feature until it's part of the core.\n\nYeah, I'd really like to not have to deal with not trivial use of tree-sitter or LSP. These proved to add too much of a maintenance burden. So if there is a relatively straightforward and robust way via vim.treesitter helper, it might be reasonable to have another look.",
+                    "createdAt": "2025-12-02T09:48:17Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15133646,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5uvO",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-02T09:48:17Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15133467,
+                        "id": "DC_kwDOFoksYM4A5usb",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133467"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133646",
+                    "updatedAt": "2025-12-02T09:48:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133646"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "From the start, I wanted to make two posts: this one, and a 'Show and Tell' later if the feature doesn't exist and won’t become part of `mini.nvim` in the future. So it makes sense to close the discussion.",
+                    "bodyHTML": "<p dir=\"auto\">From the start, I wanted to make two posts: this one, and a 'Show and Tell' later if the feature doesn't exist and won’t become part of <code class=\"notranslate\">mini.nvim</code> in the future. So it makes sense to close the discussion.</p>",
+                    "bodyText": "From the start, I wanted to make two posts: this one, and a 'Show and Tell' later if the feature doesn't exist and won’t become part of mini.nvim in the future. So it makes sense to close the discussion.",
+                    "createdAt": "2025-12-02T09:58:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15133752,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5uw4",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-02T10:09:15Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-02T09:58:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15133467,
+                        "id": "DC_kwDOFoksYM4A5usb",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133467"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133752",
+                    "updatedAt": "2025-12-02T10:09:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133752"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133467",
+            "updatedAt": "2025-12-02T09:31:06Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151#discussioncomment-15133467"
+        }
+    ],
+    "createdAt": "2025-12-01T23:05:05Z",
+    "createdViaEmail": false,
+    "databaseId": 9197714,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AjFiS",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-12-04T14:34:12Z",
+    "locked": false,
+    "number": 2151,
+    "poll": null,
+    "publishedAt": "2025-12-01T23:05:05Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2151",
+    "stateReason": "RESOLVED",
+    "title": "[deprecated] [mini.pick:grep] Treesitter highlight using `snacks.nvim`",
+    "updatedAt": "2026-02-01T08:36:57Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2151"
+}

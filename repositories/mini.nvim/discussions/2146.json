@@ -1,0 +1,1638 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Related: https://github.com/nvim-mini/mini.nvim/discussions/951\r\n\r\nFeatures:\r\n- [x] Persistent colorscheme\r\n- [x] Live preview without `<Tab>` (see [comment](https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116689))\r\n- [x] Switch `vim.o.background` with `<C-o>`\r\n- [x] Jump to the initial colorscheme with `<C-0>`\r\n\r\nhttps://github.com/user-attachments/assets/64770f5c-305c-4dc4-b3b9-9605be2c2615\r\n\r\n```lua\r\n-- Load\r\n\r\nvim.pack.add({ { src = \"https://github.com/nvim-mini/mini.nvim\" } })\r\n\r\nrequire(\"mini.extra\").setup()\r\nrequire(\"mini.pick\").setup()\r\n\r\nvim.keymap.set(\"n\", \"<space>sc\", \":Pick colorschemes<Enter>\", { desc = \"Search colors\" })\r\n\r\n-- Persistent colorscheme\r\n\r\n-- IMPORTANT!\r\n-- WARN: Call this after the colorscheme loads.\r\n-- NOTE: Load the colorscheme like this only if using `vim.pack`.\r\n--       You can also try `vim.schedule` or the `LazyDone` event.\r\nlocal set_colorscheme = function(bg, name)\r\n  return pcall(function()\r\n    vim.o.background = bg\r\n    vim.cmd.colorscheme(name)\r\n  end)\r\nend\r\nvim.cmd.rshada()\r\nif not set_colorscheme(vim.g.COLORS_BG, vim.g.COLORS_NAME) then\r\n  set_colorscheme(\"dark\", \"default\")\r\nend\r\n\r\nvim.api.nvim_create_autocmd(\"ColorScheme\", {\r\n  group = vim.api.nvim_create_augroup(\"save_colors\", { clear = true }),\r\n  callback = function()\r\n    vim.g.COLORS_NAME = vim.g.colors_name\r\n    vim.g.COLORS_BG = vim.o.background\r\n    -- NOTE: Let Neovim save the shada file on exit.\r\n    --       Picker preview can cause sync issues while the picker is open.\r\n  end,\r\n})\r\n\r\n-- Pick `colorschemes`\r\n\r\nMiniPick.registry.colorschemes = function(local_opts, opts)\r\n  local aug = vim.api.nvim_create_augroup(\"pick_colors\", { clear = true })\r\n  local cl = vim.g.colors_name or \"default\"\r\n  local bg = vim.o.background or \"dark\"\r\n  local fake_buf = vim.api.nvim_create_buf(false, true)\r\n\r\n  local preview = function(colors)\r\n    local matches = MiniPick.get_picker_matches()\r\n    if matches then\r\n      local item = colors or matches.current\r\n      local func = MiniPick.get_picker_opts().source.preview\r\n      -- BUG: Issues if two configurations share `packpath` but load different colorschemes\r\n      pcall(func, fake_buf, item)\r\n      -- NOTE: Preview function overrides `vim.o.background`\r\n      vim.o.background = bg\r\n    end\r\n  end\r\n\r\n  -- NOTE: Move the cursor to the initial colorscheme\r\n  local match_current = function()\r\n    local matches = MiniPick.get_picker_matches()\r\n    local current = vim.iter(matches.all_inds):find(function(i)\r\n      return cl == matches.all[i]\r\n    end)\r\n    if current then\r\n      MiniPick.set_picker_match_inds({ current }, \"current\")\r\n    end\r\n  end\r\n\r\n  -- NOTE: We assume the next picker is `colorschemes`\r\n\r\n  vim.api.nvim_create_autocmd(\"User\", {\r\n    pattern = \"MiniPickStart\",\r\n    group = aug,\r\n    callback = match_current,\r\n  })\r\n  -- NOTE: Also runs at the start\r\n  vim.api.nvim_create_autocmd(\"User\", {\r\n    pattern = \"MiniPickMatch\",\r\n    group = aug,\r\n    callback = vim.schedule_wrap(preview),\r\n  })\r\n  vim.api.nvim_create_autocmd(\"User\", {\r\n    pattern = \"MiniPickStop\",\r\n    group = aug,\r\n    once = true,\r\n    callback = function()\r\n      vim.api.nvim_clear_autocmds({ group = aug })\r\n      vim.api.nvim_buf_delete(fake_buf, { unload = true })\r\n    end,\r\n  })\r\n\r\n  local on_move = vim.schedule_wrap(preview)\r\n\r\n  local remap_move = function(char, keys)\r\n    return {\r\n      char = char,\r\n      func = function()\r\n        -- ~~vim.api.nvim_feedkeys(vim.keycode(keys), \"n\", false)~~ -- NOTE: Sync\r\n        vim.api.nvim_input(keys)\r\n        on_move()\r\n      end,\r\n    }\r\n  end\r\n\r\n  return MiniExtra.pickers.colorschemes(\r\n    local_opts,\r\n    vim.tbl_deep_extend(\"keep\", opts or {}, {\r\n      source = {\r\n        choose = function(item)\r\n          vim.cmd.colorscheme(item)\r\n          -- NOTE: Save colorscheme in a session-persistent vars\r\n          vim.g.COLORS_NAME = vim.g.colors_name\r\n          vim.g.COLORS_BG = vim.o.background\r\n          vim.cmd.wshada()\r\n        end,\r\n      },\r\n      mappings = {\r\n        -- NOTE: No `MiniPick.default_action(...)`\r\n        move_start = \"<C-Home>\",\r\n        scroll_down = \"<PageDown>\",\r\n        scroll_up = \"<PageUp>\",\r\n        move_down_alt = remap_move(\"<C-n>\", \"<Down>\"),\r\n        move_up_alt = remap_move(\"<C-p>\", \"<Up>\"),\r\n        move_start_alt = remap_move(\"<C-g>\", \"<C-Home>\"),\r\n        scroll_down_alt = remap_move(\"<C-f>\", \"<PageDown>\"),\r\n        scroll_up_alt = remap_move(\"<C-b>\", \"<PageUp>\"),\r\n        match_current = {\r\n          char = \"<C-0>\",\r\n          func = function()\r\n            match_current()\r\n            on_move()\r\n          end,\r\n        },\r\n        change_bg = {\r\n          char = \"<C-o>\",\r\n          func = function()\r\n            bg = vim.o.background == \"dark\" and \"light\" or \"dark\"\r\n            vim.o.background = bg\r\n          end,\r\n        },\r\n      },\r\n    })\r\n  )\r\nend\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Related: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6794995\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/951\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/951/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/951\">#951</a></p>\n<p dir=\"auto\">Features:</p>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Persistent colorscheme</li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Live preview without <code class=\"notranslate\">&lt;Tab&gt;</code> (see <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116689\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2146/hovercard?comment_id=15116689\">comment</a>)</li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Switch <code class=\"notranslate\">vim.o.background</code> with <code class=\"notranslate\">&lt;C-o&gt;</code></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Jump to the initial colorscheme with <code class=\"notranslate\">&lt;C-0&gt;</code></li>\n</ul>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">colors.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/520982858-64770f5c-305c-4dc4-b3b9-9605be2c2615.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTIwOTgyODU4LTY0NzcwZjVjLTMwNWMtNGRjNC1iM2I5LTk2MDViZTJjMjYxNS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1jZThjZDRiOThlNWQ5YjJlNDMyZDA4MmExOTc2MTkwZTYwMTZjMDY5Yzc1NjNiNzE0MGFkZWQ3MTI3MDg5NzVlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.vVWhkVuS_sOMmzuATpx3cAARek8gnom6r4UJDiWSZYk\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/520982858-64770f5c-305c-4dc4-b3b9-9605be2c2615.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTIwOTgyODU4LTY0NzcwZjVjLTMwNWMtNGRjNC1iM2I5LTk2MDViZTJjMjYxNS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1jZThjZDRiOThlNWQ5YjJlNDMyZDA4MmExOTc2MTkwZTYwMTZjMDY5Yzc1NjNiNzE0MGFkZWQ3MTI3MDg5NzVlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.vVWhkVuS_sOMmzuATpx3cAARek8gnom6r4UJDiWSZYk\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Load\n\nvim.pack.add({ { src = &quot;https://github.com/nvim-mini/mini.nvim&quot; } })\n\nrequire(&quot;mini.extra&quot;).setup()\nrequire(&quot;mini.pick&quot;).setup()\n\nvim.keymap.set(&quot;n&quot;, &quot;&lt;space&gt;sc&quot;, &quot;:Pick colorschemes&lt;Enter&gt;&quot;, { desc = &quot;Search colors&quot; })\n\n-- Persistent colorscheme\n\n-- IMPORTANT!\n-- WARN: Call this after the colorscheme loads.\n-- NOTE: Load the colorscheme like this only if using `vim.pack`.\n--       You can also try `vim.schedule` or the `LazyDone` event.\nlocal set_colorscheme = function(bg, name)\n  return pcall(function()\n    vim.o.background = bg\n    vim.cmd.colorscheme(name)\n  end)\nend\nvim.cmd.rshada()\nif not set_colorscheme(vim.g.COLORS_BG, vim.g.COLORS_NAME) then\n  set_colorscheme(&quot;dark&quot;, &quot;default&quot;)\nend\n\nvim.api.nvim_create_autocmd(&quot;ColorScheme&quot;, {\n  group = vim.api.nvim_create_augroup(&quot;save_colors&quot;, { clear = true }),\n  callback = function()\n    vim.g.COLORS_NAME = vim.g.colors_name\n    vim.g.COLORS_BG = vim.o.background\n    -- NOTE: Let Neovim save the shada file on exit.\n    --       Picker preview can cause sync issues while the picker is open.\n  end,\n})\n\n-- Pick `colorschemes`\n\nMiniPick.registry.colorschemes = function(local_opts, opts)\n  local aug = vim.api.nvim_create_augroup(&quot;pick_colors&quot;, { clear = true })\n  local cl = vim.g.colors_name or &quot;default&quot;\n  local bg = vim.o.background or &quot;dark&quot;\n  local fake_buf = vim.api.nvim_create_buf(false, true)\n\n  local preview = function(colors)\n    local matches = MiniPick.get_picker_matches()\n    if matches then\n      local item = colors or matches.current\n      local func = MiniPick.get_picker_opts().source.preview\n      -- BUG: Issues if two configurations share `packpath` but load different colorschemes\n      pcall(func, fake_buf, item)\n      -- NOTE: Preview function overrides `vim.o.background`\n      vim.o.background = bg\n    end\n  end\n\n  -- NOTE: Move the cursor to the initial colorscheme\n  local match_current = function()\n    local matches = MiniPick.get_picker_matches()\n    local current = vim.iter(matches.all_inds):find(function(i)\n      return cl == matches.all[i]\n    end)\n    if current then\n      MiniPick.set_picker_match_inds({ current }, &quot;current&quot;)\n    end\n  end\n\n  -- NOTE: We assume the next picker is `colorschemes`\n\n  vim.api.nvim_create_autocmd(&quot;User&quot;, {\n    pattern = &quot;MiniPickStart&quot;,\n    group = aug,\n    callback = match_current,\n  })\n  -- NOTE: Also runs at the start\n  vim.api.nvim_create_autocmd(&quot;User&quot;, {\n    pattern = &quot;MiniPickMatch&quot;,\n    group = aug,\n    callback = vim.schedule_wrap(preview),\n  })\n  vim.api.nvim_create_autocmd(&quot;User&quot;, {\n    pattern = &quot;MiniPickStop&quot;,\n    group = aug,\n    once = true,\n    callback = function()\n      vim.api.nvim_clear_autocmds({ group = aug })\n      vim.api.nvim_buf_delete(fake_buf, { unload = true })\n    end,\n  })\n\n  local on_move = vim.schedule_wrap(preview)\n\n  local remap_move = function(char, keys)\n    return {\n      char = char,\n      func = function()\n        -- ~~vim.api.nvim_feedkeys(vim.keycode(keys), &quot;n&quot;, false)~~ -- NOTE: Sync\n        vim.api.nvim_input(keys)\n        on_move()\n      end,\n    }\n  end\n\n  return MiniExtra.pickers.colorschemes(\n    local_opts,\n    vim.tbl_deep_extend(&quot;keep&quot;, opts or {}, {\n      source = {\n        choose = function(item)\n          vim.cmd.colorscheme(item)\n          -- NOTE: Save colorscheme in a session-persistent vars\n          vim.g.COLORS_NAME = vim.g.colors_name\n          vim.g.COLORS_BG = vim.o.background\n          vim.cmd.wshada()\n        end,\n      },\n      mappings = {\n        -- NOTE: No `MiniPick.default_action(...)`\n        move_start = &quot;&lt;C-Home&gt;&quot;,\n        scroll_down = &quot;&lt;PageDown&gt;&quot;,\n        scroll_up = &quot;&lt;PageUp&gt;&quot;,\n        move_down_alt = remap_move(&quot;&lt;C-n&gt;&quot;, &quot;&lt;Down&gt;&quot;),\n        move_up_alt = remap_move(&quot;&lt;C-p&gt;&quot;, &quot;&lt;Up&gt;&quot;),\n        move_start_alt = remap_move(&quot;&lt;C-g&gt;&quot;, &quot;&lt;C-Home&gt;&quot;),\n        scroll_down_alt = remap_move(&quot;&lt;C-f&gt;&quot;, &quot;&lt;PageDown&gt;&quot;),\n        scroll_up_alt = remap_move(&quot;&lt;C-b&gt;&quot;, &quot;&lt;PageUp&gt;&quot;),\n        match_current = {\n          char = &quot;&lt;C-0&gt;&quot;,\n          func = function()\n            match_current()\n            on_move()\n          end,\n        },\n        change_bg = {\n          char = &quot;&lt;C-o&gt;&quot;,\n          func = function()\n            bg = vim.o.background == &quot;dark&quot; and &quot;light&quot; or &quot;dark&quot;\n            vim.o.background = bg\n          end,\n        },\n      },\n    })\n  )\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Load</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({ { <span class=\"pl-smi\">src</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.nvim<span class=\"pl-pds\">\" </span></span>} })\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.extra<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;space&gt;sc<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:Pick colorschemes&lt;Enter&gt;<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Search colors<span class=\"pl-pds\">\" </span></span>})\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Persistent colorscheme</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> IMPORTANT!</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> WARN: Call this after the colorscheme loads.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Load the colorscheme like this only if using `vim.pack`.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>       You can also try `vim.schedule` or the `LazyDone` event.</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">set_colorscheme</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">bg</span>, <span class=\"pl-smi\">name</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bg</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">colorscheme</span>(<span class=\"pl-smi\">name</span>)\n  <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">rshada</span>()\n<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">set_colorscheme</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">COLORS_BG</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">COLORS_NAME</span>) <span class=\"pl-k\">then</span>\n  <span class=\"pl-c1\">set_colorscheme</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>default<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ColorScheme<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>save_colors<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">COLORS_NAME</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">COLORS_BG</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Let Neovim save the shada file on exit.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span>       Picker preview can cause sync issues while the picker is open.</span>\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Pick `colorschemes`</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">colorschemes</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">aug</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pick_colors<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>default<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fake_buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_buf</span>(<span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">colors</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">matches</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">matches</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">colors</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">matches</span>.<span class=\"pl-e\">current</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_opts</span>().<span class=\"pl-e\">source</span>.<span class=\"pl-e\">preview</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> BUG: Issues if two configurations share `packpath` but load different colorschemes</span>\n      <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">func</span>, <span class=\"pl-smi\">fake_buf</span>, <span class=\"pl-smi\">item</span>)\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Preview function overrides `vim.o.background`</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bg</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Move the cursor to the initial colorscheme</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">match_current</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">matches</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">current</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">iter</span>(<span class=\"pl-smi\">matches</span>.<span class=\"pl-e\">all_inds</span>):<span class=\"pl-c1\">find</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">i</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">cl</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">matches</span>.<span class=\"pl-e\">all</span>[<span class=\"pl-smi\">i</span>]\n    <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_match_inds</span>({ <span class=\"pl-smi\">current</span> }, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: We assume the next picker is `colorschemes`</span>\n\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickStart<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">aug</span>,\n    <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">match_current</span>,\n  })\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Also runs at the start</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickMatch<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">aug</span>,\n    <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-smi\">preview</span>),\n  })\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickStop<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">aug</span>,\n    <span class=\"pl-smi\">once</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_clear_autocmds</span>({ <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">aug</span> })\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_delete</span>(<span class=\"pl-smi\">fake_buf</span>, { <span class=\"pl-smi\">unload</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n    <span class=\"pl-k\">end</span>,\n  })\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">on_move</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-smi\">preview</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">remap_move</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">char</span>, <span class=\"pl-smi\">keys</span>)\n    <span class=\"pl-k\">return</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">char</span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> ~~vim.api.nvim_feedkeys(vim.keycode(keys), \"n\", false)~~ -- NOTE: Sync</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_input</span>(<span class=\"pl-smi\">keys</span>)\n        <span class=\"pl-c1\">on_move</span>()\n      <span class=\"pl-k\">end</span>,\n    }\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">colorschemes</span>(\n    <span class=\"pl-smi\">local_opts</span>,\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, {\n      <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">colorscheme</span>(<span class=\"pl-smi\">item</span>)\n          <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Save colorscheme in a session-persistent vars</span>\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">COLORS_NAME</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span>\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">COLORS_BG</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span>\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">wshada</span>()\n        <span class=\"pl-k\">end</span>,\n      },\n      <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: No `MiniPick.default_action(...)`</span>\n        <span class=\"pl-smi\">move_start</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-Home&gt;<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">scroll_down</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;PageDown&gt;<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">scroll_up</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;PageUp&gt;<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">move_down_alt</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">remap_move</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Down&gt;<span class=\"pl-pds\">\"</span></span>),\n        <span class=\"pl-smi\">move_up_alt</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">remap_move</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-p&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Up&gt;<span class=\"pl-pds\">\"</span></span>),\n        <span class=\"pl-smi\">move_start_alt</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">remap_move</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-g&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-Home&gt;<span class=\"pl-pds\">\"</span></span>),\n        <span class=\"pl-smi\">scroll_down_alt</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">remap_move</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-f&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;PageDown&gt;<span class=\"pl-pds\">\"</span></span>),\n        <span class=\"pl-smi\">scroll_up_alt</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">remap_move</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-b&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;PageUp&gt;<span class=\"pl-pds\">\"</span></span>),\n        <span class=\"pl-smi\">match_current</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-0&gt;<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n            <span class=\"pl-c1\">match_current</span>()\n            <span class=\"pl-c1\">on_move</span>()\n          <span class=\"pl-k\">end</span>,\n        },\n        <span class=\"pl-smi\">change_bg</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-o&gt;<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n            <span class=\"pl-smi\">bg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>light<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\"</span></span>\n            <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bg</span>\n          <span class=\"pl-k\">end</span>,\n        },\n      },\n    })\n  )\n<span class=\"pl-k\">end</span></pre></div>",
+    "bodyText": "Related: #951\nFeatures:\n\n Persistent colorscheme\n Live preview without <Tab> (see comment)\n Switch vim.o.background with <C-o>\n Jump to the initial colorscheme with <C-0>\n\n\n  \n    \n    \n\n    colors.mp4\n    \n  \n\n  \n\n  \n\n\n-- Load\n\nvim.pack.add({ { src = \"https://github.com/nvim-mini/mini.nvim\" } })\n\nrequire(\"mini.extra\").setup()\nrequire(\"mini.pick\").setup()\n\nvim.keymap.set(\"n\", \"<space>sc\", \":Pick colorschemes<Enter>\", { desc = \"Search colors\" })\n\n-- Persistent colorscheme\n\n-- IMPORTANT!\n-- WARN: Call this after the colorscheme loads.\n-- NOTE: Load the colorscheme like this only if using `vim.pack`.\n--       You can also try `vim.schedule` or the `LazyDone` event.\nlocal set_colorscheme = function(bg, name)\n  return pcall(function()\n    vim.o.background = bg\n    vim.cmd.colorscheme(name)\n  end)\nend\nvim.cmd.rshada()\nif not set_colorscheme(vim.g.COLORS_BG, vim.g.COLORS_NAME) then\n  set_colorscheme(\"dark\", \"default\")\nend\n\nvim.api.nvim_create_autocmd(\"ColorScheme\", {\n  group = vim.api.nvim_create_augroup(\"save_colors\", { clear = true }),\n  callback = function()\n    vim.g.COLORS_NAME = vim.g.colors_name\n    vim.g.COLORS_BG = vim.o.background\n    -- NOTE: Let Neovim save the shada file on exit.\n    --       Picker preview can cause sync issues while the picker is open.\n  end,\n})\n\n-- Pick `colorschemes`\n\nMiniPick.registry.colorschemes = function(local_opts, opts)\n  local aug = vim.api.nvim_create_augroup(\"pick_colors\", { clear = true })\n  local cl = vim.g.colors_name or \"default\"\n  local bg = vim.o.background or \"dark\"\n  local fake_buf = vim.api.nvim_create_buf(false, true)\n\n  local preview = function(colors)\n    local matches = MiniPick.get_picker_matches()\n    if matches then\n      local item = colors or matches.current\n      local func = MiniPick.get_picker_opts().source.preview\n      -- BUG: Issues if two configurations share `packpath` but load different colorschemes\n      pcall(func, fake_buf, item)\n      -- NOTE: Preview function overrides `vim.o.background`\n      vim.o.background = bg\n    end\n  end\n\n  -- NOTE: Move the cursor to the initial colorscheme\n  local match_current = function()\n    local matches = MiniPick.get_picker_matches()\n    local current = vim.iter(matches.all_inds):find(function(i)\n      return cl == matches.all[i]\n    end)\n    if current then\n      MiniPick.set_picker_match_inds({ current }, \"current\")\n    end\n  end\n\n  -- NOTE: We assume the next picker is `colorschemes`\n\n  vim.api.nvim_create_autocmd(\"User\", {\n    pattern = \"MiniPickStart\",\n    group = aug,\n    callback = match_current,\n  })\n  -- NOTE: Also runs at the start\n  vim.api.nvim_create_autocmd(\"User\", {\n    pattern = \"MiniPickMatch\",\n    group = aug,\n    callback = vim.schedule_wrap(preview),\n  })\n  vim.api.nvim_create_autocmd(\"User\", {\n    pattern = \"MiniPickStop\",\n    group = aug,\n    once = true,\n    callback = function()\n      vim.api.nvim_clear_autocmds({ group = aug })\n      vim.api.nvim_buf_delete(fake_buf, { unload = true })\n    end,\n  })\n\n  local on_move = vim.schedule_wrap(preview)\n\n  local remap_move = function(char, keys)\n    return {\n      char = char,\n      func = function()\n        -- ~~vim.api.nvim_feedkeys(vim.keycode(keys), \"n\", false)~~ -- NOTE: Sync\n        vim.api.nvim_input(keys)\n        on_move()\n      end,\n    }\n  end\n\n  return MiniExtra.pickers.colorschemes(\n    local_opts,\n    vim.tbl_deep_extend(\"keep\", opts or {}, {\n      source = {\n        choose = function(item)\n          vim.cmd.colorscheme(item)\n          -- NOTE: Save colorscheme in a session-persistent vars\n          vim.g.COLORS_NAME = vim.g.colors_name\n          vim.g.COLORS_BG = vim.o.background\n          vim.cmd.wshada()\n        end,\n      },\n      mappings = {\n        -- NOTE: No `MiniPick.default_action(...)`\n        move_start = \"<C-Home>\",\n        scroll_down = \"<PageDown>\",\n        scroll_up = \"<PageUp>\",\n        move_down_alt = remap_move(\"<C-n>\", \"<Down>\"),\n        move_up_alt = remap_move(\"<C-p>\", \"<Up>\"),\n        move_start_alt = remap_move(\"<C-g>\", \"<C-Home>\"),\n        scroll_down_alt = remap_move(\"<C-f>\", \"<PageDown>\"),\n        scroll_up_alt = remap_move(\"<C-b>\", \"<PageUp>\"),\n        match_current = {\n          char = \"<C-0>\",\n          func = function()\n            match_current()\n            on_move()\n          end,\n        },\n        change_bg = {\n          char = \"<C-o>\",\n          func = function()\n            bg = vim.o.background == \"dark\" and \"light\" or \"dark\"\n            vim.o.background = bg\n          end,\n        },\n      },\n    })\n  )\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\n[`MiniExtra.pickers.colorschemes()`](https://nvim-mini.org/mini.nvim/doc/mini-extra.html#miniextra.pickers.colorschemes) also has \"live preview\". Press `<Tab>` to actually preview and navigate through currently matched items.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\"><a href=\"https://nvim-mini.org/mini.nvim/doc/mini-extra.html#miniextra.pickers.colorschemes\" rel=\"nofollow\"><code class=\"notranslate\">MiniExtra.pickers.colorschemes()</code></a> also has \"live preview\". Press <code class=\"notranslate\">&lt;Tab&gt;</code> to actually preview and navigate through currently matched items.</p>",
+            "bodyText": "Thanks for sharing!\nMiniExtra.pickers.colorschemes() also has \"live preview\". Press <Tab> to actually preview and navigate through currently matched items.",
+            "createdAt": "2025-11-30T13:23:54Z",
+            "createdViaEmail": false,
+            "databaseId": 15116689,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A5qmR",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-11-30T13:23:54Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Now, it feels kind of crazy that I did all of this just to avoid pressing one button. I knew that beforehand, but it's a bit inconvenient for me because I don’t see the other colorscheme names.",
+                    "bodyHTML": "<p dir=\"auto\">Now, it feels kind of crazy that I did all of this just to avoid pressing one button. I knew that beforehand, but it's a bit inconvenient for me because I don’t see the other colorscheme names.</p>",
+                    "bodyText": "Now, it feels kind of crazy that I did all of this just to avoid pressing one button. I knew that beforehand, but it's a bit inconvenient for me because I don’t see the other colorscheme names.",
+                    "createdAt": "2025-11-30T13:28:49Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15116720,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5qmw",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-30T13:28:49Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15116689,
+                        "id": "DC_kwDOFoksYM4A5qmR",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116689"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116720",
+                    "updatedAt": "2025-11-30T13:28:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116720"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116689",
+            "updatedAt": "2025-11-30T13:23:55Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15116689"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I have a question. I want to change the name of the picker without affecting the current view or the selected item. When I use `MiniPick.set_picker_opts`, it resets the current position. So, I try to restore the position with `set_picker_match_inds`. As a result, there’s a brief flash where the cursor jumps first with `set_picker_opts` and then back with `set_picker_match_inds` (probably due to a redraw), and sometimes the scroll position changes as well. Is there any way to fix this quirk?\r\n\r\n```lua\r\nvim.keymap.set(\"n\", \"<space>sc\", \":Pick colorschemes<Enter>\", { desc = \"Search colors\" })\r\n\r\nMiniPick.registry.colorschemes = function(local_opts, opts)\r\n  return MiniExtra.pickers.colorschemes(\r\n    local_opts,\r\n    vim.tbl_deep_extend(\"keep\", opts or {}, {\r\n      mappings = {\r\n        change_name = {\r\n          char = \"<F1>\",\r\n          func = function()\r\n            local matches = MiniPick.get_picker_matches()\r\n            MiniPick.set_picker_opts({ source = { name = \"Colorschemes (\" .. \"Hello\" .. \")\" } })\r\n            MiniPick.set_picker_match_inds({ matches.current_ind }, \"current\")\r\n          end,\r\n        },\r\n      },\r\n    })\r\n  )\r\nend\r\n```\r\n\r\nThe actual use case for me is to change `vim.o.background` with a key inside the colorschemes picker. So it would be nice to have an indication of whether the currently used variant is dark or light. This would also help show whether the colorscheme actually changes with the background option, since some colorschemes don’t support that behavior.",
+            "bodyHTML": "<p dir=\"auto\">I have a question. I want to change the name of the picker without affecting the current view or the selected item. When I use <code class=\"notranslate\">MiniPick.set_picker_opts</code>, it resets the current position. So, I try to restore the position with <code class=\"notranslate\">set_picker_match_inds</code>. As a result, there’s a brief flash where the cursor jumps first with <code class=\"notranslate\">set_picker_opts</code> and then back with <code class=\"notranslate\">set_picker_match_inds</code> (probably due to a redraw), and sometimes the scroll position changes as well. Is there any way to fix this quirk?</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;n&quot;, &quot;&lt;space&gt;sc&quot;, &quot;:Pick colorschemes&lt;Enter&gt;&quot;, { desc = &quot;Search colors&quot; })\n\nMiniPick.registry.colorschemes = function(local_opts, opts)\n  return MiniExtra.pickers.colorschemes(\n    local_opts,\n    vim.tbl_deep_extend(&quot;keep&quot;, opts or {}, {\n      mappings = {\n        change_name = {\n          char = &quot;&lt;F1&gt;&quot;,\n          func = function()\n            local matches = MiniPick.get_picker_matches()\n            MiniPick.set_picker_opts({ source = { name = &quot;Colorschemes (&quot; .. &quot;Hello&quot; .. &quot;)&quot; } })\n            MiniPick.set_picker_match_inds({ matches.current_ind }, &quot;current&quot;)\n          end,\n        },\n      },\n    })\n  )\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;space&gt;sc<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:Pick colorschemes&lt;Enter&gt;<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Search colors<span class=\"pl-pds\">\" </span></span>})\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">colorschemes</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">colorschemes</span>(\n    <span class=\"pl-smi\">local_opts</span>,\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, {\n      <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">change_name</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;F1&gt;<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">matches</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>()\n            <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_opts</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Colorschemes (<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Hello<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>)<span class=\"pl-pds\">\" </span></span>} })\n            <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_match_inds</span>({ <span class=\"pl-smi\">matches</span>.<span class=\"pl-e\">current_ind</span> }, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>)\n          <span class=\"pl-k\">end</span>,\n        },\n      },\n    })\n  )\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">The actual use case for me is to change <code class=\"notranslate\">vim.o.background</code> with a key inside the colorschemes picker. So it would be nice to have an indication of whether the currently used variant is dark or light. This would also help show whether the colorscheme actually changes with the background option, since some colorschemes don’t support that behavior.</p>",
+            "bodyText": "I have a question. I want to change the name of the picker without affecting the current view or the selected item. When I use MiniPick.set_picker_opts, it resets the current position. So, I try to restore the position with set_picker_match_inds. As a result, there’s a brief flash where the cursor jumps first with set_picker_opts and then back with set_picker_match_inds (probably due to a redraw), and sometimes the scroll position changes as well. Is there any way to fix this quirk?\nvim.keymap.set(\"n\", \"<space>sc\", \":Pick colorschemes<Enter>\", { desc = \"Search colors\" })\n\nMiniPick.registry.colorschemes = function(local_opts, opts)\n  return MiniExtra.pickers.colorschemes(\n    local_opts,\n    vim.tbl_deep_extend(\"keep\", opts or {}, {\n      mappings = {\n        change_name = {\n          char = \"<F1>\",\n          func = function()\n            local matches = MiniPick.get_picker_matches()\n            MiniPick.set_picker_opts({ source = { name = \"Colorschemes (\" .. \"Hello\" .. \")\" } })\n            MiniPick.set_picker_match_inds({ matches.current_ind }, \"current\")\n          end,\n        },\n      },\n    })\n  )\nend\nThe actual use case for me is to change vim.o.background with a key inside the colorschemes picker. So it would be nice to have an indication of whether the currently used variant is dark or light. This would also help show whether the colorscheme actually changes with the background option, since some colorschemes don’t support that behavior.",
+            "createdAt": "2025-11-30T18:38:07Z",
+            "createdViaEmail": false,
+            "databaseId": 15118042,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A5q7a",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-01T15:45:53Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-11-30T18:38:07Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 10,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I have a question. I want to change the name of the picker without changing the current view or the currently selected item. When I use `MiniPick.set_picker_opts`, it resets the current position. If I try to restore the position with `set_picker_match_inds`, it jumps to the top and then back (probably due to a redraw), and sometimes it even changes the scroll position. Is there any way to fix this quirk?\r\n\r\nI can not reproduce the \"jumps to the top and then back\" part with provided code.\r\n\r\nHowever, it does indeed not cleanly change source name. I'll take a look.\r\n\r\n> The actual use case for me is to change vim.o.background with a key inside the colorschemes picker. So it would be nice to have an indication of whether the currently used variant is dark or light. This would also help show whether the colorscheme actually changes with the background option, since some colorschemes don’t support that behavior.\r\n\r\nI don't *quite* understand this. You want to adjust source name based on the 'background' value?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I have a question. I want to change the name of the picker without changing the current view or the currently selected item. When I use <code class=\"notranslate\">MiniPick.set_picker_opts</code>, it resets the current position. If I try to restore the position with <code class=\"notranslate\">set_picker_match_inds</code>, it jumps to the top and then back (probably due to a redraw), and sometimes it even changes the scroll position. Is there any way to fix this quirk?</p>\n</blockquote>\n<p dir=\"auto\">I can not reproduce the \"jumps to the top and then back\" part with provided code.</p>\n<p dir=\"auto\">However, it does indeed not cleanly change source name. I'll take a look.</p>\n<blockquote>\n<p dir=\"auto\">The actual use case for me is to change vim.o.background with a key inside the colorschemes picker. So it would be nice to have an indication of whether the currently used variant is dark or light. This would also help show whether the colorscheme actually changes with the background option, since some colorschemes don’t support that behavior.</p>\n</blockquote>\n<p dir=\"auto\">I don't <em>quite</em> understand this. You want to adjust source name based on the 'background' value?</p>",
+                    "bodyText": "I have a question. I want to change the name of the picker without changing the current view or the currently selected item. When I use MiniPick.set_picker_opts, it resets the current position. If I try to restore the position with set_picker_match_inds, it jumps to the top and then back (probably due to a redraw), and sometimes it even changes the scroll position. Is there any way to fix this quirk?\n\nI can not reproduce the \"jumps to the top and then back\" part with provided code.\nHowever, it does indeed not cleanly change source name. I'll take a look.\n\nThe actual use case for me is to change vim.o.background with a key inside the colorschemes picker. So it would be nice to have an indication of whether the currently used variant is dark or light. This would also help show whether the colorscheme actually changes with the background option, since some colorschemes don’t support that behavior.\n\nI don't quite understand this. You want to adjust source name based on the 'background' value?",
+                    "createdAt": "2025-11-30T19:07:29Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15118162,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5q9S",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-30T19:07:29Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118162",
+                    "updatedAt": "2025-11-30T19:07:29Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118162"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "#### Issue (repro)\r\n\r\nhttps://github.com/user-attachments/assets/8c96532b-d576-4748-9d63-a4a721663c3e\r\n\r\n#### Idea\r\n\r\nYeah, I’m currently experimenting with something like this:\r\n\r\n```lua\r\nchange_bg = {\r\n  char = \"<Tab>\",\r\n  func = function()\r\n    local next_bg = vim.o.background == \"dark\" and \"light\" or \"dark\"\r\n    local matches = MiniPick.get_picker_matches()\r\n    MiniPick.set_picker_opts({ source = { name = \"Colorschemes (\" .. next_bg .. \")\" } })\r\n    MiniPick.set_picker_match_inds({ matches.current_ind }, \"current\")\r\n    vim.o.background = next_bg\r\n  end,\r\n},\r\n```\r\n\r\nIt could also be `OptionSet` or `ColorScheme` autocmd.",
+                    "bodyHTML": "<h4 dir=\"auto\">Issue (repro)</h4>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">issue.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/520519908-8c96532b-d576-4748-9d63-a4a721663c3e.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTIwNTE5OTA4LThjOTY1MzJiLWQ1NzYtNDc0OC05ZDYzLWE0YTcyMTY2M2MzZS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mMWJiNzZiYjQ5ZDY1NjJjNjBkNjYyOTQ1MzRjMzczOTU5NmIzNmY1YjgwM2I5MWQwNzZlZDY2MTQxYzM5MTE4JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.IrXHtwNQbcZqoJ_MfdeH2vSbHKKVr_kMmGzABvgOPC0\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/520519908-8c96532b-d576-4748-9d63-a4a721663c3e.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTIwNTE5OTA4LThjOTY1MzJiLWQ1NzYtNDc0OC05ZDYzLWE0YTcyMTY2M2MzZS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mMWJiNzZiYjQ5ZDY1NjJjNjBkNjYyOTQ1MzRjMzczOTU5NmIzNmY1YjgwM2I5MWQwNzZlZDY2MTQxYzM5MTE4JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.IrXHtwNQbcZqoJ_MfdeH2vSbHKKVr_kMmGzABvgOPC0\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<h4 dir=\"auto\">Idea</h4>\n<p dir=\"auto\">Yeah, I’m currently experimenting with something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"change_bg = {\n  char = &quot;&lt;Tab&gt;&quot;,\n  func = function()\n    local next_bg = vim.o.background == &quot;dark&quot; and &quot;light&quot; or &quot;dark&quot;\n    local matches = MiniPick.get_picker_matches()\n    MiniPick.set_picker_opts({ source = { name = &quot;Colorschemes (&quot; .. next_bg .. &quot;)&quot; } })\n    MiniPick.set_picker_match_inds({ matches.current_ind }, &quot;current&quot;)\n    vim.o.background = next_bg\n  end,\n},\"><pre class=\"notranslate\"><span class=\"pl-smi\">change_bg</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Tab&gt;<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">next_bg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>light<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">matches</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>()\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_opts</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Colorschemes (<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">next_bg</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>)<span class=\"pl-pds\">\" </span></span>} })\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_match_inds</span>({ <span class=\"pl-smi\">matches</span>.<span class=\"pl-e\">current_ind</span> }, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">next_bg</span>\n  <span class=\"pl-k\">end</span>,\n},</pre></div>\n<p dir=\"auto\">It could also be <code class=\"notranslate\">OptionSet</code> or <code class=\"notranslate\">ColorScheme</code> autocmd.</p>",
+                    "bodyText": "Issue (repro)\n\n  \n    \n    \n\n    issue.mp4\n    \n  \n\n  \n\n  \n\n\nIdea\nYeah, I’m currently experimenting with something like this:\nchange_bg = {\n  char = \"<Tab>\",\n  func = function()\n    local next_bg = vim.o.background == \"dark\" and \"light\" or \"dark\"\n    local matches = MiniPick.get_picker_matches()\n    MiniPick.set_picker_opts({ source = { name = \"Colorschemes (\" .. next_bg .. \")\" } })\n    MiniPick.set_picker_match_inds({ matches.current_ind }, \"current\")\n    vim.o.background = next_bg\n  end,\n},\nIt could also be OptionSet or ColorScheme autocmd.",
+                    "createdAt": "2025-11-30T19:26:15Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15118222,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5q-O",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-01T15:47:22Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-30T19:26:15Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118222",
+                    "updatedAt": "2025-12-01T15:47:22Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118222"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Issue (repro)\r\n\r\nWell, this has `<Tab>` and the code had `<F1>`. There is a `<Tab>` used for preview action. I think this might be the reason. Disabling `preview` action might fix this.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Issue (repro)</p>\n</blockquote>\n<p dir=\"auto\">Well, this has <code class=\"notranslate\">&lt;Tab&gt;</code> and the code had <code class=\"notranslate\">&lt;F1&gt;</code>. There is a <code class=\"notranslate\">&lt;Tab&gt;</code> used for preview action. I think this might be the reason. Disabling <code class=\"notranslate\">preview</code> action might fix this.</p>",
+                    "bodyText": "Issue (repro)\n\nWell, this has <Tab> and the code had <F1>. There is a <Tab> used for preview action. I think this might be the reason. Disabling preview action might fix this.",
+                    "createdAt": "2025-11-30T20:36:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15118469,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5rCF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-30T20:36:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118469",
+                    "updatedAt": "2025-11-30T20:36:43Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118469"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "I’m experiencing the same issue with `<F1>` and other keys. Basically, `set_picker_opts` jumps to the top, and then I try to jump back using `set_picker_match_inds`. I suppose `set_picker_opts` shouldn’t change the current position in the first place.\r\n\r\n- Potato PC\r\n- Linux, Arch Btw\r\n- `NVIM v0.12.0-dev-1719+g03d6cf7aae`\r\n\r\nhttps://github.com/user-attachments/assets/7598f4b9-e611-41a8-a578-c224cea43b54\r\n\r\nP.S. Sorry if my previous message was confusing.",
+                    "bodyHTML": "<p dir=\"auto\">I’m experiencing the same issue with <code class=\"notranslate\">&lt;F1&gt;</code> and other keys. Basically, <code class=\"notranslate\">set_picker_opts</code> jumps to the top, and then I try to jump back using <code class=\"notranslate\">set_picker_match_inds</code>. I suppose <code class=\"notranslate\">set_picker_opts</code> shouldn’t change the current position in the first place.</p>\n<ul dir=\"auto\">\n<li>Potato PC</li>\n<li>Linux, Arch Btw</li>\n<li><code class=\"notranslate\">NVIM v0.12.0-dev-1719+g03d6cf7aae</code></li>\n</ul>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">issue-2.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/520532216-7598f4b9-e611-41a8-a578-c224cea43b54.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTIwNTMyMjE2LTc1OThmNGI5LWU2MTEtNDFhOC1hNTc4LWMyMjRjZWE0M2I1NC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT02YzlhMWY4YmE0YjFlYTMwYmQxZTQ0ZGZlYjIwMmZkNmZhZGM5NTVlZTJhOGRjOTY1MDE4NDgxYTdmZTRjZDZkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.t5fJkmUt7Fsic1XCaomHm953Hizk-EVpRqFumTEEH-A\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/520532216-7598f4b9-e611-41a8-a578-c224cea43b54.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTIwNTMyMjE2LTc1OThmNGI5LWU2MTEtNDFhOC1hNTc4LWMyMjRjZWE0M2I1NC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT02YzlhMWY4YmE0YjFlYTMwYmQxZTQ0ZGZlYjIwMmZkNmZhZGM5NTVlZTJhOGRjOTY1MDE4NDgxYTdmZTRjZDZkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.t5fJkmUt7Fsic1XCaomHm953Hizk-EVpRqFumTEEH-A\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">P.S. Sorry if my previous message was confusing.</p>",
+                    "bodyText": "I’m experiencing the same issue with <F1> and other keys. Basically, set_picker_opts jumps to the top, and then I try to jump back using set_picker_match_inds. I suppose set_picker_opts shouldn’t change the current position in the first place.\n\nPotato PC\nLinux, Arch Btw\nNVIM v0.12.0-dev-1719+g03d6cf7aae\n\n\n  \n    \n    \n\n    issue-2.mp4\n    \n  \n\n  \n\n  \n\n\nP.S. Sorry if my previous message was confusing.",
+                    "createdAt": "2025-11-30T21:23:53Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15118623,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5rEf",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-01T10:41:12Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-30T21:23:53Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118623",
+                    "updatedAt": "2025-12-01T10:41:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118623"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yeah, after scrolling down in a way that first item is \"out of screen\", I was able to reproduce a flicker... once after about 10-15 tries. There is an extra centering of current item, though. So yeah, this is not a \"temporary switch to preview\" explanation.\r\n\r\nThis probably should be fixed by a more careful `set_picker_opts()`.",
+                    "bodyHTML": "<p dir=\"auto\">Yeah, after scrolling down in a way that first item is \"out of screen\", I was able to reproduce a flicker... once after about 10-15 tries. There is an extra centering of current item, though. So yeah, this is not a \"temporary switch to preview\" explanation.</p>\n<p dir=\"auto\">This probably should be fixed by a more careful <code class=\"notranslate\">set_picker_opts()</code>.</p>",
+                    "bodyText": "Yeah, after scrolling down in a way that first item is \"out of screen\", I was able to reproduce a flicker... once after about 10-15 tries. There is an extra centering of current item, though. So yeah, this is not a \"temporary switch to preview\" explanation.\nThis probably should be fixed by a more careful set_picker_opts().",
+                    "createdAt": "2025-12-01T10:24:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15122900,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5sHU",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-01T10:24:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15122900",
+                    "updatedAt": "2025-12-01T10:24:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15122900"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "@drowning-cat, as I can not reliably reproduce the flickering, could you please apply the following patch and see if the flickering is still there? The patch:\r\n\r\n```diff\r\ndiff --git a/lua/mini/pick.lua b/lua/mini/pick.lua\r\nindex 9fb2b56a..ba23d587 100644\r\n--- a/lua/mini/pick.lua\r\n+++ b/lua/mini/pick.lua\r\n@@ -1799,7 +1799,8 @@ MiniPick.set_picker_opts = function(opts)\r\n   picker.opts = vim.tbl_deep_extend('force', picker.opts, opts or {})\r\n   picker.action_keys = H.normalize_mappings(picker.opts.mappings)\r\n   if cur_cwd ~= picker.opts.source.cwd then H.win_set_cwd(picker.windows.main, picker.opts.source.cwd) end\r\n-  H.picker_update(picker, true, true)\r\n+  local do_match = ((opts or {}).source or {}).match ~= nil\r\n+  H.picker_update(picker, do_match, true)\r\n end\r\n \r\n --- Set target window for active picker\r\n```\r\n\r\n---\r\n\r\nThe centering of the current item is the result of executing the equivalent of the `MiniPick.refresh()`, which updates the window. This has the side effect of repositioning the current item in the visible area.\r\n\r\nIn theory it should be possible to pinpoint the exact conditions of when to not do that specifically in `set_picker_opts()`, but seems to only (visibly) complicate the code while not being *that* much useful. If there are more serious problems that come with that, it might be worth to reconsider. But not for now.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/drowning-cat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/drowning-cat\">@drowning-cat</a>, as I can not reliably reproduce the flickering, could you please apply the following patch and see if the flickering is still there? The patch:</p>\n<div class=\"highlight highlight-source-diff notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"diff --git a/lua/mini/pick.lua b/lua/mini/pick.lua\nindex 9fb2b56a..ba23d587 100644\n--- a/lua/mini/pick.lua\n+++ b/lua/mini/pick.lua\n@@ -1799,7 +1799,8 @@ MiniPick.set_picker_opts = function(opts)\n   picker.opts = vim.tbl_deep_extend('force', picker.opts, opts or {})\n   picker.action_keys = H.normalize_mappings(picker.opts.mappings)\n   if cur_cwd ~= picker.opts.source.cwd then H.win_set_cwd(picker.windows.main, picker.opts.source.cwd) end\n-  H.picker_update(picker, true, true)\n+  local do_match = ((opts or {}).source or {}).match ~= nil\n+  H.picker_update(picker, do_match, true)\n end\n \n --- Set target window for active picker\"><pre class=\"notranslate\"><span class=\"pl-c1\">diff --git a/lua/mini/pick.lua b/lua/mini/pick.lua</span>\nindex 9fb2b56a..ba23d587 100644\n<span class=\"pl-md\">--- a/lua/mini/pick.lua</span>\n<span class=\"pl-mi1\">+++ b/lua/mini/pick.lua</span>\n<span class=\"pl-mdr\">@@ -1799,7 +1799,8 @@</span> MiniPick.set_picker_opts = function(opts)\n   picker.opts = vim.tbl_deep_extend('force', picker.opts, opts or {})\n   picker.action_keys = H.normalize_mappings(picker.opts.mappings)\n   if cur_cwd ~= picker.opts.source.cwd then H.win_set_cwd(picker.windows.main, picker.opts.source.cwd) end\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  H.picker_update(picker, true, true)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  local do_match = ((opts or {}).source or {}).match ~= nil</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  H.picker_update(picker, do_match, true)</span>\n end\n \n --- Set target window for active picker</pre></div>\n<hr>\n<p dir=\"auto\">The centering of the current item is the result of executing the equivalent of the <code class=\"notranslate\">MiniPick.refresh()</code>, which updates the window. This has the side effect of repositioning the current item in the visible area.</p>\n<p dir=\"auto\">In theory it should be possible to pinpoint the exact conditions of when to not do that specifically in <code class=\"notranslate\">set_picker_opts()</code>, but seems to only (visibly) complicate the code while not being <em>that</em> much useful. If there are more serious problems that come with that, it might be worth to reconsider. But not for now.</p>",
+                    "bodyText": "@drowning-cat, as I can not reliably reproduce the flickering, could you please apply the following patch and see if the flickering is still there? The patch:\ndiff --git a/lua/mini/pick.lua b/lua/mini/pick.lua\nindex 9fb2b56a..ba23d587 100644\n--- a/lua/mini/pick.lua\n+++ b/lua/mini/pick.lua\n@@ -1799,7 +1799,8 @@ MiniPick.set_picker_opts = function(opts)\n   picker.opts = vim.tbl_deep_extend('force', picker.opts, opts or {})\n   picker.action_keys = H.normalize_mappings(picker.opts.mappings)\n   if cur_cwd ~= picker.opts.source.cwd then H.win_set_cwd(picker.windows.main, picker.opts.source.cwd) end\n-  H.picker_update(picker, true, true)\n+  local do_match = ((opts or {}).source or {}).match ~= nil\n+  H.picker_update(picker, do_match, true)\n end\n \n --- Set target window for active picker\n\nThe centering of the current item is the result of executing the equivalent of the MiniPick.refresh(), which updates the window. This has the side effect of repositioning the current item in the visible area.\nIn theory it should be possible to pinpoint the exact conditions of when to not do that specifically in set_picker_opts(), but seems to only (visibly) complicate the code while not being that much useful. If there are more serious problems that come with that, it might be worth to reconsider. But not for now.",
+                    "createdAt": "2025-12-17T16:18:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15281220,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6SxE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T16:18:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15281220",
+                    "updatedAt": "2025-12-17T16:18:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15281220"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Yes, the patch fixes the issue. It is better to show:\r\n\r\nhttps://github.com/user-attachments/assets/c7163b41-7df7-4e29-a61a-03045c52a2e2\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Yes, the patch fixes the issue. It is better to show:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">pick-bug.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/527691047-c7163b41-7df7-4e29-a61a-03045c52a2e2.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI3NjkxMDQ3LWM3MTYzYjQxLTdkZjctNGUyOS1hNjFhLTAzMDQ1YzUyYTJlMi5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00ODFjZjlhZTk3OGQ2N2Y0ZmYwYTEyNDczN2NhMDhiYTc5N2M0NmVlZjViNTA3NGExZTExZWNjMGM2YThhZGNmJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.rvgnOkTZ7LmVpJIrDfsHS3CGRDj9asFlvKQqtBmcP1g\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/527691047-c7163b41-7df7-4e29-a61a-03045c52a2e2.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTAsIm5iZiI6MTc5MzU1MjUxMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI3NjkxMDQ3LWM3MTYzYjQxLTdkZjctNGUyOS1hNjFhLTAzMDQ1YzUyYTJlMi5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00ODFjZjlhZTk3OGQ2N2Y0ZmYwYTEyNDczN2NhMDhiYTc5N2M0NmVlZjViNTA3NGExZTExZWNjMGM2YThhZGNmJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.rvgnOkTZ7LmVpJIrDfsHS3CGRDj9asFlvKQqtBmcP1g\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+                    "bodyText": "Yes, the patch fixes the issue. It is better to show:\n\n  \n    \n    \n\n    pick-bug.mp4",
+                    "createdAt": "2025-12-17T16:53:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15281512,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6S1o",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T16:53:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15281512",
+                    "updatedAt": "2025-12-17T16:53:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15281512"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks! I'll plan to push this patch soon then (in a couple of days).",
+                    "bodyHTML": "<p dir=\"auto\">Thanks! I'll plan to push this patch soon then (in a couple of days).</p>",
+                    "bodyText": "Thanks! I'll plan to push this patch soon then (in a couple of days).",
+                    "createdAt": "2025-12-17T17:38:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15281859,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6S7D",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T17:38:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15281859",
+                    "updatedAt": "2025-12-17T17:38:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15281859"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "The patch should now be part of the latest `main`.",
+                    "bodyHTML": "<p dir=\"auto\">The patch should now be part of the latest <code class=\"notranslate\">main</code>.</p>",
+                    "bodyText": "The patch should now be part of the latest main.",
+                    "createdAt": "2025-12-21T16:12:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15311205,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6aFl",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-21T16:12:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15311205",
+                    "updatedAt": "2025-12-21T16:12:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15311205"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thank you for your work 🙂",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for your work 🙂</p>",
+                    "bodyText": "Thank you for your work 🙂",
+                    "createdAt": "2025-12-21T16:14:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15311212,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6aFs",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-21T16:14:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15118042,
+                        "id": "DC_kwDOFoksYM4A5q7a",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15311212",
+                    "updatedAt": "2025-12-21T16:14:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15311212"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042",
+            "updatedAt": "2025-12-01T15:45:53Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15118042"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I forgot to ask. I wanted to use the `CursorMoved` or `CursorHold` events, but they don’t fire while the picker window is open. Is there any way to use autocmds with the `state.main` window?\r\n\r\nIf not, is there a chance of adding a `MiniPickSelect` user event? It would mostly be useful for side effects, like updating the colorscheme on the fly or jump lines with `buf_lines` when combined with `MiniPickMatch`. Some tryhards might even use it to implement a floating preview (not me). I don’t have a strong opinion on this, since I’m afraid I might be the only person who would use this feature.",
+            "bodyHTML": "<p dir=\"auto\">I forgot to ask. I wanted to use the <code class=\"notranslate\">CursorMoved</code> or <code class=\"notranslate\">CursorHold</code> events, but they don’t fire while the picker window is open. Is there any way to use autocmds with the <code class=\"notranslate\">state.main</code> window?</p>\n<p dir=\"auto\">If not, is there a chance of adding a <code class=\"notranslate\">MiniPickSelect</code> user event? It would mostly be useful for side effects, like updating the colorscheme on the fly or jump lines with <code class=\"notranslate\">buf_lines</code> when combined with <code class=\"notranslate\">MiniPickMatch</code>. Some tryhards might even use it to implement a floating preview (not me). I don’t have a strong opinion on this, since I’m afraid I might be the only person who would use this feature.</p>",
+            "bodyText": "I forgot to ask. I wanted to use the CursorMoved or CursorHold events, but they don’t fire while the picker window is open. Is there any way to use autocmds with the state.main window?\nIf not, is there a chance of adding a MiniPickSelect user event? It would mostly be useful for side effects, like updating the colorscheme on the fly or jump lines with buf_lines when combined with MiniPickMatch. Some tryhards might even use it to implement a floating preview (not me). I don’t have a strong opinion on this, since I’m afraid I might be the only person who would use this feature.",
+            "createdAt": "2025-12-09T19:07:08Z",
+            "createdViaEmail": false,
+            "databaseId": 15211862,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A6B1W",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-15T16:22:07Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-09T19:07:08Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I wanted to use the `CursorMoved` or `CursorHold` events, but they don’t fire while the picker window is open.\r\n\r\nThere is no intentional design decision here. If they don't trigger - good, because there should be no dependency on the actual placement of the cursor. Cursor is invisible -> 'mini.pick' implementation can choose to place it however and wherever it needs. More\r\n\r\n> If not, is there a chance of adding a `MiniPickSelect` user event?\r\n\r\nJudging by the name I'd guess it is something along the lines of \"trigger on every `choose`\" (since \"select\" ~ \"choose\"). But judging by the use case, it is \"trigger on every change of the current item\", right?\r\n\r\nI did think about it in terms of separate floating window indeed. My concern is that it will trigger relatively frequently for purposes that will be useful to only a few. There is an [alternative implementation idea](https://github.com/nvim-mini/mini.nvim/discussions/1476#discussioncomment-11811751) to basically smartly try to preview every N milliseconds.\r\n\r\n> It would mostly be useful for side effects, like updating the colorscheme on the fly when combined with `MiniPickMatch`\r\n\r\nUnfortunately, this is still not quite enough for this to be implemented. As I said, I mostly would like to suggest to do the preview whenever preview is actively visible (in which case `source.preview` should take care of it).\r\n\r\nThe alternative can be to either monkey-patch all `move_xxx` actions for this specific picker or continuously poll for current item identifier change.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I wanted to use the <code class=\"notranslate\">CursorMoved</code> or <code class=\"notranslate\">CursorHold</code> events, but they don’t fire while the picker window is open.</p>\n</blockquote>\n<p dir=\"auto\">There is no intentional design decision here. If they don't trigger - good, because there should be no dependency on the actual placement of the cursor. Cursor is invisible -&gt; 'mini.pick' implementation can choose to place it however and wherever it needs. More</p>\n<blockquote>\n<p dir=\"auto\">If not, is there a chance of adding a <code class=\"notranslate\">MiniPickSelect</code> user event?</p>\n</blockquote>\n<p dir=\"auto\">Judging by the name I'd guess it is something along the lines of \"trigger on every <code class=\"notranslate\">choose</code>\" (since \"select\" ~ \"choose\"). But judging by the use case, it is \"trigger on every change of the current item\", right?</p>\n<p dir=\"auto\">I did think about it in terms of separate floating window indeed. My concern is that it will trigger relatively frequently for purposes that will be useful to only a few. There is an <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/1476#discussioncomment-11811751\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1476/hovercard?comment_id=11811751\">alternative implementation idea</a> to basically smartly try to preview every N milliseconds.</p>\n<blockquote>\n<p dir=\"auto\">It would mostly be useful for side effects, like updating the colorscheme on the fly when combined with <code class=\"notranslate\">MiniPickMatch</code></p>\n</blockquote>\n<p dir=\"auto\">Unfortunately, this is still not quite enough for this to be implemented. As I said, I mostly would like to suggest to do the preview whenever preview is actively visible (in which case <code class=\"notranslate\">source.preview</code> should take care of it).</p>\n<p dir=\"auto\">The alternative can be to either monkey-patch all <code class=\"notranslate\">move_xxx</code> actions for this specific picker or continuously poll for current item identifier change.</p>",
+                    "bodyText": "I wanted to use the CursorMoved or CursorHold events, but they don’t fire while the picker window is open.\n\nThere is no intentional design decision here. If they don't trigger - good, because there should be no dependency on the actual placement of the cursor. Cursor is invisible -> 'mini.pick' implementation can choose to place it however and wherever it needs. More\n\nIf not, is there a chance of adding a MiniPickSelect user event?\n\nJudging by the name I'd guess it is something along the lines of \"trigger on every choose\" (since \"select\" ~ \"choose\"). But judging by the use case, it is \"trigger on every change of the current item\", right?\nI did think about it in terms of separate floating window indeed. My concern is that it will trigger relatively frequently for purposes that will be useful to only a few. There is an alternative implementation idea to basically smartly try to preview every N milliseconds.\n\nIt would mostly be useful for side effects, like updating the colorscheme on the fly when combined with MiniPickMatch\n\nUnfortunately, this is still not quite enough for this to be implemented. As I said, I mostly would like to suggest to do the preview whenever preview is actively visible (in which case source.preview should take care of it).\nThe alternative can be to either monkey-patch all move_xxx actions for this specific picker or continuously poll for current item identifier change.",
+                    "createdAt": "2025-12-09T19:26:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15212016,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6B3w",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-09T19:26:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15211862,
+                        "id": "DC_kwDOFoksYM4A6B1W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15211862"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212016",
+                    "updatedAt": "2025-12-09T19:26:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212016"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> Cursor is invisible\r\n\r\nIs it more like a virtual input or a key listener? I’m not really asking about implementation details, but whether it’s possible to implement something like `:h i_CTRL-O` or similar behavior by triggering a command for the input.\r\n\r\n> But judging by the use case, it is \"trigger on every change of the current item\", right?\r\n\r\n`<C-n>`/`<C-p>`\r\n\r\n> The alternative can be to either monkey-patch all `move_xxx` actions for this specific picker or continuously poll for current item identifier change.\r\n\r\nDo you mean something like in the code from this discussion? Since `H.actions` isn’t accessible, maybe something like this:\r\n\r\n```lua\r\nmappings = {\r\n  move_down = \"<C-n>\",\r\n  move_down2 = {\r\n    char = \"<C-j>\",\r\n    func = function()\r\n      vim.api.nvim_feedkeys(vim.keycode(\"<C-n>\"), \"n\", false)\r\n    end,\r\n  }\r\n```\r\n\r\nTo be honest, thinking about all the possible mappings gives me a headache.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Cursor is invisible</p>\n</blockquote>\n<p dir=\"auto\">Is it more like a virtual input or a key listener? I’m not really asking about implementation details, but whether it’s possible to implement something like <code class=\"notranslate\">:h i_CTRL-O</code> or similar behavior by triggering a command for the input.</p>\n<blockquote>\n<p dir=\"auto\">But judging by the use case, it is \"trigger on every change of the current item\", right?</p>\n</blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;C-n&gt;</code>/<code class=\"notranslate\">&lt;C-p&gt;</code></p>\n<blockquote>\n<p dir=\"auto\">The alternative can be to either monkey-patch all <code class=\"notranslate\">move_xxx</code> actions for this specific picker or continuously poll for current item identifier change.</p>\n</blockquote>\n<p dir=\"auto\">Do you mean something like in the code from this discussion? Since <code class=\"notranslate\">H.actions</code> isn’t accessible, maybe something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"mappings = {\n  move_down = &quot;&lt;C-n&gt;&quot;,\n  move_down2 = {\n    char = &quot;&lt;C-j&gt;&quot;,\n    func = function()\n      vim.api.nvim_feedkeys(vim.keycode(&quot;&lt;C-n&gt;&quot;), &quot;n&quot;, false)\n    end,\n  }\"><pre class=\"notranslate\"><span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">move_down</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">move_down2</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-j&gt;<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_feedkeys</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">keycode</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>)\n    <span class=\"pl-k\">end</span>,\n  }</pre></div>\n<p dir=\"auto\">To be honest, thinking about all the possible mappings gives me a headache.</p>",
+                    "bodyText": "Cursor is invisible\n\nIs it more like a virtual input or a key listener? I’m not really asking about implementation details, but whether it’s possible to implement something like :h i_CTRL-O or similar behavior by triggering a command for the input.\n\nBut judging by the use case, it is \"trigger on every change of the current item\", right?\n\n<C-n>/<C-p>\n\nThe alternative can be to either monkey-patch all move_xxx actions for this specific picker or continuously poll for current item identifier change.\n\nDo you mean something like in the code from this discussion? Since H.actions isn’t accessible, maybe something like this:\nmappings = {\n  move_down = \"<C-n>\",\n  move_down2 = {\n    char = \"<C-j>\",\n    func = function()\n      vim.api.nvim_feedkeys(vim.keycode(\"<C-n>\"), \"n\", false)\n    end,\n  }\nTo be honest, thinking about all the possible mappings gives me a headache.",
+                    "createdAt": "2025-12-09T19:50:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15212171,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6B6L",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-09T20:01:20Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-09T19:50:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15211862,
+                        "id": "DC_kwDOFoksYM4A6B1W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15211862"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212171",
+                    "updatedAt": "2025-12-09T20:01:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212171"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Is it more like a virtual input or a key listener? I’m not really asking about implementation details, but whether it’s possible to implement something like `:h i_CTRL-O` or similar behavior by triggering a command for the input.\r\n\r\n'mini.pick' has a separate [key query process](https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick-overview-implementationdetails). Basically, every key is intercepted via `vim.fn.getcharstr()` and processed via defined actions. So thinking in regular Neovim terms (modes and cursors) is not really useful here.\r\n\r\n> Do you mean something like in the code from this discussion? Since `H.actions` isn’t accessible, maybe something like this:\r\n\r\nSomething like this, but it *should* be possible to override `<C-n>` / `<C-p>` to use [`Down` / `<Up>`](https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick-actions-move) via `vim.api.nvim_input()` (`feedkeys()` is not really a good solution here).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Is it more like a virtual input or a key listener? I’m not really asking about implementation details, but whether it’s possible to implement something like <code class=\"notranslate\">:h i_CTRL-O</code> or similar behavior by triggering a command for the input.</p>\n</blockquote>\n<p dir=\"auto\">'mini.pick' has a separate <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick-overview-implementationdetails\" rel=\"nofollow\">key query process</a>. Basically, every key is intercepted via <code class=\"notranslate\">vim.fn.getcharstr()</code> and processed via defined actions. So thinking in regular Neovim terms (modes and cursors) is not really useful here.</p>\n<blockquote>\n<p dir=\"auto\">Do you mean something like in the code from this discussion? Since <code class=\"notranslate\">H.actions</code> isn’t accessible, maybe something like this:</p>\n</blockquote>\n<p dir=\"auto\">Something like this, but it <em>should</em> be possible to override <code class=\"notranslate\">&lt;C-n&gt;</code> / <code class=\"notranslate\">&lt;C-p&gt;</code> to use <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick-actions-move\" rel=\"nofollow\"><code class=\"notranslate\">Down</code> / <code class=\"notranslate\">&lt;Up&gt;</code></a> via <code class=\"notranslate\">vim.api.nvim_input()</code> (<code class=\"notranslate\">feedkeys()</code> is not really a good solution here).</p>",
+                    "bodyText": "Is it more like a virtual input or a key listener? I’m not really asking about implementation details, but whether it’s possible to implement something like :h i_CTRL-O or similar behavior by triggering a command for the input.\n\n'mini.pick' has a separate key query process. Basically, every key is intercepted via vim.fn.getcharstr() and processed via defined actions. So thinking in regular Neovim terms (modes and cursors) is not really useful here.\n\nDo you mean something like in the code from this discussion? Since H.actions isn’t accessible, maybe something like this:\n\nSomething like this, but it should be possible to override <C-n> / <C-p> to use Down / <Up> via vim.api.nvim_input() (feedkeys() is not really a good solution here).",
+                    "createdAt": "2025-12-09T20:29:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15212480,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6B_A",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-09T20:29:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15211862,
+                        "id": "DC_kwDOFoksYM4A6B1W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15211862"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212480",
+                    "updatedAt": "2025-12-09T20:29:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212480"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thanks 👍",
+                    "bodyHTML": "<p dir=\"auto\">Thanks 👍</p>",
+                    "bodyText": "Thanks 👍",
+                    "createdAt": "2025-12-09T20:44:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15212599,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6CA3",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-09T20:44:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15211862,
+                        "id": "DC_kwDOFoksYM4A6B1W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15211862"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212599",
+                    "updatedAt": "2025-12-09T20:44:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15212599"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15211862",
+            "updatedAt": "2025-12-15T16:22:07Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146#discussioncomment-15211862"
+        }
+    ],
+    "createdAt": "2025-11-30T13:14:56Z",
+    "createdViaEmail": false,
+    "databaseId": 9192904,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AjEXI",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-12-21T18:05:24Z",
+    "locked": false,
+    "number": 2146,
+    "poll": null,
+    "publishedAt": "2025-11-30T13:14:56Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2146",
+    "stateReason": null,
+    "title": "[mini.extra] Live `colorschemes` picker",
+    "updatedAt": "2026-01-27T16:45:32Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2146"
+}

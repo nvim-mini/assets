@@ -1,0 +1,867 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/10180699?u=ff99b5392141fae7ea2f9a6d58754669ea8cbf41&v=4",
+        "login": "karlskewes",
+        "resourcePath": "/karlskewes",
+        "url": "https://github.com/karlskewes"
+    },
+    "authorAssociation": "NONE",
+    "body": "First, thank you for writing such a great plugin. It has been smooth sailing integrating and using it every day.\r\n\r\nThere's one part of my workflow that I haven't figured out with the default features/examples and I'm open to either making something or changing my workflow.\r\nThe feature is deleting multiple registered paths using a picker of some sort.\r\n\r\n### My workflow (harpoon-bred) \r\n\r\n1. disable automatic path registration - `track = { event = '' }`\r\n2. browse/jump to file\r\n3. add visit - `MiniVisits.register_visit()`\r\n4. iterate registered paths - `MiniVisits.iterate_paths(\"forward\", nil, { wrap = true })` (forward/backward)\r\n5. repeat 2-4\r\n6. finished with files (may have been across multiple git branches)\r\n7. delete (some|all) registered visits - `MiniVisits.remove_path()`\r\n\r\n### Hiccup\r\n\r\nIn Step 7 above, I need to visit each file I want to remove/unregister and then remove it.\r\nIt would be great if I could delete multiple in one go.\r\n\r\n### Harpoon feature\r\n\r\nA custom picker can be opened which supports vim actions `dd, p, etc` to edit/reorder saved paths. \r\nI would often `dd` in the single picker multiple times when finished with multiple files.\r\n\r\n### vim.ui.select\r\n\r\nI see it's possible to customize the action that `vim.ui.select()` does and have used it below.\r\nThis enables deleting a single path via a picker, but I'm not sure how to delete multiple here.\r\n\r\n```lua\r\nvim.keymap.set(\r\n  'n', \r\n  '<leader>vd', \r\n  function()\r\n    vim.ui.select(MiniVisits.list_paths(), {}, function(choice)\r\n      MiniVisits.remove_path(choice)\r\n    end)\r\n  end, \r\n  { desc = '[V]isits [d]elete paths' },\r\n)\r\n```\r\n\r\n### telescope.nvim\r\n\r\nThis seems to support multiple selections with the [default-mappings](https://github.com/nvim-telescope/telescope.nvim?tab=readme-ov-file#default-mappings) `Tab`.\r\n\r\nI tried using https://github.com/nvim-telescope/telescope-ui-select.nvim as the picker and can use `Tab` to \"mark\" multiple paths.\r\n\r\nHowever I can't see how multiple \"marked paths\" can be passed to the function, it seems to pass only what I hit `<CR>` on, which makes sense as the function definition is `vim.ui.select(fn, {}, <single_choice>)`.\r\n\r\nI've come across a potential telescope based solution which I could change the action from opening file to deleting path: https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1679797700\r\n\r\n### mini.pick\r\n\r\nIs there something in https://github.com/echasnovski/mini.pick that would work?\r\n\r\n> Mark/unmark items to choose later.\r\n\r\nHow would I apply a command to all \"marked\" items?\r\n\r\n\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\">First, thank you for writing such a great plugin. It has been smooth sailing integrating and using it every day.</p>\n<p dir=\"auto\">There's one part of my workflow that I haven't figured out with the default features/examples and I'm open to either making something or changing my workflow.<br>\nThe feature is deleting multiple registered paths using a picker of some sort.</p>\n<h3 dir=\"auto\">My workflow (harpoon-bred)</h3>\n<ol dir=\"auto\">\n<li>disable automatic path registration - <code class=\"notranslate\">track = { event = '' }</code></li>\n<li>browse/jump to file</li>\n<li>add visit - <code class=\"notranslate\">MiniVisits.register_visit()</code></li>\n<li>iterate registered paths - <code class=\"notranslate\">MiniVisits.iterate_paths(\"forward\", nil, { wrap = true })</code> (forward/backward)</li>\n<li>repeat 2-4</li>\n<li>finished with files (may have been across multiple git branches)</li>\n<li>delete (some|all) registered visits - <code class=\"notranslate\">MiniVisits.remove_path()</code></li>\n</ol>\n<h3 dir=\"auto\">Hiccup</h3>\n<p dir=\"auto\">In Step 7 above, I need to visit each file I want to remove/unregister and then remove it.<br>\nIt would be great if I could delete multiple in one go.</p>\n<h3 dir=\"auto\">Harpoon feature</h3>\n<p dir=\"auto\">A custom picker can be opened which supports vim actions <code class=\"notranslate\">dd, p, etc</code> to edit/reorder saved paths.<br>\nI would often <code class=\"notranslate\">dd</code> in the single picker multiple times when finished with multiple files.</p>\n<h3 dir=\"auto\">vim.ui.select</h3>\n<p dir=\"auto\">I see it's possible to customize the action that <code class=\"notranslate\">vim.ui.select()</code> does and have used it below.<br>\nThis enables deleting a single path via a picker, but I'm not sure how to delete multiple here.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(\n  'n', \n  '&lt;leader&gt;vd', \n  function()\n    vim.ui.select(MiniVisits.list_paths(), {}, function(choice)\n      MiniVisits.remove_path(choice)\n    end)\n  end, \n  { desc = '[V]isits [d]elete paths' },\n)\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, \n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;leader&gt;vd<span class=\"pl-pds\">'</span></span>, \n  <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">ui</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-smi\">MiniVisits</span>.<span class=\"pl-c1\">list_paths</span>(), {}, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">choice</span>)\n      <span class=\"pl-smi\">MiniVisits</span>.<span class=\"pl-c1\">remove_path</span>(<span class=\"pl-smi\">choice</span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>, \n  { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[V]isits [d]elete paths<span class=\"pl-pds\">' </span></span>},\n)</pre></div>\n<h3 dir=\"auto\">telescope.nvim</h3>\n<p dir=\"auto\">This seems to support multiple selections with the <a href=\"https://github.com/nvim-telescope/telescope.nvim?tab=readme-ov-file#default-mappings\">default-mappings</a> <code class=\"notranslate\">Tab</code>.</p>\n<p dir=\"auto\">I tried using <a href=\"https://github.com/nvim-telescope/telescope-ui-select.nvim\">https://github.com/nvim-telescope/telescope-ui-select.nvim</a> as the picker and can use <code class=\"notranslate\">Tab</code> to \"mark\" multiple paths.</p>\n<p dir=\"auto\">However I can't see how multiple \"marked paths\" can be passed to the function, it seems to pass only what I hit <code class=\"notranslate\">&lt;CR&gt;</code> on, which makes sense as the function definition is <code class=\"notranslate\">vim.ui.select(fn, {}, &lt;single_choice&gt;)</code>.</p>\n<p dir=\"auto\">I've come across a potential telescope based solution which I could change the action from opening file to deleting path: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"952301063\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-telescope/telescope.nvim/issues/1048\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-telescope/telescope.nvim/issues/1048/hovercard?comment_id=1679797700&amp;comment_type=issue_comment\" href=\"https://github.com/nvim-telescope/telescope.nvim/issues/1048#issuecomment-1679797700\">nvim-telescope/telescope.nvim#1048 (comment)</a></p>\n<h3 dir=\"auto\">mini.pick</h3>\n<p dir=\"auto\">Is there something in <a href=\"https://github.com/echasnovski/mini.pick\">https://github.com/echasnovski/mini.pick</a> that would work?</p>\n<blockquote>\n<p dir=\"auto\">Mark/unmark items to choose later.</p>\n</blockquote>\n<p dir=\"auto\">How would I apply a command to all \"marked\" items?</p>",
+    "bodyText": "First, thank you for writing such a great plugin. It has been smooth sailing integrating and using it every day.\nThere's one part of my workflow that I haven't figured out with the default features/examples and I'm open to either making something or changing my workflow.\nThe feature is deleting multiple registered paths using a picker of some sort.\nMy workflow (harpoon-bred)\n\ndisable automatic path registration - track = { event = '' }\nbrowse/jump to file\nadd visit - MiniVisits.register_visit()\niterate registered paths - MiniVisits.iterate_paths(\"forward\", nil, { wrap = true }) (forward/backward)\nrepeat 2-4\nfinished with files (may have been across multiple git branches)\ndelete (some|all) registered visits - MiniVisits.remove_path()\n\nHiccup\nIn Step 7 above, I need to visit each file I want to remove/unregister and then remove it.\nIt would be great if I could delete multiple in one go.\nHarpoon feature\nA custom picker can be opened which supports vim actions dd, p, etc to edit/reorder saved paths.\nI would often dd in the single picker multiple times when finished with multiple files.\nvim.ui.select\nI see it's possible to customize the action that vim.ui.select() does and have used it below.\nThis enables deleting a single path via a picker, but I'm not sure how to delete multiple here.\nvim.keymap.set(\n  'n', \n  '<leader>vd', \n  function()\n    vim.ui.select(MiniVisits.list_paths(), {}, function(choice)\n      MiniVisits.remove_path(choice)\n    end)\n  end, \n  { desc = '[V]isits [d]elete paths' },\n)\ntelescope.nvim\nThis seems to support multiple selections with the default-mappings Tab.\nI tried using https://github.com/nvim-telescope/telescope-ui-select.nvim as the picker and can use Tab to \"mark\" multiple paths.\nHowever I can't see how multiple \"marked paths\" can be passed to the function, it seems to pass only what I hit <CR> on, which makes sense as the function definition is vim.ui.select(fn, {}, <single_choice>).\nI've come across a potential telescope based solution which I could change the action from opening file to deleting path: nvim-telescope/telescope.nvim#1048 (comment)\nmini.pick\nIs there something in https://github.com/echasnovski/mini.pick that would work?\n\nMark/unmark items to choose later.\n\nHow would I apply a command to all \"marked\" items?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-07-02T08:26:48Z",
+    "comment_count": 4,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the idea and kind words about 'mini.visits'!\r\n\r\nExplicit index manipulation can be done in at least the following ways:\r\n- Open index file *outside of Neovim* (or at least with disabled 'mini.visits' because it will autowrite before Neovim is closed) and edit it directly. This is the most straightforward approach I'd recommend.\r\n- Programmatically it can be done by getting whole index with [`get_index()`](https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-visits.txt#L716), manipulate it somehow, and set it back with [`set_index()`](https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-visits.txt#L724).\r\n\r\n------\r\n\r\nIndeed, applying a command to more than one item is not a part of `vim.ui.select()` interface. But it can be for its implementation, which is indeed a one from 'mini.pick'. There are at least these ways to perform action on all marked items:\r\n- Define picker's [`choose_marked()`](https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-pick.txt#L426) method which will be called after pressing `<CR>` with array of marked items as argument.\r\n- Define [custom action](https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-pick.txt#L586) to be invoked on certain key (like, for example, `<C-d>`). Inside its `func` method it can call [`get_picker_matches()`](https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-pick.txt#L1225) and use `marked` field of its output to get marked items and do something based on that information.\r\n\r\n------\r\n\r\nHope this helps.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the idea and kind words about 'mini.visits'!</p>\n<p dir=\"auto\">Explicit index manipulation can be done in at least the following ways:</p>\n<ul dir=\"auto\">\n<li>Open index file <em>outside of Neovim</em> (or at least with disabled 'mini.visits' because it will autowrite before Neovim is closed) and edit it directly. This is the most straightforward approach I'd recommend.</li>\n<li>Programmatically it can be done by getting whole index with <a href=\"https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-visits.txt#L716\"><code class=\"notranslate\">get_index()</code></a>, manipulate it somehow, and set it back with <a href=\"https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-visits.txt#L724\"><code class=\"notranslate\">set_index()</code></a>.</li>\n</ul>\n<hr>\n<p dir=\"auto\">Indeed, applying a command to more than one item is not a part of <code class=\"notranslate\">vim.ui.select()</code> interface. But it can be for its implementation, which is indeed a one from 'mini.pick'. There are at least these ways to perform action on all marked items:</p>\n<ul dir=\"auto\">\n<li>Define picker's <a href=\"https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-pick.txt#L426\"><code class=\"notranslate\">choose_marked()</code></a> method which will be called after pressing <code class=\"notranslate\">&lt;CR&gt;</code> with array of marked items as argument.</li>\n<li>Define <a href=\"https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-pick.txt#L586\">custom action</a> to be invoked on certain key (like, for example, <code class=\"notranslate\">&lt;C-d&gt;</code>). Inside its <code class=\"notranslate\">func</code> method it can call <a href=\"https://github.com/echasnovski/mini.nvim/blob/35422e90b0de232245e2b1d3b3737a7c419d377b/doc/mini-pick.txt#L1225\"><code class=\"notranslate\">get_picker_matches()</code></a> and use <code class=\"notranslate\">marked</code> field of its output to get marked items and do something based on that information.</li>\n</ul>\n<hr>\n<p dir=\"auto\">Hope this helps.</p>",
+            "bodyText": "Thanks for the idea and kind words about 'mini.visits'!\nExplicit index manipulation can be done in at least the following ways:\n\nOpen index file outside of Neovim (or at least with disabled 'mini.visits' because it will autowrite before Neovim is closed) and edit it directly. This is the most straightforward approach I'd recommend.\nProgrammatically it can be done by getting whole index with get_index(), manipulate it somehow, and set it back with set_index().\n\n\nIndeed, applying a command to more than one item is not a part of vim.ui.select() interface. But it can be for its implementation, which is indeed a one from 'mini.pick'. There are at least these ways to perform action on all marked items:\n\nDefine picker's choose_marked() method which will be called after pressing <CR> with array of marked items as argument.\nDefine custom action to be invoked on certain key (like, for example, <C-d>). Inside its func method it can call get_picker_matches() and use marked field of its output to get marked items and do something based on that information.\n\n\nHope this helps.",
+            "createdAt": "2024-07-02T08:26:47Z",
+            "createdViaEmail": false,
+            "databaseId": 9933717,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Al5OV",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-02T08:26:47Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9933717",
+            "updatedAt": "2024-07-02T08:26:49Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9933717"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/10180699?u=ff99b5392141fae7ea2f9a6d58754669ea8cbf41&v=4",
+                "login": "karlskewes",
+                "resourcePath": "/karlskewes",
+                "url": "https://github.com/karlskewes"
+            },
+            "authorAssociation": "NONE",
+            "body": "Thanks very much Evgeni!\r\n\r\nI ended up with the following which enables deleting current and marked items using the default `mini.pick` key mappings.\r\nThe list is refreshed after each action, `Esc` to exit picker.\r\n```lua\r\n      vim.keymap.set(\r\n        'n',\r\n        '<leader>vd',\r\n        function()\r\n          local picker = require('mini.pick')\r\n          local visits = require('mini.visits')\r\n\r\n          local remove_paths = function(items)\r\n            for _, v in ipairs(items) do\r\n              visits.remove_path(v)\r\n            end\r\n\r\n            picker.set_picker_items(visits.list_paths())\r\n            return true\r\n          end\r\n\r\n          picker.setup({\r\n            source = {\r\n              items = visits.list_paths(),\r\n              choose = function(item) return remove_paths({ item }) end,\r\n              choose_marked = remove_paths,\r\n            }\r\n          })\r\n\r\n          picker.start()\r\n        end,\r\n        { desc = '[V]isits [d]elete paths' }\r\n      )\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Thanks very much Evgeni!</p>\n<p dir=\"auto\">I ended up with the following which enables deleting current and marked items using the default <code class=\"notranslate\">mini.pick</code> key mappings.<br>\nThe list is refreshed after each action, <code class=\"notranslate\">Esc</code> to exit picker.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"      vim.keymap.set(\n        'n',\n        '&lt;leader&gt;vd',\n        function()\n          local picker = require('mini.pick')\n          local visits = require('mini.visits')\n\n          local remove_paths = function(items)\n            for _, v in ipairs(items) do\n              visits.remove_path(v)\n            end\n\n            picker.set_picker_items(visits.list_paths())\n            return true\n          end\n\n          picker.setup({\n            source = {\n              items = visits.list_paths(),\n              choose = function(item) return remove_paths({ item }) end,\n              choose_marked = remove_paths,\n            }\n          })\n\n          picker.start()\n        end,\n        { desc = '[V]isits [d]elete paths' }\n      )\"><pre class=\"notranslate\">      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;leader&gt;vd<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-k\">function</span>()\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">picker</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>)\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">visits</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.visits<span class=\"pl-pds\">'</span></span>)\n\n          <span class=\"pl-k\">local</span> <span class=\"pl-en\">remove_paths</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n            <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">v</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">do</span>\n              <span class=\"pl-smi\">visits</span>.<span class=\"pl-c1\">remove_path</span>(<span class=\"pl-smi\">v</span>)\n            <span class=\"pl-k\">end</span>\n\n            <span class=\"pl-smi\">picker</span>.<span class=\"pl-c1\">set_picker_items</span>(<span class=\"pl-smi\">visits</span>.<span class=\"pl-c1\">list_paths</span>())\n            <span class=\"pl-k\">return</span> <span class=\"pl-c1\">true</span>\n          <span class=\"pl-k\">end</span>\n\n          <span class=\"pl-smi\">picker</span>.<span class=\"pl-c1\">setup</span>({\n            <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n              <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">visits</span>.<span class=\"pl-c1\">list_paths</span>(),\n              <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>) <span class=\"pl-k\">return</span> <span class=\"pl-c1\">remove_paths</span>({ <span class=\"pl-smi\">item</span> }) <span class=\"pl-k\">end</span>,\n              <span class=\"pl-smi\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">remove_paths</span>,\n            }\n          })\n\n          <span class=\"pl-smi\">picker</span>.<span class=\"pl-c1\">start</span>()\n        <span class=\"pl-k\">end</span>,\n        { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[V]isits [d]elete paths<span class=\"pl-pds\">' </span></span>}\n      )</pre></div>",
+            "bodyText": "Thanks very much Evgeni!\nI ended up with the following which enables deleting current and marked items using the default mini.pick key mappings.\nThe list is refreshed after each action, Esc to exit picker.\n      vim.keymap.set(\n        'n',\n        '<leader>vd',\n        function()\n          local picker = require('mini.pick')\n          local visits = require('mini.visits')\n\n          local remove_paths = function(items)\n            for _, v in ipairs(items) do\n              visits.remove_path(v)\n            end\n\n            picker.set_picker_items(visits.list_paths())\n            return true\n          end\n\n          picker.setup({\n            source = {\n              items = visits.list_paths(),\n              choose = function(item) return remove_paths({ item }) end,\n              choose_marked = remove_paths,\n            }\n          })\n\n          picker.start()\n        end,\n        { desc = '[V]isits [d]elete paths' }\n      )",
+            "createdAt": "2024-07-05T20:39:00Z",
+            "createdViaEmail": false,
+            "databaseId": 9971516,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/10180699?u=ff99b5392141fae7ea2f9a6d58754669ea8cbf41&v=4",
+                "login": "karlskewes",
+                "resourcePath": "/karlskewes",
+                "url": "https://github.com/karlskewes"
+            },
+            "id": "DC_kwDOFoksYM4AmCc8",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2024-07-05T20:39:58Z",
+            "minimizedReason": null,
+            "publishedAt": "2024-07-05T20:39:00Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Nice! Something like this is indeed a preferred approach to handling this use case.",
+                    "bodyHTML": "<p dir=\"auto\">Nice! Something like this is indeed a preferred approach to handling this use case.</p>",
+                    "bodyText": "Nice! Something like this is indeed a preferred approach to handling this use case.",
+                    "createdAt": "2024-07-06T07:27:08Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9973428,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AmC60",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-07-06T07:27:18Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-06T07:27:08Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9971516,
+                        "id": "DC_kwDOFoksYM4AmCc8",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9971516"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9973428",
+                    "updatedAt": "2024-07-06T07:27:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9973428"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9971516",
+            "updatedAt": "2024-07-05T20:39:58Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-9971516"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                "login": "krovuxdev",
+                "resourcePath": "/krovuxdev",
+                "url": "https://github.com/krovuxdev"
+            },
+            "authorAssociation": "NONE",
+            "body": "Interesting! I also found an alternative approach that I thought might be worth sharing. I mentioned it [here](https://github.com/echasnovski/mini.nvim/discussions/1752#discussioncomment-12888178), but I'm reposting it for better visibility.\r\n\r\nYou can override the `visit_paths` picker like this to allow removing a buffer from the list with `<C-d>`:\r\n\r\n```lua\r\nvisit_paths = function(local_opts, opts)\r\n  local_opts = local_opts or {}\r\n  local wipeout_cur = function()\r\n    MiniVisits.remove_path(MiniPick.get_picker_matches().current)\r\n    MiniExtra.pickers.visit_paths(local_opts, opts)\r\n  end\r\n  local visit_mappings = {\r\n    wipeout = {\r\n      char = \"<C-d>\",\r\n      func = wipeout_cur,\r\n    },\r\n  }\r\n  opts = vim.tbl_deep_extend(\"force\", { mappings = visit_mappings }, opts or {})\r\n  return MiniExtra.pickers.visit_paths(local_opts, opts)\r\nend,\r\n```\r\n\r\nWith this setup, you can press `<C-d>` to remove the current buffer from the picker and it will automatically refresh. I found it to be a simple and convenient solution.\r\n",
+            "bodyHTML": "<p dir=\"auto\">Interesting! I also found an alternative approach that I thought might be worth sharing. I mentioned it <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1752#discussioncomment-12888178\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1752/hovercard?comment_id=12888178\">here</a>, but I'm reposting it for better visibility.</p>\n<p dir=\"auto\">You can override the <code class=\"notranslate\">visit_paths</code> picker like this to allow removing a buffer from the list with <code class=\"notranslate\">&lt;C-d&gt;</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"visit_paths = function(local_opts, opts)\n  local_opts = local_opts or {}\n  local wipeout_cur = function()\n    MiniVisits.remove_path(MiniPick.get_picker_matches().current)\n    MiniExtra.pickers.visit_paths(local_opts, opts)\n  end\n  local visit_mappings = {\n    wipeout = {\n      char = &quot;&lt;C-d&gt;&quot;,\n      func = wipeout_cur,\n    },\n  }\n  opts = vim.tbl_deep_extend(&quot;force&quot;, { mappings = visit_mappings }, opts or {})\n  return MiniExtra.pickers.visit_paths(local_opts, opts)\nend,\"><pre class=\"notranslate\"><span class=\"pl-en\">visit_paths</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">or</span> {}\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">wipeout_cur</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">MiniVisits</span>.<span class=\"pl-c1\">remove_path</span>(<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>().<span class=\"pl-e\">current</span>)\n    <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">visit_paths</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">visit_mappings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">wipeout</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-d&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">wipeout_cur</span>,\n    },\n  }\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">visit_mappings</span> }, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {})\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">visit_paths</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>,</pre></div>\n<p dir=\"auto\">With this setup, you can press <code class=\"notranslate\">&lt;C-d&gt;</code> to remove the current buffer from the picker and it will automatically refresh. I found it to be a simple and convenient solution.</p>",
+            "bodyText": "Interesting! I also found an alternative approach that I thought might be worth sharing. I mentioned it here, but I'm reposting it for better visibility.\nYou can override the visit_paths picker like this to allow removing a buffer from the list with <C-d>:\nvisit_paths = function(local_opts, opts)\n  local_opts = local_opts or {}\n  local wipeout_cur = function()\n    MiniVisits.remove_path(MiniPick.get_picker_matches().current)\n    MiniExtra.pickers.visit_paths(local_opts, opts)\n  end\n  local visit_mappings = {\n    wipeout = {\n      char = \"<C-d>\",\n      func = wipeout_cur,\n    },\n  }\n  opts = vim.tbl_deep_extend(\"force\", { mappings = visit_mappings }, opts or {})\n  return MiniExtra.pickers.visit_paths(local_opts, opts)\nend,\nWith this setup, you can press <C-d> to remove the current buffer from the picker and it will automatically refresh. I found it to be a simple and convenient solution.",
+            "createdAt": "2025-04-29T18:03:44Z",
+            "createdViaEmail": false,
+            "databaseId": 12984095,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                "login": "krovuxdev",
+                "resourcePath": "/krovuxdev",
+                "url": "https://github.com/krovuxdev"
+            },
+            "id": "DC_kwDOFoksYM4Axh8f",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-04-29T18:54:50Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-04-29T18:03:44Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ```lua\r\n> -- ...\r\n>     MiniVisits.remove_path(MiniPick.get_picker_matches().current.bufnr)\r\n> -- ...\r\n> ```\r\n\r\nI don't think `.bufnr` is correct here. It should probably be just `MiniPick.get_picker_matches().current`.",
+                    "bodyHTML": "<blockquote>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- ...\n    MiniVisits.remove_path(MiniPick.get_picker_matches().current.bufnr)\n-- ...\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n    <span class=\"pl-smi\">MiniVisits</span>.<span class=\"pl-c1\">remove_path</span>(<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>().<span class=\"pl-e\">current</span>.<span class=\"pl-e\">bufnr</span>)\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span></pre></div>\n</blockquote>\n<p dir=\"auto\">I don't think <code class=\"notranslate\">.bufnr</code> is correct here. It should probably be just <code class=\"notranslate\">MiniPick.get_picker_matches().current</code>.</p>",
+                    "bodyText": "-- ...\n    MiniVisits.remove_path(MiniPick.get_picker_matches().current.bufnr)\n-- ...\n\nI don't think .bufnr is correct here. It should probably be just MiniPick.get_picker_matches().current.",
+                    "createdAt": "2025-04-29T18:19:05Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12984198,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axh-G",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-29T18:19:05Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12984095,
+                        "id": "DC_kwDOFoksYM4Axh8f",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984095"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984198",
+                    "updatedAt": "2025-04-29T18:19:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984198"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "What's the difference between `bufnr` and `current`? It works for me with just `bufnr` 🫠 I'll update it in a bit.\r\n",
+                    "bodyHTML": "<p dir=\"auto\">What's the difference between <code class=\"notranslate\">bufnr</code> and <code class=\"notranslate\">current</code>? It works for me with just <code class=\"notranslate\">bufnr</code> 🫠 I'll update it in a bit.</p>",
+                    "bodyText": "What's the difference between bufnr and current? It works for me with just bufnr 🫠 I'll update it in a bit.",
+                    "createdAt": "2025-04-29T18:29:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12984260,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axh_E",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-29T18:29:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12984095,
+                        "id": "DC_kwDOFoksYM4Axh8f",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984095"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984260",
+                    "updatedAt": "2025-04-29T18:31:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984260"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> What's the difference between `bufnr` and `current`? It works for me with just `bufnr` 🫠 I'll update it in a bit.\r\n\r\nItems in `MiniExtra.pickers.visit_paths` should be strings with absolute paths. This is what `MiniVisits.remove_path()` expects as its first argument. Having `.bufnr` means that items are tables.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">What's the difference between <code class=\"notranslate\">bufnr</code> and <code class=\"notranslate\">current</code>? It works for me with just <code class=\"notranslate\">bufnr</code> 🫠 I'll update it in a bit.</p>\n</blockquote>\n<p dir=\"auto\">Items in <code class=\"notranslate\">MiniExtra.pickers.visit_paths</code> should be strings with absolute paths. This is what <code class=\"notranslate\">MiniVisits.remove_path()</code> expects as its first argument. Having <code class=\"notranslate\">.bufnr</code> means that items are tables.</p>",
+                    "bodyText": "What's the difference between bufnr and current? It works for me with just bufnr 🫠 I'll update it in a bit.\n\nItems in MiniExtra.pickers.visit_paths should be strings with absolute paths. This is what MiniVisits.remove_path() expects as its first argument. Having .bufnr means that items are tables.",
+                    "createdAt": "2025-04-29T18:43:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12984364,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxiAs",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-29T18:43:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12984095,
+                        "id": "DC_kwDOFoksYM4Axh8f",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984095"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984364",
+                    "updatedAt": "2025-04-29T18:43:38Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984364"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks a lot, I’ve updated it now!",
+                    "bodyHTML": "<p dir=\"auto\">Thanks a lot, I’ve updated it now!</p>",
+                    "bodyText": "Thanks a lot, I’ve updated it now!",
+                    "createdAt": "2025-04-29T18:54:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12984450,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxiCC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-29T18:54:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12984095,
+                        "id": "DC_kwDOFoksYM4Axh8f",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984095"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984450",
+                    "updatedAt": "2025-04-29T18:54:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984450"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984095",
+            "updatedAt": "2025-04-29T18:54:50Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12984095"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Your workflow resembles mine. When `harpoon2` development halted, I configured `mini.visits` to operate like `harpoon2`. Which resulted in an [internal](https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/mini/visits_harpooned.lua#L13) plugin-like structure I have been [using](https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/config/editor/visits.lua#L2) ever since. \r\n\r\nIf you are interested, here is the corresponding [post](https://github.com/echasnovski/mini.nvim/discussions/1158) in discussions. \r\n\r\nI don't use a picker to delete paths. Instead, I took inspiration from `mini.deps`, opening a buffer in a new tab. I can than do `dG` and save.",
+            "bodyHTML": "<p dir=\"auto\">Your workflow resembles mine. When <code class=\"notranslate\">harpoon2</code> development halted, I configured <code class=\"notranslate\">mini.visits</code> to operate like <code class=\"notranslate\">harpoon2</code>. Which resulted in an <a href=\"https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/mini/visits_harpooned.lua#L13\">internal</a> plugin-like structure I have been <a href=\"https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/config/editor/visits.lua#L2\">using</a> ever since.</p>\n<p dir=\"auto\">If you are interested, here is the corresponding <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1158\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1158/hovercard\">post</a> in discussions.</p>\n<p dir=\"auto\">I don't use a picker to delete paths. Instead, I took inspiration from <code class=\"notranslate\">mini.deps</code>, opening a buffer in a new tab. I can than do <code class=\"notranslate\">dG</code> and save.</p>",
+            "bodyText": "Your workflow resembles mine. When harpoon2 development halted, I configured mini.visits to operate like harpoon2. Which resulted in an internal plugin-like structure I have been using ever since.\nIf you are interested, here is the corresponding post in discussions.\nI don't use a picker to delete paths. Instead, I took inspiration from mini.deps, opening a buffer in a new tab. I can than do dG and save.",
+            "createdAt": "2025-04-30T06:17:04Z",
+            "createdViaEmail": false,
+            "databaseId": 12988823,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AxjGX",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-30T06:17:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12988823",
+            "updatedAt": "2025-04-30T06:17:05Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003#discussioncomment-12988823"
+        }
+    ],
+    "createdAt": "2024-07-01T22:10:10Z",
+    "createdViaEmail": false,
+    "databaseId": 6887408,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AaRfw",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABdUY7Ow",
+                "name": "mini.visits"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1003,
+    "poll": null,
+    "publishedAt": "2024-07-01T22:10:10Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1003",
+    "stateReason": "RESOLVED",
+    "title": "[mini.visits] Ability to delete multiple registered paths via picker",
+    "updatedAt": "2025-04-30T06:17:04Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1003"
+}

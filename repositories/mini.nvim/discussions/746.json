@@ -1,0 +1,285 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 8749734,
+        "id": "DC_kwDOFoksYM4AhYKm",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/746#discussioncomment-8749734"
+    },
+    "answerChosenAt": "2024-03-11T18:09:09Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/2653546?u=b06b96c8f996b706df144c31880c726fc2edf0bc&v=4",
+        "login": "andradei",
+        "resourcePath": "/andradei",
+        "url": "https://github.com/andradei"
+    },
+    "authorAssociation": "NONE",
+    "body": "When I run `nvim .` or `nvim some/dir/`, how can I open `mini.starter` instead of netrw?",
+    "bodyHTML": "<p dir=\"auto\">When I run <code class=\"notranslate\">nvim .</code> or <code class=\"notranslate\">nvim some/dir/</code>, how can I open <code class=\"notranslate\">mini.starter</code> instead of netrw?</p>",
+    "bodyText": "When I run nvim . or nvim some/dir/, how can I open mini.starter instead of netrw?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-03-11T18:09:03Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Unfortunately, this is not as easy as it might seem. I learnt it the hard way in 'mini.files'.\r\n\r\nBasically, there are two steps to achieve this:\r\n- Disable 'netrw' from taking over when directory is edited.\r\n- Create an autocommand for `BufEnter` event to decide whether a buffer is for directory and if it is, open Starter buffer.\r\n\r\nThe most robust way to do this comes from 'mini.files' ([this part](https://github.com/echasnovski/mini.nvim/blob/d7d079d6f99c95218d6059e0eaf83997990b2e0e/lua/mini/files.lua#L1141-L1146) and [this part](https://github.com/echasnovski/mini.nvim/blob/d7d079d6f99c95218d6059e0eaf83997990b2e0e/lua/mini/files.lua#L1182-L1200). And for the case of 'mini.starter' it can be done with something like this:\r\n\r\n```lua\r\n-- Stop 'netrw' from taking over when directory path is edited\r\nvim.cmd('silent! autocmd! FileExplorer *')\r\nvim.cmd('autocmd VimEnter * ++once silent! autocmd! FileExplorer *')\r\n\r\n-- Open Starter buffer when directory path is edited\r\nlocal open_starter_on_dir = function(data)\r\n  -- Make early returns\r\n  if vim.api.nvim_get_current_buf() ~= data.buf then return end\r\n  if vim.b.ministarter_processed_dir then return vim.api.nvim_buf_delete(data.buf, { force = true }) end\r\n  local path = vim.api.nvim_buf_get_name(0)\r\n  if vim.fn.isdirectory(path) ~= 1 then return end\r\n\r\n  -- Show starter buffer\r\n  vim.bo.bufhidden = 'wipe'\r\n  vim.b.ministarter_processed_dir = true\r\n  vim.schedule(MiniStarter.open)\r\nend\r\nvim.api.nvim_create_autocmd('BufEnter', { callback = open_starter_on_dir })\r\n```\r\n\r\nAll parts with `vim.b.ministarter_processed_dir` is for to be able to press `<C-c>` and close Starter buffer without retriggering it again (as `BufEnter` event for the previous directory buffer will be triggered).",
+            "bodyHTML": "<p dir=\"auto\">Unfortunately, this is not as easy as it might seem. I learnt it the hard way in 'mini.files'.</p>\n<p dir=\"auto\">Basically, there are two steps to achieve this:</p>\n<ul dir=\"auto\">\n<li>Disable 'netrw' from taking over when directory is edited.</li>\n<li>Create an autocommand for <code class=\"notranslate\">BufEnter</code> event to decide whether a buffer is for directory and if it is, open Starter buffer.</li>\n</ul>\n<p dir=\"auto\">The most robust way to do this comes from 'mini.files' (<a href=\"https://github.com/echasnovski/mini.nvim/blob/d7d079d6f99c95218d6059e0eaf83997990b2e0e/lua/mini/files.lua#L1141-L1146\">this part</a> and <a href=\"https://github.com/echasnovski/mini.nvim/blob/d7d079d6f99c95218d6059e0eaf83997990b2e0e/lua/mini/files.lua#L1182-L1200\">this part</a>. And for the case of 'mini.starter' it can be done with something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Stop 'netrw' from taking over when directory path is edited\nvim.cmd('silent! autocmd! FileExplorer *')\nvim.cmd('autocmd VimEnter * ++once silent! autocmd! FileExplorer *')\n\n-- Open Starter buffer when directory path is edited\nlocal open_starter_on_dir = function(data)\n  -- Make early returns\n  if vim.api.nvim_get_current_buf() ~= data.buf then return end\n  if vim.b.ministarter_processed_dir then return vim.api.nvim_buf_delete(data.buf, { force = true }) end\n  local path = vim.api.nvim_buf_get_name(0)\n  if vim.fn.isdirectory(path) ~= 1 then return end\n\n  -- Show starter buffer\n  vim.bo.bufhidden = 'wipe'\n  vim.b.ministarter_processed_dir = true\n  vim.schedule(MiniStarter.open)\nend\nvim.api.nvim_create_autocmd('BufEnter', { callback = open_starter_on_dir })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Stop 'netrw' from taking over when directory path is edited</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>silent! autocmd! FileExplorer *<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>autocmd VimEnter * ++once silent! autocmd! FileExplorer *<span class=\"pl-pds\">'</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Open Starter buffer when directory path is edited</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">open_starter_on_dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">data</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Make early returns</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>() <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">buf</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">ministarter_processed_dir</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_delete</span>(<span class=\"pl-smi\">data</span>.<span class=\"pl-e\">buf</span>, { <span class=\"pl-smi\">force</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-c1\">0</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">isdirectory</span>(<span class=\"pl-smi\">path</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Show starter buffer</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-e\">bufhidden</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>wipe<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">ministarter_processed_dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-smi\">MiniStarter</span>.<span class=\"pl-e\">open</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>BufEnter<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">open_starter_on_dir</span> })</pre></div>\n<p dir=\"auto\">All parts with <code class=\"notranslate\">vim.b.ministarter_processed_dir</code> is for to be able to press <code class=\"notranslate\">&lt;C-c&gt;</code> and close Starter buffer without retriggering it again (as <code class=\"notranslate\">BufEnter</code> event for the previous directory buffer will be triggered).</p>",
+            "bodyText": "Unfortunately, this is not as easy as it might seem. I learnt it the hard way in 'mini.files'.\nBasically, there are two steps to achieve this:\n\nDisable 'netrw' from taking over when directory is edited.\nCreate an autocommand for BufEnter event to decide whether a buffer is for directory and if it is, open Starter buffer.\n\nThe most robust way to do this comes from 'mini.files' (this part and this part. And for the case of 'mini.starter' it can be done with something like this:\n-- Stop 'netrw' from taking over when directory path is edited\nvim.cmd('silent! autocmd! FileExplorer *')\nvim.cmd('autocmd VimEnter * ++once silent! autocmd! FileExplorer *')\n\n-- Open Starter buffer when directory path is edited\nlocal open_starter_on_dir = function(data)\n  -- Make early returns\n  if vim.api.nvim_get_current_buf() ~= data.buf then return end\n  if vim.b.ministarter_processed_dir then return vim.api.nvim_buf_delete(data.buf, { force = true }) end\n  local path = vim.api.nvim_buf_get_name(0)\n  if vim.fn.isdirectory(path) ~= 1 then return end\n\n  -- Show starter buffer\n  vim.bo.bufhidden = 'wipe'\n  vim.b.ministarter_processed_dir = true\n  vim.schedule(MiniStarter.open)\nend\nvim.api.nvim_create_autocmd('BufEnter', { callback = open_starter_on_dir })\nAll parts with vim.b.ministarter_processed_dir is for to be able to press <C-c> and close Starter buffer without retriggering it again (as BufEnter event for the previous directory buffer will be triggered).",
+            "createdAt": "2024-03-11T18:09:03Z",
+            "createdViaEmail": false,
+            "databaseId": 8749734,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AhYKm",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-03-11T18:09:03Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/2653546?u=b06b96c8f996b706df144c31880c726fc2edf0bc&v=4",
+                        "login": "andradei",
+                        "resourcePath": "/andradei",
+                        "url": "https://github.com/andradei"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you for the detailed info!",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for the detailed info!</p>",
+                    "bodyText": "Thank you for the detailed info!",
+                    "createdAt": "2024-03-11T18:11:49Z",
+                    "createdViaEmail": false,
+                    "databaseId": 8749773,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AhYLN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-03-11T18:11:49Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 8749734,
+                        "id": "DC_kwDOFoksYM4AhYKm",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/746#discussioncomment-8749734"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/746#discussioncomment-8749773",
+                    "updatedAt": "2024-03-11T18:11:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/746#discussioncomment-8749773"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/746#discussioncomment-8749734",
+            "updatedAt": "2024-03-11T18:09:04Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/746#discussioncomment-8749734"
+        }
+    ],
+    "createdAt": "2024-03-11T17:32:05Z",
+    "createdViaEmail": false,
+    "databaseId": 6358685,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AYQad",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7T7bmu",
+                "name": "mini.starter"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 746,
+    "poll": null,
+    "publishedAt": "2024-03-11T17:32:05Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/746",
+    "stateReason": "RESOLVED",
+    "title": "How can I run mini.starter when opening a directory?",
+    "updatedAt": "2024-03-11T18:11:49Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/746"
+}

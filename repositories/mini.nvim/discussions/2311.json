@@ -1,0 +1,2055 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+        "login": "felpafel",
+        "resourcePath": "/felpafel",
+        "url": "https://github.com/felpafel"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hello, I want to propose a small feature to the [`MiniPick.default_choose_marked()`](https://github.com/nvim-mini/mini.nvim/blob/9d359222b3643f1fccbd8f3180445842e1cae00b/lua/mini/pick.lua#L1186) so the user can control the quickfix/location list position and height/width.\r\n\r\n## Reasoning\r\n\r\n### copen behavior\r\n\r\nSometimes, `:copen`'s split behavior is not desired by the user.\r\nFor example, at a vertical split `:copen` will open below the last created window instead of the current window.\r\n\r\n```text\r\n---------                ---------               ---------\r\n|       |                |   |   |               |   |   |\r\n|       |                |   |   |               |   | B |\r\n|   A   |  =`:vsplit`=>  | A | B |  =`:copen`=>  | A |---|\r\n|       |                |   |   |               |   |QF |\r\n|       |                |   |   |               |   |   |\r\n---------                ---------               ---------\r\n(The user create a new vertical split \"B\", move the cursor back to \"A\" and then call `:copen`, but the quickfix open below \"B\")\r\n```\r\n\r\n#### Vim solution to this problem\r\n\r\nVim solve this problem by letting the user combine `:copen`/`:lopen` with commands like `:vertical`, `:horizontal` and more (the full list of commands start with the tag `:h vertical` up to `:h botright` in the `:h windows.txt` file). It's even possible to combine multiple of those commands, like: `:vertical topleft copen 120` (Open a vertical split at the left occupying the full height and width equals 120).\r\n\r\n### Current limitations using MiniPick.default_choose_marked()\r\n\r\nIt's not possible to specify the height before opening the quickfix/location list (It's possible to change the height after opened using an autocmd/filetype config).\r\nThe window position is always the default behavior of `:copen`/`:lopen`.\r\n\r\n## Solution\r\n\r\n> I know that is possible to override `source.choose_marked` with a user written function, but the burden of maintaining a identical function to `MiniPick.default_choose_marked()` is greater than a 3 lines of code change I want to propose.\r\n\r\nExtend the `opts` parameter in `MiniPick.default_choose_marked()` so it accepts two more fields. One for the split behavior, and other for the width/height modifier.\r\n\r\nSince `copen` and `lopen` are called only once in the codebase, the following changes suffice:\r\n\r\n> `split` and `width_or_height` are just a naming suggestion.\r\n> The example does not include changes in the documentation.\r\n> The `tostring()` calls are totally optional since `string.format('%s', 2)` will return `\"2\"` (as a string type).\r\n```lua\r\n-- From line 1189\r\nopts = vim.tbl_deep_extend('force', { list_type = 'quickfix' }, opts or {})\r\n-- To\r\nopts = vim.tbl_deep_extend('force', { list_type = 'quickfix', split = '', width_or_height = ''}, opts or {})\r\n\r\n-- and\r\n\r\n-- From line 1225\r\nvim.schedule(function() vim.cmd('lopen') end)\r\n-- To\r\nvim.schedule(function() vim.cmd(string.format('%s lopen %s', opts.split, tostring(opts.width_or_height))) end)\r\n\r\n-- From line 1228\r\nvim.schedule(function() vim.cmd('copen') end)\r\n-- To\r\nvim.schedule(function() vim.cmd(string.format('%s copen %s', opts.split, tostring(opts.width_or_height)))\r\n```\r\n\r\nCode usage (user side) comparison:\r\n\r\n> In the default case (`require('mini.pick').setup()`) there is no change in behavior and code.\r\n```lua\r\n-- Actual\r\nlocal minipick = require('mini.pick')\r\nminipick.setup({\r\n    source = {\r\n        choose_marked = function(items)\r\n            minipick.default_choose_marked(items, { list_type = 'quickfix' })\r\n        end\r\n      }\r\n  })\r\n\r\n-- After changes\r\n\r\n-- Make `quickfix` appears always at the bottom in any window layout, like:\r\n-- ---------\r\n-- |   | B |\r\n-- | A |---|\r\n-- |   | C |\r\n-- ---------\r\n-- |  QF   |\r\n-- ---------\r\n\r\nlocal minipick = require('mini.pick')\r\nminipick.setup({\r\n    source = {\r\n        choose_marked = function(items)\r\n            local len = math.min(#items, 5) -- Prevent split to get over 5 lines\r\n            minipick.default_choose_marked(items, { list_type = 'quickfix', split = 'botright', width_or_height = len })\r\n        end\r\n      }\r\n  })\r\n```\r\n\r\nI have tested the proposed solution locally without any issues.\r\nLet me know what you think, and thanks for your time.",
+    "bodyHTML": "<p dir=\"auto\">Hello, I want to propose a small feature to the <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9d359222b3643f1fccbd8f3180445842e1cae00b/lua/mini/pick.lua#L1186\"><code class=\"notranslate\">MiniPick.default_choose_marked()</code></a> so the user can control the quickfix/location list position and height/width.</p>\n<h2 dir=\"auto\">Reasoning</h2>\n<h3 dir=\"auto\">copen behavior</h3>\n<p dir=\"auto\">Sometimes, <code class=\"notranslate\">:copen</code>'s split behavior is not desired by the user.<br>\nFor example, at a vertical split <code class=\"notranslate\">:copen</code> will open below the last created window instead of the current window.</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"---------                ---------               ---------\n|       |                |   |   |               |   |   |\n|       |                |   |   |               |   | B |\n|   A   |  =`:vsplit`=&gt;  | A | B |  =`:copen`=&gt;  | A |---|\n|       |                |   |   |               |   |QF |\n|       |                |   |   |               |   |   |\n---------                ---------               ---------\n(The user create a new vertical split &quot;B&quot;, move the cursor back to &quot;A&quot; and then call `:copen`, but the quickfix open below &quot;B&quot;)\"><pre lang=\"text\" class=\"notranslate\"><code class=\"notranslate\">---------                ---------               ---------\n|       |                |   |   |               |   |   |\n|       |                |   |   |               |   | B |\n|   A   |  =`:vsplit`=&gt;  | A | B |  =`:copen`=&gt;  | A |---|\n|       |                |   |   |               |   |QF |\n|       |                |   |   |               |   |   |\n---------                ---------               ---------\n(The user create a new vertical split \"B\", move the cursor back to \"A\" and then call `:copen`, but the quickfix open below \"B\")\n</code></pre></div>\n<h4 dir=\"auto\">Vim solution to this problem</h4>\n<p dir=\"auto\">Vim solve this problem by letting the user combine <code class=\"notranslate\">:copen</code>/<code class=\"notranslate\">:lopen</code> with commands like <code class=\"notranslate\">:vertical</code>, <code class=\"notranslate\">:horizontal</code> and more (the full list of commands start with the tag <code class=\"notranslate\">:h vertical</code> up to <code class=\"notranslate\">:h botright</code> in the <code class=\"notranslate\">:h windows.txt</code> file). It's even possible to combine multiple of those commands, like: <code class=\"notranslate\">:vertical topleft copen 120</code> (Open a vertical split at the left occupying the full height and width equals 120).</p>\n<h3 dir=\"auto\">Current limitations using MiniPick.default_choose_marked()</h3>\n<p dir=\"auto\">It's not possible to specify the height before opening the quickfix/location list (It's possible to change the height after opened using an autocmd/filetype config).<br>\nThe window position is always the default behavior of <code class=\"notranslate\">:copen</code>/<code class=\"notranslate\">:lopen</code>.</p>\n<h2 dir=\"auto\">Solution</h2>\n<blockquote>\n<p dir=\"auto\">I know that is possible to override <code class=\"notranslate\">source.choose_marked</code> with a user written function, but the burden of maintaining a identical function to <code class=\"notranslate\">MiniPick.default_choose_marked()</code> is greater than a 3 lines of code change I want to propose.</p>\n</blockquote>\n<p dir=\"auto\">Extend the <code class=\"notranslate\">opts</code> parameter in <code class=\"notranslate\">MiniPick.default_choose_marked()</code> so it accepts two more fields. One for the split behavior, and other for the width/height modifier.</p>\n<p dir=\"auto\">Since <code class=\"notranslate\">copen</code> and <code class=\"notranslate\">lopen</code> are called only once in the codebase, the following changes suffice:</p>\n<blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">split</code> and <code class=\"notranslate\">width_or_height</code> are just a naming suggestion.<br>\nThe example does not include changes in the documentation.<br>\nThe <code class=\"notranslate\">tostring()</code> calls are totally optional since <code class=\"notranslate\">string.format('%s', 2)</code> will return <code class=\"notranslate\">\"2\"</code> (as a string type).</p>\n</blockquote>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- From line 1189\nopts = vim.tbl_deep_extend('force', { list_type = 'quickfix' }, opts or {})\n-- To\nopts = vim.tbl_deep_extend('force', { list_type = 'quickfix', split = '', width_or_height = ''}, opts or {})\n\n-- and\n\n-- From line 1225\nvim.schedule(function() vim.cmd('lopen') end)\n-- To\nvim.schedule(function() vim.cmd(string.format('%s lopen %s', opts.split, tostring(opts.width_or_height))) end)\n\n-- From line 1228\nvim.schedule(function() vim.cmd('copen') end)\n-- To\nvim.schedule(function() vim.cmd(string.format('%s copen %s', opts.split, tostring(opts.width_or_height)))\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> From line 1189</span>\n<span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>force<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">list_type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>quickfix<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {})\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> To</span>\n<span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>force<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">list_type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>quickfix<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">split</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">width_or_height</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>}, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {})\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> and</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> From line 1225</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>lopen<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>)\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> To</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s lopen %s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">split</span>, <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">width_or_height</span>))) <span class=\"pl-k\">end</span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> From line 1228</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>copen<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>)\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> To</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s copen %s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">split</span>, <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">width_or_height</span>)))</pre></div>\n<p dir=\"auto\">Code usage (user side) comparison:</p>\n<blockquote>\n<p dir=\"auto\">In the default case (<code class=\"notranslate\">require('mini.pick').setup()</code>) there is no change in behavior and code.</p>\n</blockquote>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Actual\nlocal minipick = require('mini.pick')\nminipick.setup({\n    source = {\n        choose_marked = function(items)\n            minipick.default_choose_marked(items, { list_type = 'quickfix' })\n        end\n      }\n  })\n\n-- After changes\n\n-- Make `quickfix` appears always at the bottom in any window layout, like:\n-- ---------\n-- |   | B |\n-- | A |---|\n-- |   | C |\n-- ---------\n-- |  QF   |\n-- ---------\n\nlocal minipick = require('mini.pick')\nminipick.setup({\n    source = {\n        choose_marked = function(items)\n            local len = math.min(#items, 5) -- Prevent split to get over 5 lines\n            minipick.default_choose_marked(items, { list_type = 'quickfix', split = 'botright', width_or_height = len })\n        end\n      }\n  })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Actual</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">minipick</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">minipick</span>.<span class=\"pl-c1\">setup</span>({\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-en\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n            <span class=\"pl-smi\">minipick</span>.<span class=\"pl-c1\">default_choose_marked</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-smi\">list_type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>quickfix<span class=\"pl-pds\">' </span></span>})\n        <span class=\"pl-k\">end</span>\n      }\n  })\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> After changes</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Make `quickfix` appears always at the bottom in any window layout, like:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> ---------</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> |   | B |</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> | A |---|</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> |   | C |</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> ---------</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> |  QF   |</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> ---------</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">minipick</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">minipick</span>.<span class=\"pl-c1\">setup</span>({\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-en\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">len</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.min</span>(<span class=\"pl-k\">#</span><span class=\"pl-smi\">items</span>, <span class=\"pl-c1\">5</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> Prevent split to get over 5 lines</span>\n            <span class=\"pl-smi\">minipick</span>.<span class=\"pl-c1\">default_choose_marked</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-smi\">list_type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>quickfix<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">split</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>botright<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">width_or_height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">len</span> })\n        <span class=\"pl-k\">end</span>\n      }\n  })</pre></div>\n<p dir=\"auto\">I have tested the proposed solution locally without any issues.<br>\nLet me know what you think, and thanks for your time.</p>",
+    "bodyText": "Hello, I want to propose a small feature to the MiniPick.default_choose_marked() so the user can control the quickfix/location list position and height/width.\nReasoning\ncopen behavior\nSometimes, :copen's split behavior is not desired by the user.\nFor example, at a vertical split :copen will open below the last created window instead of the current window.\n---------                ---------               ---------\n|       |                |   |   |               |   |   |\n|       |                |   |   |               |   | B |\n|   A   |  =`:vsplit`=>  | A | B |  =`:copen`=>  | A |---|\n|       |                |   |   |               |   |QF |\n|       |                |   |   |               |   |   |\n---------                ---------               ---------\n(The user create a new vertical split \"B\", move the cursor back to \"A\" and then call `:copen`, but the quickfix open below \"B\")\n\nVim solution to this problem\nVim solve this problem by letting the user combine :copen/:lopen with commands like :vertical, :horizontal and more (the full list of commands start with the tag :h vertical up to :h botright in the :h windows.txt file). It's even possible to combine multiple of those commands, like: :vertical topleft copen 120 (Open a vertical split at the left occupying the full height and width equals 120).\nCurrent limitations using MiniPick.default_choose_marked()\nIt's not possible to specify the height before opening the quickfix/location list (It's possible to change the height after opened using an autocmd/filetype config).\nThe window position is always the default behavior of :copen/:lopen.\nSolution\n\nI know that is possible to override source.choose_marked with a user written function, but the burden of maintaining a identical function to MiniPick.default_choose_marked() is greater than a 3 lines of code change I want to propose.\n\nExtend the opts parameter in MiniPick.default_choose_marked() so it accepts two more fields. One for the split behavior, and other for the width/height modifier.\nSince copen and lopen are called only once in the codebase, the following changes suffice:\n\nsplit and width_or_height are just a naming suggestion.\nThe example does not include changes in the documentation.\nThe tostring() calls are totally optional since string.format('%s', 2) will return \"2\" (as a string type).\n\n-- From line 1189\nopts = vim.tbl_deep_extend('force', { list_type = 'quickfix' }, opts or {})\n-- To\nopts = vim.tbl_deep_extend('force', { list_type = 'quickfix', split = '', width_or_height = ''}, opts or {})\n\n-- and\n\n-- From line 1225\nvim.schedule(function() vim.cmd('lopen') end)\n-- To\nvim.schedule(function() vim.cmd(string.format('%s lopen %s', opts.split, tostring(opts.width_or_height))) end)\n\n-- From line 1228\nvim.schedule(function() vim.cmd('copen') end)\n-- To\nvim.schedule(function() vim.cmd(string.format('%s copen %s', opts.split, tostring(opts.width_or_height)))\nCode usage (user side) comparison:\n\nIn the default case (require('mini.pick').setup()) there is no change in behavior and code.\n\n-- Actual\nlocal minipick = require('mini.pick')\nminipick.setup({\n    source = {\n        choose_marked = function(items)\n            minipick.default_choose_marked(items, { list_type = 'quickfix' })\n        end\n      }\n  })\n\n-- After changes\n\n-- Make `quickfix` appears always at the bottom in any window layout, like:\n-- ---------\n-- |   | B |\n-- | A |---|\n-- |   | C |\n-- ---------\n-- |  QF   |\n-- ---------\n\nlocal minipick = require('mini.pick')\nminipick.setup({\n    source = {\n        choose_marked = function(items)\n            local len = math.min(#items, 5) -- Prevent split to get over 5 lines\n            minipick.default_choose_marked(items, { list_type = 'quickfix', split = 'botright', width_or_height = len })\n        end\n      }\n  })\nI have tested the proposed solution locally without any issues.\nLet me know what you think, and thanks for your time.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 4,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hi @felpafel,\r\n\r\nI read your post with interest. Thanks!\r\n\r\n> Sometimes, :copen's split behavior is not desired by the user.\r\n> For example, at a vertical split :copen will open below the last created window instead of the current window.\r\n\r\nI can't reproduce that behavior using nightly. I tried with [MiniMax](https://github.com/nvim-mini/MiniMax), and also with an \"empty\" init.lua. The quickfix always opens below, occupying the full width.\r\n\r\n> I know that is possible to override source.choose_marked with a user written function, but the burden of maintaining a identical function to MiniPick.default_choose_marked() is greater than a 3 lines of code change I want to propose.\r\n\r\nYou are comparing maintenance by users versus maintenance by the mini.nvim team. Also, by allowing the user to override `choose_marked`, the user obtains much more flexibility in customizing the behavior.\r\n\r\nPerhaps it is a bit too much to have both the override and the configuration options.",
+            "bodyHTML": "<p dir=\"auto\">Hi <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/felpafel/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/felpafel\">@felpafel</a>,</p>\n<p dir=\"auto\">I read your post with interest. Thanks!</p>\n<blockquote>\n<p dir=\"auto\">Sometimes, :copen's split behavior is not desired by the user.<br>\nFor example, at a vertical split :copen will open below the last created window instead of the current window.</p>\n</blockquote>\n<p dir=\"auto\">I can't reproduce that behavior using nightly. I tried with <a href=\"https://github.com/nvim-mini/MiniMax\">MiniMax</a>, and also with an \"empty\" init.lua. The quickfix always opens below, occupying the full width.</p>\n<blockquote>\n<p dir=\"auto\">I know that is possible to override source.choose_marked with a user written function, but the burden of maintaining a identical function to MiniPick.default_choose_marked() is greater than a 3 lines of code change I want to propose.</p>\n</blockquote>\n<p dir=\"auto\">You are comparing maintenance by users versus maintenance by the mini.nvim team. Also, by allowing the user to override <code class=\"notranslate\">choose_marked</code>, the user obtains much more flexibility in customizing the behavior.</p>\n<p dir=\"auto\">Perhaps it is a bit too much to have both the override and the configuration options.</p>",
+            "bodyText": "Hi @felpafel,\nI read your post with interest. Thanks!\n\nSometimes, :copen's split behavior is not desired by the user.\nFor example, at a vertical split :copen will open below the last created window instead of the current window.\n\nI can't reproduce that behavior using nightly. I tried with MiniMax, and also with an \"empty\" init.lua. The quickfix always opens below, occupying the full width.\n\nI know that is possible to override source.choose_marked with a user written function, but the burden of maintaining a identical function to MiniPick.default_choose_marked() is greater than a 3 lines of code change I want to propose.\n\nYou are comparing maintenance by users versus maintenance by the mini.nvim team. Also, by allowing the user to override choose_marked, the user obtains much more flexibility in customizing the behavior.\nPerhaps it is a bit too much to have both the override and the configuration options.",
+            "createdAt": "2026-03-13T09:00:32Z",
+            "createdViaEmail": false,
+            "databaseId": 16113207,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A9d43",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-13T09:00:32Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16113207",
+            "updatedAt": "2026-03-13T09:00:32Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16113207"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                "login": "felpafel",
+                "resourcePath": "/felpafel",
+                "url": "https://github.com/felpafel"
+            },
+            "authorAssociation": "NONE",
+            "body": "Hello @abeldekat, thanks for the response.\r\n\r\nYeah, Nightly changed the default behavior compared to nvim stable and vim, but the window modifiers like `:vertical copen 120` are still valid, and useful. My point is just: \"The user may want to open the qf window in another position and/or size\".\r\n\r\n\r\nhttps://github.com/user-attachments/assets/647c7a40-4bc5-4270-8aba-09260c2b69dc\r\n\r\n> Perhaps it is a bit too much to have both the override and the configuration options.\r\n\r\nI didn't understand what you mean. The ability to override and the configuration options are already implemented, for example to send marked items to the location list (instead of the quickfix list) the user must do:\r\n\r\n```lua\r\nlocal minipick = require('mini.pick')\r\nminipick.setup({\r\n    source = {\r\n        choose_marked = function(items)\r\n            minipick.default_choose_marked(items, { list_type = 'location' })\r\n        end\r\n      }\r\n  })\r\n```\r\n\r\nMy issue is that the function call `:copen`/`:lopen` making it impossible to change the qf window position and size. And, from my understanding, the current solution is copying the `default_choose_marked` source code (with the helper functions used by it) to my config.",
+            "bodyHTML": "<p dir=\"auto\">Hello <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/abeldekat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/abeldekat\">@abeldekat</a>, thanks for the response.</p>\n<p dir=\"auto\">Yeah, Nightly changed the default behavior compared to nvim stable and vim, but the window modifiers like <code class=\"notranslate\">:vertical copen 120</code> are still valid, and useful. My point is just: \"The user may want to open the qf window in another position and/or size\".</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">vertical_copen_120.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/21080902/563033922-647c7a40-4bc5-4270-8aba-09260c2b69dc.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MzAsIm5iZiI6MTc5MzU1MjQzMCwicGF0aCI6Ii8yMTA4MDkwMi81NjMwMzM5MjItNjQ3YzdhNDAtNGJjNS00MjcwLThhYmEtMDkyNjBjMmI2OWRjLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDAzMFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTIyYzZiOGExYzViMzRkZTRmOTU3MDgyZTIzYzZmMWEyZDVjZDYzZmEzNjk2YWE0N2RmOGQ1M2ZhNmE3MWQ4MDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.M8QnzJE6s4ynn6iyKCnBwWmUmxq9BJtlBI7BZeX6peE\" data-canonical-src=\"https://private-user-images.githubusercontent.com/21080902/563033922-647c7a40-4bc5-4270-8aba-09260c2b69dc.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MzAsIm5iZiI6MTc5MzU1MjQzMCwicGF0aCI6Ii8yMTA4MDkwMi81NjMwMzM5MjItNjQ3YzdhNDAtNGJjNS00MjcwLThhYmEtMDkyNjBjMmI2OWRjLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDAzMFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTIyYzZiOGExYzViMzRkZTRmOTU3MDgyZTIzYzZmMWEyZDVjZDYzZmEzNjk2YWE0N2RmOGQ1M2ZhNmE3MWQ4MDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.M8QnzJE6s4ynn6iyKCnBwWmUmxq9BJtlBI7BZeX6peE\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<blockquote>\n<p dir=\"auto\">Perhaps it is a bit too much to have both the override and the configuration options.</p>\n</blockquote>\n<p dir=\"auto\">I didn't understand what you mean. The ability to override and the configuration options are already implemented, for example to send marked items to the location list (instead of the quickfix list) the user must do:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local minipick = require('mini.pick')\nminipick.setup({\n    source = {\n        choose_marked = function(items)\n            minipick.default_choose_marked(items, { list_type = 'location' })\n        end\n      }\n  })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">minipick</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">minipick</span>.<span class=\"pl-c1\">setup</span>({\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-en\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n            <span class=\"pl-smi\">minipick</span>.<span class=\"pl-c1\">default_choose_marked</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-smi\">list_type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>location<span class=\"pl-pds\">' </span></span>})\n        <span class=\"pl-k\">end</span>\n      }\n  })</pre></div>\n<p dir=\"auto\">My issue is that the function call <code class=\"notranslate\">:copen</code>/<code class=\"notranslate\">:lopen</code> making it impossible to change the qf window position and size. And, from my understanding, the current solution is copying the <code class=\"notranslate\">default_choose_marked</code> source code (with the helper functions used by it) to my config.</p>",
+            "bodyText": "Hello @abeldekat, thanks for the response.\nYeah, Nightly changed the default behavior compared to nvim stable and vim, but the window modifiers like :vertical copen 120 are still valid, and useful. My point is just: \"The user may want to open the qf window in another position and/or size\".\n\n  \n    \n    \n\n    vertical_copen_120.mp4\n    \n  \n\n  \n\n  \n\n\n\nPerhaps it is a bit too much to have both the override and the configuration options.\n\nI didn't understand what you mean. The ability to override and the configuration options are already implemented, for example to send marked items to the location list (instead of the quickfix list) the user must do:\nlocal minipick = require('mini.pick')\nminipick.setup({\n    source = {\n        choose_marked = function(items)\n            minipick.default_choose_marked(items, { list_type = 'location' })\n        end\n      }\n  })\nMy issue is that the function call :copen/:lopen making it impossible to change the qf window position and size. And, from my understanding, the current solution is copying the default_choose_marked source code (with the helper functions used by it) to my config.",
+            "createdAt": "2026-03-13T13:43:53Z",
+            "createdViaEmail": false,
+            "databaseId": 16118570,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                "login": "felpafel",
+                "resourcePath": "/felpafel",
+                "url": "https://github.com/felpafel"
+            },
+            "id": "DC_kwDOFoksYM4A9fMq",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-13T13:46:59Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-03-13T13:43:53Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 12,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> My issue is that the function call :copen/:lopen making it impossible to change the qf window position and size\r\n\r\nIt is possible though:\r\n\r\n```lua\r\n---@diagnostic disable: undefined-global\r\nvim.pack.add({ \"https://github.com/nvim-mini/mini.nvim\" })\r\n\r\nrequire(\"mini.pick\").setup({\r\n  source = {\r\n    choose_marked = function(items)\r\n      MiniPick.default_choose_marked(items)\r\n      vim.schedule(function()\r\n        if vim.bo.filetype ~= \"qf\" then return end\r\n\r\n        vim.cmd(\"resize \" .. math.min(#items, 5))\r\n      end)\r\n    end,\r\n  },\r\n})\r\n```\r\n\r\nYou can apply 'window' commands to the quickfix.\r\n\r\nEdit:\r\n\r\n> Perhaps it is a bit too much to have both the override and the configuration options.\r\n\r\nThat possibility is also why I made the comment quoted above. If the user can do a lot in an overridden function, the configuration options you propose are somewhat redundant.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">My issue is that the function call :copen/:lopen making it impossible to change the qf window position and size</p>\n</blockquote>\n<p dir=\"auto\">It is possible though:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@diagnostic disable: undefined-global\nvim.pack.add({ &quot;https://github.com/nvim-mini/mini.nvim&quot; })\n\nrequire(&quot;mini.pick&quot;).setup({\n  source = {\n    choose_marked = function(items)\n      MiniPick.default_choose_marked(items)\n      vim.schedule(function()\n        if vim.bo.filetype ~= &quot;qf&quot; then return end\n\n        vim.cmd(&quot;resize &quot; .. math.min(#items, 5))\n      end)\n    end,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">undefined-global</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.nvim<span class=\"pl-pds\">\" </span></span>})\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-en\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_choose_marked</span>(<span class=\"pl-smi\">items</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-e\">filetype</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>qf<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>resize <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">math.min</span>(<span class=\"pl-k\">#</span><span class=\"pl-smi\">items</span>, <span class=\"pl-c1\">5</span>))\n      <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">end</span>,\n  },\n})</pre></div>\n<p dir=\"auto\">You can apply 'window' commands to the quickfix.</p>\n<p dir=\"auto\">Edit:</p>\n<blockquote>\n<p dir=\"auto\">Perhaps it is a bit too much to have both the override and the configuration options.</p>\n</blockquote>\n<p dir=\"auto\">That possibility is also why I made the comment quoted above. If the user can do a lot in an overridden function, the configuration options you propose are somewhat redundant.</p>",
+                    "bodyText": "My issue is that the function call :copen/:lopen making it impossible to change the qf window position and size\n\nIt is possible though:\n---@diagnostic disable: undefined-global\nvim.pack.add({ \"https://github.com/nvim-mini/mini.nvim\" })\n\nrequire(\"mini.pick\").setup({\n  source = {\n    choose_marked = function(items)\n      MiniPick.default_choose_marked(items)\n      vim.schedule(function()\n        if vim.bo.filetype ~= \"qf\" then return end\n\n        vim.cmd(\"resize \" .. math.min(#items, 5))\n      end)\n    end,\n  },\n})\nYou can apply 'window' commands to the quickfix.\nEdit:\n\nPerhaps it is a bit too much to have both the override and the configuration options.\n\nThat possibility is also why I made the comment quoted above. If the user can do a lot in an overridden function, the configuration options you propose are somewhat redundant.",
+                    "createdAt": "2026-03-13T13:57:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16118745,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9fPZ",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-13T14:04:09Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T13:57:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118745",
+                    "updatedAt": "2026-03-13T14:04:09Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118745"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "This solves only the size issue, right? I'm more interested in the position, like, opening it as a vertical split at the rightmost or leftmost position...",
+                    "bodyHTML": "<p dir=\"auto\">This solves only the size issue, right? I'm more interested in the position, like, opening it as a vertical split at the rightmost or leftmost position...</p>",
+                    "bodyText": "This solves only the size issue, right? I'm more interested in the position, like, opening it as a vertical split at the rightmost or leftmost position...",
+                    "createdAt": "2026-03-13T14:04:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16118833,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9fQx",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T14:04:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118833",
+                    "updatedAt": "2026-03-13T14:04:13Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118833"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "You could try `vim.cmd('wincmd H')`\r\n\r\nEdit: For example ...). I think that all `:h windows` commands are possible.",
+                    "bodyHTML": "<p dir=\"auto\">You could try <code class=\"notranslate\">vim.cmd('wincmd H')</code></p>\n<p dir=\"auto\">Edit: For example ...). I think that all <code class=\"notranslate\">:h windows</code> commands are possible.</p>",
+                    "bodyText": "You could try vim.cmd('wincmd H')\nEdit: For example ...). I think that all :h windows commands are possible.",
+                    "createdAt": "2026-03-13T14:10:24Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16118934,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9fSW",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-13T14:13:07Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T14:10:24Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118934",
+                    "updatedAt": "2026-03-13T14:13:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118934"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> The ability to override and the configuration options are already implemented\r\n\r\nThat's true. However, from my experience, the author only adds extra configuration options when it's really, really necessary. @echasnovski, what do you think?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">The ability to override and the configuration options are already implemented</p>\n</blockquote>\n<p dir=\"auto\">That's true. However, from my experience, the author only adds extra configuration options when it's really, really necessary. <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, what do you think?</p>",
+                    "bodyText": "The ability to override and the configuration options are already implemented\n\nThat's true. However, from my experience, the author only adds extra configuration options when it's really, really necessary. @echasnovski, what do you think?",
+                    "createdAt": "2026-03-13T14:19:51Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16119118,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9fVO",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T14:19:51Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16119118",
+                    "updatedAt": "2026-03-13T14:19:51Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16119118"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I don't want to create a back and forward of replies (or to be rude), but in more complicated layouts this \"hack\" solutions will not work easily. For example:\r\n\r\nThe user cursor is at \"B\" then `:copen` is called , creating the layout in figure 1. To programmatically change it to the layout in figure 2 is a really hard work (I don't even know if there is a way to query the current window layout and transverse it with ease). In comparison, a simple `:vertical copen width` will do the job.\r\n\r\n```text\r\n      (1)                              (2)\r\n---------------                  ---------------\r\n|   |    B    |                  |   |  B | QF |\r\n| A |---------|                  | A |---------|\r\n|   |    C    |                  |   |         |\r\n|-------------|                  |   |    C    |\r\n|     QF      |                  |   |         |\r\n---------------                  ---------------\r\n```\r\n\r\nI'm not arguing that my solution is the only solution and I know that my example is \"silly\", I'm just trying to pass my point, that is, for me to change how `:copen` is called in `default_choose_marked()` I have to roll my on `H.parse_item`, `H.parse_item_*` and other help functions.\r\n\r\nAnother solution that came to my mind is to MiniPick to have a `toqflist()`¹ (Similar to the `vim.diagnostic.toqflist()`) so the user is free to do whatever they want with it.\r\n\r\n¹ The code for the `toqflist()` already exists [here](https://github.com/nvim-mini/mini.nvim/blob/9990c41f10f54f29a888d13024c9f765037bde23/lua/mini/pick.lua#L1192-L1202)\r\n\r\nAgain, thanks for participating in this discussion.",
+                    "bodyHTML": "<p dir=\"auto\">I don't want to create a back and forward of replies (or to be rude), but in more complicated layouts this \"hack\" solutions will not work easily. For example:</p>\n<p dir=\"auto\">The user cursor is at \"B\" then <code class=\"notranslate\">:copen</code> is called , creating the layout in figure 1. To programmatically change it to the layout in figure 2 is a really hard work (I don't even know if there is a way to query the current window layout and transverse it with ease). In comparison, a simple <code class=\"notranslate\">:vertical copen width</code> will do the job.</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"      (1)                              (2)\n---------------                  ---------------\n|   |    B    |                  |   |  B | QF |\n| A |---------|                  | A |---------|\n|   |    C    |                  |   |         |\n|-------------|                  |   |    C    |\n|     QF      |                  |   |         |\n---------------                  ---------------\"><pre lang=\"text\" class=\"notranslate\"><code class=\"notranslate\">      (1)                              (2)\n---------------                  ---------------\n|   |    B    |                  |   |  B | QF |\n| A |---------|                  | A |---------|\n|   |    C    |                  |   |         |\n|-------------|                  |   |    C    |\n|     QF      |                  |   |         |\n---------------                  ---------------\n</code></pre></div>\n<p dir=\"auto\">I'm not arguing that my solution is the only solution and I know that my example is \"silly\", I'm just trying to pass my point, that is, for me to change how <code class=\"notranslate\">:copen</code> is called in <code class=\"notranslate\">default_choose_marked()</code> I have to roll my on <code class=\"notranslate\">H.parse_item</code>, <code class=\"notranslate\">H.parse_item_*</code> and other help functions.</p>\n<p dir=\"auto\">Another solution that came to my mind is to MiniPick to have a <code class=\"notranslate\">toqflist()</code>¹ (Similar to the <code class=\"notranslate\">vim.diagnostic.toqflist()</code>) so the user is free to do whatever they want with it.</p>\n<p dir=\"auto\">¹ The code for the <code class=\"notranslate\">toqflist()</code> already exists <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9990c41f10f54f29a888d13024c9f765037bde23/lua/mini/pick.lua#L1192-L1202\">here</a></p>\n<p dir=\"auto\">Again, thanks for participating in this discussion.</p>",
+                    "bodyText": "I don't want to create a back and forward of replies (or to be rude), but in more complicated layouts this \"hack\" solutions will not work easily. For example:\nThe user cursor is at \"B\" then :copen is called , creating the layout in figure 1. To programmatically change it to the layout in figure 2 is a really hard work (I don't even know if there is a way to query the current window layout and transverse it with ease). In comparison, a simple :vertical copen width will do the job.\n      (1)                              (2)\n---------------                  ---------------\n|   |    B    |                  |   |  B | QF |\n| A |---------|                  | A |---------|\n|   |    C    |                  |   |         |\n|-------------|                  |   |    C    |\n|     QF      |                  |   |         |\n---------------                  ---------------\n\nI'm not arguing that my solution is the only solution and I know that my example is \"silly\", I'm just trying to pass my point, that is, for me to change how :copen is called in default_choose_marked() I have to roll my on H.parse_item, H.parse_item_* and other help functions.\nAnother solution that came to my mind is to MiniPick to have a toqflist()¹ (Similar to the vim.diagnostic.toqflist()) so the user is free to do whatever they want with it.\n¹ The code for the toqflist() already exists here\nAgain, thanks for participating in this discussion.",
+                    "createdAt": "2026-03-13T15:03:00Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16119710,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9fee",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T15:03:00Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16119710",
+                    "updatedAt": "2026-03-13T15:03:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16119710"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "`:vertical copen 30`\r\n`:copen`\r\n\r\nIt should jump to the already opened `:copen` window. All you need to do is manually create a window before the action.\r\n\r\nP.S. I just don't feel like passing modifiers is the best solution, since the real problem is that the default functions are too smart and rely on hidden APIs, making them difficult to simply copy/paste or use as building blocks for other code.",
+                    "bodyHTML": "<p dir=\"auto\"><code class=\"notranslate\">:vertical copen 30</code><br>\n<code class=\"notranslate\">:copen</code></p>\n<p dir=\"auto\">It should jump to the already opened <code class=\"notranslate\">:copen</code> window. All you need to do is manually create a window before the action.</p>\n<p dir=\"auto\">P.S. I just don't feel like passing modifiers is the best solution, since the real problem is that the default functions are too smart and rely on hidden APIs, making them difficult to simply copy/paste or use as building blocks for other code.</p>",
+                    "bodyText": ":vertical copen 30\n:copen\nIt should jump to the already opened :copen window. All you need to do is manually create a window before the action.\nP.S. I just don't feel like passing modifiers is the best solution, since the real problem is that the default functions are too smart and rely on hidden APIs, making them difficult to simply copy/paste or use as building blocks for other code.",
+                    "createdAt": "2026-03-13T15:38:08Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16120299,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9fnr",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-13T16:51:57Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T15:38:08Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16120299",
+                    "updatedAt": "2026-03-13T16:51:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16120299"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Again, trying not to be rude, but \"hacky\" solutions are just hacky. Your example doesn't take in consideration, for example, that `default_choose_marked()` can parse the `items` arguments and return an empty list `{}` falling-back to the `choose()` function and not calling `:copen` at all.",
+                    "bodyHTML": "<p dir=\"auto\">Again, trying not to be rude, but \"hacky\" solutions are just hacky. Your example doesn't take in consideration, for example, that <code class=\"notranslate\">default_choose_marked()</code> can parse the <code class=\"notranslate\">items</code> arguments and return an empty list <code class=\"notranslate\">{}</code> falling-back to the <code class=\"notranslate\">choose()</code> function and not calling <code class=\"notranslate\">:copen</code> at all.</p>",
+                    "bodyText": "Again, trying not to be rude, but \"hacky\" solutions are just hacky. Your example doesn't take in consideration, for example, that default_choose_marked() can parse the items arguments and return an empty list {} falling-back to the choose() function and not calling :copen at all.",
+                    "createdAt": "2026-03-13T15:49:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16120435,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9fpz",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T15:49:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16120435",
+                    "updatedAt": "2026-03-13T15:49:28Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16120435"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "@drowning-cat \r\n\r\n```lua\r\n\r\n:vertical copen 30\r\n:copen\r\n\r\n```\r\n\r\nYes, I was also thinking about that 2 hours ago...:) We are in sync today...)\r\n\r\n@felpafel, \r\n\r\n> Again, trying not to be rude, but \"hacky\" solutions are just hacky. Your example doesn't take in consideration, for example, that default_choose_marked() can parse the items arguments and return an empty list {} falling-back to the choose() function and not calling :copen at all\r\n\r\nThe code fragment shown above has an important implication: You can create a custom dedicated mapping especially for the quickfix/location list. See `:h MiniPick-actions`. Thus, when you are selecting items for the quickfix, use that mapping instead of builtin `<M-CR>`. No need to `vim.schedule`, just open the quickfix before `MiniPick.default_choose_marked ` does.\r\n\r\n> ... Again, trying not to be rude, but \"hacky\" solutions are just hacky\r\n\r\nand also\r\n\r\n> ...  I don't want to create a back and forward of replies (or to be rude), \r\n\r\nI think that when you post an idea in the discussions section, a discussion can be expected and can also be seen as a token of appreciation. I have had discussions about my ideas containing over 34 comments, with lots of suggestions. Writing \"hacky solutions are just hacky\" is not very delicate in my opinion...)\r\n\r\nAlso, MiniPick is one of the larger modules. Extra pickers are defined in `mini.extras`. One could argue that the job of MiniPick is to pick, not to [facilitate](https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16119710) advanced window layouts.\r\n\r\n\r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/drowning-cat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/drowning-cat\">@drowning-cat</a></p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\n:vertical copen 30\n:copen\n\"><pre class=\"notranslate\">:<span class=\"pl-e\">vertical</span> <span class=\"pl-smi\">copen</span> <span class=\"pl-c1\">30</span>\n:<span class=\"pl-e\">copen</span>\n</pre></div>\n<p dir=\"auto\">Yes, I was also thinking about that 2 hours ago...:) We are in sync today...)</p>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/felpafel/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/felpafel\">@felpafel</a>,</p>\n<blockquote>\n<p dir=\"auto\">Again, trying not to be rude, but \"hacky\" solutions are just hacky. Your example doesn't take in consideration, for example, that default_choose_marked() can parse the items arguments and return an empty list {} falling-back to the choose() function and not calling :copen at all</p>\n</blockquote>\n<p dir=\"auto\">The code fragment shown above has an important implication: You can create a custom dedicated mapping especially for the quickfix/location list. See <code class=\"notranslate\">:h MiniPick-actions</code>. Thus, when you are selecting items for the quickfix, use that mapping instead of builtin <code class=\"notranslate\">&lt;M-CR&gt;</code>. No need to <code class=\"notranslate\">vim.schedule</code>, just open the quickfix before <code class=\"notranslate\">MiniPick.default_choose_marked </code> does.</p>\n<blockquote>\n<p dir=\"auto\">... Again, trying not to be rude, but \"hacky\" solutions are just hacky</p>\n</blockquote>\n<p dir=\"auto\">and also</p>\n<blockquote>\n<p dir=\"auto\">...  I don't want to create a back and forward of replies (or to be rude),</p>\n</blockquote>\n<p dir=\"auto\">I think that when you post an idea in the discussions section, a discussion can be expected and can also be seen as a token of appreciation. I have had discussions about my ideas containing over 34 comments, with lots of suggestions. Writing \"hacky solutions are just hacky\" is not very delicate in my opinion...)</p>\n<p dir=\"auto\">Also, MiniPick is one of the larger modules. Extra pickers are defined in <code class=\"notranslate\">mini.extras</code>. One could argue that the job of MiniPick is to pick, not to <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16119710\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2311/hovercard?comment_id=16119710\">facilitate</a> advanced window layouts.</p>",
+                    "bodyText": "@drowning-cat\n:vertical copen 30\n:copen\n\nYes, I was also thinking about that 2 hours ago...:) We are in sync today...)\n@felpafel,\n\nAgain, trying not to be rude, but \"hacky\" solutions are just hacky. Your example doesn't take in consideration, for example, that default_choose_marked() can parse the items arguments and return an empty list {} falling-back to the choose() function and not calling :copen at all\n\nThe code fragment shown above has an important implication: You can create a custom dedicated mapping especially for the quickfix/location list. See :h MiniPick-actions. Thus, when you are selecting items for the quickfix, use that mapping instead of builtin <M-CR>. No need to vim.schedule, just open the quickfix before MiniPick.default_choose_marked  does.\n\n... Again, trying not to be rude, but \"hacky\" solutions are just hacky\n\nand also\n\n...  I don't want to create a back and forward of replies (or to be rude),\n\nI think that when you post an idea in the discussions section, a discussion can be expected and can also be seen as a token of appreciation. I have had discussions about my ideas containing over 34 comments, with lots of suggestions. Writing \"hacky solutions are just hacky\" is not very delicate in my opinion...)\nAlso, MiniPick is one of the larger modules. Extra pickers are defined in mini.extras. One could argue that the job of MiniPick is to pick, not to facilitate advanced window layouts.",
+                    "createdAt": "2026-03-13T17:57:51Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16122032,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9gCw",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-13T18:00:22Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T17:57:51Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122032",
+                    "updatedAt": "2026-03-13T18:00:22Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122032"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@abeldekat English isn't my first language, I use terms \"don't want to be rude\" for lack of better terms in my explanations, any way I don't mean to offend anyone or be \"that guy\" that just want thing their way.\r\n\r\n> The code fragment shown above has an important implication: You can create a custom dedicated mapping especially for the quickfix/location list. See :h MiniPick-actions. Thus, when you are selecting items for the quickfix, use that mapping instead of builtin <M-CR>. No need to vim.schedule, just open the quickfix before MiniPick.default_choose_marked does.\r\n\r\nAs previously said, there is no good way to predict if the `items` argument will be parsed to a valid qflist without implementing the same `H.parse_item` functions. So pre-opening a qf window, and then checking if `default_choose_marked` put something in the qflist to decide if the window should remain open or be closed, and having to put in consideration that maybe the function took the `choose()` path... (I digress)\r\n\r\n> One could argue that the job of MiniPick is to pick, not to facilitate advanced window layouts.\r\n\r\nI don't want advanced window layouts, if the default behavior was just `setqflist`/`setloclist` without opening the qf window I would have no issues.\r\n\r\nWhat I'm arguing is, one of the behaviors of `default_choose_marked` is to open a qf window, if so let the user put a window modifier so its possible to control where the window will be open (and the implementation is just a single string concatenation nothing more, without changes in default behavior or any other side effect).\r\n\r\nAnother possible idea, is to have the opening (`copen`/`lopen`) decoupled from the `setqflist`/`setloclist`. On telescope.nvim they have two separated actions, one for populating the qflist and another one for opening it. (`actions.send_selected_to_qflist` and `actions.open_qflist`)\r\n\r\nThanks again.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/abeldekat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/abeldekat\">@abeldekat</a> English isn't my first language, I use terms \"don't want to be rude\" for lack of better terms in my explanations, any way I don't mean to offend anyone or be \"that guy\" that just want thing their way.</p>\n<blockquote>\n<p dir=\"auto\">The code fragment shown above has an important implication: You can create a custom dedicated mapping especially for the quickfix/location list. See :h MiniPick-actions. Thus, when you are selecting items for the quickfix, use that mapping instead of builtin . No need to vim.schedule, just open the quickfix before MiniPick.default_choose_marked does.</p>\n</blockquote>\n<p dir=\"auto\">As previously said, there is no good way to predict if the <code class=\"notranslate\">items</code> argument will be parsed to a valid qflist without implementing the same <code class=\"notranslate\">H.parse_item</code> functions. So pre-opening a qf window, and then checking if <code class=\"notranslate\">default_choose_marked</code> put something in the qflist to decide if the window should remain open or be closed, and having to put in consideration that maybe the function took the <code class=\"notranslate\">choose()</code> path... (I digress)</p>\n<blockquote>\n<p dir=\"auto\">One could argue that the job of MiniPick is to pick, not to facilitate advanced window layouts.</p>\n</blockquote>\n<p dir=\"auto\">I don't want advanced window layouts, if the default behavior was just <code class=\"notranslate\">setqflist</code>/<code class=\"notranslate\">setloclist</code> without opening the qf window I would have no issues.</p>\n<p dir=\"auto\">What I'm arguing is, one of the behaviors of <code class=\"notranslate\">default_choose_marked</code> is to open a qf window, if so let the user put a window modifier so its possible to control where the window will be open (and the implementation is just a single string concatenation nothing more, without changes in default behavior or any other side effect).</p>\n<p dir=\"auto\">Another possible idea, is to have the opening (<code class=\"notranslate\">copen</code>/<code class=\"notranslate\">lopen</code>) decoupled from the <code class=\"notranslate\">setqflist</code>/<code class=\"notranslate\">setloclist</code>. On telescope.nvim they have two separated actions, one for populating the qflist and another one for opening it. (<code class=\"notranslate\">actions.send_selected_to_qflist</code> and <code class=\"notranslate\">actions.open_qflist</code>)</p>\n<p dir=\"auto\">Thanks again.</p>",
+                    "bodyText": "@abeldekat English isn't my first language, I use terms \"don't want to be rude\" for lack of better terms in my explanations, any way I don't mean to offend anyone or be \"that guy\" that just want thing their way.\n\nThe code fragment shown above has an important implication: You can create a custom dedicated mapping especially for the quickfix/location list. See :h MiniPick-actions. Thus, when you are selecting items for the quickfix, use that mapping instead of builtin . No need to vim.schedule, just open the quickfix before MiniPick.default_choose_marked does.\n\nAs previously said, there is no good way to predict if the items argument will be parsed to a valid qflist without implementing the same H.parse_item functions. So pre-opening a qf window, and then checking if default_choose_marked put something in the qflist to decide if the window should remain open or be closed, and having to put in consideration that maybe the function took the choose() path... (I digress)\n\nOne could argue that the job of MiniPick is to pick, not to facilitate advanced window layouts.\n\nI don't want advanced window layouts, if the default behavior was just setqflist/setloclist without opening the qf window I would have no issues.\nWhat I'm arguing is, one of the behaviors of default_choose_marked is to open a qf window, if so let the user put a window modifier so its possible to control where the window will be open (and the implementation is just a single string concatenation nothing more, without changes in default behavior or any other side effect).\nAnother possible idea, is to have the opening (copen/lopen) decoupled from the setqflist/setloclist. On telescope.nvim they have two separated actions, one for populating the qflist and another one for opening it. (actions.send_selected_to_qflist and actions.open_qflist)\nThanks again.",
+                    "createdAt": "2026-03-13T18:47:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16122595,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gLj",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T18:47:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122595",
+                    "updatedAt": "2026-03-13T18:47:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122595"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I see that @echasnovski posted a better [solution](https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933).\r\n\r\nJust for the record, finishing my thoughts...)\r\n\r\n> As previously said, there is no good way to predict if the items argument will be parsed to a valid qflist without implementing the \r\n\r\nThere is, see [`:h MiniPick.default_choose_marked`](https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick.default_choose_marked)\r\n\r\nThe following code provides a custom dedicated mapping to invoke default_choose_marked when the user knows that the quickfix will be invoked:\r\n\r\n```lua\r\n---@diagnostic disable: undefined-global\r\nvim.pack.add({ \"https://github.com/nvim-mini/mini.nvim\" })\r\n\r\nrequire(\"mini.pick\").setup({\r\n  mappings = {\r\n    choose_marked_quickfix = {\r\n      char = \"<M-q>\",\r\n      -- According to :h MiniPick.default_choose_marked(), quickfix is opened if\r\n      -- marked items contain at least a file or buffer\r\n      func = function()\r\n        local pick_error = function(msg) error(\"(mini.pick) \" .. msg, 0) end\r\n\r\n        local choose_marked_override = function(items)\r\n          if #items == 0 then return end\r\n\r\n          vim.cmd(\"vertical copen 30\")\r\n          MiniPick.default_choose_marked(items)\r\n        end\r\n\r\n        local ok, res = pcall(choose_marked_override, MiniPick.get_picker_matches().marked)\r\n        if not ok then vim.schedule(function() pick_error(\"Error during choose marked quickfix:\\n\" .. res) end) end\r\n        return not (ok and res)\r\n      end,\r\n    },\r\n  },\r\n})\r\n\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">I see that <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> posted a better <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2311/hovercard?comment_id=16122933\">solution</a>.</p>\n<p dir=\"auto\">Just for the record, finishing my thoughts...)</p>\n<blockquote>\n<p dir=\"auto\">As previously said, there is no good way to predict if the items argument will be parsed to a valid qflist without implementing the</p>\n</blockquote>\n<p dir=\"auto\">There is, see <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick.default_choose_marked\" rel=\"nofollow\"><code class=\"notranslate\">:h MiniPick.default_choose_marked</code></a></p>\n<p dir=\"auto\">The following code provides a custom dedicated mapping to invoke default_choose_marked when the user knows that the quickfix will be invoked:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@diagnostic disable: undefined-global\nvim.pack.add({ &quot;https://github.com/nvim-mini/mini.nvim&quot; })\n\nrequire(&quot;mini.pick&quot;).setup({\n  mappings = {\n    choose_marked_quickfix = {\n      char = &quot;&lt;M-q&gt;&quot;,\n      -- According to :h MiniPick.default_choose_marked(), quickfix is opened if\n      -- marked items contain at least a file or buffer\n      func = function()\n        local pick_error = function(msg) error(&quot;(mini.pick) &quot; .. msg, 0) end\n\n        local choose_marked_override = function(items)\n          if #items == 0 then return end\n\n          vim.cmd(&quot;vertical copen 30&quot;)\n          MiniPick.default_choose_marked(items)\n        end\n\n        local ok, res = pcall(choose_marked_override, MiniPick.get_picker_matches().marked)\n        if not ok then vim.schedule(function() pick_error(&quot;Error during choose marked quickfix:\\n&quot; .. res) end) end\n        return not (ok and res)\n      end,\n    },\n  },\n})\n\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">undefined-global</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.nvim<span class=\"pl-pds\">\" </span></span>})\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">choose_marked_quickfix</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;M-q&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> According to :h MiniPick.default_choose_marked(), quickfix is opened if</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> marked items contain at least a file or buffer</span>\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-en\">pick_error</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">msg</span>) <span class=\"pl-c1\">error</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>(mini.pick) <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">msg</span>, <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose_marked_override</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n          <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">items</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vertical copen 30<span class=\"pl-pds\">\"</span></span>)\n          <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_choose_marked</span>(<span class=\"pl-smi\">items</span>)\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">choose_marked_override</span>, <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>().<span class=\"pl-e\">marked</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-c1\">pick_error</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Error during choose marked quickfix:<span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">res</span>) <span class=\"pl-k\">end</span>) <span class=\"pl-k\">end</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-k\">not</span> (<span class=\"pl-smi\">ok</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">res</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n  },\n})\n</pre></div>",
+                    "bodyText": "I see that @echasnovski posted a better solution.\nJust for the record, finishing my thoughts...)\n\nAs previously said, there is no good way to predict if the items argument will be parsed to a valid qflist without implementing the\n\nThere is, see :h MiniPick.default_choose_marked\nThe following code provides a custom dedicated mapping to invoke default_choose_marked when the user knows that the quickfix will be invoked:\n---@diagnostic disable: undefined-global\nvim.pack.add({ \"https://github.com/nvim-mini/mini.nvim\" })\n\nrequire(\"mini.pick\").setup({\n  mappings = {\n    choose_marked_quickfix = {\n      char = \"<M-q>\",\n      -- According to :h MiniPick.default_choose_marked(), quickfix is opened if\n      -- marked items contain at least a file or buffer\n      func = function()\n        local pick_error = function(msg) error(\"(mini.pick) \" .. msg, 0) end\n\n        local choose_marked_override = function(items)\n          if #items == 0 then return end\n\n          vim.cmd(\"vertical copen 30\")\n          MiniPick.default_choose_marked(items)\n        end\n\n        local ok, res = pcall(choose_marked_override, MiniPick.get_picker_matches().marked)\n        if not ok then vim.schedule(function() pick_error(\"Error during choose marked quickfix:\\n\" .. res) end) end\n        return not (ok and res)\n      end,\n    },\n  },\n})",
+                    "createdAt": "2026-03-13T19:52:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123164,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9gUc",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-13T19:59:22Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T19:52:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123164",
+                    "updatedAt": "2026-03-13T19:59:22Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123164"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "The `choose()` path checks if `list` is size 0, not `items` you can see [here](https://github.com/nvim-mini/mini.nvim/blob/9d359222b3643f1fccbd8f3180445842e1cae00b/lua/mini/pick.lua#L1206-L1210). The picker can pass `items` that is `{ \"foo\", \"bar\" }` and will not generate a qflist, and will fallback to the `choose()` function.",
+                    "bodyHTML": "<p dir=\"auto\">The <code class=\"notranslate\">choose()</code> path checks if <code class=\"notranslate\">list</code> is size 0, not <code class=\"notranslate\">items</code> you can see <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9d359222b3643f1fccbd8f3180445842e1cae00b/lua/mini/pick.lua#L1206-L1210\">here</a>. The picker can pass <code class=\"notranslate\">items</code> that is <code class=\"notranslate\">{ \"foo\", \"bar\" }</code> and will not generate a qflist, and will fallback to the <code class=\"notranslate\">choose()</code> function.</p>",
+                    "bodyText": "The choose() path checks if list is size 0, not items you can see here. The picker can pass items that is { \"foo\", \"bar\" } and will not generate a qflist, and will fallback to the choose() function.",
+                    "createdAt": "2026-03-13T20:05:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123288,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gWY",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T20:05:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123288",
+                    "updatedAt": "2026-03-13T20:05:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123288"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> The choose() path checks if list is size 0, not items you can see [here](https://github.com/nvim-mini/mini.nvim/blob/9d359222b3643f1fccbd8f3180445842e1cae00b/lua/mini/pick.lua#L1206-L1210). The picker can pass items that is { \"foo\", \"bar\" } and will not generate a qflist, and will fallback to the choose() function.\r\n\r\nYes I know. The idea is that the user *knows* that the qflist will be invoked, as he marked either files or buffers. \r\n\r\nI do also think that it's not ideal.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">The choose() path checks if list is size 0, not items you can see <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9d359222b3643f1fccbd8f3180445842e1cae00b/lua/mini/pick.lua#L1206-L1210\">here</a>. The picker can pass items that is { \"foo\", \"bar\" } and will not generate a qflist, and will fallback to the choose() function.</p>\n</blockquote>\n<p dir=\"auto\">Yes I know. The idea is that the user <em>knows</em> that the qflist will be invoked, as he marked either files or buffers.</p>\n<p dir=\"auto\">I do also think that it's not ideal.</p>",
+                    "bodyText": "The choose() path checks if list is size 0, not items you can see here. The picker can pass items that is { \"foo\", \"bar\" } and will not generate a qflist, and will fallback to the choose() function.\n\nYes I know. The idea is that the user knows that the qflist will be invoked, as he marked either files or buffers.\nI do also think that it's not ideal.",
+                    "createdAt": "2026-03-13T20:10:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123332,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9gXE",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-13T20:13:07Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T20:10:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118570,
+                        "id": "DC_kwDOFoksYM4A9fMq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123332",
+                    "updatedAt": "2026-03-13T20:13:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123332"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570",
+            "updatedAt": "2026-03-13T13:46:59Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118570"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "> It's not possible to specify the height before opening the quickfix/location list (It's possible to change the height after opened using an autocmd/filetype config).\r\n\r\nWhile the guys from the team are responding to you, I have a simple question: is there any reason not to change the window properties after opening? Do you see the difference?\r\n\r\nP.S. Sorry, I'll wait for your reply so I don't cause more confusion.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">It's not possible to specify the height before opening the quickfix/location list (It's possible to change the height after opened using an autocmd/filetype config).</p>\n</blockquote>\n<p dir=\"auto\">While the guys from the team are responding to you, I have a simple question: is there any reason not to change the window properties after opening? Do you see the difference?</p>\n<p dir=\"auto\">P.S. Sorry, I'll wait for your reply so I don't cause more confusion.</p>",
+            "bodyText": "It's not possible to specify the height before opening the quickfix/location list (It's possible to change the height after opened using an autocmd/filetype config).\n\nWhile the guys from the team are responding to you, I have a simple question: is there any reason not to change the window properties after opening? Do you see the difference?\nP.S. Sorry, I'll wait for your reply so I don't cause more confusion.",
+            "createdAt": "2026-03-13T13:53:23Z",
+            "createdViaEmail": false,
+            "databaseId": 16118690,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A9fOi",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-13T14:08:29Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-03-13T13:53:23Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "We are responding at the same time @drowning-cat...)",
+                    "bodyHTML": "<p dir=\"auto\">We are responding at the same time <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/drowning-cat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/drowning-cat\">@drowning-cat</a>...)</p>",
+                    "bodyText": "We are responding at the same time @drowning-cat...)",
+                    "createdAt": "2026-03-13T14:02:43Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16118807,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9fQX",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T14:02:43Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118690,
+                        "id": "DC_kwDOFoksYM4A9fOi",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118690"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118807",
+                    "updatedAt": "2026-03-13T14:02:43Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118807"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> P.S. Sorry, I'll wait for your reply so I don't cause more confusion.\r\n\r\nNo problem at all!",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">P.S. Sorry, I'll wait for your reply so I don't cause more confusion.</p>\n</blockquote>\n<p dir=\"auto\">No problem at all!</p>",
+                    "bodyText": "P.S. Sorry, I'll wait for your reply so I don't cause more confusion.\n\nNo problem at all!",
+                    "createdAt": "2026-03-13T14:10:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16118943,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9fSf",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T14:10:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16118690,
+                        "id": "DC_kwDOFoksYM4A9fOi",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118690"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118943",
+                    "updatedAt": "2026-03-13T14:10:54Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118943"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118690",
+            "updatedAt": "2026-03-13T14:08:29Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16118690"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the suggestion!\r\n\r\nAs others noted, adding new configurations to any 'mini.nvim' module is usually a hard decision, but for 'mini.pick' it is especially so due to its size.\r\n\r\nMy initial reaction is that this *might* be reasonable for two reasons:\r\n- The code change should indeed be rather small.\r\n- There is a precedent for [`opts.default_split` in `help` built-in picker](https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick.builtin.help).\r\n\r\nMy second reaction was that I don't think that 'mini.pick' has to even decide how to open quickfix/loclist. Is it reasonable for the user to have 'mini.pick' open quickfix/loclist *differently* than it is usually done? I think the answer is no. So the solution here should be to configure quickfix to always open as you'd prefer. For example, something like this should fix this problem:\r\n\r\n```lua\r\nlocal fix_quickfix = function(ev)\r\n  local qf_data = vim.fn.getqflist({ qfbufnr = true, size = true, winid = true })\r\n  if qf_data.qfbufnr ~= ev.buf then return end\r\n  vim.api.nvim_win_call(qf_data.winid, function()\r\n    vim.cmd('wincmd J')\r\n    vim.api.nvim_win_set_height(0, math.min(qf_data.size, 5))\r\n  end)\r\nend\r\nvim.api.nvim_create_autocmd('FileType', { pattern = 'qf', callback = fix_quickfix, desc = 'Fix quickfix' })\r\n```\r\n\r\n@felpafel, does this solve the issue for you?",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion!</p>\n<p dir=\"auto\">As others noted, adding new configurations to any 'mini.nvim' module is usually a hard decision, but for 'mini.pick' it is especially so due to its size.</p>\n<p dir=\"auto\">My initial reaction is that this <em>might</em> be reasonable for two reasons:</p>\n<ul dir=\"auto\">\n<li>The code change should indeed be rather small.</li>\n<li>There is a precedent for <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick.builtin.help\" rel=\"nofollow\"><code class=\"notranslate\">opts.default_split</code> in <code class=\"notranslate\">help</code> built-in picker</a>.</li>\n</ul>\n<p dir=\"auto\">My second reaction was that I don't think that 'mini.pick' has to even decide how to open quickfix/loclist. Is it reasonable for the user to have 'mini.pick' open quickfix/loclist <em>differently</em> than it is usually done? I think the answer is no. So the solution here should be to configure quickfix to always open as you'd prefer. For example, something like this should fix this problem:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local fix_quickfix = function(ev)\n  local qf_data = vim.fn.getqflist({ qfbufnr = true, size = true, winid = true })\n  if qf_data.qfbufnr ~= ev.buf then return end\n  vim.api.nvim_win_call(qf_data.winid, function()\n    vim.cmd('wincmd J')\n    vim.api.nvim_win_set_height(0, math.min(qf_data.size, 5))\n  end)\nend\nvim.api.nvim_create_autocmd('FileType', { pattern = 'qf', callback = fix_quickfix, desc = 'Fix quickfix' })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">fix_quickfix</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ev</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">qf_data</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getqflist</span>({ <span class=\"pl-smi\">qfbufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">size</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">winid</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">qf_data</span>.<span class=\"pl-e\">qfbufnr</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">buf</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_call</span>(<span class=\"pl-smi\">qf_data</span>.<span class=\"pl-e\">winid</span>, <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>wincmd J<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_height</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">math.min</span>(<span class=\"pl-smi\">qf_data</span>.<span class=\"pl-e\">size</span>, <span class=\"pl-c1\">5</span>))\n  <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>FileType<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>qf<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fix_quickfix</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Fix quickfix<span class=\"pl-pds\">' </span></span>})</pre></div>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/felpafel/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/felpafel\">@felpafel</a>, does this solve the issue for you?</p>",
+            "bodyText": "Thanks for the suggestion!\nAs others noted, adding new configurations to any 'mini.nvim' module is usually a hard decision, but for 'mini.pick' it is especially so due to its size.\nMy initial reaction is that this might be reasonable for two reasons:\n\nThe code change should indeed be rather small.\nThere is a precedent for opts.default_split in help built-in picker.\n\nMy second reaction was that I don't think that 'mini.pick' has to even decide how to open quickfix/loclist. Is it reasonable for the user to have 'mini.pick' open quickfix/loclist differently than it is usually done? I think the answer is no. So the solution here should be to configure quickfix to always open as you'd prefer. For example, something like this should fix this problem:\nlocal fix_quickfix = function(ev)\n  local qf_data = vim.fn.getqflist({ qfbufnr = true, size = true, winid = true })\n  if qf_data.qfbufnr ~= ev.buf then return end\n  vim.api.nvim_win_call(qf_data.winid, function()\n    vim.cmd('wincmd J')\n    vim.api.nvim_win_set_height(0, math.min(qf_data.size, 5))\n  end)\nend\nvim.api.nvim_create_autocmd('FileType', { pattern = 'qf', callback = fix_quickfix, desc = 'Fix quickfix' })\n@felpafel, does this solve the issue for you?",
+            "createdAt": "2026-03-13T19:27:00Z",
+            "createdViaEmail": false,
+            "databaseId": 16122933,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A9gQ1",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-13T19:27:00Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 5,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> Is it reasonable for the user to have 'mini.pick' open quickfix/loclist differently than it is usually done?\r\n\r\nWell, nvim nightly change the default behavior of `:copen` be in a split below the last opened window (Can be tested on nvim 0.11.6 and Vim) to always be `:botright copen`. There are arguments from both sides on what should be the behavior ([Vim thinks window should be opened below last window](https://github.com/vim/vim/issues/12501)), but I think this is a solved problem enabling a window modifier (`:vertical`, etc..).\r\n\r\nThere are other 2 solutions presented by me that are worth thinking. One is the solution in telescope.nvim where `setqflist` is decouple from `copen` so the user is able to override just the open action. The other solution is to expose the code that generate the qflist like `vim.diagnostic.toqflist()` so the user can set the qflist and open it be themselves.\r\n\r\n> @felpafel, does this solve the issue for you?\r\n\r\nSadly, but no. There is a way to know if the qflist was set in the first place? (maybe `vim.schedule(function() if vim.bo.filetype == 'qf' then... end)`). Second, the code is \"fine\" to force `:botright` behavior, but sometimes I want to open vertically right relative to the current cursor position, with make it more trick (Since nightly put it on the `:botright` position). And on my machine, I can see the window being created on the default location and them moving to the `:botright` position.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Is it reasonable for the user to have 'mini.pick' open quickfix/loclist differently than it is usually done?</p>\n</blockquote>\n<p dir=\"auto\">Well, nvim nightly change the default behavior of <code class=\"notranslate\">:copen</code> be in a split below the last opened window (Can be tested on nvim 0.11.6 and Vim) to always be <code class=\"notranslate\">:botright copen</code>. There are arguments from both sides on what should be the behavior (<a href=\"https://github.com/vim/vim/issues/12501\" data-hovercard-type=\"issue\" data-hovercard-url=\"/vim/vim/issues/12501/hovercard\">Vim thinks window should be opened below last window</a>), but I think this is a solved problem enabling a window modifier (<code class=\"notranslate\">:vertical</code>, etc..).</p>\n<p dir=\"auto\">There are other 2 solutions presented by me that are worth thinking. One is the solution in telescope.nvim where <code class=\"notranslate\">setqflist</code> is decouple from <code class=\"notranslate\">copen</code> so the user is able to override just the open action. The other solution is to expose the code that generate the qflist like <code class=\"notranslate\">vim.diagnostic.toqflist()</code> so the user can set the qflist and open it be themselves.</p>\n<blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/felpafel/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/felpafel\">@felpafel</a>, does this solve the issue for you?</p>\n</blockquote>\n<p dir=\"auto\">Sadly, but no. There is a way to know if the qflist was set in the first place? (maybe <code class=\"notranslate\">vim.schedule(function() if vim.bo.filetype == 'qf' then... end)</code>). Second, the code is \"fine\" to force <code class=\"notranslate\">:botright</code> behavior, but sometimes I want to open vertically right relative to the current cursor position, with make it more trick (Since nightly put it on the <code class=\"notranslate\">:botright</code> position). And on my machine, I can see the window being created on the default location and them moving to the <code class=\"notranslate\">:botright</code> position.</p>",
+                    "bodyText": "Is it reasonable for the user to have 'mini.pick' open quickfix/loclist differently than it is usually done?\n\nWell, nvim nightly change the default behavior of :copen be in a split below the last opened window (Can be tested on nvim 0.11.6 and Vim) to always be :botright copen. There are arguments from both sides on what should be the behavior (Vim thinks window should be opened below last window), but I think this is a solved problem enabling a window modifier (:vertical, etc..).\nThere are other 2 solutions presented by me that are worth thinking. One is the solution in telescope.nvim where setqflist is decouple from copen so the user is able to override just the open action. The other solution is to expose the code that generate the qflist like vim.diagnostic.toqflist() so the user can set the qflist and open it be themselves.\n\n@felpafel, does this solve the issue for you?\n\nSadly, but no. There is a way to know if the qflist was set in the first place? (maybe vim.schedule(function() if vim.bo.filetype == 'qf' then... end)). Second, the code is \"fine\" to force :botright behavior, but sometimes I want to open vertically right relative to the current cursor position, with make it more trick (Since nightly put it on the :botright position). And on my machine, I can see the window being created on the default location and them moving to the :botright position.",
+                    "createdAt": "2026-03-13T20:00:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123246,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gVu",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T20:00:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16122933,
+                        "id": "DC_kwDOFoksYM4A9gQ1",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123246",
+                    "updatedAt": "2026-03-13T20:00:46Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123246"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> There is a way to know if the qflist was set in the first place?\r\n\r\nThe code is an autocommand that adjusts *any* new quickfix list. So it only acts when the quickfix list is created.\r\n\r\nIn short, I'll think about it, but my intuition says that deciding on *how* quickfix list is opened is not 'mini.pick' responsibility.\r\n\r\nAnd it indeed can be worked around with custom action: call `default_choose_marked()` and then adjust the split+size manually. Detecting if quickfix was opened can also be done similarly as the above code snippet.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">There is a way to know if the qflist was set in the first place?</p>\n</blockquote>\n<p dir=\"auto\">The code is an autocommand that adjusts <em>any</em> new quickfix list. So it only acts when the quickfix list is created.</p>\n<p dir=\"auto\">In short, I'll think about it, but my intuition says that deciding on <em>how</em> quickfix list is opened is not 'mini.pick' responsibility.</p>\n<p dir=\"auto\">And it indeed can be worked around with custom action: call <code class=\"notranslate\">default_choose_marked()</code> and then adjust the split+size manually. Detecting if quickfix was opened can also be done similarly as the above code snippet.</p>",
+                    "bodyText": "There is a way to know if the qflist was set in the first place?\n\nThe code is an autocommand that adjusts any new quickfix list. So it only acts when the quickfix list is created.\nIn short, I'll think about it, but my intuition says that deciding on how quickfix list is opened is not 'mini.pick' responsibility.\nAnd it indeed can be worked around with custom action: call default_choose_marked() and then adjust the split+size manually. Detecting if quickfix was opened can also be done similarly as the above code snippet.",
+                    "createdAt": "2026-03-13T20:20:15Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123472,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gZQ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T20:20:15Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16122933,
+                        "id": "DC_kwDOFoksYM4A9gQ1",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123472",
+                    "updatedAt": "2026-03-13T20:20:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123472"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "As discussed previously, moving a window after it's creation isn't easy. I pointed that telescope, for example, handle this by not calling `copen` on the same function that sets the qflist, so the user can override just the opening action. The parsing of items in MiniPick is behind many helper functions, and is a lot of code to maintain on the user side if the user just want to modify the opening code.",
+                    "bodyHTML": "<p dir=\"auto\">As discussed previously, moving a window after it's creation isn't easy. I pointed that telescope, for example, handle this by not calling <code class=\"notranslate\">copen</code> on the same function that sets the qflist, so the user can override just the opening action. The parsing of items in MiniPick is behind many helper functions, and is a lot of code to maintain on the user side if the user just want to modify the opening code.</p>",
+                    "bodyText": "As discussed previously, moving a window after it's creation isn't easy. I pointed that telescope, for example, handle this by not calling copen on the same function that sets the qflist, so the user can override just the opening action. The parsing of items in MiniPick is behind many helper functions, and is a lot of code to maintain on the user side if the user just want to modify the opening code.",
+                    "createdAt": "2026-03-13T20:28:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123555,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gaj",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T20:28:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16122933,
+                        "id": "DC_kwDOFoksYM4A9gQ1",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123555",
+                    "updatedAt": "2026-03-13T20:28:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123555"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> As discussed previously, moving a window after it's creation isn't easy.\r\n\r\nIt should be relatively easy. There is a `vim.api.nvim_win_call(qf_win_id, function() end)` approach similar to above.\r\n\r\nTo move the window to be left/right/below/above some target window in split, use `nvim_win_set_config(qf_win_id, { win = win_id, split = 'right' })`.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">As discussed previously, moving a window after it's creation isn't easy.</p>\n</blockquote>\n<p dir=\"auto\">It should be relatively easy. There is a <code class=\"notranslate\">vim.api.nvim_win_call(qf_win_id, function() end)</code> approach similar to above.</p>\n<p dir=\"auto\">To move the window to be left/right/below/above some target window in split, use <code class=\"notranslate\">nvim_win_set_config(qf_win_id, { win = win_id, split = 'right' })</code>.</p>",
+                    "bodyText": "As discussed previously, moving a window after it's creation isn't easy.\n\nIt should be relatively easy. There is a vim.api.nvim_win_call(qf_win_id, function() end) approach similar to above.\nTo move the window to be left/right/below/above some target window in split, use nvim_win_set_config(qf_win_id, { win = win_id, split = 'right' }).",
+                    "createdAt": "2026-03-13T20:43:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123649,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gcB",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T20:43:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16122933,
+                        "id": "DC_kwDOFoksYM4A9gQ1",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123649",
+                    "updatedAt": "2026-03-13T20:43:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123649"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I could make it work using the `nvim_win_set_config`, the autocmd has to be aware that the target window is the `MiniPick.get_picker_state().windows.target` and it's value can only be acquired while the picker is opened.\r\n\r\nIt's not as nice as having proper modifiers as you mentioned the help picker has, but it's fine.\r\n\r\nThanks for you time.",
+                    "bodyHTML": "<p dir=\"auto\">I could make it work using the <code class=\"notranslate\">nvim_win_set_config</code>, the autocmd has to be aware that the target window is the <code class=\"notranslate\">MiniPick.get_picker_state().windows.target</code> and it's value can only be acquired while the picker is opened.</p>\n<p dir=\"auto\">It's not as nice as having proper modifiers as you mentioned the help picker has, but it's fine.</p>\n<p dir=\"auto\">Thanks for you time.</p>",
+                    "bodyText": "I could make it work using the nvim_win_set_config, the autocmd has to be aware that the target window is the MiniPick.get_picker_state().windows.target and it's value can only be acquired while the picker is opened.\nIt's not as nice as having proper modifiers as you mentioned the help picker has, but it's fine.\nThanks for you time.",
+                    "createdAt": "2026-03-13T21:24:31Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16123967,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9gg_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-13T21:24:31Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16122933,
+                        "id": "DC_kwDOFoksYM4A9gQ1",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123967",
+                    "updatedAt": "2026-03-13T21:24:31Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16123967"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933",
+            "updatedAt": "2026-03-13T19:27:00Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311#discussioncomment-16122933"
+        }
+    ],
+    "createdAt": "2026-03-12T04:10:30Z",
+    "createdViaEmail": false,
+    "databaseId": 9627713,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AkuhB",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2311,
+    "poll": null,
+    "publishedAt": "2026-03-12T04:10:30Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2311",
+    "stateReason": null,
+    "title": "[mini.pick] extend `MiniPick.default_choose_marked()` `opts` so the user can change window height and position",
+    "updatedAt": "2026-07-26T16:52:47Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2311"
+}

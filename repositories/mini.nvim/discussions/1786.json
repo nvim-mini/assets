@@ -1,0 +1,1147 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "It would be great to have access to `Mini*.H` to partially override internal APIs.\r\nNo documentation, no warranty—just simple exposure. This would allow for tweaking minis without the need to clone the repository.\r\n\r\n> [!WARNING]\r\n> A potential downside is that exposing internal APIs might lead to more Issues and Pull Requests.\r\n\r\n<details><summary>What I am trying to do</summary>\r\n\r\n```lua\r\n{\r\n  'echasnovski/mini.clue',\r\n  lazy = false,\r\n  init = function()\r\n    vim.api.nvim_create_autocmd('FileType', {\r\n      pattern = 'snacks_*',\r\n      callback = function(event)\r\n        MiniClue.enable_buf_triggers(event.buf)\r\n      end,\r\n    })\r\n  end,\r\n  config = function()\r\n    local clues, triggers = {}, {}\r\n\r\n    local reg = function(mode, lhs_tbl, rhs, opts)\r\n      local prefix, keys = lhs_tbl[1], table.concat(lhs_tbl)\r\n      vim.keymap.set(mode, keys, rhs, opts)\r\n      table.insert(clues, { mode = mode, keys = keys, postkeys = prefix })\r\n    end\r\n\r\n    for _, prefix in ipairs { '<C-w><C-r>' } do\r\n      table.insert(triggers, { mode = 'n', keys = prefix })\r\n      -- stylua: ignore start\r\n      reg('n', { prefix, 'h' }, function() wins.resize 'h' end, { desc = 'Resize left' })\r\n      reg('n', { prefix, 'j' }, function() wins.resize 'j' end, { desc = 'Resize down' })\r\n      reg('n', { prefix, 'k' }, function() wins.resize 'k' end, { desc = 'Resize up' })\r\n      reg('n', { prefix, 'l' }, function() wins.resize 'l' end, { desc = 'Resize right' })\r\n    end\r\n\r\n    local miniclue = require 'mini.clue'\r\n\r\n    local H = miniclue.H\r\n\r\n    H.exit_chars = { '<Esc>', 'q', '' }\r\n    ---@diagnostic disable-next-line: duplicate-set-field\r\n    H.getcharstr = function()\r\n      H.timers.getcharstr:start(0, 50, H.redraw_scheduled)\r\n      local ok, char = pcall(vim.fn.getcharstr)\r\n      H.timers.getcharstr:stop()\r\n      if not ok then\r\n        return\r\n      end\r\n      for _, ch in ipairs(H.exit_chars) do\r\n        if char == H.replace_termcodes(ch) then\r\n          return\r\n        end\r\n      end\r\n      return H.get_langmap()[char] or char\r\n    end\r\n\r\n    miniclue.setup {\r\n      triggers = triggers,\r\n      clues = clues,\r\n    }\r\n  end,\r\n},\r\n```\r\n\r\n</details>\r\n\r\n~~No need to respond, you can simply close the discussion if it is not planned.~~",
+    "bodyHTML": "<p dir=\"auto\">It would be great to have access to <code class=\"notranslate\">Mini*.H</code> to partially override internal APIs.<br>\nNo documentation, no warranty—just simple exposure. This would allow for tweaking minis without the need to clone the repository.</p>\n<div class=\"markdown-alert markdown-alert-warning\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-alert mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z\"></path></svg>Warning</p><p dir=\"auto\">A potential downside is that exposing internal APIs might lead to more Issues and Pull Requests.</p>\n</div>\n<details><summary>What I am trying to do</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{\n  'echasnovski/mini.clue',\n  lazy = false,\n  init = function()\n    vim.api.nvim_create_autocmd('FileType', {\n      pattern = 'snacks_*',\n      callback = function(event)\n        MiniClue.enable_buf_triggers(event.buf)\n      end,\n    })\n  end,\n  config = function()\n    local clues, triggers = {}, {}\n\n    local reg = function(mode, lhs_tbl, rhs, opts)\n      local prefix, keys = lhs_tbl[1], table.concat(lhs_tbl)\n      vim.keymap.set(mode, keys, rhs, opts)\n      table.insert(clues, { mode = mode, keys = keys, postkeys = prefix })\n    end\n\n    for _, prefix in ipairs { '&lt;C-w&gt;&lt;C-r&gt;' } do\n      table.insert(triggers, { mode = 'n', keys = prefix })\n      -- stylua: ignore start\n      reg('n', { prefix, 'h' }, function() wins.resize 'h' end, { desc = 'Resize left' })\n      reg('n', { prefix, 'j' }, function() wins.resize 'j' end, { desc = 'Resize down' })\n      reg('n', { prefix, 'k' }, function() wins.resize 'k' end, { desc = 'Resize up' })\n      reg('n', { prefix, 'l' }, function() wins.resize 'l' end, { desc = 'Resize right' })\n    end\n\n    local miniclue = require 'mini.clue'\n\n    local H = miniclue.H\n\n    H.exit_chars = { '&lt;Esc&gt;', 'q', '' }\n    ---@diagnostic disable-next-line: duplicate-set-field\n    H.getcharstr = function()\n      H.timers.getcharstr:start(0, 50, H.redraw_scheduled)\n      local ok, char = pcall(vim.fn.getcharstr)\n      H.timers.getcharstr:stop()\n      if not ok then\n        return\n      end\n      for _, ch in ipairs(H.exit_chars) do\n        if char == H.replace_termcodes(ch) then\n          return\n        end\n      end\n      return H.get_langmap()[char] or char\n    end\n\n    miniclue.setup {\n      triggers = triggers,\n      clues = clues,\n    }\n  end,\n},\"><pre class=\"notranslate\">{\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>echasnovski/mini.clue<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-smi\">lazy</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n  <span class=\"pl-en\">init</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>FileType<span class=\"pl-pds\">'</span></span>, {\n      <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>snacks_*<span class=\"pl-pds\">'</span></span>,\n      <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">event</span>)\n        <span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-c1\">enable_buf_triggers</span>(<span class=\"pl-smi\">event</span>.<span class=\"pl-e\">buf</span>)\n      <span class=\"pl-k\">end</span>,\n    })\n  <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">clues</span>, <span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> {}, {}\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">lhs_tbl</span>, <span class=\"pl-smi\">rhs</span>, <span class=\"pl-smi\">opts</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prefix</span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">lhs_tbl</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">lhs_tbl</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">keys</span>, <span class=\"pl-smi\">rhs</span>, <span class=\"pl-smi\">opts</span>)\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">keys</span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> })\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;&lt;C-r&gt;<span class=\"pl-pds\">' </span></span>} <span class=\"pl-k\">do</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">triggers</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> })\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n      <span class=\"pl-c1\">reg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">prefix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>h<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">wins</span>.<span class=\"pl-c1\">resize</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>h<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Resize left<span class=\"pl-pds\">' </span></span>})\n      <span class=\"pl-c1\">reg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">prefix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>j<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">wins</span>.<span class=\"pl-c1\">resize</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>j<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Resize down<span class=\"pl-pds\">' </span></span>})\n      <span class=\"pl-c1\">reg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">prefix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>k<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">wins</span>.<span class=\"pl-c1\">resize</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>k<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Resize up<span class=\"pl-pds\">' </span></span>})\n      <span class=\"pl-c1\">reg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">prefix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">wins</span>.<span class=\"pl-c1\">resize</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Resize right<span class=\"pl-pds\">' </span></span>})\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">miniclue</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.clue<span class=\"pl-pds\">'</span></span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">miniclue</span>.<span class=\"pl-e\">H</span>\n\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">exit_chars</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Esc&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span>}\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable-next-line</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">duplicate-set-field</span></span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-en\">getcharstr</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">timers</span>.<span class=\"pl-en\">getcharstr</span>:<span class=\"pl-c1\">start</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">50</span>, <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">redraw_scheduled</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">getcharstr</span>)\n      <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">timers</span>.<span class=\"pl-en\">getcharstr</span>:<span class=\"pl-c1\">stop</span>()\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">return</span>\n      <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">ch</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">exit_chars</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">char</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">replace_termcodes</span>(<span class=\"pl-smi\">ch</span>) <span class=\"pl-k\">then</span>\n          <span class=\"pl-k\">return</span>\n        <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">get_langmap</span>()[<span class=\"pl-smi\">char</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">char</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-smi\">miniclue</span>.<span class=\"pl-c1\">setup</span> {\n      <span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">triggers</span>,\n      <span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">clues</span>,\n    }\n  <span class=\"pl-k\">end</span>,\n},</pre></div>\n</details>\n<p dir=\"auto\"><del>No need to respond, you can simply close the discussion if it is not planned.</del></p>",
+    "bodyText": "It would be great to have access to Mini*.H to partially override internal APIs.\nNo documentation, no warranty—just simple exposure. This would allow for tweaking minis without the need to clone the repository.\nWarningA potential downside is that exposing internal APIs might lead to more Issues and Pull Requests.\n\nWhat I am trying to do\n{\n  'echasnovski/mini.clue',\n  lazy = false,\n  init = function()\n    vim.api.nvim_create_autocmd('FileType', {\n      pattern = 'snacks_*',\n      callback = function(event)\n        MiniClue.enable_buf_triggers(event.buf)\n      end,\n    })\n  end,\n  config = function()\n    local clues, triggers = {}, {}\n\n    local reg = function(mode, lhs_tbl, rhs, opts)\n      local prefix, keys = lhs_tbl[1], table.concat(lhs_tbl)\n      vim.keymap.set(mode, keys, rhs, opts)\n      table.insert(clues, { mode = mode, keys = keys, postkeys = prefix })\n    end\n\n    for _, prefix in ipairs { '<C-w><C-r>' } do\n      table.insert(triggers, { mode = 'n', keys = prefix })\n      -- stylua: ignore start\n      reg('n', { prefix, 'h' }, function() wins.resize 'h' end, { desc = 'Resize left' })\n      reg('n', { prefix, 'j' }, function() wins.resize 'j' end, { desc = 'Resize down' })\n      reg('n', { prefix, 'k' }, function() wins.resize 'k' end, { desc = 'Resize up' })\n      reg('n', { prefix, 'l' }, function() wins.resize 'l' end, { desc = 'Resize right' })\n    end\n\n    local miniclue = require 'mini.clue'\n\n    local H = miniclue.H\n\n    H.exit_chars = { '<Esc>', 'q', '' }\n    ---@diagnostic disable-next-line: duplicate-set-field\n    H.getcharstr = function()\n      H.timers.getcharstr:start(0, 50, H.redraw_scheduled)\n      local ok, char = pcall(vim.fn.getcharstr)\n      H.timers.getcharstr:stop()\n      if not ok then\n        return\n      end\n      for _, ch in ipairs(H.exit_chars) do\n        if char == H.replace_termcodes(ch) then\n          return\n        end\n      end\n      return H.get_langmap()[char] or char\n    end\n\n    miniclue.setup {\n      triggers = triggers,\n      clues = clues,\n    }\n  end,\n},\n\nNo need to respond, you can simply close the discussion if it is not planned.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-05-05T16:21:25Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Yes, it is not planned. Those are private methods that explicitly kept not exported.\r\n\r\n> What I am trying to do\r\n\r\nCan you please describe what you want to have and why? I.e. the actual use case and desired behavior.",
+            "bodyHTML": "<p dir=\"auto\">Yes, it is not planned. Those are private methods that explicitly kept not exported.</p>\n<blockquote>\n<p dir=\"auto\">What I am trying to do</p>\n</blockquote>\n<p dir=\"auto\">Can you please describe what you want to have and why? I.e. the actual use case and desired behavior.</p>",
+            "bodyText": "Yes, it is not planned. Those are private methods that explicitly kept not exported.\n\nWhat I am trying to do\n\nCan you please describe what you want to have and why? I.e. the actual use case and desired behavior.",
+            "createdAt": "2025-05-05T16:21:25Z",
+            "createdViaEmail": false,
+            "databaseId": 13041768,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AxwBo",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-05T16:21:25Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 11,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "1. *Extend exit triggers*\r\n    I’ve gotten used to pressing `q` to exit the submode, so I extended the exit keys to include `q`.\r\n    For example, I have a problem with `Snacks.dashboard`. It implicitly binds `q` to exit it and when I am pressing `q` it actually forwards the key and closes the dashboard along side with neovim.\r\n2. *No exit with non-registered keys*\r\n  I also want a way to prevent exiting a submode when pressing keys that aren't part of the submode's keymap.\r\n   The idea is simple: when I'm in the resize submode, I want to be able to navigate between windows using `<C-hjkl>`, as I’m used to, before explicitly exiting the submode using `<C-c>`, `<Esc>`, or `q`.",
+                    "bodyHTML": "<ol dir=\"auto\">\n<li><em>Extend exit triggers</em><br>\nI’ve gotten used to pressing <code class=\"notranslate\">q</code> to exit the submode, so I extended the exit keys to include <code class=\"notranslate\">q</code>.<br>\nFor example, I have a problem with <code class=\"notranslate\">Snacks.dashboard</code>. It implicitly binds <code class=\"notranslate\">q</code> to exit it and when I am pressing <code class=\"notranslate\">q</code> it actually forwards the key and closes the dashboard along side with neovim.</li>\n<li><em>No exit with non-registered keys</em><br>\nI also want a way to prevent exiting a submode when pressing keys that aren't part of the submode's keymap.<br>\nThe idea is simple: when I'm in the resize submode, I want to be able to navigate between windows using <code class=\"notranslate\">&lt;C-hjkl&gt;</code>, as I’m used to, before explicitly exiting the submode using <code class=\"notranslate\">&lt;C-c&gt;</code>, <code class=\"notranslate\">&lt;Esc&gt;</code>, or <code class=\"notranslate\">q</code>.</li>\n</ol>",
+                    "bodyText": "Extend exit triggers\nI’ve gotten used to pressing q to exit the submode, so I extended the exit keys to include q.\nFor example, I have a problem with Snacks.dashboard. It implicitly binds q to exit it and when I am pressing q it actually forwards the key and closes the dashboard along side with neovim.\nNo exit with non-registered keys\nI also want a way to prevent exiting a submode when pressing keys that aren't part of the submode's keymap.\nThe idea is simple: when I'm in the resize submode, I want to be able to navigate between windows using <C-hjkl>, as I’m used to, before explicitly exiting the submode using <C-c>, <Esc>, or q.",
+                    "createdAt": "2025-05-05T16:30:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13041881,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4AxwDZ",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-05-05T16:40:53Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T16:30:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041881",
+                    "updatedAt": "2025-05-05T16:40:53Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041881"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Both of these issues can be solved by creating dedicated mappings that start with submode \"prefix\" (i.e. `postkeys` value) and do what you describe:\r\n1. A prefix-`q` mapping that does nothing and has no `postkeys`.\r\n2. Mappings `<C-w><C-r><C-hjkl>` that change window and have `<C-w><C-r>` postkeys.",
+                    "bodyHTML": "<p dir=\"auto\">Both of these issues can be solved by creating dedicated mappings that start with submode \"prefix\" (i.e. <code class=\"notranslate\">postkeys</code> value) and do what you describe:</p>\n<ol dir=\"auto\">\n<li>A prefix-<code class=\"notranslate\">q</code> mapping that does nothing and has no <code class=\"notranslate\">postkeys</code>.</li>\n<li>Mappings <code class=\"notranslate\">&lt;C-w&gt;&lt;C-r&gt;&lt;C-hjkl&gt;</code> that change window and have <code class=\"notranslate\">&lt;C-w&gt;&lt;C-r&gt;</code> postkeys.</li>\n</ol>",
+                    "bodyText": "Both of these issues can be solved by creating dedicated mappings that start with submode \"prefix\" (i.e. postkeys value) and do what you describe:\n\nA prefix-q mapping that does nothing and has no postkeys.\nMappings <C-w><C-r><C-hjkl> that change window and have <C-w><C-r> postkeys.",
+                    "createdAt": "2025-05-05T16:37:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13041945,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxwEZ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T16:37:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041945",
+                    "updatedAt": "2025-05-05T16:37:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041945"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Yep, now I feel stupid. Thank you the response, I will try it out.",
+                    "bodyHTML": "<p dir=\"auto\">Yep, now I feel stupid. Thank you the response, I will try it out.</p>",
+                    "bodyText": "Yep, now I feel stupid. Thank you the response, I will try it out.",
+                    "createdAt": "2025-05-05T16:45:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13042068,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4AxwGU",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-05-05T16:46:26Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T16:45:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13042068",
+                    "updatedAt": "2025-05-05T16:46:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13042068"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "<details><summary>Draft</summary>\r\n\r\n```lua\r\nvim.env.LAZY_STDPATH = '.repro'\r\nload(vim.fn.system 'curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua')()\r\n\r\n---@diagnostic disable-next-line: missing-fields\r\nrequire('lazy.minit').repro {\r\n  spec = {\r\n    {\r\n      'echasnovski/mini.clue',\r\n      lazy = false,\r\n      config = function()\r\n        local prefix = '<C-w><C-r>'\r\n        local config = {\r\n          triggers = {\r\n            { mode = 'n', keys = prefix },\r\n          },\r\n          clues = {\r\n            { mode = 'n', keys = prefix .. 'q' },\r\n            { mode = 'n', keys = prefix .. 'h', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. 'j', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. 'k', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. 'l', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. '<C-h>', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. '<C-j>', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. '<C-k>', postkeys = prefix },\r\n            { mode = 'n', keys = prefix .. '<C-l>', postkeys = prefix },\r\n          },\r\n        }\r\n        local miniclue = require 'mini.clue'\r\n        miniclue.setup(config)\r\n        -- stylua: ignore start\r\n        vim.keymap.set('n', prefix .. 'q', '<nop>', { desc = 'Quit' })\r\n        vim.keymap.set('n', prefix .. '<C-h>', '<C-w>h', { remap = true })\r\n        vim.keymap.set('n', prefix .. '<C-j>', '<C-w>j', { remap = true })\r\n        vim.keymap.set('n', prefix .. '<C-k>', '<C-w>k', { remap = true })\r\n        vim.keymap.set('n', prefix .. '<C-l>', '<C-w>l', { remap = true })\r\n        vim.keymap.set('n', prefix .. 'h', '<C-w><', { desc = 'Decrease width' })\r\n        vim.keymap.set('n', prefix .. 'j', '<C-w>+', { desc = 'Increase height' })\r\n        vim.keymap.set('n', prefix .. 'k', '<C-w>-', { desc = 'Decrease height' })\r\n        vim.keymap.set('n', prefix .. 'l', '<C-w>>', { desc = 'Increase width' })\r\n      end,\r\n    },\r\n  },\r\n}\r\n```\r\n\r\n</details>\r\n\r\n<details open><summary>Current</summary>\r\n\r\n```lua\r\nlocal resize = function(dir)\r\n  local step = { h = 4, v = 2 }\r\n  if dir == \"h\" then\r\n    vim.fn.win_move_separator(vim.fn.winnr(\"h\"), -step.h)\r\n  elseif dir == \"l\" then\r\n    vim.fn.win_move_separator(vim.fn.winnr(\"h\"), step.h)\r\n  elseif dir == \"k\" then\r\n    vim.fn.win_move_statusline(vim.fn.winnr(\"k\"), -step.v)\r\n  elseif dir == \"j\" then\r\n    vim.fn.win_move_statusline(vim.fn.winnr(\"k\"), step.v)\r\n  end\r\nend\r\n\r\nlocal r_prefix = \"<C-w>r\"\r\n\r\nvim.keymap.set(\"n\", r_prefix .. \"q\", \"<nop>\", { desc = \"Quit\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"H\", \"<C-w>h\", { remap = true, desc = \"Move left\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"J\", \"<C-w>j\", { remap = true, desc = \"Move down\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"K\", \"<C-w>k\", { remap = true, desc = \"Move up\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"L\", \"<C-w>l\", { remap = true, desc = \"Move right\" })\r\n-- stylua: ignore start\r\nvim.keymap.set(\"n\", r_prefix .. \"h\", function() resize(\"h\") end, { desc = \"Resize left\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"j\", function() resize(\"j\") end, { desc = \"Resize down\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"k\", function() resize(\"k\") end, { desc = \"Resize up\" })\r\nvim.keymap.set(\"n\", r_prefix .. \"l\", function() resize(\"l\") end, { desc = \"Resize right\" })\r\n-- stylua: ignore end\r\nlocal MiniClue = require(\"mini.clue\")\r\nMiniClue.gen_clues.resize = function()\r\n  return {\r\n    { mode = \"n\", keys = r_prefix .. \"q\" },\r\n    { mode = \"n\", keys = r_prefix .. \"H\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"J\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"K\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"L\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"h\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"j\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"k\", postkeys = r_prefix },\r\n    { mode = \"n\", keys = r_prefix .. \"l\", postkeys = r_prefix },\r\n  }\r\nend\r\nMiniClue.setup({\r\n  triggers = {\r\n    { mode = \"n\", keys = r_prefix },\r\n  },\r\n  clues = {\r\n    MiniClue.gen_clues.resize(),\r\n  },\r\n})\r\n```\r\n\r\n</details>\r\n\r\n---\r\n\r\nI'd like to point out a couple of things:\r\n\r\n1. The mapping `<C-j>` is displayed as `<NL>`.\r\n\r\n![image](https://github.com/user-attachments/assets/6b845b85-9114-459a-bd21-a3fdaf6c870f)\r\n\r\n2. It would be nice to be able to disable a specific clue (e.g. `q`) for a submode.\r\n\r\n    2.1 Keymap\r\n    ```lua\r\n    vim.keymap.set('n', prefix .. 'q', '<nop>', { desc = 'which_key_ignore' })\r\n    ```\r\n  \r\n    2.2 Config\r\n    ```lua\r\n    clues = {\r\n      { mode = 'n', keys = prefix .. 'q', show = false },\r\n    ```",
+                    "bodyHTML": "<details><summary>Draft</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.env.LAZY_STDPATH = '.repro'\nload(vim.fn.system 'curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua')()\n\n---@diagnostic disable-next-line: missing-fields\nrequire('lazy.minit').repro {\n  spec = {\n    {\n      'echasnovski/mini.clue',\n      lazy = false,\n      config = function()\n        local prefix = '&lt;C-w&gt;&lt;C-r&gt;'\n        local config = {\n          triggers = {\n            { mode = 'n', keys = prefix },\n          },\n          clues = {\n            { mode = 'n', keys = prefix .. 'q' },\n            { mode = 'n', keys = prefix .. 'h', postkeys = prefix },\n            { mode = 'n', keys = prefix .. 'j', postkeys = prefix },\n            { mode = 'n', keys = prefix .. 'k', postkeys = prefix },\n            { mode = 'n', keys = prefix .. 'l', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '&lt;C-h&gt;', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '&lt;C-j&gt;', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '&lt;C-k&gt;', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '&lt;C-l&gt;', postkeys = prefix },\n          },\n        }\n        local miniclue = require 'mini.clue'\n        miniclue.setup(config)\n        -- stylua: ignore start\n        vim.keymap.set('n', prefix .. 'q', '&lt;nop&gt;', { desc = 'Quit' })\n        vim.keymap.set('n', prefix .. '&lt;C-h&gt;', '&lt;C-w&gt;h', { remap = true })\n        vim.keymap.set('n', prefix .. '&lt;C-j&gt;', '&lt;C-w&gt;j', { remap = true })\n        vim.keymap.set('n', prefix .. '&lt;C-k&gt;', '&lt;C-w&gt;k', { remap = true })\n        vim.keymap.set('n', prefix .. '&lt;C-l&gt;', '&lt;C-w&gt;l', { remap = true })\n        vim.keymap.set('n', prefix .. 'h', '&lt;C-w&gt;&lt;', { desc = 'Decrease width' })\n        vim.keymap.set('n', prefix .. 'j', '&lt;C-w&gt;+', { desc = 'Increase height' })\n        vim.keymap.set('n', prefix .. 'k', '&lt;C-w&gt;-', { desc = 'Decrease height' })\n        vim.keymap.set('n', prefix .. 'l', '&lt;C-w&gt;&gt;', { desc = 'Increase width' })\n      end,\n    },\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">env</span>.<span class=\"pl-e\">LAZY_STDPATH</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>.repro<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-c1\">load</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua<span class=\"pl-pds\">'</span></span>)()\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable-next-line</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">missing-fields</span></span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>lazy.minit<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">repro</span> {\n  <span class=\"pl-smi\">spec</span> <span class=\"pl-k\">=</span> {\n    {\n      <span class=\"pl-s\"><span class=\"pl-pds\">'</span>echasnovski/mini.clue<span class=\"pl-pds\">'</span></span>,\n      <span class=\"pl-smi\">lazy</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n      <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;&lt;C-r&gt;<span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">config</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> {\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n          },\n          <span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> {\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">' </span></span>},\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>h<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>j<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>k<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-h&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-j&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-k&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n            { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-l&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> },\n          },\n        }\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">miniclue</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.clue<span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-smi\">miniclue</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">config</span>)\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;nop&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Quit<span class=\"pl-pds\">' </span></span>})\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-h&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;h<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-j&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;j<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-k&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;k<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-l&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;l<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>h<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;&lt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Decrease width<span class=\"pl-pds\">' </span></span>})\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>j<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;+<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Increase height<span class=\"pl-pds\">' </span></span>})\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>k<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;-<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Decrease height<span class=\"pl-pds\">' </span></span>})\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Increase width<span class=\"pl-pds\">' </span></span>})\n      <span class=\"pl-k\">end</span>,\n    },\n  },\n}</pre></div>\n</details>\n<details open=\"\"><summary>Current</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local resize = function(dir)\n  local step = { h = 4, v = 2 }\n  if dir == &quot;h&quot; then\n    vim.fn.win_move_separator(vim.fn.winnr(&quot;h&quot;), -step.h)\n  elseif dir == &quot;l&quot; then\n    vim.fn.win_move_separator(vim.fn.winnr(&quot;h&quot;), step.h)\n  elseif dir == &quot;k&quot; then\n    vim.fn.win_move_statusline(vim.fn.winnr(&quot;k&quot;), -step.v)\n  elseif dir == &quot;j&quot; then\n    vim.fn.win_move_statusline(vim.fn.winnr(&quot;k&quot;), step.v)\n  end\nend\n\nlocal r_prefix = &quot;&lt;C-w&gt;r&quot;\n\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;q&quot;, &quot;&lt;nop&gt;&quot;, { desc = &quot;Quit&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;H&quot;, &quot;&lt;C-w&gt;h&quot;, { remap = true, desc = &quot;Move left&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;J&quot;, &quot;&lt;C-w&gt;j&quot;, { remap = true, desc = &quot;Move down&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;K&quot;, &quot;&lt;C-w&gt;k&quot;, { remap = true, desc = &quot;Move up&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;L&quot;, &quot;&lt;C-w&gt;l&quot;, { remap = true, desc = &quot;Move right&quot; })\n-- stylua: ignore start\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;h&quot;, function() resize(&quot;h&quot;) end, { desc = &quot;Resize left&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;j&quot;, function() resize(&quot;j&quot;) end, { desc = &quot;Resize down&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;k&quot;, function() resize(&quot;k&quot;) end, { desc = &quot;Resize up&quot; })\nvim.keymap.set(&quot;n&quot;, r_prefix .. &quot;l&quot;, function() resize(&quot;l&quot;) end, { desc = &quot;Resize right&quot; })\n-- stylua: ignore end\nlocal MiniClue = require(&quot;mini.clue&quot;)\nMiniClue.gen_clues.resize = function()\n  return {\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;q&quot; },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;H&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;J&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;K&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;L&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;h&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;j&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;k&quot;, postkeys = r_prefix },\n    { mode = &quot;n&quot;, keys = r_prefix .. &quot;l&quot;, postkeys = r_prefix },\n  }\nend\nMiniClue.setup({\n  triggers = {\n    { mode = &quot;n&quot;, keys = r_prefix },\n  },\n  clues = {\n    MiniClue.gen_clues.resize(),\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">resize</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">dir</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">step</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">h</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">4</span>, <span class=\"pl-smi\">v</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span> }\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>h<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">win_move_separator</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">winnr</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>h<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-k\">-</span><span class=\"pl-smi\">step</span>.<span class=\"pl-e\">h</span>)\n  <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">win_move_separator</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">winnr</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>h<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-smi\">step</span>.<span class=\"pl-e\">h</span>)\n  <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>k<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">win_move_statusline</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">winnr</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>k<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-k\">-</span><span class=\"pl-smi\">step</span>.<span class=\"pl-e\">v</span>)\n  <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>j<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">win_move_statusline</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">winnr</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>k<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-smi\">step</span>.<span class=\"pl-e\">v</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-w&gt;r<span class=\"pl-pds\">\"</span></span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>q<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;nop&gt;<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Quit<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>H<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-w&gt;h<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Move left<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>J<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-w&gt;j<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Move down<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>K<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-w&gt;k<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Move up<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>L<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-w&gt;l<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Move right<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>h<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">resize</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>h<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Resize left<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>j<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">resize</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>j<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Resize down<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>k<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">resize</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>k<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Resize up<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">resize</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Resize right<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniClue</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.clue<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-e\">gen_clues</span>.<span class=\"pl-en\">resize</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">return</span> {\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>q<span class=\"pl-pds\">\" </span></span>},\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>H<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>J<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>K<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>L<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>h<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>j<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>k<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">postkeys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n  }\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> {\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r_prefix</span> },\n  },\n  <span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-e\">gen_clues</span>.<span class=\"pl-c1\">resize</span>(),\n  },\n})</pre></div>\n</details>\n<hr>\n<p dir=\"auto\">I'd like to point out a couple of things:</p>\n<ol dir=\"auto\">\n<li>The mapping <code class=\"notranslate\">&lt;C-j&gt;</code> is displayed as <code class=\"notranslate\">&lt;NL&gt;</code>.</li>\n</ol>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/440474915-6b845b85-9114-459a-bd21-a3fdaf6c870f.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQwNDc0OTE1LTZiODQ1Yjg1LTkxMTQtNDU5YS1iZDIxLWEzZmRhZjZjODcwZi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1lNWI0NTc4OTQ0MzkzNzM5MDVmYWEwOWJmMmEwM2EzZDdlYjU3NjZlNjJmOWZjZWRhZjdjZmE0YTljZDEwMWMyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.YYGdAH4uo1C5b0-jwsYXnZmE1gUgXFjV0SCQej8JEpo\"><img src=\"https://private-user-images.githubusercontent.com/119845045/440474915-6b845b85-9114-459a-bd21-a3fdaf6c870f.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQwNDc0OTE1LTZiODQ1Yjg1LTkxMTQtNDU5YS1iZDIxLWEzZmRhZjZjODcwZi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1lNWI0NTc4OTQ0MzkzNzM5MDVmYWEwOWJmMmEwM2EzZDdlYjU3NjZlNjJmOWZjZWRhZjdjZmE0YTljZDEwMWMyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.YYGdAH4uo1C5b0-jwsYXnZmE1gUgXFjV0SCQej8JEpo\" alt=\"image\" style=\"max-width: 100%;\"></a></p>\n<ol start=\"2\" dir=\"auto\">\n<li>\n<p dir=\"auto\">It would be nice to be able to disable a specific clue (e.g. <code class=\"notranslate\">q</code>) for a submode.</p>\n<p dir=\"auto\">2.1 Keymap</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set('n', prefix .. 'q', '&lt;nop&gt;', { desc = 'which_key_ignore' })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;nop&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>which_key_ignore<span class=\"pl-pds\">' </span></span>})</pre></div>\n<p dir=\"auto\">2.2 Config</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"clues = {\n  { mode = 'n', keys = prefix .. 'q', show = false },\"><pre class=\"notranslate\"><span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> {\n  { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> },</pre></div>\n</li>\n</ol>",
+                    "bodyText": "Draft\nvim.env.LAZY_STDPATH = '.repro'\nload(vim.fn.system 'curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua')()\n\n---@diagnostic disable-next-line: missing-fields\nrequire('lazy.minit').repro {\n  spec = {\n    {\n      'echasnovski/mini.clue',\n      lazy = false,\n      config = function()\n        local prefix = '<C-w><C-r>'\n        local config = {\n          triggers = {\n            { mode = 'n', keys = prefix },\n          },\n          clues = {\n            { mode = 'n', keys = prefix .. 'q' },\n            { mode = 'n', keys = prefix .. 'h', postkeys = prefix },\n            { mode = 'n', keys = prefix .. 'j', postkeys = prefix },\n            { mode = 'n', keys = prefix .. 'k', postkeys = prefix },\n            { mode = 'n', keys = prefix .. 'l', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '<C-h>', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '<C-j>', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '<C-k>', postkeys = prefix },\n            { mode = 'n', keys = prefix .. '<C-l>', postkeys = prefix },\n          },\n        }\n        local miniclue = require 'mini.clue'\n        miniclue.setup(config)\n        -- stylua: ignore start\n        vim.keymap.set('n', prefix .. 'q', '<nop>', { desc = 'Quit' })\n        vim.keymap.set('n', prefix .. '<C-h>', '<C-w>h', { remap = true })\n        vim.keymap.set('n', prefix .. '<C-j>', '<C-w>j', { remap = true })\n        vim.keymap.set('n', prefix .. '<C-k>', '<C-w>k', { remap = true })\n        vim.keymap.set('n', prefix .. '<C-l>', '<C-w>l', { remap = true })\n        vim.keymap.set('n', prefix .. 'h', '<C-w><', { desc = 'Decrease width' })\n        vim.keymap.set('n', prefix .. 'j', '<C-w>+', { desc = 'Increase height' })\n        vim.keymap.set('n', prefix .. 'k', '<C-w>-', { desc = 'Decrease height' })\n        vim.keymap.set('n', prefix .. 'l', '<C-w>>', { desc = 'Increase width' })\n      end,\n    },\n  },\n}\n\nCurrent\nlocal resize = function(dir)\n  local step = { h = 4, v = 2 }\n  if dir == \"h\" then\n    vim.fn.win_move_separator(vim.fn.winnr(\"h\"), -step.h)\n  elseif dir == \"l\" then\n    vim.fn.win_move_separator(vim.fn.winnr(\"h\"), step.h)\n  elseif dir == \"k\" then\n    vim.fn.win_move_statusline(vim.fn.winnr(\"k\"), -step.v)\n  elseif dir == \"j\" then\n    vim.fn.win_move_statusline(vim.fn.winnr(\"k\"), step.v)\n  end\nend\n\nlocal r_prefix = \"<C-w>r\"\n\nvim.keymap.set(\"n\", r_prefix .. \"q\", \"<nop>\", { desc = \"Quit\" })\nvim.keymap.set(\"n\", r_prefix .. \"H\", \"<C-w>h\", { remap = true, desc = \"Move left\" })\nvim.keymap.set(\"n\", r_prefix .. \"J\", \"<C-w>j\", { remap = true, desc = \"Move down\" })\nvim.keymap.set(\"n\", r_prefix .. \"K\", \"<C-w>k\", { remap = true, desc = \"Move up\" })\nvim.keymap.set(\"n\", r_prefix .. \"L\", \"<C-w>l\", { remap = true, desc = \"Move right\" })\n-- stylua: ignore start\nvim.keymap.set(\"n\", r_prefix .. \"h\", function() resize(\"h\") end, { desc = \"Resize left\" })\nvim.keymap.set(\"n\", r_prefix .. \"j\", function() resize(\"j\") end, { desc = \"Resize down\" })\nvim.keymap.set(\"n\", r_prefix .. \"k\", function() resize(\"k\") end, { desc = \"Resize up\" })\nvim.keymap.set(\"n\", r_prefix .. \"l\", function() resize(\"l\") end, { desc = \"Resize right\" })\n-- stylua: ignore end\nlocal MiniClue = require(\"mini.clue\")\nMiniClue.gen_clues.resize = function()\n  return {\n    { mode = \"n\", keys = r_prefix .. \"q\" },\n    { mode = \"n\", keys = r_prefix .. \"H\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"J\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"K\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"L\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"h\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"j\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"k\", postkeys = r_prefix },\n    { mode = \"n\", keys = r_prefix .. \"l\", postkeys = r_prefix },\n  }\nend\nMiniClue.setup({\n  triggers = {\n    { mode = \"n\", keys = r_prefix },\n  },\n  clues = {\n    MiniClue.gen_clues.resize(),\n  },\n})\n\n\nI'd like to point out a couple of things:\n\nThe mapping <C-j> is displayed as <NL>.\n\n\n\n\nIt would be nice to be able to disable a specific clue (e.g. q) for a submode.\n2.1 Keymap\nvim.keymap.set('n', prefix .. 'q', '<nop>', { desc = 'which_key_ignore' })\n2.2 Config\nclues = {\n  { mode = 'n', keys = prefix .. 'q', show = false },",
+                    "createdAt": "2025-05-05T18:22:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13043021,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4AxwVN",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-10-07T07:52:40Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T18:22:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13043021",
+                    "updatedAt": "2025-10-07T07:52:40Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13043021"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> 1. The mapping `<C-j>` is displayed as `<NL>`.\r\n\r\nYeah, this is a 'mini.clue' issue due to how `vim.fn.keyrans()` works. That'll be fixed.\r\n\r\n> 2\\. It would be nice to be able to disable a specific clue (e.g. `q`) for a submode.\r\n\r\nIt was discussed in #490 and #864.",
+                    "bodyHTML": "<blockquote>\n<ol dir=\"auto\">\n<li>The mapping <code class=\"notranslate\">&lt;C-j&gt;</code> is displayed as <code class=\"notranslate\">&lt;NL&gt;</code>.</li>\n</ol>\n</blockquote>\n<p dir=\"auto\">Yeah, this is a 'mini.clue' issue due to how <code class=\"notranslate\">vim.fn.keyrans()</code> works. That'll be fixed.</p>\n<blockquote>\n<p dir=\"auto\">2. It would be nice to be able to disable a specific clue (e.g. <code class=\"notranslate\">q</code>) for a submode.</p>\n</blockquote>\n<p dir=\"auto\">It was discussed in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1910297827\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/490\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/490/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/490\">#490</a> and <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2284508833\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/864\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/864/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/864\">#864</a>.</p>",
+                    "bodyText": "The mapping <C-j> is displayed as <NL>.\n\n\nYeah, this is a 'mini.clue' issue due to how vim.fn.keyrans() works. That'll be fixed.\n\n2. It would be nice to be able to disable a specific clue (e.g. q) for a submode.\n\nIt was discussed in #490 and #864.",
+                    "createdAt": "2025-05-05T18:46:12Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13043204,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxwYE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T18:46:12Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13043204",
+                    "updatedAt": "2025-05-05T18:46:13Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13043204"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> > 1. The mapping `<C-j>` is displayed as `<NL>`.\r\n> \r\n> Yeah, this is a 'mini.clue' issue due to how `vim.fn.keyrans()` works. That'll be fixed.\r\n\r\nThis should now be fixed on latest `main`.",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<ol dir=\"auto\">\n<li>The mapping <code class=\"notranslate\">&lt;C-j&gt;</code> is displayed as <code class=\"notranslate\">&lt;NL&gt;</code>.</li>\n</ol>\n</blockquote>\n<p dir=\"auto\">Yeah, this is a 'mini.clue' issue due to how <code class=\"notranslate\">vim.fn.keyrans()</code> works. That'll be fixed.</p>\n</blockquote>\n<p dir=\"auto\">This should now be fixed on latest <code class=\"notranslate\">main</code>.</p>",
+                    "bodyText": "The mapping <C-j> is displayed as <NL>.\n\n\nYeah, this is a 'mini.clue' issue due to how vim.fn.keyrans() works. That'll be fixed.\n\nThis should now be fixed on latest main.",
+                    "createdAt": "2025-05-06T11:34:15Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13049279,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axx2_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-06T11:34:15Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13049279",
+                    "updatedAt": "2025-05-06T11:34:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13049279"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thanks again for your work and your help—really appreciated it.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks again for your work and your help—really appreciated it.</p>",
+                    "bodyText": "Thanks again for your work and your help—really appreciated it.",
+                    "createdAt": "2025-05-06T12:29:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13049766,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4Axx-m",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-05-06T12:32:26Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-06T12:29:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13049766",
+                    "updatedAt": "2025-05-06T12:32:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13049766"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "@echasnovski\r\n\r\nOh, and [`<C-S-j>`, `<S-C-j>`], [`<C-M-j>`, `<M-C-j>`] are also messed up.\r\nIt's not a big deal, though.\r\n\r\n| `<C-S-j>`, `<S-C-j>` | `<C-M-j>`, `<M-C-j>` |\r\n| - | - |\r\n| ![image](https://github.com/user-attachments/assets/b2db9620-51c0-4ee1-be82-73cfb08e06fc) | ![image](https://github.com/user-attachments/assets/17f157e4-e8f5-451e-9b55-4c8409fc21d0) |",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a></p>\n<p dir=\"auto\">Oh, and [<code class=\"notranslate\">&lt;C-S-j&gt;</code>, <code class=\"notranslate\">&lt;S-C-j&gt;</code>], [<code class=\"notranslate\">&lt;C-M-j&gt;</code>, <code class=\"notranslate\">&lt;M-C-j&gt;</code>] are also messed up.<br>\nIt's not a big deal, though.</p>\n<markdown-accessiblity-table><table role=\"table\">\n<thead>\n<tr>\n<th><code class=\"notranslate\">&lt;C-S-j&gt;</code>, <code class=\"notranslate\">&lt;S-C-j&gt;</code></th>\n<th><code class=\"notranslate\">&lt;C-M-j&gt;</code>, <code class=\"notranslate\">&lt;M-C-j&gt;</code></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/443741651-b2db9620-51c0-4ee1-be82-73cfb08e06fc.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQzNzQxNjUxLWIyZGI5NjIwLTUxYzAtNGVlMS1iZTgyLTczY2ZiMDhlMDZmYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0xMWI5OWI2NDdkZDQyZmYzMjI4ZTM5N2EyZDg4ODdiZTE4M2NhYjE4MzhiYjFiZGE0M2E2NjAyYmJlMzBjZTY1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.f5voy9RnkeLt2sQzg56JAnwAH5VCbr35QkXaCVXVznc\"><img src=\"https://private-user-images.githubusercontent.com/119845045/443741651-b2db9620-51c0-4ee1-be82-73cfb08e06fc.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQzNzQxNjUxLWIyZGI5NjIwLTUxYzAtNGVlMS1iZTgyLTczY2ZiMDhlMDZmYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0xMWI5OWI2NDdkZDQyZmYzMjI4ZTM5N2EyZDg4ODdiZTE4M2NhYjE4MzhiYjFiZGE0M2E2NjAyYmJlMzBjZTY1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.f5voy9RnkeLt2sQzg56JAnwAH5VCbr35QkXaCVXVznc\" alt=\"image\" style=\"max-width: 100%;\"></a></td>\n<td><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/443745374-17f157e4-e8f5-451e-9b55-4c8409fc21d0.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQzNzQ1Mzc0LTE3ZjE1N2U0LWU4ZjUtNDUxZS05YjU1LTRjODQwOWZjMjFkMC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wN2Q1NmM2MWE0YzE3NTZhZmZjNDc1YTA5NTAzYTg1NDYzZjU2NzQwZDVkYTA3NTAxMTMwYzgxMDM5MjEyNmYwJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.VanF1DN-pddsvwlmeiLE-5S5LBEXQXl8kTQ9fr-MzDM\"><img src=\"https://private-user-images.githubusercontent.com/119845045/443745374-17f157e4-e8f5-451e-9b55-4c8409fc21d0.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQzNzQ1Mzc0LTE3ZjE1N2U0LWU4ZjUtNDUxZS05YjU1LTRjODQwOWZjMjFkMC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wN2Q1NmM2MWE0YzE3NTZhZmZjNDc1YTA5NTAzYTg1NDYzZjU2NzQwZDVkYTA3NTAxMTMwYzgxMDM5MjEyNmYwJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.VanF1DN-pddsvwlmeiLE-5S5LBEXQXl8kTQ9fr-MzDM\" alt=\"image\" style=\"max-width: 100%;\"></a></td>\n</tr>\n</tbody>\n</table></markdown-accessiblity-table>",
+                    "bodyText": "@echasnovski\nOh, and [<C-S-j>, <S-C-j>], [<C-M-j>, <M-C-j>] are also messed up.\nIt's not a big deal, though.\n\n\n\n<C-S-j>, <S-C-j>\n<C-M-j>, <M-C-j>",
+                    "createdAt": "2025-05-14T15:51:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13147086,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4AyJvO",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-05-14T16:01:17Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-14T15:51:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13147086",
+                    "updatedAt": "2025-05-14T16:01:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13147086"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks! I am still not entirely sure that mapping those key combinations is possible in terminal emulator, but I'll fix it (soon) anyway.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks! I am still not entirely sure that mapping those key combinations is possible in terminal emulator, but I'll fix it (soon) anyway.</p>",
+                    "bodyText": "Thanks! I am still not entirely sure that mapping those key combinations is possible in terminal emulator, but I'll fix it (soon) anyway.",
+                    "createdAt": "2025-05-14T16:35:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13147584,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AyJ3A",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-14T16:35:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13147584",
+                    "updatedAt": "2025-05-14T16:35:47Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13147584"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Depends on the terminal. As far as I understand, `xterm` didn't support it initially, but the *Kitty* introduced a keys protocol that allows such behavior. It is supported by various terminals out of the box, e.g. `kitty`, `ghostty`, `wezterm`.\r\n\r\nSee https://sw.kovidgoyal.net/kitty/keyboard-protocol for more information.\r\n\r\nThese keys even work in tmux with `set -g extended-keys on` (terminal should support the protocol).\r\n\r\n*Alacritty* supports the *Kitty* keyboard protocol *partially*. Such mappings need to be configured manually to send distinct key sequences. While applications can request a mode with extended key support, these key sequences are not sent by default for this terminal.\r\n\r\nKitty output:\r\n\r\n![image](https://github.com/user-attachments/assets/837d6eef-6fc9-40d8-afe1-fecff181f943)",
+                    "bodyHTML": "<p dir=\"auto\">Depends on the terminal. As far as I understand, <code class=\"notranslate\">xterm</code> didn't support it initially, but the <em>Kitty</em> introduced a keys protocol that allows such behavior. It is supported by various terminals out of the box, e.g. <code class=\"notranslate\">kitty</code>, <code class=\"notranslate\">ghostty</code>, <code class=\"notranslate\">wezterm</code>.</p>\n<p dir=\"auto\">See <a href=\"https://sw.kovidgoyal.net/kitty/keyboard-protocol\" rel=\"nofollow\">https://sw.kovidgoyal.net/kitty/keyboard-protocol</a> for more information.</p>\n<p dir=\"auto\">These keys even work in tmux with <code class=\"notranslate\">set -g extended-keys on</code> (terminal should support the protocol).</p>\n<p dir=\"auto\"><em>Alacritty</em> supports the <em>Kitty</em> keyboard protocol <em>partially</em>. Such mappings need to be configured manually to send distinct key sequences. While applications can request a mode with extended key support, these key sequences are not sent by default for this terminal.</p>\n<p dir=\"auto\">Kitty output:</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/443773569-837d6eef-6fc9-40d8-afe1-fecff181f943.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQzNzczNTY5LTgzN2Q2ZWVmLTZmYzktNDBkOC1hZmUxLWZlY2ZmMTgxZjk0My5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00NTk4ZmEwNDk4Y2E0NzM2NTVmN2IxZDhkNWVhOTE3ZDhlMjJhMmVhOTZiNDM5ZDQzNmUzZTNjMmMwNzcxMTAzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.wjV1sSvEnariZ_xHNaRZqsf3lgezLxkak37vF8uUgU4\"><img src=\"https://private-user-images.githubusercontent.com/119845045/443773569-837d6eef-6fc9-40d8-afe1-fecff181f943.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMzMsIm5iZiI6MTc5MzU1MjczMywicGF0aCI6Ii8xMTk4NDUwNDUvNDQzNzczNTY5LTgzN2Q2ZWVmLTZmYzktNDBkOC1hZmUxLWZlY2ZmMTgxZjk0My5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00NTk4ZmEwNDk4Y2E0NzM2NTVmN2IxZDhkNWVhOTE3ZDhlMjJhMmVhOTZiNDM5ZDQzNmUzZTNjMmMwNzcxMTAzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.wjV1sSvEnariZ_xHNaRZqsf3lgezLxkak37vF8uUgU4\" alt=\"image\" style=\"max-width: 100%;\"></a></p>",
+                    "bodyText": "Depends on the terminal. As far as I understand, xterm didn't support it initially, but the Kitty introduced a keys protocol that allows such behavior. It is supported by various terminals out of the box, e.g. kitty, ghostty, wezterm.\nSee https://sw.kovidgoyal.net/kitty/keyboard-protocol for more information.\nThese keys even work in tmux with set -g extended-keys on (terminal should support the protocol).\nAlacritty supports the Kitty keyboard protocol partially. Such mappings need to be configured manually to send distinct key sequences. While applications can request a mode with extended key support, these key sequences are not sent by default for this terminal.\nKitty output:",
+                    "createdAt": "2025-05-14T17:12:21Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13148021,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4AyJ91",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-06-29T13:40:19Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-14T17:12:21Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13148021",
+                    "updatedAt": "2025-06-29T13:40:19Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13148021"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Thanks! I am still not entirely sure that mapping those key combinations is possible in terminal emulator, but I'll fix it (soon) anyway.\r\n\r\nShould now be fixed on latest `main`.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Thanks! I am still not entirely sure that mapping those key combinations is possible in terminal emulator, but I'll fix it (soon) anyway.</p>\n</blockquote>\n<p dir=\"auto\">Should now be fixed on latest <code class=\"notranslate\">main</code>.</p>",
+                    "bodyText": "Thanks! I am still not entirely sure that mapping those key combinations is possible in terminal emulator, but I'll fix it (soon) anyway.\n\nShould now be fixed on latest main.",
+                    "createdAt": "2025-05-15T12:16:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13157926,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AyMYm",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-15T12:16:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13041768,
+                        "id": "DC_kwDOFoksYM4AxwBo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13157926",
+                    "updatedAt": "2025-05-15T12:16:21Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13157926"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768",
+            "updatedAt": "2025-05-05T16:21:25Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786#discussioncomment-13041768"
+        }
+    ],
+    "createdAt": "2025-05-05T16:14:49Z",
+    "createdViaEmail": false,
+    "databaseId": 8282103,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4Afl_3",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABWZsqRQ",
+                "name": "mini.clue"
+            },
+            {
+                "color": "FBCA04",
+                "description": "This is related to all present modules",
+                "id": "LA_kwDOFoksYM8AAAABwzHsyw",
+                "name": "ALL"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-05-06T12:32:49Z",
+    "locked": false,
+    "number": 1786,
+    "poll": null,
+    "publishedAt": "2025-05-05T16:14:49Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1786",
+    "stateReason": "RESOLVED",
+    "title": "Expose private `H` to implement `mini.clue` resize mode",
+    "updatedAt": "2026-08-18T10:19:55Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1786"
+}

@@ -1,0 +1,364 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/52180870?u=850e2c4322f391a0724f784137457c3599f77892&v=4",
+        "login": "diego-velez",
+        "resourcePath": "/diego-velez",
+        "url": "https://github.com/diego-velez"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "I started working on a huge codebase recently, and whenever I used the builtin files picker for mini.pick the entries would overflow the window. So I made a show function that shortens each file's path.\r\n\r\nCode:\r\n```lua\r\n-- Shorten file directory\r\n-- E.g. one/two/three/README.md -> o/t/t/README.md\r\nlocal show_files = function(buf_id, entries, query, opts)\r\n  for line, entry in ipairs(entries) do\r\n    local new_entry = ''\r\n    local _, directory_len = string.gsub(entry, '/', '/')\r\n    directory_len = directory_len + 1\r\n\r\n    local dir_i = 1\r\n    for dir in string.gmatch(entry, '[^/]+') do\r\n      -- Skip if only 1 file in directory\r\n      if directory_len == 1 then\r\n        new_entry = entry\r\n        goto continue\r\n      end\r\n\r\n      -- Do not shorten last file/folder\r\n      if dir_i == directory_len then\r\n        new_entry = new_entry .. dir\r\n        goto continue\r\n      end\r\n\r\n      -- If folder starts with . then show first two characters\r\n      -- E.g. .config -> .c instead of just .\r\n      if string.sub(dir, 1, 1) == '.' then\r\n        new_entry = new_entry .. string.sub(dir, 1, 2) .. '/'\r\n      else\r\n        new_entry = new_entry .. string.sub(dir, 1, 1) .. '/'\r\n      end\r\n\r\n      ::continue::\r\n      dir_i = dir_i + 1\r\n    end\r\n\r\n    entries[line] = new_entry\r\n  end\r\n\r\n  MiniPick.default_show(buf_id, entries, query, opts)\r\nend\r\n\r\nrequire('mini.pick').builtin.files({}, {\r\n  source = { show = show_files },\r\n})\r\n```\r\n\r\nMaybe would be nice to only shorten the entries that overflow the window somehow.",
+    "bodyHTML": "<p dir=\"auto\">I started working on a huge codebase recently, and whenever I used the builtin files picker for mini.pick the entries would overflow the window. So I made a show function that shortens each file's path.</p>\n<p dir=\"auto\">Code:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Shorten file directory\n-- E.g. one/two/three/README.md -&gt; o/t/t/README.md\nlocal show_files = function(buf_id, entries, query, opts)\n  for line, entry in ipairs(entries) do\n    local new_entry = ''\n    local _, directory_len = string.gsub(entry, '/', '/')\n    directory_len = directory_len + 1\n\n    local dir_i = 1\n    for dir in string.gmatch(entry, '[^/]+') do\n      -- Skip if only 1 file in directory\n      if directory_len == 1 then\n        new_entry = entry\n        goto continue\n      end\n\n      -- Do not shorten last file/folder\n      if dir_i == directory_len then\n        new_entry = new_entry .. dir\n        goto continue\n      end\n\n      -- If folder starts with . then show first two characters\n      -- E.g. .config -&gt; .c instead of just .\n      if string.sub(dir, 1, 1) == '.' then\n        new_entry = new_entry .. string.sub(dir, 1, 2) .. '/'\n      else\n        new_entry = new_entry .. string.sub(dir, 1, 1) .. '/'\n      end\n\n      ::continue::\n      dir_i = dir_i + 1\n    end\n\n    entries[line] = new_entry\n  end\n\n  MiniPick.default_show(buf_id, entries, query, opts)\nend\n\nrequire('mini.pick').builtin.files({}, {\n  source = { show = show_files },\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Shorten file directory</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> E.g. one/two/three/README.md -&gt; o/t/t/README.md</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">show_files</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">entries</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">line</span>, <span class=\"pl-smi\">entry</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">entries</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">directory_len</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.gsub</span>(<span class=\"pl-smi\">entry</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">directory_len</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">directory_len</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">dir_i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">string.gmatch</span>(<span class=\"pl-smi\">entry</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^/]+<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Skip if only 1 file in directory</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">directory_len</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">entry</span>\n        <span class=\"pl-k\">goto</span> <span class=\"pl-s\">continue</span>\n      <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Do not shorten last file/folder</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">dir_i</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">directory_len</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">dir</span>\n        <span class=\"pl-k\">goto</span> <span class=\"pl-s\">continue</span>\n      <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> If folder starts with . then show first two characters</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> E.g. .config -&gt; .c instead of just .</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">dir</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>.<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">..</span> <span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">dir</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">2</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/<span class=\"pl-pds\">'</span></span>\n      <span class=\"pl-k\">else</span>\n        <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_entry</span> <span class=\"pl-k\">..</span> <span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">dir</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/<span class=\"pl-pds\">'</span></span>\n      <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-s\"><span class=\"pl-pse\">::</span>continue<span class=\"pl-pse\">::</span></span>\n      <span class=\"pl-smi\">dir_i</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">dir_i</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-smi\">entries</span>[<span class=\"pl-smi\">line</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_entry</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">entries</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>).<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">files</span>({}, {\n  <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_files</span> },\n})</pre></div>\n<p dir=\"auto\">Maybe would be nice to only shorten the entries that overflow the window somehow.</p>",
+    "bodyText": "I started working on a huge codebase recently, and whenever I used the builtin files picker for mini.pick the entries would overflow the window. So I made a show function that shortens each file's path.\nCode:\n-- Shorten file directory\n-- E.g. one/two/three/README.md -> o/t/t/README.md\nlocal show_files = function(buf_id, entries, query, opts)\n  for line, entry in ipairs(entries) do\n    local new_entry = ''\n    local _, directory_len = string.gsub(entry, '/', '/')\n    directory_len = directory_len + 1\n\n    local dir_i = 1\n    for dir in string.gmatch(entry, '[^/]+') do\n      -- Skip if only 1 file in directory\n      if directory_len == 1 then\n        new_entry = entry\n        goto continue\n      end\n\n      -- Do not shorten last file/folder\n      if dir_i == directory_len then\n        new_entry = new_entry .. dir\n        goto continue\n      end\n\n      -- If folder starts with . then show first two characters\n      -- E.g. .config -> .c instead of just .\n      if string.sub(dir, 1, 1) == '.' then\n        new_entry = new_entry .. string.sub(dir, 1, 2) .. '/'\n      else\n        new_entry = new_entry .. string.sub(dir, 1, 1) .. '/'\n      end\n\n      ::continue::\n      dir_i = dir_i + 1\n    end\n\n    entries[line] = new_entry\n  end\n\n  MiniPick.default_show(buf_id, entries, query, opts)\nend\n\nrequire('mini.pick').builtin.files({}, {\n  source = { show = show_files },\n})\nMaybe would be nice to only shorten the entries that overflow the window somehow.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI personally find it really confusing and very hard to quickly identify files when parent directories are this short. Only recently I found it more or less bearable in shell prompt for current working directory, but only because it is something I manually adjust and it doesn't change that often.\r\n\r\nHere is a more compact version of showing short parent directories:\r\n\r\n```lua\r\nlocal parent_dir_pattern = vim.fn.has('win32') == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\r\nlocal shorten_dirname = function(name, path_sep)\r\n  local first = vim.fn.strcharpart(name, 0, 1)\r\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\r\n  return first .. path_sep\r\nend\r\nlocal make_short_path = function(path) return path:gsub(parent_dir_pattern, shorten_dirname) end\r\n\r\nlocal show_short_files = function(buf_id, items_to_show, query)\r\n  local short_items_to_show = vim.tbl_map(make_short_path, items_to_show)\r\n  MiniPick.default_show(buf_id, short_items_to_show, query)\r\nend\r\n\r\nMiniPick.registry.files = function() MiniPick.builtin.files({}, { source = { show = show_short_files } }) end\r\n```\r\n\r\nSome important differences:\r\n- It doesn't use `goto` which *should not* be used in Neovim's Lua. Because it is not present in Lua 5.1. specification (which all Neovim's Lua code should follow, see `:h lua-compat`) and only works by coincidence because LuaJIT supports it.\r\n- It should work with both Windows and Unix paths and for multibyte characters in directory names.\r\n\r\nAlthough using `MiniPick.default_show()` allows to show query matches, there are severe shortcomings:\r\n- This visualization of matched characters is broken (because \"true\" matched characters might not be shown). Thankfully, shortening shown items doesn't affect matching (i.e. typing characters in query would still match inside full parent directories).\r\n- There is no icons.\r\n\r\nSo to overcome both of these issues, full custom `show` function is required. Studying [`default_show()` code](https://github.com/echasnovski/mini.nvim/blob/01dce72f2177de6044bcab60ebb8f8e56ade0936/lua/mini/pick.lua#L1056) might help here.\r\n\r\n---\r\n\r\nBut the *real solution* to the problem of navigating too wide matches is the [horizontal scroll](https://github.com/echasnovski/mini.nvim/blob/01dce72f2177de6044bcab60ebb8f8e56ade0936/doc/mini-pick.txt#L580-L581). By default it is `<C-l>` to scroll right and `<C-h>` to scroll left. The scroll is preserved (as best as possible, because it depends on the width of the current item) when navigating up and down.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I personally find it really confusing and very hard to quickly identify files when parent directories are this short. Only recently I found it more or less bearable in shell prompt for current working directory, but only because it is something I manually adjust and it doesn't change that often.</p>\n<p dir=\"auto\">Here is a more compact version of showing short parent directories:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local parent_dir_pattern = vim.fn.has('win32') == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\nlocal shorten_dirname = function(name, path_sep)\n  local first = vim.fn.strcharpart(name, 0, 1)\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\n  return first .. path_sep\nend\nlocal make_short_path = function(path) return path:gsub(parent_dir_pattern, shorten_dirname) end\n\nlocal show_short_files = function(buf_id, items_to_show, query)\n  local short_items_to_show = vim.tbl_map(make_short_path, items_to_show)\n  MiniPick.default_show(buf_id, short_items_to_show, query)\nend\n\nMiniPick.registry.files = function() MiniPick.builtin.files({}, { source = { show = show_short_files } }) end\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">parent_dir_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">has</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>win32<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>([^<span class=\"pl-cce\">\\\\</span>/]+)([<span class=\"pl-cce\">\\\\</span>/])<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>([^/]+)(/)<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">shorten_dirname</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">path_sep</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">first</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">strcharpart</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-smi\">first</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">first</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>.<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">strcharpart</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">2</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">first</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">first</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">path_sep</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">make_short_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">path</span>) <span class=\"pl-k\">return</span> <span class=\"pl-en\">path</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-smi\">parent_dir_pattern</span>, <span class=\"pl-smi\">shorten_dirname</span>) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">show_short_files</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">short_items_to_show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-smi\">make_short_path</span>, <span class=\"pl-smi\">items_to_show</span>)\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">short_items_to_show</span>, <span class=\"pl-smi\">query</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">files</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">files</span>({}, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_short_files</span> } }) <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Some important differences:</p>\n<ul dir=\"auto\">\n<li>It doesn't use <code class=\"notranslate\">goto</code> which <em>should not</em> be used in Neovim's Lua. Because it is not present in Lua 5.1. specification (which all Neovim's Lua code should follow, see <code class=\"notranslate\">:h lua-compat</code>) and only works by coincidence because LuaJIT supports it.</li>\n<li>It should work with both Windows and Unix paths and for multibyte characters in directory names.</li>\n</ul>\n<p dir=\"auto\">Although using <code class=\"notranslate\">MiniPick.default_show()</code> allows to show query matches, there are severe shortcomings:</p>\n<ul dir=\"auto\">\n<li>This visualization of matched characters is broken (because \"true\" matched characters might not be shown). Thankfully, shortening shown items doesn't affect matching (i.e. typing characters in query would still match inside full parent directories).</li>\n<li>There is no icons.</li>\n</ul>\n<p dir=\"auto\">So to overcome both of these issues, full custom <code class=\"notranslate\">show</code> function is required. Studying <a href=\"https://github.com/echasnovski/mini.nvim/blob/01dce72f2177de6044bcab60ebb8f8e56ade0936/lua/mini/pick.lua#L1056\"><code class=\"notranslate\">default_show()</code> code</a> might help here.</p>\n<hr>\n<p dir=\"auto\">But the <em>real solution</em> to the problem of navigating too wide matches is the <a href=\"https://github.com/echasnovski/mini.nvim/blob/01dce72f2177de6044bcab60ebb8f8e56ade0936/doc/mini-pick.txt#L580-L581\">horizontal scroll</a>. By default it is <code class=\"notranslate\">&lt;C-l&gt;</code> to scroll right and <code class=\"notranslate\">&lt;C-h&gt;</code> to scroll left. The scroll is preserved (as best as possible, because it depends on the width of the current item) when navigating up and down.</p>",
+            "bodyText": "Thanks for sharing!\nI personally find it really confusing and very hard to quickly identify files when parent directories are this short. Only recently I found it more or less bearable in shell prompt for current working directory, but only because it is something I manually adjust and it doesn't change that often.\nHere is a more compact version of showing short parent directories:\nlocal parent_dir_pattern = vim.fn.has('win32') == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\nlocal shorten_dirname = function(name, path_sep)\n  local first = vim.fn.strcharpart(name, 0, 1)\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\n  return first .. path_sep\nend\nlocal make_short_path = function(path) return path:gsub(parent_dir_pattern, shorten_dirname) end\n\nlocal show_short_files = function(buf_id, items_to_show, query)\n  local short_items_to_show = vim.tbl_map(make_short_path, items_to_show)\n  MiniPick.default_show(buf_id, short_items_to_show, query)\nend\n\nMiniPick.registry.files = function() MiniPick.builtin.files({}, { source = { show = show_short_files } }) end\nSome important differences:\n\nIt doesn't use goto which should not be used in Neovim's Lua. Because it is not present in Lua 5.1. specification (which all Neovim's Lua code should follow, see :h lua-compat) and only works by coincidence because LuaJIT supports it.\nIt should work with both Windows and Unix paths and for multibyte characters in directory names.\n\nAlthough using MiniPick.default_show() allows to show query matches, there are severe shortcomings:\n\nThis visualization of matched characters is broken (because \"true\" matched characters might not be shown). Thankfully, shortening shown items doesn't affect matching (i.e. typing characters in query would still match inside full parent directories).\nThere is no icons.\n\nSo to overcome both of these issues, full custom show function is required. Studying default_show() code might help here.\n\nBut the real solution to the problem of navigating too wide matches is the horizontal scroll. By default it is <C-l> to scroll right and <C-h> to scroll left. The scroll is preserved (as best as possible, because it depends on the width of the current item) when navigating up and down.",
+            "createdAt": "2025-06-26T08:30:36Z",
+            "createdViaEmail": false,
+            "databaseId": 13582585,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Az0D5",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-26T08:30:36Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/52180870?u=850e2c4322f391a0724f784137457c3599f77892&v=4",
+                        "login": "diego-velez",
+                        "resourcePath": "/diego-velez",
+                        "url": "https://github.com/diego-velez"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thanks for the compact version!\r\n\r\nI agree, I also find it confusing, but I prefer it to using horizontal scroll. As for a custom show function, I will definitely get to that once I have more time. 😅\r\n\r\nI updated your code to shorten the path only whenever it does not fit in the buffer.\r\n```\r\n-- Use proper slash depending on OS\r\nlocal parent_dir_pattern = vim.fn.has 'win32' == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\r\n\r\n-- Returns the width of the buffer\r\nlocal buffer_width = function(buf_id)\r\n  for _, win in ipairs(vim.api.nvim_list_wins()) do\r\n    if vim.api.nvim_win_get_buf(win) == buf_id then\r\n      return vim.api.nvim_win_get_width(win)\r\n    end\r\n  end\r\n  return nil\r\nend\r\n\r\n-- Shorten a folder's name\r\nlocal shorten_dirname = function(name, path_sep)\r\n  local first = vim.fn.strcharpart(name, 0, 1)\r\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\r\n  return first .. path_sep\r\nend\r\n\r\n-- Shorten one path\r\nlocal make_short_path = function(buf_width)\r\n  return function(path)\r\n    -- Do not shorten the path if it is not needed\r\n    if #path < buf_width then\r\n      return path\r\n    end\r\n\r\n    local shortened_path = path:gsub(parent_dir_pattern, shorten_dirname)\r\n    -- Return only the filename when the shorten path still overflows\r\n    if #shortened_path >= buf_width then\r\n      return shortened_path:match(parent_dir_pattern)\r\n    end\r\n\r\n    return shortened_path\r\n  end\r\nend\r\n\r\n-- Show function to shorten all entries\r\nlocal show_short_files = function(buf_id, items_to_show, query)\r\n  local buf_width = buffer_width(buf_id)\r\n  local short_items_to_show = vim.tbl_map(make_short_path(buf_width), items_to_show)\r\n  -- TODO: Instead of using default show, replace in order to highlight proper folder and add icons back\r\n  MiniPick.default_show(buf_id, short_items_to_show, query)\r\nend\r\n\r\nrequire('mini.pick').builtin.files({}, {\r\n  source = { show = show_short_files },\r\n})\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the compact version!</p>\n<p dir=\"auto\">I agree, I also find it confusing, but I prefer it to using horizontal scroll. As for a custom show function, I will definitely get to that once I have more time. 😅</p>\n<p dir=\"auto\">I updated your code to shorten the path only whenever it does not fit in the buffer.</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"-- Use proper slash depending on OS\nlocal parent_dir_pattern = vim.fn.has 'win32' == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\n\n-- Returns the width of the buffer\nlocal buffer_width = function(buf_id)\n  for _, win in ipairs(vim.api.nvim_list_wins()) do\n    if vim.api.nvim_win_get_buf(win) == buf_id then\n      return vim.api.nvim_win_get_width(win)\n    end\n  end\n  return nil\nend\n\n-- Shorten a folder's name\nlocal shorten_dirname = function(name, path_sep)\n  local first = vim.fn.strcharpart(name, 0, 1)\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\n  return first .. path_sep\nend\n\n-- Shorten one path\nlocal make_short_path = function(buf_width)\n  return function(path)\n    -- Do not shorten the path if it is not needed\n    if #path &lt; buf_width then\n      return path\n    end\n\n    local shortened_path = path:gsub(parent_dir_pattern, shorten_dirname)\n    -- Return only the filename when the shorten path still overflows\n    if #shortened_path &gt;= buf_width then\n      return shortened_path:match(parent_dir_pattern)\n    end\n\n    return shortened_path\n  end\nend\n\n-- Show function to shorten all entries\nlocal show_short_files = function(buf_id, items_to_show, query)\n  local buf_width = buffer_width(buf_id)\n  local short_items_to_show = vim.tbl_map(make_short_path(buf_width), items_to_show)\n  -- TODO: Instead of using default show, replace in order to highlight proper folder and add icons back\n  MiniPick.default_show(buf_id, short_items_to_show, query)\nend\n\nrequire('mini.pick').builtin.files({}, {\n  source = { show = show_short_files },\n})\"><pre class=\"notranslate\"><code class=\"notranslate\">-- Use proper slash depending on OS\nlocal parent_dir_pattern = vim.fn.has 'win32' == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\n\n-- Returns the width of the buffer\nlocal buffer_width = function(buf_id)\n  for _, win in ipairs(vim.api.nvim_list_wins()) do\n    if vim.api.nvim_win_get_buf(win) == buf_id then\n      return vim.api.nvim_win_get_width(win)\n    end\n  end\n  return nil\nend\n\n-- Shorten a folder's name\nlocal shorten_dirname = function(name, path_sep)\n  local first = vim.fn.strcharpart(name, 0, 1)\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\n  return first .. path_sep\nend\n\n-- Shorten one path\nlocal make_short_path = function(buf_width)\n  return function(path)\n    -- Do not shorten the path if it is not needed\n    if #path &lt; buf_width then\n      return path\n    end\n\n    local shortened_path = path:gsub(parent_dir_pattern, shorten_dirname)\n    -- Return only the filename when the shorten path still overflows\n    if #shortened_path &gt;= buf_width then\n      return shortened_path:match(parent_dir_pattern)\n    end\n\n    return shortened_path\n  end\nend\n\n-- Show function to shorten all entries\nlocal show_short_files = function(buf_id, items_to_show, query)\n  local buf_width = buffer_width(buf_id)\n  local short_items_to_show = vim.tbl_map(make_short_path(buf_width), items_to_show)\n  -- TODO: Instead of using default show, replace in order to highlight proper folder and add icons back\n  MiniPick.default_show(buf_id, short_items_to_show, query)\nend\n\nrequire('mini.pick').builtin.files({}, {\n  source = { show = show_short_files },\n})\n</code></pre></div>",
+                    "bodyText": "Thanks for the compact version!\nI agree, I also find it confusing, but I prefer it to using horizontal scroll. As for a custom show function, I will definitely get to that once I have more time. 😅\nI updated your code to shorten the path only whenever it does not fit in the buffer.\n-- Use proper slash depending on OS\nlocal parent_dir_pattern = vim.fn.has 'win32' == 1 and '([^\\\\/]+)([\\\\/])' or '([^/]+)(/)'\n\n-- Returns the width of the buffer\nlocal buffer_width = function(buf_id)\n  for _, win in ipairs(vim.api.nvim_list_wins()) do\n    if vim.api.nvim_win_get_buf(win) == buf_id then\n      return vim.api.nvim_win_get_width(win)\n    end\n  end\n  return nil\nend\n\n-- Shorten a folder's name\nlocal shorten_dirname = function(name, path_sep)\n  local first = vim.fn.strcharpart(name, 0, 1)\n  first = first == '.' and vim.fn.strcharpart(name, 0, 2) or first\n  return first .. path_sep\nend\n\n-- Shorten one path\nlocal make_short_path = function(buf_width)\n  return function(path)\n    -- Do not shorten the path if it is not needed\n    if #path < buf_width then\n      return path\n    end\n\n    local shortened_path = path:gsub(parent_dir_pattern, shorten_dirname)\n    -- Return only the filename when the shorten path still overflows\n    if #shortened_path >= buf_width then\n      return shortened_path:match(parent_dir_pattern)\n    end\n\n    return shortened_path\n  end\nend\n\n-- Show function to shorten all entries\nlocal show_short_files = function(buf_id, items_to_show, query)\n  local buf_width = buffer_width(buf_id)\n  local short_items_to_show = vim.tbl_map(make_short_path(buf_width), items_to_show)\n  -- TODO: Instead of using default show, replace in order to highlight proper folder and add icons back\n  MiniPick.default_show(buf_id, short_items_to_show, query)\nend\n\nrequire('mini.pick').builtin.files({}, {\n  source = { show = show_short_files },\n})",
+                    "createdAt": "2025-06-26T16:41:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13588319,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Az1df",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-26T16:41:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13582585,
+                        "id": "DC_kwDOFoksYM4Az0D5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13582585"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13588319",
+                    "updatedAt": "2025-06-26T16:41:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13588319"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I agree, I also find it confusing, but I prefer it to using horizontal scroll. As for a custom show function, I will definitely get to that once I have more time. 😅\r\n\r\nSure, if that suits your needs better.\r\n\r\n> `-- Returns the width of the buffer`\r\n\r\nAs realistically you'd use this only when displaying in the picker's window, you can get limiting width more directly:\r\n\r\n```lua\r\nlocal win_id = MiniPick.get_picker_state().windows.main\r\nlocal win_width = vim.api.nvim_win_get_width(win_id)\r\n```\r\n\r\nOr alternatively you can use `local win_id = vim.fn.win_findbuf(buf_id)[1]`.\r\n\r\n> `#path < buf_width`\r\n\r\nAnd again, this won't work with multibyte characters, as both `#path` and `path:len()` return number of bytes while width is the number of terminal cells. You can use `vim.fn.strchars(path)` to account for that.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I agree, I also find it confusing, but I prefer it to using horizontal scroll. As for a custom show function, I will definitely get to that once I have more time. 😅</p>\n</blockquote>\n<p dir=\"auto\">Sure, if that suits your needs better.</p>\n<blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">-- Returns the width of the buffer</code></p>\n</blockquote>\n<p dir=\"auto\">As realistically you'd use this only when displaying in the picker's window, you can get limiting width more directly:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local win_id = MiniPick.get_picker_state().windows.main\nlocal win_width = vim.api.nvim_win_get_width(win_id)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">main</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_width</span>(<span class=\"pl-smi\">win_id</span>)</pre></div>\n<p dir=\"auto\">Or alternatively you can use <code class=\"notranslate\">local win_id = vim.fn.win_findbuf(buf_id)[1]</code>.</p>\n<blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">#path &lt; buf_width</code></p>\n</blockquote>\n<p dir=\"auto\">And again, this won't work with multibyte characters, as both <code class=\"notranslate\">#path</code> and <code class=\"notranslate\">path:len()</code> return number of bytes while width is the number of terminal cells. You can use <code class=\"notranslate\">vim.fn.strchars(path)</code> to account for that.</p>",
+                    "bodyText": "I agree, I also find it confusing, but I prefer it to using horizontal scroll. As for a custom show function, I will definitely get to that once I have more time. 😅\n\nSure, if that suits your needs better.\n\n-- Returns the width of the buffer\n\nAs realistically you'd use this only when displaying in the picker's window, you can get limiting width more directly:\nlocal win_id = MiniPick.get_picker_state().windows.main\nlocal win_width = vim.api.nvim_win_get_width(win_id)\nOr alternatively you can use local win_id = vim.fn.win_findbuf(buf_id)[1].\n\n#path < buf_width\n\nAnd again, this won't work with multibyte characters, as both #path and path:len() return number of bytes while width is the number of terminal cells. You can use vim.fn.strchars(path) to account for that.",
+                    "createdAt": "2025-06-26T16:58:45Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13588481,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Az1gB",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-26T16:58:45Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13582585,
+                        "id": "DC_kwDOFoksYM4Az0D5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13582585"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13588481",
+                    "updatedAt": "2025-06-26T16:58:46Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13588481"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13582585",
+            "updatedAt": "2025-06-26T08:30:37Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1873#discussioncomment-13582585"
+        }
+    ],
+    "createdAt": "2025-06-25T22:02:21Z",
+    "createdViaEmail": false,
+    "databaseId": 8495425,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "id": "D_kwDOFoksYM4AgaFB",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-06-26T07:58:14Z",
+    "locked": false,
+    "number": 1873,
+    "poll": null,
+    "publishedAt": "2025-06-25T22:02:21Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1873",
+    "stateReason": null,
+    "title": "[mini.pick] Shorten file picker paths",
+    "updatedAt": "2025-06-26T16:58:45Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1873"
+}

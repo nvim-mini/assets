@@ -1,0 +1,1128 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 18600026,
+        "id": "DC_kwDOFoksYM4BG9Ba",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600026"
+    },
+    "answerChosenAt": "2026-09-26T08:04:25Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+        "login": "ymic9963",
+        "resourcePath": "/ymic9963",
+        "url": "https://github.com/ymic9963"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+        "login": "ymic9963",
+        "resourcePath": "/ymic9963",
+        "url": "https://github.com/ymic9963"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.test\n\n### Question\n\nI've installed mini.test on its own, and due to the plugin not having a plugin/mini.test/test.lua (or similar) directory, it does not trigger a SourcePost event. Any idea how I would fix this?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.test</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I've installed mini.test on its own, and due to the plugin not having a plugin/mini.test/test.lua (or similar) directory, it does not trigger a SourcePost event. Any idea how I would fix this?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.test\nQuestion\nI've installed mini.test on its own, and due to the plugin not having a plugin/mini.test/test.lua (or similar) directory, it does not trigger a SourcePost event. Any idea how I would fix this?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-09-25T13:33:28Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/3635875?u=8e5ecdc3eef455f2bb09772832dbd4f3b2750eb5&v=4",
+                "login": "wmorin",
+                "resourcePath": "/wmorin",
+                "url": "https://github.com/wmorin"
+            },
+            "authorAssociation": "NONE",
+            "body": "That's expected, and there's nothing to fix in mini.test. `SourcePost` fires once per file that gets sourced, and `:packadd` only sources the plugin's `plugin/` and `ftdetect/` scripts. The standalone mini.test repo only has `lua/` and `doc/`, so `:packadd mini.test` adds it to `runtimepath` and sources nothing, hence no event. You'd see the same with any Lua-only plugin.\r\n\r\nQuick check with a Lua-only plugin next to one that has a `plugin/` file (Nvim 0.12):\r\n\r\n```\r\nafter packadd mini.test: SourcePost hits={} rtp_has=true require_ok=true\r\nafter packadd withplugin: SourcePost hits={ \"withplugin.lua\" }\r\n```\r\n\r\n`:packadd` is synchronous though, so you don't need an event. Whatever you were hooking on `SourcePost` can just go right after it:\r\n\r\n```lua\r\nvim.cmd.packadd(\"mini.test\")\r\nrequire(\"mini.test\").setup()\r\n```\r\n\r\nIf you install it with `vim.pack.add()`, its `load` option can take a function that gets the plugin data, and then you're in charge of loading:\r\n\r\n```lua\r\nvim.pack.add({ \"https://github.com/nvim-mini/mini.test\" }, {\r\n  load = function(p)\r\n    vim.cmd.packadd(p.spec.name)\r\n    require(\"mini.test\").setup()\r\n  end,\r\n})\r\n```\r\n\r\nSee `:h :packadd` and `:h vim.pack.add()`.\r\n",
+            "bodyHTML": "<p dir=\"auto\">That's expected, and there's nothing to fix in mini.test. <code class=\"notranslate\">SourcePost</code> fires once per file that gets sourced, and <code class=\"notranslate\">:packadd</code> only sources the plugin's <code class=\"notranslate\">plugin/</code> and <code class=\"notranslate\">ftdetect/</code> scripts. The standalone mini.test repo only has <code class=\"notranslate\">lua/</code> and <code class=\"notranslate\">doc/</code>, so <code class=\"notranslate\">:packadd mini.test</code> adds it to <code class=\"notranslate\">runtimepath</code> and sources nothing, hence no event. You'd see the same with any Lua-only plugin.</p>\n<p dir=\"auto\">Quick check with a Lua-only plugin next to one that has a <code class=\"notranslate\">plugin/</code> file (Nvim 0.12):</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"after packadd mini.test: SourcePost hits={} rtp_has=true require_ok=true\nafter packadd withplugin: SourcePost hits={ &quot;withplugin.lua&quot; }\"><pre class=\"notranslate\"><code class=\"notranslate\">after packadd mini.test: SourcePost hits={} rtp_has=true require_ok=true\nafter packadd withplugin: SourcePost hits={ \"withplugin.lua\" }\n</code></pre></div>\n<p dir=\"auto\"><code class=\"notranslate\">:packadd</code> is synchronous though, so you don't need an event. Whatever you were hooking on <code class=\"notranslate\">SourcePost</code> can just go right after it:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.cmd.packadd(&quot;mini.test&quot;)\nrequire(&quot;mini.test&quot;).setup()\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">packadd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.test<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.test<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()</pre></div>\n<p dir=\"auto\">If you install it with <code class=\"notranslate\">vim.pack.add()</code>, its <code class=\"notranslate\">load</code> option can take a function that gets the plugin data, and then you're in charge of loading:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.pack.add({ &quot;https://github.com/nvim-mini/mini.test&quot; }, {\n  load = function(p)\n    vim.cmd.packadd(p.spec.name)\n    require(&quot;mini.test&quot;).setup()\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.test<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-en\">load</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">p</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">packadd</span>(<span class=\"pl-smi\">p</span>.<span class=\"pl-e\">spec</span>.<span class=\"pl-e\">name</span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.test<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">See <code class=\"notranslate\">:h :packadd</code> and <code class=\"notranslate\">:h vim.pack.add()</code>.</p>",
+            "bodyText": "That's expected, and there's nothing to fix in mini.test. SourcePost fires once per file that gets sourced, and :packadd only sources the plugin's plugin/ and ftdetect/ scripts. The standalone mini.test repo only has lua/ and doc/, so :packadd mini.test adds it to runtimepath and sources nothing, hence no event. You'd see the same with any Lua-only plugin.\nQuick check with a Lua-only plugin next to one that has a plugin/ file (Nvim 0.12):\nafter packadd mini.test: SourcePost hits={} rtp_has=true require_ok=true\nafter packadd withplugin: SourcePost hits={ \"withplugin.lua\" }\n\n:packadd is synchronous though, so you don't need an event. Whatever you were hooking on SourcePost can just go right after it:\nvim.cmd.packadd(\"mini.test\")\nrequire(\"mini.test\").setup()\nIf you install it with vim.pack.add(), its load option can take a function that gets the plugin data, and then you're in charge of loading:\nvim.pack.add({ \"https://github.com/nvim-mini/mini.test\" }, {\n  load = function(p)\n    vim.cmd.packadd(p.spec.name)\n    require(\"mini.test\").setup()\n  end,\n})\nSee :h :packadd and :h vim.pack.add().",
+            "createdAt": "2026-09-25T12:02:38Z",
+            "createdViaEmail": false,
+            "databaseId": 18598726,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BG8tG",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-09-25T12:02:38Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18598726",
+            "updatedAt": "2026-09-25T12:02:38Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18598726"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                "login": "ymic9963",
+                "resourcePath": "/ymic9963",
+                "url": "https://github.com/ymic9963"
+            },
+            "authorAssociation": "NONE",
+            "body": "I'm not sure if the second part of your reply is useful for my problem, but I'll elaborate on what I mean and why I need it. Apologies if I misunderstood.\r\n\r\nAn example of what I'm talking about is executing a setup on `:packadd` which I've pasted below for plugin `foo`. I don't need mini.test to be loaded every time I open Neovim. I understand the argument of \"it doesn't have that much overhead\", but it's not my point here since I want to have control what gets loaded and when.\r\n\r\n```lua\r\n-- Plugin foo is 'on-demand' and won't be loaded until :packadd\r\nvim.pack.add({\"repo/for/foo.nvim\"}, {\r\n    load = function() end\r\n})\r\n\r\n-- Load setups on :packadd\r\nvim.api.nvim_create_autocmd(\"SourcePost\", {\r\n    group = config_augroup,\r\n    callback = function(ev)\r\n        local pluginname = vim.fs.basename(ev.file)\r\n\r\n        if pluginname == 'foo.lua' and not package.loaded['foo'] then\r\n            require(\"foo\").setup()\r\n        end\r\n    end\r\n})\r\n```\r\n\r\nIs my above example similar to what you were referring to? I hope I explained it well enough. This method works for plugins who have `plugin/foo/foo.lua`, as you've also mentioned.\r\n\r\n",
+            "bodyHTML": "<p dir=\"auto\">I'm not sure if the second part of your reply is useful for my problem, but I'll elaborate on what I mean and why I need it. Apologies if I misunderstood.</p>\n<p dir=\"auto\">An example of what I'm talking about is executing a setup on <code class=\"notranslate\">:packadd</code> which I've pasted below for plugin <code class=\"notranslate\">foo</code>. I don't need mini.test to be loaded every time I open Neovim. I understand the argument of \"it doesn't have that much overhead\", but it's not my point here since I want to have control what gets loaded and when.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Plugin foo is 'on-demand' and won't be loaded until :packadd\nvim.pack.add({&quot;repo/for/foo.nvim&quot;}, {\n    load = function() end\n})\n\n-- Load setups on :packadd\nvim.api.nvim_create_autocmd(&quot;SourcePost&quot;, {\n    group = config_augroup,\n    callback = function(ev)\n        local pluginname = vim.fs.basename(ev.file)\n\n        if pluginname == 'foo.lua' and not package.loaded['foo'] then\n            require(&quot;foo&quot;).setup()\n        end\n    end\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Plugin foo is 'on-demand' and won't be loaded until :packadd</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>repo/for/foo.nvim<span class=\"pl-pds\">\"</span></span>}, {\n    <span class=\"pl-en\">load</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">end</span>\n})\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Load setups on :packadd</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>SourcePost<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">config_augroup</span>,\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ev</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pluginname</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">basename</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">file</span>)\n\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">pluginname</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>foo.lua<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">package.loaded</span>[<span class=\"pl-s\"><span class=\"pl-pds\">'</span>foo<span class=\"pl-pds\">'</span></span>] <span class=\"pl-k\">then</span>\n            <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>foo<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n        <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n})</pre></div>\n<p dir=\"auto\">Is my above example similar to what you were referring to? I hope I explained it well enough. This method works for plugins who have <code class=\"notranslate\">plugin/foo/foo.lua</code>, as you've also mentioned.</p>",
+            "bodyText": "I'm not sure if the second part of your reply is useful for my problem, but I'll elaborate on what I mean and why I need it. Apologies if I misunderstood.\nAn example of what I'm talking about is executing a setup on :packadd which I've pasted below for plugin foo. I don't need mini.test to be loaded every time I open Neovim. I understand the argument of \"it doesn't have that much overhead\", but it's not my point here since I want to have control what gets loaded and when.\n-- Plugin foo is 'on-demand' and won't be loaded until :packadd\nvim.pack.add({\"repo/for/foo.nvim\"}, {\n    load = function() end\n})\n\n-- Load setups on :packadd\nvim.api.nvim_create_autocmd(\"SourcePost\", {\n    group = config_augroup,\n    callback = function(ev)\n        local pluginname = vim.fs.basename(ev.file)\n\n        if pluginname == 'foo.lua' and not package.loaded['foo'] then\n            require(\"foo\").setup()\n        end\n    end\n})\nIs my above example similar to what you were referring to? I hope I explained it well enough. This method works for plugins who have plugin/foo/foo.lua, as you've also mentioned.",
+            "createdAt": "2026-09-25T13:13:13Z",
+            "createdViaEmail": false,
+            "databaseId": 18599893,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                "login": "ymic9963",
+                "resourcePath": "/ymic9963",
+                "url": "https://github.com/ymic9963"
+            },
+            "id": "DC_kwDOFoksYM4BG8_V",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-09-25T13:14:23Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-09-25T13:13:13Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 5,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/3635875?u=8e5ecdc3eef455f2bb09772832dbd4f3b2750eb5&v=4",
+                        "login": "wmorin",
+                        "resourcePath": "/wmorin",
+                        "url": "https://github.com/wmorin"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Got it, you want it on demand, not loaded at startup. Then there's no event to hook, unfortunately. `:packadd mini.test` only adds the directory to `runtimepath`, and since the plugin has no `plugin/` file nothing is sourced, so `SourcePost` never fires for it. I also checked `SourcePre` and `OptionSet` on `runtimepath`: neither fires on `:packadd` either.\r\n\r\nWhat works is doing the `:packadd` yourself through a small command, so you still decide when it loads and the setup runs right after:\r\n\r\n```lua\r\nlocal setups = {\r\n  [\"mini.test\"] = function() require(\"mini.test\").setup() end,\r\n}\r\n\r\nvim.api.nvim_create_user_command(\"Packadd\", function(opts)\r\n  vim.cmd.packadd(opts.args)\r\n  local setup = setups[opts.args]\r\n  if setup then setup() end\r\nend, { nargs = 1, complete = \"packadd\" })\r\n```\r\n\r\nThen `:Packadd mini.test` loads it and runs its setup (with the real mini.test, `MiniTest` exists right after), and tab completion still lists your opt packages. Plugins that aren't in the table just get a plain `:packadd`, so you can use it for everything and keep your `SourcePost` approach for the ones that have a `plugin/` file.",
+                    "bodyHTML": "<p dir=\"auto\">Got it, you want it on demand, not loaded at startup. Then there's no event to hook, unfortunately. <code class=\"notranslate\">:packadd mini.test</code> only adds the directory to <code class=\"notranslate\">runtimepath</code>, and since the plugin has no <code class=\"notranslate\">plugin/</code> file nothing is sourced, so <code class=\"notranslate\">SourcePost</code> never fires for it. I also checked <code class=\"notranslate\">SourcePre</code> and <code class=\"notranslate\">OptionSet</code> on <code class=\"notranslate\">runtimepath</code>: neither fires on <code class=\"notranslate\">:packadd</code> either.</p>\n<p dir=\"auto\">What works is doing the <code class=\"notranslate\">:packadd</code> yourself through a small command, so you still decide when it loads and the setup runs right after:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local setups = {\n  [&quot;mini.test&quot;] = function() require(&quot;mini.test&quot;).setup() end,\n}\n\nvim.api.nvim_create_user_command(&quot;Packadd&quot;, function(opts)\n  vim.cmd.packadd(opts.args)\n  local setup = setups[opts.args]\n  if setup then setup() end\nend, { nargs = 1, complete = &quot;packadd&quot; })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">setups</span> <span class=\"pl-k\">=</span> {\n  [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.test<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.test<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>() <span class=\"pl-k\">end</span>,\n}\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_user_command</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Packadd<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">packadd</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">args</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">setups</span>[<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">args</span>]\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">setup</span> <span class=\"pl-k\">then</span> <span class=\"pl-c1\">setup</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">nargs</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">complete</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>packadd<span class=\"pl-pds\">\" </span></span>})</pre></div>\n<p dir=\"auto\">Then <code class=\"notranslate\">:Packadd mini.test</code> loads it and runs its setup (with the real mini.test, <code class=\"notranslate\">MiniTest</code> exists right after), and tab completion still lists your opt packages. Plugins that aren't in the table just get a plain <code class=\"notranslate\">:packadd</code>, so you can use it for everything and keep your <code class=\"notranslate\">SourcePost</code> approach for the ones that have a <code class=\"notranslate\">plugin/</code> file.</p>",
+                    "bodyText": "Got it, you want it on demand, not loaded at startup. Then there's no event to hook, unfortunately. :packadd mini.test only adds the directory to runtimepath, and since the plugin has no plugin/ file nothing is sourced, so SourcePost never fires for it. I also checked SourcePre and OptionSet on runtimepath: neither fires on :packadd either.\nWhat works is doing the :packadd yourself through a small command, so you still decide when it loads and the setup runs right after:\nlocal setups = {\n  [\"mini.test\"] = function() require(\"mini.test\").setup() end,\n}\n\nvim.api.nvim_create_user_command(\"Packadd\", function(opts)\n  vim.cmd.packadd(opts.args)\n  local setup = setups[opts.args]\n  if setup then setup() end\nend, { nargs = 1, complete = \"packadd\" })\nThen :Packadd mini.test loads it and runs its setup (with the real mini.test, MiniTest exists right after), and tab completion still lists your opt packages. Plugins that aren't in the table just get a plain :packadd, so you can use it for everything and keep your SourcePost approach for the ones that have a plugin/ file.",
+                    "createdAt": "2026-09-25T13:25:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18600026,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG9Ba",
+                    "includesCreatedEdit": false,
+                    "isAnswer": true,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T13:25:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18599893,
+                        "id": "DC_kwDOFoksYM4BG8_V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600026",
+                    "updatedAt": "2026-09-25T13:25:47Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600026"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                        "login": "ymic9963",
+                        "resourcePath": "/ymic9963",
+                        "url": "https://github.com/ymic9963"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Ah I see. Thank you for the snippet. Unfortunate that there isn't a way of doing it using `:packadd` specifically. Is there a benefit to not having the `plugin/` directory for mini.test? Even an empty `plugin/mini.test/test.lua` would be enough to trigger the event.",
+                    "bodyHTML": "<p dir=\"auto\">Ah I see. Thank you for the snippet. Unfortunate that there isn't a way of doing it using <code class=\"notranslate\">:packadd</code> specifically. Is there a benefit to not having the <code class=\"notranslate\">plugin/</code> directory for mini.test? Even an empty <code class=\"notranslate\">plugin/mini.test/test.lua</code> would be enough to trigger the event.</p>",
+                    "bodyText": "Ah I see. Thank you for the snippet. Unfortunate that there isn't a way of doing it using :packadd specifically. Is there a benefit to not having the plugin/ directory for mini.test? Even an empty plugin/mini.test/test.lua would be enough to trigger the event.",
+                    "createdAt": "2026-09-25T13:31:32Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18600074,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG9CK",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T13:31:32Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18599893,
+                        "id": "DC_kwDOFoksYM4BG8_V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600074",
+                    "updatedAt": "2026-09-25T13:31:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600074"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Is there a benefit to not having the `plugin/` directory for mini.test? Even an empty `plugin/mini.test/test.lua` would be enough to trigger the event.\r\n\r\nYes, there is a benefit in that it is not needed for a properly working standalone plugin.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Is there a benefit to not having the <code class=\"notranslate\">plugin/</code> directory for mini.test? Even an empty <code class=\"notranslate\">plugin/mini.test/test.lua</code> would be enough to trigger the event.</p>\n</blockquote>\n<p dir=\"auto\">Yes, there is a benefit in that it is not needed for a properly working standalone plugin.</p>",
+                    "bodyText": "Is there a benefit to not having the plugin/ directory for mini.test? Even an empty plugin/mini.test/test.lua would be enough to trigger the event.\n\nYes, there is a benefit in that it is not needed for a properly working standalone plugin.",
+                    "createdAt": "2026-09-25T14:44:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18601095,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG9SH",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T14:44:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18599893,
+                        "id": "DC_kwDOFoksYM4BG8_V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18601095",
+                    "updatedAt": "2026-09-25T14:44:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18601095"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                        "login": "ymic9963",
+                        "resourcePath": "/ymic9963",
+                        "url": "https://github.com/ymic9963"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I understand that it is not needed but what is the benefit? The benefit is that you don't include a `plugin/foo/foo.lua` directories and file?",
+                    "bodyHTML": "<p dir=\"auto\">I understand that it is not needed but what is the benefit? The benefit is that you don't include a <code class=\"notranslate\">plugin/foo/foo.lua</code> directories and file?</p>",
+                    "bodyText": "I understand that it is not needed but what is the benefit? The benefit is that you don't include a plugin/foo/foo.lua directories and file?",
+                    "createdAt": "2026-09-25T17:37:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18603140,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG9yE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T17:37:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18599893,
+                        "id": "DC_kwDOFoksYM4BG8_V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603140",
+                    "updatedAt": "2026-09-25T17:37:34Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603140"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I understand that it is not needed but what is the benefit? The benefit is that you don't include a `plugin/foo/foo.lua` directories and file?\r\n\r\nThe benefit is not included empty file that serves no (widely useful) purpose. The idea that including an empty file can be beneficial makes (to me) the whole approach behind it questionable.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I understand that it is not needed but what is the benefit? The benefit is that you don't include a <code class=\"notranslate\">plugin/foo/foo.lua</code> directories and file?</p>\n</blockquote>\n<p dir=\"auto\">The benefit is not included empty file that serves no (widely useful) purpose. The idea that including an empty file can be beneficial makes (to me) the whole approach behind it questionable.</p>",
+                    "bodyText": "I understand that it is not needed but what is the benefit? The benefit is that you don't include a plugin/foo/foo.lua directories and file?\n\nThe benefit is not included empty file that serves no (widely useful) purpose. The idea that including an empty file can be beneficial makes (to me) the whole approach behind it questionable.",
+                    "createdAt": "2026-09-25T18:05:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18603532,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG94M",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T18:05:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18599893,
+                        "id": "DC_kwDOFoksYM4BG8_V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603532",
+                    "updatedAt": "2026-09-25T18:05:41Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603532"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893",
+            "updatedAt": "2026-09-25T13:14:23Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> I've installed mini.test on its own, and due to the plugin not having a plugin/mini.test/test.lua (or similar) directory, it does not trigger a SourcePost event. Any idea how I would fix this?\r\n\r\nThe answer to this *particular* question is \"The fix depends on what you try to achieve. This behavior is expected, precisely because of what you described\". There is no need in 'plugin/mini-test.lua' in standalone repo, since they are all designed to be merely a copy of 'mini.nvim' parts with all their suggested workflows.\r\n\r\n> An example of what I'm talking about is executing a setup on `:packadd` which I've pasted below for plugin `foo`. I don't need mini.test to be loaded every time I open Neovim. I understand the argument of \"it doesn't have that much overhead\", but it's not my point here since I want to have control what gets loaded and when.\r\n\r\nDepends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing `plugin/*` files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing `:packadd` during startup is fine (since there are `plugin/*`).\r\n\r\nMy personal preference and recommendation is to not do `SourcePost` approach, since it is not quite reliable (as this question reveals). The \"two stage\" loading \"now and later\" type is usually good enough for most configs. Like it is [done in MiniMax](https://nvim-mini.org/MiniMax/configs/nvim-0.12/#init.lua), for example.\r\n\r\nIf you want to completely avoid increasing 'runtimepath' completely, then doing two steps (`:packadd` + `:lua require('mini.test').setup()`) manually or via some helper command is the way to go.\r\n\r\nFinally, the solution for 'mini.test' specific case:\r\n- It doesn't *really* need the `require('mini.test').setup()` for the correct operation. Skipping it will not create default highlight groups and global `_G.MiniTest`, which might be fine.\r\n- Use 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.\r\n\r\nHope this helps.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">I've installed mini.test on its own, and due to the plugin not having a plugin/mini.test/test.lua (or similar) directory, it does not trigger a SourcePost event. Any idea how I would fix this?</p>\n</blockquote>\n<p dir=\"auto\">The answer to this <em>particular</em> question is \"The fix depends on what you try to achieve. This behavior is expected, precisely because of what you described\". There is no need in 'plugin/mini-test.lua' in standalone repo, since they are all designed to be merely a copy of 'mini.nvim' parts with all their suggested workflows.</p>\n<blockquote>\n<p dir=\"auto\">An example of what I'm talking about is executing a setup on <code class=\"notranslate\">:packadd</code> which I've pasted below for plugin <code class=\"notranslate\">foo</code>. I don't need mini.test to be loaded every time I open Neovim. I understand the argument of \"it doesn't have that much overhead\", but it's not my point here since I want to have control what gets loaded and when.</p>\n</blockquote>\n<p dir=\"auto\">Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing <code class=\"notranslate\">plugin/*</code> files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing <code class=\"notranslate\">:packadd</code> during startup is fine (since there are <code class=\"notranslate\">plugin/*</code>).</p>\n<p dir=\"auto\">My personal preference and recommendation is to not do <code class=\"notranslate\">SourcePost</code> approach, since it is not quite reliable (as this question reveals). The \"two stage\" loading \"now and later\" type is usually good enough for most configs. Like it is <a href=\"https://nvim-mini.org/MiniMax/configs/nvim-0.12/#init.lua\" rel=\"nofollow\">done in MiniMax</a>, for example.</p>\n<p dir=\"auto\">If you want to completely avoid increasing 'runtimepath' completely, then doing two steps (<code class=\"notranslate\">:packadd</code> + <code class=\"notranslate\">:lua require('mini.test').setup()</code>) manually or via some helper command is the way to go.</p>\n<p dir=\"auto\">Finally, the solution for 'mini.test' specific case:</p>\n<ul dir=\"auto\">\n<li>It doesn't <em>really</em> need the <code class=\"notranslate\">require('mini.test').setup()</code> for the correct operation. Skipping it will not create default highlight groups and global <code class=\"notranslate\">_G.MiniTest</code>, which might be fine.</li>\n<li>Use 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.</li>\n</ul>\n<p dir=\"auto\">Hope this helps.</p>",
+            "bodyText": "I've installed mini.test on its own, and due to the plugin not having a plugin/mini.test/test.lua (or similar) directory, it does not trigger a SourcePost event. Any idea how I would fix this?\n\nThe answer to this particular question is \"The fix depends on what you try to achieve. This behavior is expected, precisely because of what you described\". There is no need in 'plugin/mini-test.lua' in standalone repo, since they are all designed to be merely a copy of 'mini.nvim' parts with all their suggested workflows.\n\nAn example of what I'm talking about is executing a setup on :packadd which I've pasted below for plugin foo. I don't need mini.test to be loaded every time I open Neovim. I understand the argument of \"it doesn't have that much overhead\", but it's not my point here since I want to have control what gets loaded and when.\n\nDepends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).\nMy personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals). The \"two stage\" loading \"now and later\" type is usually good enough for most configs. Like it is done in MiniMax, for example.\nIf you want to completely avoid increasing 'runtimepath' completely, then doing two steps (:packadd + :lua require('mini.test').setup()) manually or via some helper command is the way to go.\nFinally, the solution for 'mini.test' specific case:\n\nIt doesn't really need the require('mini.test').setup() for the correct operation. Skipping it will not create default highlight groups and global _G.MiniTest, which might be fine.\nUse 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.\n\nHope this helps.",
+            "createdAt": "2026-09-25T13:33:28Z",
+            "createdViaEmail": false,
+            "databaseId": 18600094,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BG9Ce",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-09-25T13:33:28Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                        "login": "ymic9963",
+                        "resourcePath": "/ymic9963",
+                        "url": "https://github.com/ymic9963"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).\r\n\r\nI'm confused about what you said here. In mini.test's case there isn't a `plugin/` directory, therefore it can't be loaded using a `:packadd` with the method I described in my [reply](https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893). So what you're suggesting here can't be done with mini.test.\r\n\r\n> My personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals)\r\n\r\nAre there issues with the method itself or is it because plugin authors don't always inlcude the `plugin/` directory?\r\n\r\n> Use 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.\r\n\r\nI only use mini.test, but there still isn't a `plugin/` directory in mini.nvim so what I'd like to do here won't work.\r\n\r\nAlso, just to ask the same question to yourself as well: Is there a benefit to not having the `plugin/` directory for mini.test? Even an empty `plugin/mini.test/test.lua` would be enough to trigger the event.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).</p>\n</blockquote>\n<p dir=\"auto\">I'm confused about what you said here. In mini.test's case there isn't a <code class=\"notranslate\">plugin/</code> directory, therefore it can't be loaded using a <code class=\"notranslate\">:packadd</code> with the method I described in my <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2561/hovercard?comment_id=18599893\">reply</a>. So what you're suggesting here can't be done with mini.test.</p>\n<blockquote>\n<p dir=\"auto\">My personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals)</p>\n</blockquote>\n<p dir=\"auto\">Are there issues with the method itself or is it because plugin authors don't always inlcude the <code class=\"notranslate\">plugin/</code> directory?</p>\n<blockquote>\n<p dir=\"auto\">Use 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.</p>\n</blockquote>\n<p dir=\"auto\">I only use mini.test, but there still isn't a <code class=\"notranslate\">plugin/</code> directory in mini.nvim so what I'd like to do here won't work.</p>\n<p dir=\"auto\">Also, just to ask the same question to yourself as well: Is there a benefit to not having the <code class=\"notranslate\">plugin/</code> directory for mini.test? Even an empty <code class=\"notranslate\">plugin/mini.test/test.lua</code> would be enough to trigger the event.</p>",
+                    "bodyText": "Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).\n\nI'm confused about what you said here. In mini.test's case there isn't a plugin/ directory, therefore it can't be loaded using a :packadd with the method I described in my reply. So what you're suggesting here can't be done with mini.test.\n\nMy personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals)\n\nAre there issues with the method itself or is it because plugin authors don't always inlcude the plugin/ directory?\n\nUse 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.\n\nI only use mini.test, but there still isn't a plugin/ directory in mini.nvim so what I'd like to do here won't work.\nAlso, just to ask the same question to yourself as well: Is there a benefit to not having the plugin/ directory for mini.test? Even an empty plugin/mini.test/test.lua would be enough to trigger the event.",
+                    "createdAt": "2026-09-25T13:45:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18600244,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                        "login": "ymic9963",
+                        "resourcePath": "/ymic9963",
+                        "url": "https://github.com/ymic9963"
+                    },
+                    "id": "DC_kwDOFoksYM4BG9E0",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-09-25T13:48:02Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T13:45:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18600094,
+                        "id": "DC_kwDOFoksYM4BG9Ce",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600094"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600244",
+                    "updatedAt": "2026-09-25T13:48:02Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600244"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> > Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).\r\n> \r\n> I'm confused about what you said here. In mini.test's case there isn't a `plugin/` directory, therefore it can't be loaded using a `:packadd` with the method I described in my [reply](https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893). So what you're suggesting here can't be done with mini.test.\r\n\r\nAgain, it depends on what you mean by \"to be loaded\". Doing `:packadd` is essentially two things: 1) add plugin path to 'runtimepath'; 2) execute plugin scripts immediately. Since standalone 'mini.test' doesn't have plugin scripts, doing `:packadd mini.test` will only modify 'runtimepath'. If this is not the problem for you, then using plain `vim.pack.add` during startup (without `load = function() end`) should be fine.\r\n\r\nTo perform side effects later, execute `:lua require('mini.test').setup()`. Although *they are not a hard requirement for 'mini.test'*.\r\n\r\n> > My personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals)\r\n> \r\n> Are there issues with the method itself or is it because plugin authors don't always inlcude the `plugin/` directory?\r\n\r\nBecause both not all plugin authors provide `setup()` to initialize plugin and not all plugin authors include plugin script. This prompts this `SourcePost` autocommand to manually track \"plugin script name\" -> \"Lua module\" relation. As this is needed, there are less magical ways of doing things: implement a custom user command `:packadd` alternative, use \"two stage\" loading, etc.\r\n \r\n> > Use 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.\r\n> \r\n> I only use mini.test, but there still isn't a `plugin/` directory in mini.nvim so what I'd like to do here won't work.\r\n> \r\n> Also, just to ask the same question to yourself as well: Is there a benefit to not having the `plugin/` directory for mini.test? Even an empty `plugin/mini.test/test.lua` would be enough to trigger the event.\r\n\r\nSee [this response](https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18601095).",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).</p>\n</blockquote>\n<p dir=\"auto\">I'm confused about what you said here. In mini.test's case there isn't a <code class=\"notranslate\">plugin/</code> directory, therefore it can't be loaded using a <code class=\"notranslate\">:packadd</code> with the method I described in my <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18599893\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2561/hovercard?comment_id=18599893\">reply</a>. So what you're suggesting here can't be done with mini.test.</p>\n</blockquote>\n<p dir=\"auto\">Again, it depends on what you mean by \"to be loaded\". Doing <code class=\"notranslate\">:packadd</code> is essentially two things: 1) add plugin path to 'runtimepath'; 2) execute plugin scripts immediately. Since standalone 'mini.test' doesn't have plugin scripts, doing <code class=\"notranslate\">:packadd mini.test</code> will only modify 'runtimepath'. If this is not the problem for you, then using plain <code class=\"notranslate\">vim.pack.add</code> during startup (without <code class=\"notranslate\">load = function() end</code>) should be fine.</p>\n<p dir=\"auto\">To perform side effects later, execute <code class=\"notranslate\">:lua require('mini.test').setup()</code>. Although <em>they are not a hard requirement for 'mini.test'</em>.</p>\n<blockquote>\n<blockquote>\n<p dir=\"auto\">My personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals)</p>\n</blockquote>\n<p dir=\"auto\">Are there issues with the method itself or is it because plugin authors don't always inlcude the <code class=\"notranslate\">plugin/</code> directory?</p>\n</blockquote>\n<p dir=\"auto\">Because both not all plugin authors provide <code class=\"notranslate\">setup()</code> to initialize plugin and not all plugin authors include plugin script. This prompts this <code class=\"notranslate\">SourcePost</code> autocommand to manually track \"plugin script name\" -&gt; \"Lua module\" relation. As this is needed, there are less magical ways of doing things: implement a custom user command <code class=\"notranslate\">:packadd</code> alternative, use \"two stage\" loading, etc.</p>\n<blockquote>\n<blockquote>\n<p dir=\"auto\">Use 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.</p>\n</blockquote>\n<p dir=\"auto\">I only use mini.test, but there still isn't a <code class=\"notranslate\">plugin/</code> directory in mini.nvim so what I'd like to do here won't work.</p>\n<p dir=\"auto\">Also, just to ask the same question to yourself as well: Is there a benefit to not having the <code class=\"notranslate\">plugin/</code> directory for mini.test? Even an empty <code class=\"notranslate\">plugin/mini.test/test.lua</code> would be enough to trigger the event.</p>\n</blockquote>\n<p dir=\"auto\">See <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18601095\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2561/hovercard?comment_id=18601095\">this response</a>.</p>",
+                    "bodyText": "Depends on what you mean by \"to be loaded\". Usually the problem here is wanting to delay sourcing plugin/* files since this introduces side effects (mappings, user commands, autocommands, highlight groups). If not doing that is enough to qualify as \"to not be loaded\", then executing :packadd during startup is fine (since there are plugin/*).\n\nI'm confused about what you said here. In mini.test's case there isn't a plugin/ directory, therefore it can't be loaded using a :packadd with the method I described in my reply. So what you're suggesting here can't be done with mini.test.\n\nAgain, it depends on what you mean by \"to be loaded\". Doing :packadd is essentially two things: 1) add plugin path to 'runtimepath'; 2) execute plugin scripts immediately. Since standalone 'mini.test' doesn't have plugin scripts, doing :packadd mini.test will only modify 'runtimepath'. If this is not the problem for you, then using plain vim.pack.add during startup (without load = function() end) should be fine.\nTo perform side effects later, execute :lua require('mini.test').setup(). Although they are not a hard requirement for 'mini.test'.\n\n\nMy personal preference and recommendation is to not do SourcePost approach, since it is not quite reliable (as this question reveals)\n\nAre there issues with the method itself or is it because plugin authors don't always inlcude the plugin/ directory?\n\nBecause both not all plugin authors provide setup() to initialize plugin and not all plugin authors include plugin script. This prompts this SourcePost autocommand to manually track \"plugin script name\" -> \"Lua module\" relation. As this is needed, there are less magical ways of doing things: implement a custom user command :packadd alternative, use \"two stage\" loading, etc.\n\n\nUse 'mini.nvim' directly. If you use at least one other module, then it would add less 'runtimepath' overhead.\n\nI only use mini.test, but there still isn't a plugin/ directory in mini.nvim so what I'd like to do here won't work.\nAlso, just to ask the same question to yourself as well: Is there a benefit to not having the plugin/ directory for mini.test? Even an empty plugin/mini.test/test.lua would be enough to trigger the event.\n\nSee this response.",
+                    "createdAt": "2026-09-25T14:54:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18601244,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG9Uc",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T14:54:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18600094,
+                        "id": "DC_kwDOFoksYM4BG9Ce",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600094"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18601244",
+                    "updatedAt": "2026-09-25T14:54:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18601244"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/79522843?u=a15ae78b7313955ad59ffbee533637f2f2a31806&v=4",
+                        "login": "ymic9963",
+                        "resourcePath": "/ymic9963",
+                        "url": "https://github.com/ymic9963"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> Again, it depends on what you mean by \"to be loaded\"\r\n\r\nFor me loaded in this case would be to be able to use the plugin from Neovim itself. Therefore, for mini.test it would be the ability to access the global object with `:lua MiniTest.X()`.\r\n\r\nThank you for your replies! I really appreciate it. I'll figure out another way of doing what I want to do.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Again, it depends on what you mean by \"to be loaded\"</p>\n</blockquote>\n<p dir=\"auto\">For me loaded in this case would be to be able to use the plugin from Neovim itself. Therefore, for mini.test it would be the ability to access the global object with <code class=\"notranslate\">:lua MiniTest.X()</code>.</p>\n<p dir=\"auto\">Thank you for your replies! I really appreciate it. I'll figure out another way of doing what I want to do.</p>",
+                    "bodyText": "Again, it depends on what you mean by \"to be loaded\"\n\nFor me loaded in this case would be to be able to use the plugin from Neovim itself. Therefore, for mini.test it would be the ability to access the global object with :lua MiniTest.X().\nThank you for your replies! I really appreciate it. I'll figure out another way of doing what I want to do.",
+                    "createdAt": "2026-09-25T17:58:32Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18603416,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG92Y",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T17:58:32Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18600094,
+                        "id": "DC_kwDOFoksYM4BG9Ce",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600094"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603416",
+                    "updatedAt": "2026-09-25T17:58:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603416"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Therefore, for mini.test it would be the ability to access the global object with `:lua MiniTest.X()`.\r\n\r\nFor 'mini.test', it can also be `:lua require('mini.test').X()`, which works without calling `require('mini.test').setup()`.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Therefore, for mini.test it would be the ability to access the global object with <code class=\"notranslate\">:lua MiniTest.X()</code>.</p>\n</blockquote>\n<p dir=\"auto\">For 'mini.test', it can also be <code class=\"notranslate\">:lua require('mini.test').X()</code>, which works without calling <code class=\"notranslate\">require('mini.test').setup()</code>.</p>",
+                    "bodyText": "Therefore, for mini.test it would be the ability to access the global object with :lua MiniTest.X().\n\nFor 'mini.test', it can also be :lua require('mini.test').X(), which works without calling require('mini.test').setup().",
+                    "createdAt": "2026-09-25T18:02:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18603481,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BG93Z",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-09-25T18:02:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18600094,
+                        "id": "DC_kwDOFoksYM4BG9Ce",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600094"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603481",
+                    "updatedAt": "2026-09-25T18:02:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18603481"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600094",
+            "updatedAt": "2026-09-25T13:33:28Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561#discussioncomment-18600094"
+        }
+    ],
+    "createdAt": "2026-09-25T11:42:00Z",
+    "createdViaEmail": false,
+    "databaseId": 10886900,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Aph70",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7_iXcP",
+                "name": "mini.test"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2561,
+    "poll": null,
+    "publishedAt": "2026-09-25T11:42:00Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2561",
+    "stateReason": "RESOLVED",
+    "title": "SourcePost event not triggered with :packadd",
+    "updatedAt": "2026-09-26T08:04:25Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2561"
+}

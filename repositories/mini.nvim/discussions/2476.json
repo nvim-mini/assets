@@ -1,0 +1,192 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/45886067?u=5d30d25d8a9102432675ec9b5519849f2751021f&v=4",
+        "login": "ivomac",
+        "resourcePath": "/ivomac",
+        "url": "https://github.com/ivomac"
+    },
+    "authorAssociation": "NONE",
+    "body": "`mksession` does not save user-defined `b:` variables. Plugins that store per-buffer metadata lose it when a session is restored.\r\n\r\nI use a custom session config that appends buffer-variable restore commands to the session file after `mksession`:\r\n\r\n```lua\r\nlocal function encode_varval(buf, varname, varval)\r\n  -- handles multiline strings, quotes, unnamed buffers, etc.\r\n  -- returns a Lua expression equal to the original value\r\nend\r\n\r\nlocal tmpl = \"lua pcall(vim.api.nvim_buf_set_var, vim.fn.bufnr('%s'), '%s', %s)\"\r\n\r\nlocal f = io.open(session_path, \"a\")\r\nif f then\r\n  for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do\r\n    for varname, varval in pairs(buf.variables) do\r\n      local t = type(varval)\r\n      local upper = varname:sub(1, 1):match(\"%u\")\r\n      local ok = vim.tbl_contains({\"string\", \"number\"}, t)\r\n      if upper and ok then\r\n        f:write(\"\\n\" .. string.format(\r\n          tmpl, buf.name, varname, encode_varval(buf, varname, varval))\r\n      )\r\n      end\r\n    end\r\n  end\r\n  f:close()\r\nend\r\n```\r\nOnly uppercase string/number variables are preserved (these are internal plugin vars by convention).\r\n\r\nTable support is feasible with vim.inspect but not essential.\r\n\r\nProposal: save_buffer_variables option in config (default false). When enabled, write() appends the restore commands to the session file. No changes to read() needed.\r\n\r\nHappy to implement it myself!",
+    "bodyHTML": "<p dir=\"auto\"><code class=\"notranslate\">mksession</code> does not save user-defined <code class=\"notranslate\">b:</code> variables. Plugins that store per-buffer metadata lose it when a session is restored.</p>\n<p dir=\"auto\">I use a custom session config that appends buffer-variable restore commands to the session file after <code class=\"notranslate\">mksession</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local function encode_varval(buf, varname, varval)\n  -- handles multiline strings, quotes, unnamed buffers, etc.\n  -- returns a Lua expression equal to the original value\nend\n\nlocal tmpl = &quot;lua pcall(vim.api.nvim_buf_set_var, vim.fn.bufnr('%s'), '%s', %s)&quot;\n\nlocal f = io.open(session_path, &quot;a&quot;)\nif f then\n  for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do\n    for varname, varval in pairs(buf.variables) do\n      local t = type(varval)\n      local upper = varname:sub(1, 1):match(&quot;%u&quot;)\n      local ok = vim.tbl_contains({&quot;string&quot;, &quot;number&quot;}, t)\n      if upper and ok then\n        f:write(&quot;\\n&quot; .. string.format(\n          tmpl, buf.name, varname, encode_varval(buf, varname, varval))\n      )\n      end\n    end\n  end\n  f:close()\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">encode_varval</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">varname</span>, <span class=\"pl-smi\">varval</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> handles multiline strings, quotes, unnamed buffers, etc.</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> returns a Lua expression equal to the original value</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">tmpl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua pcall(vim.api.nvim_buf_set_var, vim.fn.bufnr('%s'), '%s', %s)<span class=\"pl-pds\">\"</span></span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">f</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">io.open</span>(<span class=\"pl-smi\">session_path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>a<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">if</span> <span class=\"pl-smi\">f</span> <span class=\"pl-k\">then</span>\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getbufinfo</span>({ <span class=\"pl-smi\">buflisted</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> })) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">varname</span>, <span class=\"pl-smi\">varval</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">buf</span>.<span class=\"pl-e\">variables</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">t</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">varval</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">upper</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">varname</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">1</span>):<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%u<span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_contains</span>({<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>number<span class=\"pl-pds\">\"</span></span>}, <span class=\"pl-smi\">t</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">upper</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-en\">f</span>:<span class=\"pl-c1\">write</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">string.format</span>(\n          <span class=\"pl-smi\">tmpl</span>, <span class=\"pl-smi\">buf</span>.<span class=\"pl-e\">name</span>, <span class=\"pl-smi\">varname</span>, <span class=\"pl-c1\">encode_varval</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">varname</span>, <span class=\"pl-smi\">varval</span>))\n      )\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-en\">f</span>:<span class=\"pl-c1\">close</span>()\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Only uppercase string/number variables are preserved (these are internal plugin vars by convention).</p>\n<p dir=\"auto\">Table support is feasible with vim.inspect but not essential.</p>\n<p dir=\"auto\">Proposal: save_buffer_variables option in config (default false). When enabled, write() appends the restore commands to the session file. No changes to read() needed.</p>\n<p dir=\"auto\">Happy to implement it myself!</p>",
+    "bodyText": "mksession does not save user-defined b: variables. Plugins that store per-buffer metadata lose it when a session is restored.\nI use a custom session config that appends buffer-variable restore commands to the session file after mksession:\nlocal function encode_varval(buf, varname, varval)\n  -- handles multiline strings, quotes, unnamed buffers, etc.\n  -- returns a Lua expression equal to the original value\nend\n\nlocal tmpl = \"lua pcall(vim.api.nvim_buf_set_var, vim.fn.bufnr('%s'), '%s', %s)\"\n\nlocal f = io.open(session_path, \"a\")\nif f then\n  for _, buf in ipairs(vim.fn.getbufinfo({ buflisted = 1 })) do\n    for varname, varval in pairs(buf.variables) do\n      local t = type(varval)\n      local upper = varname:sub(1, 1):match(\"%u\")\n      local ok = vim.tbl_contains({\"string\", \"number\"}, t)\n      if upper and ok then\n        f:write(\"\\n\" .. string.format(\n          tmpl, buf.name, varname, encode_varval(buf, varname, varval))\n      )\n      end\n    end\n  end\n  f:close()\nend\nOnly uppercase string/number variables are preserved (these are internal plugin vars by convention).\nTable support is feasible with vim.inspect but not essential.\nProposal: save_buffer_variables option in config (default false). When enabled, write() appends the restore commands to the session file. No changes to read() needed.\nHappy to implement it myself!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-06-23T09:07:43Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing and the suggestion!\r\n\r\nThe overall design of 'mini.sessions' is to serve as a thin layer between `:mksession` and its side effects (session files, etc.). Anything related to the session file content is delegated to `:mksession`. For anything else there are pre and post hooks in 'mini.sessions'.\r\n\r\nSo I think rewriting this as a hooks might be a better fit for 'mini.sessions'.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing and the suggestion!</p>\n<p dir=\"auto\">The overall design of 'mini.sessions' is to serve as a thin layer between <code class=\"notranslate\">:mksession</code> and its side effects (session files, etc.). Anything related to the session file content is delegated to <code class=\"notranslate\">:mksession</code>. For anything else there are pre and post hooks in 'mini.sessions'.</p>\n<p dir=\"auto\">So I think rewriting this as a hooks might be a better fit for 'mini.sessions'.</p>",
+            "bodyText": "Thanks for sharing and the suggestion!\nThe overall design of 'mini.sessions' is to serve as a thin layer between :mksession and its side effects (session files, etc.). Anything related to the session file content is delegated to :mksession. For anything else there are pre and post hooks in 'mini.sessions'.\nSo I think rewriting this as a hooks might be a better fit for 'mini.sessions'.",
+            "createdAt": "2026-06-23T09:07:43Z",
+            "createdViaEmail": false,
+            "databaseId": 17405070,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BCZSO",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-06-23T09:07:43Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2476#discussioncomment-17405070",
+            "updatedAt": "2026-06-23T09:07:43Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2476#discussioncomment-17405070"
+        }
+    ],
+    "createdAt": "2026-06-23T09:03:26Z",
+    "createdViaEmail": false,
+    "databaseId": 10305486,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AnT_O",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7T7bbO",
+                "name": "mini.sessions"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2476,
+    "poll": null,
+    "publishedAt": "2026-06-23T09:03:26Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2476",
+    "stateReason": "RESOLVED",
+    "title": "[mini.sessions] preserve buffer-local variables across sessions",
+    "updatedAt": "2026-06-23T09:07:43Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2476"
+}

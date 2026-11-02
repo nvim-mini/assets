@@ -1,0 +1,207 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 15405467,
+        "id": "DC_kwDOFoksYM4A6xGb",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2207#discussioncomment-15405467"
+    },
+    "answerChosenAt": "2026-01-04T15:53:39Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/106757172?v=4",
+        "login": "InnocentZero",
+        "resourcePath": "/InnocentZero",
+        "url": "https://github.com/InnocentZero"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.map\n\n### Question\n\nBasically the title. I want to have Mini.map disabled for markdown filetype. Tried to add `MiniMap.close()` in `after/ftplugin/markdown.lua` but it closes that for all buffers, including rust buffers (but I want to have it enabled for buffers apart from rust too, just not in markdown).\r\n\r\nThanks for the plugin!",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.map</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Basically the title. I want to have Mini.map disabled for markdown filetype. Tried to add <code class=\"notranslate\">MiniMap.close()</code> in <code class=\"notranslate\">after/ftplugin/markdown.lua</code> but it closes that for all buffers, including rust buffers (but I want to have it enabled for buffers apart from rust too, just not in markdown).</p>\n<p dir=\"auto\">Thanks for the plugin!</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.map\nQuestion\nBasically the title. I want to have Mini.map disabled for markdown filetype. Tried to add MiniMap.close() in after/ftplugin/markdown.lua but it closes that for all buffers, including rust buffers (but I want to have it enabled for buffers apart from rust too, just not in markdown).\nThanks for the plugin!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-01-04T15:53:37Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> Tried to add `MiniMap.close()` in `after/ftplugin/markdown.lua` but it closes that for all buffers\r\n\r\nYes, that's the right direction, but it does only half the job: it hides map window when it needs to be hidden. The other part is making sure that it is opened when it needs to be shown.\r\n\r\nHere is one way to do it (put this in a regular config files, not filetype script):\r\n\r\n```lua\r\n-- Define filetypes which need to not show map window\r\nlocal hide_map_filetypes = { markdown = true }\r\n\r\n-- Use `schedule_wrap` to skip some \"temporary\" buffers\r\nlocal f = vim.schedule_wrap(function(ev)\r\n  -- Act only if the target buffer that triggered the autocommand is current\r\n  -- This is also to skip some \"temporary\" buffers\r\n  if ev.buf ~= vim.api.nvim_get_current_buf() then return end\r\n\r\n  -- Close if needed, otherwise - make sure that it is open\r\n  local ft = vim.bo[ev.buf].filetype\r\n  if hide_map_filetypes[ft] then return MiniMap.close() end\r\n  MiniMap.open()\r\nend)\r\n\r\n-- Act both on `FileType` (when 'filetype' changes) and `BufEnter` (when\r\n-- entering a buffer which already has filetype set)\r\nvim.api.nvim_create_autocmd({ 'FileType', 'BufEnter' }, { callback = f })\r\n```\r\n\r\nInstead of `close()` or `open()`, another approach is to set `vim.b[ev.buf].minimap_disable = hide_map_filetypes[ft]`. This will stop map window from updating and showing the buffer's content, but it will still be visible. This might be a preferred solution if one doesn't want \"flickering\" map window.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">Tried to add <code class=\"notranslate\">MiniMap.close()</code> in <code class=\"notranslate\">after/ftplugin/markdown.lua</code> but it closes that for all buffers</p>\n</blockquote>\n<p dir=\"auto\">Yes, that's the right direction, but it does only half the job: it hides map window when it needs to be hidden. The other part is making sure that it is opened when it needs to be shown.</p>\n<p dir=\"auto\">Here is one way to do it (put this in a regular config files, not filetype script):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Define filetypes which need to not show map window\nlocal hide_map_filetypes = { markdown = true }\n\n-- Use `schedule_wrap` to skip some &quot;temporary&quot; buffers\nlocal f = vim.schedule_wrap(function(ev)\n  -- Act only if the target buffer that triggered the autocommand is current\n  -- This is also to skip some &quot;temporary&quot; buffers\n  if ev.buf ~= vim.api.nvim_get_current_buf() then return end\n\n  -- Close if needed, otherwise - make sure that it is open\n  local ft = vim.bo[ev.buf].filetype\n  if hide_map_filetypes[ft] then return MiniMap.close() end\n  MiniMap.open()\nend)\n\n-- Act both on `FileType` (when 'filetype' changes) and `BufEnter` (when\n-- entering a buffer which already has filetype set)\nvim.api.nvim_create_autocmd({ 'FileType', 'BufEnter' }, { callback = f })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Define filetypes which need to not show map window</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">hide_map_filetypes</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">markdown</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Use `schedule_wrap` to skip some \"temporary\" buffers</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">f</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ev</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Act only if the target buffer that triggered the autocommand is current</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> This is also to skip some \"temporary\" buffers</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">buf</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>() <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Close if needed, otherwise - make sure that it is open</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ft</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">buf</span>].<span class=\"pl-e\">filetype</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">hide_map_filetypes</span>[<span class=\"pl-smi\">ft</span>] <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniMap</span>.<span class=\"pl-c1\">close</span>() <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">MiniMap</span>.<span class=\"pl-c1\">open</span>()\n<span class=\"pl-k\">end</span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Act both on `FileType` (when 'filetype' changes) and `BufEnter` (when</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> entering a buffer which already has filetype set)</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>FileType<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>BufEnter<span class=\"pl-pds\">' </span></span>}, { <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">f</span> })</pre></div>\n<p dir=\"auto\">Instead of <code class=\"notranslate\">close()</code> or <code class=\"notranslate\">open()</code>, another approach is to set <code class=\"notranslate\">vim.b[ev.buf].minimap_disable = hide_map_filetypes[ft]</code>. This will stop map window from updating and showing the buffer's content, but it will still be visible. This might be a preferred solution if one doesn't want \"flickering\" map window.</p>",
+            "bodyText": "Tried to add MiniMap.close() in after/ftplugin/markdown.lua but it closes that for all buffers\n\nYes, that's the right direction, but it does only half the job: it hides map window when it needs to be hidden. The other part is making sure that it is opened when it needs to be shown.\nHere is one way to do it (put this in a regular config files, not filetype script):\n-- Define filetypes which need to not show map window\nlocal hide_map_filetypes = { markdown = true }\n\n-- Use `schedule_wrap` to skip some \"temporary\" buffers\nlocal f = vim.schedule_wrap(function(ev)\n  -- Act only if the target buffer that triggered the autocommand is current\n  -- This is also to skip some \"temporary\" buffers\n  if ev.buf ~= vim.api.nvim_get_current_buf() then return end\n\n  -- Close if needed, otherwise - make sure that it is open\n  local ft = vim.bo[ev.buf].filetype\n  if hide_map_filetypes[ft] then return MiniMap.close() end\n  MiniMap.open()\nend)\n\n-- Act both on `FileType` (when 'filetype' changes) and `BufEnter` (when\n-- entering a buffer which already has filetype set)\nvim.api.nvim_create_autocmd({ 'FileType', 'BufEnter' }, { callback = f })\nInstead of close() or open(), another approach is to set vim.b[ev.buf].minimap_disable = hide_map_filetypes[ft]. This will stop map window from updating and showing the buffer's content, but it will still be visible. This might be a preferred solution if one doesn't want \"flickering\" map window.",
+            "createdAt": "2026-01-04T15:53:37Z",
+            "createdViaEmail": false,
+            "databaseId": 15405467,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A6xGb",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-01-04T15:53:37Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2207#discussioncomment-15405467",
+            "updatedAt": "2026-01-04T15:53:37Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2207#discussioncomment-15405467"
+        }
+    ],
+    "createdAt": "2026-01-04T13:55:28Z",
+    "createdViaEmail": false,
+    "databaseId": 9306882,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AjgMC",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABFT_SPQ",
+                "name": "mini.map"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2207,
+    "poll": null,
+    "publishedAt": "2026-01-04T13:55:28Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2207",
+    "stateReason": "RESOLVED",
+    "title": "How to disable mini.map for specific filetypes?",
+    "updatedAt": "2026-01-04T15:53:39Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2207"
+}

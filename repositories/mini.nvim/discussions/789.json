@@ -1,0 +1,285 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 9060348,
+        "id": "DC_kwDOFoksYM4Aij_8",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/789#discussioncomment-9060348"
+    },
+    "answerChosenAt": "2024-04-09T14:56:40Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/63876?u=757b2907d6c262d27907e3401e72dc5d28b9ab64&v=4",
+        "login": "ahmedelgabri",
+        "resourcePath": "/ahmedelgabri",
+        "url": "https://github.com/ahmedelgabri"
+    },
+    "authorAssociation": "NONE",
+    "body": "I'm trying to build a custom `statuscolumn` & wanted to show the diff signs, but when I call `sign_getplaced` on a modified line it doesn't return the diff signs. I have explicitly set `view.style = 'sign'`\r\n\r\nThis is how I'm quickly testing this \r\n\r\n```vim\r\n:echo sign_getplaced(bufname(), {'group': '*', 'lnum': v:lnum})\r\n```\r\n\r\nSo how can I get signs added by `mini.diff`?",
+    "bodyHTML": "<p dir=\"auto\">I'm trying to build a custom <code class=\"notranslate\">statuscolumn</code> &amp; wanted to show the diff signs, but when I call <code class=\"notranslate\">sign_getplaced</code> on a modified line it doesn't return the diff signs. I have explicitly set <code class=\"notranslate\">view.style = 'sign'</code></p>\n<p dir=\"auto\">This is how I'm quickly testing this</p>\n<div class=\"highlight highlight-source-viml notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\":echo sign_getplaced(bufname(), {'group': '*', 'lnum': v:lnum})\"><pre class=\"notranslate\">:<span class=\"pl-c1\">echo</span> <span class=\"pl-en\">sign_getplaced</span>(<span class=\"pl-en\">bufname</span>(), {<span class=\"pl-s\"><span class=\"pl-pds\">'</span>group<span class=\"pl-pds\">'</span></span>: <span class=\"pl-s\"><span class=\"pl-pds\">'</span>*<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>lnum<span class=\"pl-pds\">'</span></span>: <span class=\"pl-smi\"><span class=\"pl-k\">v:</span>lnum</span>})</pre></div>\n<p dir=\"auto\">So how can I get signs added by <code class=\"notranslate\">mini.diff</code>?</p>",
+    "bodyText": "I'm trying to build a custom statuscolumn & wanted to show the diff signs, but when I call sign_getplaced on a modified line it doesn't return the diff signs. I have explicitly set view.style = 'sign'\nThis is how I'm quickly testing this\n:echo sign_getplaced(bufname(), {'group': '*', 'lnum': v:lnum})\nSo how can I get signs added by mini.diff?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-04-09T14:56:38Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Signs in 'mini.diff' are placed with extmarks (which are usually more efficient). The supposed way to retrieve them is with `nvim_buf_get_extmarks()`. Since neovim/neovim#25724 (i.e. on current Nightly) old style signs can also be retrieved this way. And this also seems to be a preferred way to do this task by ['statuscolumn' author](https://github.com/luukvbaal/statuscol.nvim/blob/d954893262a57a92e46edd87de67e2b3fe72305e/lua/statuscol.lua#L236).\r\n\r\nSo the suggested way would be to get all signs and filter later by `sign_hl_group`:\r\n\r\n```lua\r\nvim.api.nvim_buf_get_extmarks(0, -1, { vim.v.lnum - 1, 0}, { vim.v.lnum - 1, -1}, { type = 'sign', details = true })\r\n```\r\n\r\nThe better approach would be to get namespace id of 'mini.diff', but it is not guaranteed to not break. However, for personal usage it might be fine. Currently namespace name [is `MiniDiffViz`](https://github.com/echasnovski/mini.nvim/blob/32b2db5ef9066f3d7ca375ea1ccc0fc44090727d/lua/mini/diff.lua#L825), so signs from 'mini.diff' can be obtained like this:\r\n\r\n```lua\r\n-- Evaluate somewhere only once\r\nlocal diff_ns_id = vim.api.nvim_get_namespaces().MiniDiffViz\r\n\r\n-- Get signs only from 'mini.diff'\r\nvim.api.nvim_buf_get_extmarks(0, diff_ns_id, { vim.v.lnum - 1, 0}, { vim.v.lnum - 1, -1}, { type = 'sign', details = true })\r\n```\r\n\r\n------\r\n\r\nFor completeness, there is also [`get_buf_data()`](https://github.com/echasnovski/mini.nvim/blob/32b2db5ef9066f3d7ca375ea1ccc0fc44090727d/doc/mini-diff.txt#L470) which contains `hunks` array, but this might be not the best fit for statusline.",
+            "bodyHTML": "<p dir=\"auto\">Signs in 'mini.diff' are placed with extmarks (which are usually more efficient). The supposed way to retrieve them is with <code class=\"notranslate\">nvim_buf_get_extmarks()</code>. Since <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1953889062\" data-permission-text=\"Title is private\" data-url=\"https://github.com/neovim/neovim/issues/25724\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/neovim/neovim/pull/25724/hovercard\" href=\"https://github.com/neovim/neovim/pull/25724\">neovim/neovim#25724</a> (i.e. on current Nightly) old style signs can also be retrieved this way. And this also seems to be a preferred way to do this task by <a href=\"https://github.com/luukvbaal/statuscol.nvim/blob/d954893262a57a92e46edd87de67e2b3fe72305e/lua/statuscol.lua#L236\">'statuscolumn' author</a>.</p>\n<p dir=\"auto\">So the suggested way would be to get all signs and filter later by <code class=\"notranslate\">sign_hl_group</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_buf_get_extmarks(0, -1, { vim.v.lnum - 1, 0}, { vim.v.lnum - 1, -1}, { type = 'sign', details = true })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_extmarks</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, { <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">lnum</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">0</span>}, { <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">lnum</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>}, { <span class=\"pl-smi\">type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>sign<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">details</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n<p dir=\"auto\">The better approach would be to get namespace id of 'mini.diff', but it is not guaranteed to not break. However, for personal usage it might be fine. Currently namespace name <a href=\"https://github.com/echasnovski/mini.nvim/blob/32b2db5ef9066f3d7ca375ea1ccc0fc44090727d/lua/mini/diff.lua#L825\">is <code class=\"notranslate\">MiniDiffViz</code></a>, so signs from 'mini.diff' can be obtained like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Evaluate somewhere only once\nlocal diff_ns_id = vim.api.nvim_get_namespaces().MiniDiffViz\n\n-- Get signs only from 'mini.diff'\nvim.api.nvim_buf_get_extmarks(0, diff_ns_id, { vim.v.lnum - 1, 0}, { vim.v.lnum - 1, -1}, { type = 'sign', details = true })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Evaluate somewhere only once</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">diff_ns_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_namespaces</span>().<span class=\"pl-e\">MiniDiffViz</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Get signs only from 'mini.diff'</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_extmarks</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">diff_ns_id</span>, { <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">lnum</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">0</span>}, { <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">lnum</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>}, { <span class=\"pl-smi\">type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>sign<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">details</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n<hr>\n<p dir=\"auto\">For completeness, there is also <a href=\"https://github.com/echasnovski/mini.nvim/blob/32b2db5ef9066f3d7ca375ea1ccc0fc44090727d/doc/mini-diff.txt#L470\"><code class=\"notranslate\">get_buf_data()</code></a> which contains <code class=\"notranslate\">hunks</code> array, but this might be not the best fit for statusline.</p>",
+            "bodyText": "Signs in 'mini.diff' are placed with extmarks (which are usually more efficient). The supposed way to retrieve them is with nvim_buf_get_extmarks(). Since neovim/neovim#25724 (i.e. on current Nightly) old style signs can also be retrieved this way. And this also seems to be a preferred way to do this task by 'statuscolumn' author.\nSo the suggested way would be to get all signs and filter later by sign_hl_group:\nvim.api.nvim_buf_get_extmarks(0, -1, { vim.v.lnum - 1, 0}, { vim.v.lnum - 1, -1}, { type = 'sign', details = true })\nThe better approach would be to get namespace id of 'mini.diff', but it is not guaranteed to not break. However, for personal usage it might be fine. Currently namespace name is MiniDiffViz, so signs from 'mini.diff' can be obtained like this:\n-- Evaluate somewhere only once\nlocal diff_ns_id = vim.api.nvim_get_namespaces().MiniDiffViz\n\n-- Get signs only from 'mini.diff'\nvim.api.nvim_buf_get_extmarks(0, diff_ns_id, { vim.v.lnum - 1, 0}, { vim.v.lnum - 1, -1}, { type = 'sign', details = true })\n\nFor completeness, there is also get_buf_data() which contains hunks array, but this might be not the best fit for statusline.",
+            "createdAt": "2024-04-09T14:56:38Z",
+            "createdViaEmail": false,
+            "databaseId": 9060348,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Aij_8",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-04-09T14:56:38Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/63876?u=757b2907d6c262d27907e3401e72dc5d28b9ab64&v=4",
+                        "login": "ahmedelgabri",
+                        "resourcePath": "/ahmedelgabri",
+                        "url": "https://github.com/ahmedelgabri"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks @echasnovski ",
+                    "bodyHTML": "<p dir=\"auto\">Thanks <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a></p>",
+                    "bodyText": "Thanks @echasnovski",
+                    "createdAt": "2024-04-09T15:07:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9060498,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AikCS",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-04-09T15:07:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9060348,
+                        "id": "DC_kwDOFoksYM4Aij_8",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/789#discussioncomment-9060348"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/789#discussioncomment-9060498",
+                    "updatedAt": "2024-04-09T15:07:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/789#discussioncomment-9060498"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/789#discussioncomment-9060348",
+            "updatedAt": "2024-04-09T14:56:39Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/789#discussioncomment-9060348"
+        }
+    ],
+    "createdAt": "2024-04-09T14:19:42Z",
+    "createdViaEmail": false,
+    "databaseId": 6483261,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AYu09",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABkoiHZQ",
+                "name": "mini.diff"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 789,
+    "poll": null,
+    "publishedAt": "2024-04-09T14:19:42Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/789",
+    "stateReason": "RESOLVED",
+    "title": "[mini.diff] signs are not returned in sign_getplaced?",
+    "updatedAt": "2024-04-09T15:07:35Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/789"
+}

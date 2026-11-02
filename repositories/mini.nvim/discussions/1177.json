@@ -1,0 +1,201 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 10454003,
+        "id": "DC_kwDOFoksYM4An4Pz",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1177#discussioncomment-10454003"
+    },
+    "answerChosenAt": "2024-08-26T16:35:43Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/162296271?u=dee5e1bb2613ebdb57b3aca0a82aed2269d44bca&v=4",
+        "login": "mezeirobert0",
+        "resourcePath": "/mezeirobert0",
+        "url": "https://github.com/mezeirobert0"
+    },
+    "authorAssociation": "NONE",
+    "body": " To avoid repeating myself, I will link my Reddit post on Neovim sub:\r\nhttps://www.reddit.com/r/neovim/comments/1f1lafg/need_to_help_with_customizing_ministatusline/",
+    "bodyHTML": "<p dir=\"auto\">To avoid repeating myself, I will link my Reddit post on Neovim sub:<br>\n<a href=\"https://www.reddit.com/r/neovim/comments/1f1lafg/need_to_help_with_customizing_ministatusline/\" rel=\"nofollow\">https://www.reddit.com/r/neovim/comments/1f1lafg/need_to_help_with_customizing_ministatusline/</a></p>",
+    "bodyText": "To avoid repeating myself, I will link my Reddit post on Neovim sub:\nhttps://www.reddit.com/r/neovim/comments/1f1lafg/need_to_help_with_customizing_ministatusline/",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-08-26T16:35:40Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Customizing statusline content is expected by [creating a function](https://github.com/echasnovski/mini.nvim/blob/2c55015a518e11ea9d49bb96078f5ede51f5d2af/doc/mini-statusline.txt#L9-L13) and setting it to `config.content.active`. Like this:\r\n\r\n```lua\r\nlocal my_active_content = function()\r\n  -- Your code goes here\r\nend\r\nrequire('mini.statusline').setup({ content = { active = my_active_content } })\r\n```\r\n\r\nHere is an [example function used for default content](https://github.com/echasnovski/mini.nvim/blob/2c55015a518e11ea9d49bb96078f5ede51f5d2af/doc/mini-statusline.txt#L87-L105). Copy paste it as `my_active_content` body as a start and tweak it until you have your final result.\r\n\r\n------\r\n\r\nAs you pointed in Reddit post, indeed using `signs` argument in `MiniStatusline.section_diagnostics()` is the suggested way to customize its signs. So it will be something like this:\r\n\r\n```lua\r\nlocal diag_signs = { ERROR = '!', WARN = '?', INFO = '@', HINT = '*' }\r\nlocal my_active_content = function()\r\n  -- ...\r\n  local diagnostics = MiniStatusline.section_diagnostics({ trunc_width = 75, signs = diag_signs })\r\n  -- ...\r\nend\r\n```\r\n\r\n------\r\n\r\nAdding colors is a bit tricky (which is more or less by design because 'mini.statusline' and 'mini.tabline' are intentionally \"colorless\"), but doable. The return string of active content is essentially used as 'statusline' value, so any special statusline items (see `:h statusline`) are treated as such. Including the construct of `%#HLname#` setting the highlight group for characters to the right.\r\n\r\nThis can be utilized by setting more complicated diagnostic signs. For example, like so:\r\n\r\n```lua\r\nlocal diag_signs = {\r\n  ERROR = '%#DiagnosticError#!%#MiniStatuslineDevinfo#',\r\n  WARN = '%#DiagnosticWarn#?%#MiniStatuslineDevinfo#',\r\n  INFO = '%#DiagnosticInfo#@%#MiniStatuslineDevinfo#',\r\n  HINT = '%#DiagnosticHint#*%#MiniStatuslineDevinfo#',\r\n}\r\n-- ...\r\n```\r\n\r\nThe `DiagnosticXxx` highlight groups can not play nicely with its surrounding background color, so you may have to define your own highlight groups. But that part is left for homework.\r\n\r\nHope this helps. ",
+            "bodyHTML": "<p dir=\"auto\">Customizing statusline content is expected by <a href=\"https://github.com/echasnovski/mini.nvim/blob/2c55015a518e11ea9d49bb96078f5ede51f5d2af/doc/mini-statusline.txt#L9-L13\">creating a function</a> and setting it to <code class=\"notranslate\">config.content.active</code>. Like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local my_active_content = function()\n  -- Your code goes here\nend\nrequire('mini.statusline').setup({ content = { active = my_active_content } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">my_active_content</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Your code goes here</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.statusline<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">content</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">active</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">my_active_content</span> } })</pre></div>\n<p dir=\"auto\">Here is an <a href=\"https://github.com/echasnovski/mini.nvim/blob/2c55015a518e11ea9d49bb96078f5ede51f5d2af/doc/mini-statusline.txt#L87-L105\">example function used for default content</a>. Copy paste it as <code class=\"notranslate\">my_active_content</code> body as a start and tweak it until you have your final result.</p>\n<hr>\n<p dir=\"auto\">As you pointed in Reddit post, indeed using <code class=\"notranslate\">signs</code> argument in <code class=\"notranslate\">MiniStatusline.section_diagnostics()</code> is the suggested way to customize its signs. So it will be something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local diag_signs = { ERROR = '!', WARN = '?', INFO = '@', HINT = '*' }\nlocal my_active_content = function()\n  -- ...\n  local diagnostics = MiniStatusline.section_diagnostics({ trunc_width = 75, signs = diag_signs })\n  -- ...\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">diag_signs</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">ERROR</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>!<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">WARN</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>?<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">INFO</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>@<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">HINT</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>*<span class=\"pl-pds\">' </span></span>}\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">my_active_content</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">diagnostics</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_diagnostics</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">75</span>, <span class=\"pl-smi\">signs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">diag_signs</span> })\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n<span class=\"pl-k\">end</span></pre></div>\n<hr>\n<p dir=\"auto\">Adding colors is a bit tricky (which is more or less by design because 'mini.statusline' and 'mini.tabline' are intentionally \"colorless\"), but doable. The return string of active content is essentially used as 'statusline' value, so any special statusline items (see <code class=\"notranslate\">:h statusline</code>) are treated as such. Including the construct of <code class=\"notranslate\">%#HLname#</code> setting the highlight group for characters to the right.</p>\n<p dir=\"auto\">This can be utilized by setting more complicated diagnostic signs. For example, like so:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local diag_signs = {\n  ERROR = '%#DiagnosticError#!%#MiniStatuslineDevinfo#',\n  WARN = '%#DiagnosticWarn#?%#MiniStatuslineDevinfo#',\n  INFO = '%#DiagnosticInfo#@%#MiniStatuslineDevinfo#',\n  HINT = '%#DiagnosticHint#*%#MiniStatuslineDevinfo#',\n}\n-- ...\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">diag_signs</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">ERROR</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%#DiagnosticError#!%#MiniStatuslineDevinfo#<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-smi\">WARN</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%#DiagnosticWarn#?%#MiniStatuslineDevinfo#<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-smi\">INFO</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%#DiagnosticInfo#@%#MiniStatuslineDevinfo#<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-smi\">HINT</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%#DiagnosticHint#*%#MiniStatuslineDevinfo#<span class=\"pl-pds\">'</span></span>,\n}\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span></pre></div>\n<p dir=\"auto\">The <code class=\"notranslate\">DiagnosticXxx</code> highlight groups can not play nicely with its surrounding background color, so you may have to define your own highlight groups. But that part is left for homework.</p>\n<p dir=\"auto\">Hope this helps.</p>",
+            "bodyText": "Customizing statusline content is expected by creating a function and setting it to config.content.active. Like this:\nlocal my_active_content = function()\n  -- Your code goes here\nend\nrequire('mini.statusline').setup({ content = { active = my_active_content } })\nHere is an example function used for default content. Copy paste it as my_active_content body as a start and tweak it until you have your final result.\n\nAs you pointed in Reddit post, indeed using signs argument in MiniStatusline.section_diagnostics() is the suggested way to customize its signs. So it will be something like this:\nlocal diag_signs = { ERROR = '!', WARN = '?', INFO = '@', HINT = '*' }\nlocal my_active_content = function()\n  -- ...\n  local diagnostics = MiniStatusline.section_diagnostics({ trunc_width = 75, signs = diag_signs })\n  -- ...\nend\n\nAdding colors is a bit tricky (which is more or less by design because 'mini.statusline' and 'mini.tabline' are intentionally \"colorless\"), but doable. The return string of active content is essentially used as 'statusline' value, so any special statusline items (see :h statusline) are treated as such. Including the construct of %#HLname# setting the highlight group for characters to the right.\nThis can be utilized by setting more complicated diagnostic signs. For example, like so:\nlocal diag_signs = {\n  ERROR = '%#DiagnosticError#!%#MiniStatuslineDevinfo#',\n  WARN = '%#DiagnosticWarn#?%#MiniStatuslineDevinfo#',\n  INFO = '%#DiagnosticInfo#@%#MiniStatuslineDevinfo#',\n  HINT = '%#DiagnosticHint#*%#MiniStatuslineDevinfo#',\n}\n-- ...\nThe DiagnosticXxx highlight groups can not play nicely with its surrounding background color, so you may have to define your own highlight groups. But that part is left for homework.\nHope this helps.",
+            "createdAt": "2024-08-26T16:35:40Z",
+            "createdViaEmail": false,
+            "databaseId": 10454003,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4An4Pz",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-26T16:35:40Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1177#discussioncomment-10454003",
+            "updatedAt": "2024-08-26T16:35:41Z",
+            "upvoteCount": 4,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1177#discussioncomment-10454003"
+        }
+    ],
+    "createdAt": "2024-08-26T15:42:20Z",
+    "createdViaEmail": false,
+    "databaseId": 7097437,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AbExd",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vjI",
+                "name": "mini.statusline"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1177,
+    "poll": null,
+    "publishedAt": "2024-08-26T15:42:20Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1177",
+    "stateReason": "RESOLVED",
+    "title": "mini.statusline: How to Enable icons for Warning, Error, Hint, etc. ?",
+    "updatedAt": "2024-08-26T16:35:43Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1177"
+}

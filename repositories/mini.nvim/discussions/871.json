@@ -1,0 +1,699 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 9394402,
+        "id": "DC_kwDOFoksYM4Aj1ji",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402"
+    },
+    "answerChosenAt": "2024-05-11T10:25:06Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/5768792?v=4",
+        "login": "farzadmf",
+        "resourcePath": "/farzadmf",
+        "url": "https://github.com/farzadmf"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi there,\r\n\r\nIn my setup, I lazy load all my plugins and some of them are activated using `lazy.nvim`'s `keys` option.\r\n\r\nAlso, I have set up things in a way that I \"append\" to my `which-key` config when a plugin is setup/loaded (so that if I disable the plugin, I don't see the \"empty\" descriptions in `which-key`)\r\n\r\nI want to achieve a similar thing with `mini.clue`. I checked the doc and I think all the examples show the configuration along with calling `setup` function.\r\n\r\nBut for me, I want to do things _after_ my `mini.clue`'s `setup` (which uses `event = 'VeryLazy'`). \r\n\r\nIs there a way I can update `triggers` after `setup`?",
+    "bodyHTML": "<p dir=\"auto\">Hi there,</p>\n<p dir=\"auto\">In my setup, I lazy load all my plugins and some of them are activated using <code class=\"notranslate\">lazy.nvim</code>'s <code class=\"notranslate\">keys</code> option.</p>\n<p dir=\"auto\">Also, I have set up things in a way that I \"append\" to my <code class=\"notranslate\">which-key</code> config when a plugin is setup/loaded (so that if I disable the plugin, I don't see the \"empty\" descriptions in <code class=\"notranslate\">which-key</code>)</p>\n<p dir=\"auto\">I want to achieve a similar thing with <code class=\"notranslate\">mini.clue</code>. I checked the doc and I think all the examples show the configuration along with calling <code class=\"notranslate\">setup</code> function.</p>\n<p dir=\"auto\">But for me, I want to do things <em>after</em> my <code class=\"notranslate\">mini.clue</code>'s <code class=\"notranslate\">setup</code> (which uses <code class=\"notranslate\">event = 'VeryLazy'</code>).</p>\n<p dir=\"auto\">Is there a way I can update <code class=\"notranslate\">triggers</code> after <code class=\"notranslate\">setup</code>?</p>",
+    "bodyText": "Hi there,\nIn my setup, I lazy load all my plugins and some of them are activated using lazy.nvim's keys option.\nAlso, I have set up things in a way that I \"append\" to my which-key config when a plugin is setup/loaded (so that if I disable the plugin, I don't see the \"empty\" descriptions in which-key)\nI want to achieve a similar thing with mini.clue. I checked the doc and I think all the examples show the configuration along with calling setup function.\nBut for me, I want to do things after my mini.clue's setup (which uses event = 'VeryLazy').\nIs there a way I can update triggers after setup?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-05-11T10:25:04Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hi!\r\n\r\nThis is possible, but not really what 'mini.clue' was designed for. Hence a bit awkward.\r\n\r\nCurrently used config of all modules is available as `config` field of module's global variable (as per [general principles](https://github.com/echasnovski/mini.nvim?tab=readme-ov-file#general-principles)). So of 'mini.clue' it would be `MiniClue.config`.\r\n\r\nSo modifying triggers is as easy as directly modifying `MiniClue.config.triggers`. **But** with the following caveats:\r\n- It has to be done *after* `require('mini.clue').setup()`, because it relies on the `MiniClue` global variable.\r\n- Specifically triggers are [implemented as buffer-local mappings](https://github.com/echasnovski/mini.nvim/blob/2d0f10540efdbb1f5c480ebe19ce4de451936a5d/doc/mini-clue.txt#L52). So in order for them to be up to date for already opened buffers, there needs to be a call to either [`ensure_all_triggers()` or `ensure_buf_triggers()`](https://github.com/echasnovski/mini.nvim/blob/2d0f10540efdbb1f5c480ebe19ce4de451936a5d/doc/mini-clue.txt#L610-L620). This would not have been a problem for modifying, say, clues.\r\n\r\nSo all in all, I guess the answer is \"yes, but with caveats because 'mini.clue' is not really designed for this use case\". I'd advise setting triggers in the single `require('mini.clue').setup()` and relying on the mapping's descriptions provided by the plugins (which automatically used as clues).",
+            "bodyHTML": "<p dir=\"auto\">Hi!</p>\n<p dir=\"auto\">This is possible, but not really what 'mini.clue' was designed for. Hence a bit awkward.</p>\n<p dir=\"auto\">Currently used config of all modules is available as <code class=\"notranslate\">config</code> field of module's global variable (as per <a href=\"https://github.com/echasnovski/mini.nvim?tab=readme-ov-file#general-principles\">general principles</a>). So of 'mini.clue' it would be <code class=\"notranslate\">MiniClue.config</code>.</p>\n<p dir=\"auto\">So modifying triggers is as easy as directly modifying <code class=\"notranslate\">MiniClue.config.triggers</code>. <strong>But</strong> with the following caveats:</p>\n<ul dir=\"auto\">\n<li>It has to be done <em>after</em> <code class=\"notranslate\">require('mini.clue').setup()</code>, because it relies on the <code class=\"notranslate\">MiniClue</code> global variable.</li>\n<li>Specifically triggers are <a href=\"https://github.com/echasnovski/mini.nvim/blob/2d0f10540efdbb1f5c480ebe19ce4de451936a5d/doc/mini-clue.txt#L52\">implemented as buffer-local mappings</a>. So in order for them to be up to date for already opened buffers, there needs to be a call to either <a href=\"https://github.com/echasnovski/mini.nvim/blob/2d0f10540efdbb1f5c480ebe19ce4de451936a5d/doc/mini-clue.txt#L610-L620\"><code class=\"notranslate\">ensure_all_triggers()</code> or <code class=\"notranslate\">ensure_buf_triggers()</code></a>. This would not have been a problem for modifying, say, clues.</li>\n</ul>\n<p dir=\"auto\">So all in all, I guess the answer is \"yes, but with caveats because 'mini.clue' is not really designed for this use case\". I'd advise setting triggers in the single <code class=\"notranslate\">require('mini.clue').setup()</code> and relying on the mapping's descriptions provided by the plugins (which automatically used as clues).</p>",
+            "bodyText": "Hi!\nThis is possible, but not really what 'mini.clue' was designed for. Hence a bit awkward.\nCurrently used config of all modules is available as config field of module's global variable (as per general principles). So of 'mini.clue' it would be MiniClue.config.\nSo modifying triggers is as easy as directly modifying MiniClue.config.triggers. But with the following caveats:\n\nIt has to be done after require('mini.clue').setup(), because it relies on the MiniClue global variable.\nSpecifically triggers are implemented as buffer-local mappings. So in order for them to be up to date for already opened buffers, there needs to be a call to either ensure_all_triggers() or ensure_buf_triggers(). This would not have been a problem for modifying, say, clues.\n\nSo all in all, I guess the answer is \"yes, but with caveats because 'mini.clue' is not really designed for this use case\". I'd advise setting triggers in the single require('mini.clue').setup() and relying on the mapping's descriptions provided by the plugins (which automatically used as clues).",
+            "createdAt": "2024-05-11T10:25:04Z",
+            "createdViaEmail": false,
+            "databaseId": 9394402,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Aj1ji",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-05-11T10:25:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/5768792?v=4",
+                        "login": "farzadmf",
+                        "resourcePath": "/farzadmf",
+                        "url": "https://github.com/farzadmf"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you @echasnovski for the detailed answer.\n\nThe main reason I'm using this method is for something like this: let's say I load a plugin that adds its own \"group\" of key bindings, so I want that plugin to be in charge; if it loads, it brings in its keys (and their group), if not, no binding is in the list.\n\nIf I set up all the groups in `mini.clue`'s `setup`, and that plugin is not loaded (for whatever reason), then I'll see an empty group with no bindings inside. (I use `wk.register(...)` to achieve this.",
+                    "bodyHTML": "<p dir=\"auto\">Thank you <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> for the detailed answer.</p>\n<p dir=\"auto\">The main reason I'm using this method is for something like this: let's say I load a plugin that adds its own \"group\" of key bindings, so I want that plugin to be in charge; if it loads, it brings in its keys (and their group), if not, no binding is in the list.</p>\n<p dir=\"auto\">If I set up all the groups in <code class=\"notranslate\">mini.clue</code>'s <code class=\"notranslate\">setup</code>, and that plugin is not loaded (for whatever reason), then I'll see an empty group with no bindings inside. (I use <code class=\"notranslate\">wk.register(...)</code> to achieve this.</p>",
+                    "bodyText": "Thank you @echasnovski for the detailed answer.\nThe main reason I'm using this method is for something like this: let's say I load a plugin that adds its own \"group\" of key bindings, so I want that plugin to be in charge; if it loads, it brings in its keys (and their group), if not, no binding is in the list.\nIf I set up all the groups in mini.clue's setup, and that plugin is not loaded (for whatever reason), then I'll see an empty group with no bindings inside. (I use wk.register(...) to achieve this.",
+                    "createdAt": "2024-05-11T21:45:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9399830,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aj24W",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-11T21:45:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9394402,
+                        "id": "DC_kwDOFoksYM4Aj1ji",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9399830",
+                    "updatedAt": "2024-05-11T21:45:27Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9399830"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> The main reason I'm using this method is for something like this: let's say I load a plugin that adds its own \"group\" of key bindings, so I want that plugin to be in charge; if it loads, it brings in its keys (and their group), if not, no binding is in the list.\r\n\r\nNow, that is usually a bit different than registering triggers. I don't see any particular harm in registering common triggers (like `<Leader>`, `g`, etc.) inside `require('mini.clue').setup()`.\r\n\r\nIf plugin adds its own mappings, they are picked up automatically based on their description. So here all there is needed to do is add them when making mappings.\r\n\r\nAdding the \"group\" is as straightforward as `table.insert(MiniClue.config.clues, { mode = 'n', keys = '<Leader>f', desc = '+Find' })`. This still requires `require('mini.clue').setup()` to be called prior, but no need to ensure triggers.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">The main reason I'm using this method is for something like this: let's say I load a plugin that adds its own \"group\" of key bindings, so I want that plugin to be in charge; if it loads, it brings in its keys (and their group), if not, no binding is in the list.</p>\n</blockquote>\n<p dir=\"auto\">Now, that is usually a bit different than registering triggers. I don't see any particular harm in registering common triggers (like <code class=\"notranslate\">&lt;Leader&gt;</code>, <code class=\"notranslate\">g</code>, etc.) inside <code class=\"notranslate\">require('mini.clue').setup()</code>.</p>\n<p dir=\"auto\">If plugin adds its own mappings, they are picked up automatically based on their description. So here all there is needed to do is add them when making mappings.</p>\n<p dir=\"auto\">Adding the \"group\" is as straightforward as <code class=\"notranslate\">table.insert(MiniClue.config.clues, { mode = 'n', keys = '&lt;Leader&gt;f', desc = '+Find' })</code>. This still requires <code class=\"notranslate\">require('mini.clue').setup()</code> to be called prior, but no need to ensure triggers.</p>",
+                    "bodyText": "The main reason I'm using this method is for something like this: let's say I load a plugin that adds its own \"group\" of key bindings, so I want that plugin to be in charge; if it loads, it brings in its keys (and their group), if not, no binding is in the list.\n\nNow, that is usually a bit different than registering triggers. I don't see any particular harm in registering common triggers (like <Leader>, g, etc.) inside require('mini.clue').setup().\nIf plugin adds its own mappings, they are picked up automatically based on their description. So here all there is needed to do is add them when making mappings.\nAdding the \"group\" is as straightforward as table.insert(MiniClue.config.clues, { mode = 'n', keys = '<Leader>f', desc = '+Find' }). This still requires require('mini.clue').setup() to be called prior, but no need to ensure triggers.",
+                    "createdAt": "2024-05-12T11:24:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9404680,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aj4EI",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-12T11:24:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9394402,
+                        "id": "DC_kwDOFoksYM4Aj1ji",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9404680",
+                    "updatedAt": "2024-05-12T11:24:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9404680"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/5768792?v=4",
+                        "login": "farzadmf",
+                        "resourcePath": "/farzadmf",
+                        "url": "https://github.com/farzadmf"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you @echasnovski for your answer. Let me elaborate a bit more maybe it would be more clear:\r\n\r\nMy use case:\r\n- As I mentioned, I lazy load all my plugins, and I have a plugin that's loading on `keys`\r\n- I have a \"generic\" group `<leader>c` for coding stuff.\r\n- I want this new plugin to bring in, say, `<leader>cd` for \"coding/debug\".\r\n- Then, inside of \"coding/debug\", I'll have individual mappings relted to the plugin.\r\n- Now, I want `<leader>cd` to only be displayed if this specific plugin is loaded because, if it's not, it will be an empty list (which is not very useful).\r\n\r\nTrying it now, I tried to print `MiniClue` in:\r\n- `init()`\r\n- `opts` (which I'm setting to a `function()` instead of a static Lua table)\r\n- And also inside `keys` (which is also set to a `function()`).\r\n\r\nAnd in all places, `MiniClue` is `nil` (although this plugin is loaded on `keys`, but `mini.clue` is loaded on `VeryLazy`). I tried to add `mini.clue` in `dependencies`, hoping to get a table for `MiniClue`, but it's still `nil`.",
+                    "bodyHTML": "<p dir=\"auto\">Thank you <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> for your answer. Let me elaborate a bit more maybe it would be more clear:</p>\n<p dir=\"auto\">My use case:</p>\n<ul dir=\"auto\">\n<li>As I mentioned, I lazy load all my plugins, and I have a plugin that's loading on <code class=\"notranslate\">keys</code></li>\n<li>I have a \"generic\" group <code class=\"notranslate\">&lt;leader&gt;c</code> for coding stuff.</li>\n<li>I want this new plugin to bring in, say, <code class=\"notranslate\">&lt;leader&gt;cd</code> for \"coding/debug\".</li>\n<li>Then, inside of \"coding/debug\", I'll have individual mappings relted to the plugin.</li>\n<li>Now, I want <code class=\"notranslate\">&lt;leader&gt;cd</code> to only be displayed if this specific plugin is loaded because, if it's not, it will be an empty list (which is not very useful).</li>\n</ul>\n<p dir=\"auto\">Trying it now, I tried to print <code class=\"notranslate\">MiniClue</code> in:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">init()</code></li>\n<li><code class=\"notranslate\">opts</code> (which I'm setting to a <code class=\"notranslate\">function()</code> instead of a static Lua table)</li>\n<li>And also inside <code class=\"notranslate\">keys</code> (which is also set to a <code class=\"notranslate\">function()</code>).</li>\n</ul>\n<p dir=\"auto\">And in all places, <code class=\"notranslate\">MiniClue</code> is <code class=\"notranslate\">nil</code> (although this plugin is loaded on <code class=\"notranslate\">keys</code>, but <code class=\"notranslate\">mini.clue</code> is loaded on <code class=\"notranslate\">VeryLazy</code>). I tried to add <code class=\"notranslate\">mini.clue</code> in <code class=\"notranslate\">dependencies</code>, hoping to get a table for <code class=\"notranslate\">MiniClue</code>, but it's still <code class=\"notranslate\">nil</code>.</p>",
+                    "bodyText": "Thank you @echasnovski for your answer. Let me elaborate a bit more maybe it would be more clear:\nMy use case:\n\nAs I mentioned, I lazy load all my plugins, and I have a plugin that's loading on keys\nI have a \"generic\" group <leader>c for coding stuff.\nI want this new plugin to bring in, say, <leader>cd for \"coding/debug\".\nThen, inside of \"coding/debug\", I'll have individual mappings relted to the plugin.\nNow, I want <leader>cd to only be displayed if this specific plugin is loaded because, if it's not, it will be an empty list (which is not very useful).\n\nTrying it now, I tried to print MiniClue in:\n\ninit()\nopts (which I'm setting to a function() instead of a static Lua table)\nAnd also inside keys (which is also set to a function()).\n\nAnd in all places, MiniClue is nil (although this plugin is loaded on keys, but mini.clue is loaded on VeryLazy). I tried to add mini.clue in dependencies, hoping to get a table for MiniClue, but it's still nil.",
+                    "createdAt": "2024-05-13T03:20:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9412958,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aj6Fe",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-13T03:20:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9394402,
+                        "id": "DC_kwDOFoksYM4Aj1ji",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9412958",
+                    "updatedAt": "2024-05-13T03:20:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9412958"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> And in all places, `MiniClue` is `nil` (although this plugin is loaded on `keys`, but `mini.clue` is loaded on `VeryLazy`). I tried to add `mini.clue` in `dependencies`, hoping to get a table for `MiniClue`, but it's still `nil`.\r\n\r\nSorry, but this is more about how you load plugins. What I can say from 'mini.nvim' point of view, is that `require('mini.clue').setup()` should be executed prior to be able to use `_G.MiniClue` as global variable.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">And in all places, <code class=\"notranslate\">MiniClue</code> is <code class=\"notranslate\">nil</code> (although this plugin is loaded on <code class=\"notranslate\">keys</code>, but <code class=\"notranslate\">mini.clue</code> is loaded on <code class=\"notranslate\">VeryLazy</code>). I tried to add <code class=\"notranslate\">mini.clue</code> in <code class=\"notranslate\">dependencies</code>, hoping to get a table for <code class=\"notranslate\">MiniClue</code>, but it's still <code class=\"notranslate\">nil</code>.</p>\n</blockquote>\n<p dir=\"auto\">Sorry, but this is more about how you load plugins. What I can say from 'mini.nvim' point of view, is that <code class=\"notranslate\">require('mini.clue').setup()</code> should be executed prior to be able to use <code class=\"notranslate\">_G.MiniClue</code> as global variable.</p>",
+                    "bodyText": "And in all places, MiniClue is nil (although this plugin is loaded on keys, but mini.clue is loaded on VeryLazy). I tried to add mini.clue in dependencies, hoping to get a table for MiniClue, but it's still nil.\n\nSorry, but this is more about how you load plugins. What I can say from 'mini.nvim' point of view, is that require('mini.clue').setup() should be executed prior to be able to use _G.MiniClue as global variable.",
+                    "createdAt": "2024-05-13T08:22:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9416218,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aj64a",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-13T08:22:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9394402,
+                        "id": "DC_kwDOFoksYM4Aj1ji",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9416218",
+                    "updatedAt": "2024-05-13T08:22:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9416218"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402",
+            "updatedAt": "2024-05-11T10:25:05Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9394402"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/5768792?v=4",
+                "login": "farzadmf",
+                "resourcePath": "/farzadmf",
+                "url": "https://github.com/farzadmf"
+            },
+            "authorAssociation": "NONE",
+            "body": "Hey @echasnovski , a follow-up on this:\r\n\r\nAs a \"real world example\" of what I'm hoping to achieve is [this LazyVim commit](https://github.com/LazyVim/LazyVim/commit/d8644c47158fd28b88f5e3a90af6e5e6a0df2eba#diff-e994d682ffb4dd478c1d184131fcde72a9cc6bf08a347c115af449ad71ef328fR63-R110), which, ironically, is done for `mini.ai`, done by a Neovim legend just like yourself, `folke`.\r\n\r\nAs you can see, some mappings are created dynamically and registered using `require('which-key').register(...)`; if someone sets `enabled = false` for `mini.ai` in there (just for the sake of example), nothing will break and nothing needs updating; just that those mappings/descriptions won't be registered.\r\n\r\nFollowing your guidance above, I managed to register some of my existing \"groups\" in `mini.clue` (by calling `table.insert(MiniClue.config.clues, ...)`, but trying to adapt the LazyVim commit I mentioned to `mini.clue` doesn't seem to work.\r\n\r\nI'm trying to use the `i` and `a` tables defined in there for `mini.clue`, with something like this:\r\n```lua\r\nfor k, v in pairs(i) do\r\n  table.insert(MiniClue.config.clues, { mode = 'x', keys = 'i' .. k, desc = v })\r\n  table.insert(MiniClue.config.clues, { mode = 'o', keys = 'i' .. k, desc = v })\r\n  table.insert(MiniClue.config.clues, { mode = 'x', keys = 'a' .. k, desc = v:gsub(' including.*', '') })\r\n  table.insert(MiniClue.config.clues, { mode = 'o', keys = 'a' .. k, desc = v:gsub(' including.*', '') })\r\nend\r\n```\r\n\r\nI've also set `v` as a `trigger`:\r\n```lua\r\ntriggers = {\r\n  -- ...\r\n  { mode = 'n', keys = 'v' },\r\n},\r\n```\r\n\r\nBut, doing something like `v` in normal mode, I see this:\r\n![image](https://github.com/echasnovski/mini.nvim/assets/5768792/ae05dead-132e-4907-89b0-3eaa33a69730)\r\n\r\nWhich feels like none of my `table.insert`s above had any effect.\r\n\r\nAlso, I think `mini.ai`, [by default](https://github.com/echasnovski/mini.ai/blob/a0262e61f79dfc7bb940d1719c00b0ede042ddd7/lua/mini/ai.lua#L1143-L1146), adds the `Around/inside textobject` descriptions to mappings, which don't seem to be picked up by `mini.clue` and my configured `v` trigger.\r\n\r\nSorry if it became long; tried to show that I'm _actually_ trying things and not asking questions without anything on my side.",
+            "bodyHTML": "<p dir=\"auto\">Hey <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> , a follow-up on this:</p>\n<p dir=\"auto\">As a \"real world example\" of what I'm hoping to achieve is <a href=\"https://github.com/LazyVim/LazyVim/commit/d8644c47158fd28b88f5e3a90af6e5e6a0df2eba#diff-e994d682ffb4dd478c1d184131fcde72a9cc6bf08a347c115af449ad71ef328fR63-R110\">this LazyVim commit</a>, which, ironically, is done for <code class=\"notranslate\">mini.ai</code>, done by a Neovim legend just like yourself, <code class=\"notranslate\">folke</code>.</p>\n<p dir=\"auto\">As you can see, some mappings are created dynamically and registered using <code class=\"notranslate\">require('which-key').register(...)</code>; if someone sets <code class=\"notranslate\">enabled = false</code> for <code class=\"notranslate\">mini.ai</code> in there (just for the sake of example), nothing will break and nothing needs updating; just that those mappings/descriptions won't be registered.</p>\n<p dir=\"auto\">Following your guidance above, I managed to register some of my existing \"groups\" in <code class=\"notranslate\">mini.clue</code> (by calling <code class=\"notranslate\">table.insert(MiniClue.config.clues, ...)</code>, but trying to adapt the LazyVim commit I mentioned to <code class=\"notranslate\">mini.clue</code> doesn't seem to work.</p>\n<p dir=\"auto\">I'm trying to use the <code class=\"notranslate\">i</code> and <code class=\"notranslate\">a</code> tables defined in there for <code class=\"notranslate\">mini.clue</code>, with something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"for k, v in pairs(i) do\n  table.insert(MiniClue.config.clues, { mode = 'x', keys = 'i' .. k, desc = v })\n  table.insert(MiniClue.config.clues, { mode = 'o', keys = 'i' .. k, desc = v })\n  table.insert(MiniClue.config.clues, { mode = 'x', keys = 'a' .. k, desc = v:gsub(' including.*', '') })\n  table.insert(MiniClue.config.clues, { mode = 'o', keys = 'a' .. k, desc = v:gsub(' including.*', '') })\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">for</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">v</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">i</span>) <span class=\"pl-k\">do</span>\n  <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">v</span> })\n  <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">v</span> })\n  <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">v</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span> including.*<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>) })\n  <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">clues</span>, { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">v</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span> including.*<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>) })\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">I've also set <code class=\"notranslate\">v</code> as a <code class=\"notranslate\">trigger</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"triggers = {\n  -- ...\n  { mode = 'n', keys = 'v' },\n},\"><pre class=\"notranslate\"><span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n  { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>v<span class=\"pl-pds\">' </span></span>},\n},</pre></div>\n<p dir=\"auto\">But, doing something like <code class=\"notranslate\">v</code> in normal mode, I see this:<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/5768792/333930269-ae05dead-132e-4907-89b0-3eaa33a69730.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODMsIm5iZiI6MTc5MzU1MzE4MywicGF0aCI6Ii81NzY4NzkyLzMzMzkzMDI2OS1hZTA1ZGVhZC0xMzJlLTQ5MDctODliMC0zZWFhMzNhNjk3MzAucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzAzWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NmM2ZWE2YjM2ZjYyOTEwMTRiOWUyZjE2M2MzNmJiMDJiMWJjYjMwZWQzMjQzNDQ1YmRkMDBkYWQxMWU2MjE3ZiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.mqy-YB6l_6rInGv0eehy095H_2lbNgPJgUIMCeqrz9Q\"><img src=\"https://private-user-images.githubusercontent.com/5768792/333930269-ae05dead-132e-4907-89b0-3eaa33a69730.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODMsIm5iZiI6MTc5MzU1MzE4MywicGF0aCI6Ii81NzY4NzkyLzMzMzkzMDI2OS1hZTA1ZGVhZC0xMzJlLTQ5MDctODliMC0zZWFhMzNhNjk3MzAucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcxMzAzWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9NmM2ZWE2YjM2ZjYyOTEwMTRiOWUyZjE2M2MzNmJiMDJiMWJjYjMwZWQzMjQzNDQ1YmRkMDBkYWQxMWU2MjE3ZiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.mqy-YB6l_6rInGv0eehy095H_2lbNgPJgUIMCeqrz9Q\" alt=\"image\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">Which feels like none of my <code class=\"notranslate\">table.insert</code>s above had any effect.</p>\n<p dir=\"auto\">Also, I think <code class=\"notranslate\">mini.ai</code>, <a href=\"https://github.com/echasnovski/mini.ai/blob/a0262e61f79dfc7bb940d1719c00b0ede042ddd7/lua/mini/ai.lua#L1143-L1146\">by default</a>, adds the <code class=\"notranslate\">Around/inside textobject</code> descriptions to mappings, which don't seem to be picked up by <code class=\"notranslate\">mini.clue</code> and my configured <code class=\"notranslate\">v</code> trigger.</p>\n<p dir=\"auto\">Sorry if it became long; tried to show that I'm <em>actually</em> trying things and not asking questions without anything on my side.</p>",
+            "bodyText": "Hey @echasnovski , a follow-up on this:\nAs a \"real world example\" of what I'm hoping to achieve is this LazyVim commit, which, ironically, is done for mini.ai, done by a Neovim legend just like yourself, folke.\nAs you can see, some mappings are created dynamically and registered using require('which-key').register(...); if someone sets enabled = false for mini.ai in there (just for the sake of example), nothing will break and nothing needs updating; just that those mappings/descriptions won't be registered.\nFollowing your guidance above, I managed to register some of my existing \"groups\" in mini.clue (by calling table.insert(MiniClue.config.clues, ...), but trying to adapt the LazyVim commit I mentioned to mini.clue doesn't seem to work.\nI'm trying to use the i and a tables defined in there for mini.clue, with something like this:\nfor k, v in pairs(i) do\n  table.insert(MiniClue.config.clues, { mode = 'x', keys = 'i' .. k, desc = v })\n  table.insert(MiniClue.config.clues, { mode = 'o', keys = 'i' .. k, desc = v })\n  table.insert(MiniClue.config.clues, { mode = 'x', keys = 'a' .. k, desc = v:gsub(' including.*', '') })\n  table.insert(MiniClue.config.clues, { mode = 'o', keys = 'a' .. k, desc = v:gsub(' including.*', '') })\nend\nI've also set v as a trigger:\ntriggers = {\n  -- ...\n  { mode = 'n', keys = 'v' },\n},\nBut, doing something like v in normal mode, I see this:\n\nWhich feels like none of my table.inserts above had any effect.\nAlso, I think mini.ai, by default, adds the Around/inside textobject descriptions to mappings, which don't seem to be picked up by mini.clue and my configured v trigger.\nSorry if it became long; tried to show that I'm actually trying things and not asking questions without anything on my side.",
+            "createdAt": "2024-05-27T01:22:15Z",
+            "createdViaEmail": false,
+            "databaseId": 9564936,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AkfMI",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-05-27T01:22:15Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "There are several issues with this, which need to be addressed first before investigating further:\r\n\r\n- Adding `{ mode = 'n', keys = 'v' }` as trigger is not a good idea. This implies that you want to show *Normal* mode mappings that start with `v`. Instead the goal (I think) is to show all Visual mode mappings. Unfortunately, 'mini.clue' doesn't work like that (show clues \"across\" modes) and it is a known limitation. The best attempt to show all mappings when mode changed was #442, but it felt to introduce too much complication to the module.\r\n    The best suggestion here is to use `{ mode = 'x', keys = 'i' }` and `{ mode = 'x', keys = 'a' }` to show clues after pressing \"i\" / \"a\" in Visual mode.\r\n- Trying out 'mini.clue' features with 'which-key.nvim' enabled is also not a good idea. It seems to be the case here because of that strange symbol present in clues ('which-key.nvim' uses it for its internal purposes). Try completely disabling 'which-key.nvim' and take a look again.",
+                    "bodyHTML": "<p dir=\"auto\">There are several issues with this, which need to be addressed first before investigating further:</p>\n<ul dir=\"auto\">\n<li>Adding <code class=\"notranslate\">{ mode = 'n', keys = 'v' }</code> as trigger is not a good idea. This implies that you want to show <em>Normal</em> mode mappings that start with <code class=\"notranslate\">v</code>. Instead the goal (I think) is to show all Visual mode mappings. Unfortunately, 'mini.clue' doesn't work like that (show clues \"across\" modes) and it is a known limitation. The best attempt to show all mappings when mode changed was <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1855676949\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/442\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/442/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/442\">#442</a>, but it felt to introduce too much complication to the module.<br>\nThe best suggestion here is to use <code class=\"notranslate\">{ mode = 'x', keys = 'i' }</code> and <code class=\"notranslate\">{ mode = 'x', keys = 'a' }</code> to show clues after pressing \"i\" / \"a\" in Visual mode.</li>\n<li>Trying out 'mini.clue' features with 'which-key.nvim' enabled is also not a good idea. It seems to be the case here because of that strange symbol present in clues ('which-key.nvim' uses it for its internal purposes). Try completely disabling 'which-key.nvim' and take a look again.</li>\n</ul>",
+                    "bodyText": "There are several issues with this, which need to be addressed first before investigating further:\n\nAdding { mode = 'n', keys = 'v' } as trigger is not a good idea. This implies that you want to show Normal mode mappings that start with v. Instead the goal (I think) is to show all Visual mode mappings. Unfortunately, 'mini.clue' doesn't work like that (show clues \"across\" modes) and it is a known limitation. The best attempt to show all mappings when mode changed was #442, but it felt to introduce too much complication to the module.\nThe best suggestion here is to use { mode = 'x', keys = 'i' } and { mode = 'x', keys = 'a' } to show clues after pressing \"i\" / \"a\" in Visual mode.\nTrying out 'mini.clue' features with 'which-key.nvim' enabled is also not a good idea. It seems to be the case here because of that strange symbol present in clues ('which-key.nvim' uses it for its internal purposes). Try completely disabling 'which-key.nvim' and take a look again.",
+                    "createdAt": "2024-05-27T08:33:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9567852,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Akf5s",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-27T08:33:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9564936,
+                        "id": "DC_kwDOFoksYM4AkfMI",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9564936"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9567852",
+                    "updatedAt": "2024-05-27T08:33:34Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9567852"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/871#discussioncomment-9564936",
+            "updatedAt": "2024-05-27T01:22:15Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/871#discussioncomment-9564936"
+        }
+    ],
+    "createdAt": "2024-05-10T21:16:52Z",
+    "createdViaEmail": false,
+    "databaseId": 6643847,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AZWCH",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABWZsqRQ",
+                "name": "mini.clue"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 871,
+    "poll": null,
+    "publishedAt": "2024-05-10T21:16:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/871",
+    "stateReason": "RESOLVED",
+    "title": "`mini.clue` append to triggers after calling `setup` function",
+    "updatedAt": "2024-05-27T08:33:34Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/871"
+}

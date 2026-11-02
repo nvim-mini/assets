@@ -1,0 +1,454 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 6896106,
+        "id": "DC_kwDOFoksYM4AaTnq",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896106"
+    },
+    "answerChosenAt": "2023-09-03T09:32:19Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/50316549?u=3235f7eada2edd1473e4e809fda810ee2e0f2b9e&v=4",
+        "login": "aca",
+        "resourcePath": "/aca",
+        "url": "https://github.com/aca"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/50316549?u=3235f7eada2edd1473e4e809fda810ee2e0f2b9e&v=4",
+        "login": "aca",
+        "resourcePath": "/aca",
+        "url": "https://github.com/aca"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi, I'm trying to migrate my config from vim-sandwich to mini. I hope I could get some help.\r\n\r\nI want to make 'c' to add code block in markdown.\r\n\r\n- If the target to surround is single line, surround with \"`\". \r\n- If the target is multi line surround with \"```\". \r\n\r\n```\r\nasd -> `asd`\r\n\r\nasd\\nasd -> ```asd\\nasd```\r\n```\r\n\r\nI'm not sure how to do \"GETINPUT()\" \r\n```\r\n[\"c\"] = {\r\n    output = function(a)\r\n        local content = GETINPUT()\r\n        if string.find(content, \"\\n\") == nil then\r\n            return { left = \"`\", right = \"`\" }\r\n        else\r\n            return { left = \"```\\n\", right = \"\\n```\\n\" }\r\n        end\r\n    end,\r\n},\r\n```\r\n",
+    "bodyHTML": "<p dir=\"auto\">Hi, I'm trying to migrate my config from vim-sandwich to mini. I hope I could get some help.</p>\n<p dir=\"auto\">I want to make 'c' to add code block in markdown.</p>\n<ul dir=\"auto\">\n<li>If the target to surround is single line, surround with \"`\".</li>\n<li>If the target is multi line surround with \"```\".</li>\n</ul>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"asd -&gt; `asd`\n\nasd\\nasd -&gt; ```asd\\nasd```\"><pre class=\"notranslate\"><code class=\"notranslate\">asd -&gt; `asd`\n\nasd\\nasd -&gt; ```asd\\nasd```\n</code></pre></div>\n<p dir=\"auto\">I'm not sure how to do \"GETINPUT()\"</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"[&quot;c&quot;] = {\n    output = function(a)\n        local content = GETINPUT()\n        if string.find(content, &quot;\\n&quot;) == nil then\n            return { left = &quot;`&quot;, right = &quot;`&quot; }\n        else\n            return { left = &quot;```\\n&quot;, right = &quot;\\n```\\n&quot; }\n        end\n    end,\n},\"><pre class=\"notranslate\"><code class=\"notranslate\">[\"c\"] = {\n    output = function(a)\n        local content = GETINPUT()\n        if string.find(content, \"\\n\") == nil then\n            return { left = \"`\", right = \"`\" }\n        else\n            return { left = \"```\\n\", right = \"\\n```\\n\" }\n        end\n    end,\n},\n</code></pre></div>",
+    "bodyText": "Hi, I'm trying to migrate my config from vim-sandwich to mini. I hope I could get some help.\nI want to make 'c' to add code block in markdown.\n\nIf the target to surround is single line, surround with \"`\".\nIf the target is multi line surround with \"```\".\n\nasd -> `asd`\n\nasd\\nasd -> ```asd\\nasd```\n\nI'm not sure how to do \"GETINPUT()\"\n[\"c\"] = {\n    output = function(a)\n        local content = GETINPUT()\n        if string.find(content, \"\\n\") == nil then\n            return { left = \"`\", right = \"`\" }\n        else\n            return { left = \"```\\n\", right = \"\\n```\\n\" }\n        end\n    end,\n},",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2023-09-03T09:30:44Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There is no easy method to do this, because callable `output` specification gets called without arguments and no guarantees at what Neovim state it does so. But it is an interesting use case.\r\n\r\nHere is my closest attempt:\r\n```lua\r\nrequire('mini.surround').setup({\r\n  custom_surroundings = {\r\n    c = {\r\n      output = function()\r\n        local is_visual = _G.is_visual\r\n        _G.is_visual = nil\r\n        local mark_from = is_visual and \"'<\" or \"'[\"\r\n        local mark_to = is_visual and \"'>\" or \"']\"\r\n        local n_content_lines = vim.fn.line(mark_to) - vim.fn.line(mark_from)\r\n        if n_content_lines == 0 then return { left = '`', right = '`' } end\r\n        return { left = '```\\n', right = '\\n```\\n' }\r\n      end,\r\n    },\r\n  },\r\n})\r\n\r\nlocal rhs = [[<Cmd>lua _G.is_visual=true<CR>:<C-u>lua MiniSurround.add('visual')<CR>]]\r\nvim.keymap.set('x', 'sa', rhs, { silent = true })\r\n```\r\n\r\nQuick notes:\r\n- It doesn't compute whole content per se, but directly decides whether it is single or multiple line. It does so by utilizing information from marks depending on mode.\r\n- As it seems to always be executed in Normal mode, there needs to be a way to distinguish when adding is performed in Visual or Operator-pending mode. This is the cause of all the `_G.is_visual` trickery. If you decide to only apply this in Visual mode, then no need for that.\r\n- It doesn't really work when multiline text is indented. It is by design of 'mini.surround' that it will place left surrounding part at the left of the first non-blank character in linewise mode. You can try `config.respect_selection_type = true` and `{ left = '```', right = '```' }` as returned value, but it will indent the code (again, by design to account for more common use cases).\r\n\r\n\r\n------\r\n\r\nAnother solution would be to make a prompt for user to add extra key press and tell which type of code surrounding they want. For example, with `vim.fn.getcharstr()` and information message with `print()`.\r\n\r\n------\r\n\r\nThat said, my **proper** solution would be to advise you to use separate surroundings for single and multi line cases. The first one is plain `` ` ``, the second one can be mapped to `c`.",
+            "bodyHTML": "<p dir=\"auto\">There is no easy method to do this, because callable <code class=\"notranslate\">output</code> specification gets called without arguments and no guarantees at what Neovim state it does so. But it is an interesting use case.</p>\n<p dir=\"auto\">Here is my closest attempt:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.surround').setup({\n  custom_surroundings = {\n    c = {\n      output = function()\n        local is_visual = _G.is_visual\n        _G.is_visual = nil\n        local mark_from = is_visual and &quot;'&lt;&quot; or &quot;'[&quot;\n        local mark_to = is_visual and &quot;'&gt;&quot; or &quot;']&quot;\n        local n_content_lines = vim.fn.line(mark_to) - vim.fn.line(mark_from)\n        if n_content_lines == 0 then return { left = '`', right = '`' } end\n        return { left = '```\\n', right = '\\n```\\n' }\n      end,\n    },\n  },\n})\n\nlocal rhs = [[&lt;Cmd&gt;lua _G.is_visual=true&lt;CR&gt;:&lt;C-u&gt;lua MiniSurround.add('visual')&lt;CR&gt;]]\nvim.keymap.set('x', 'sa', rhs, { silent = true })\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.surround<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_surroundings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-en\">output</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_visual</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">_G</span>.<span class=\"pl-e\">is_visual</span>\n        <span class=\"pl-c1\">_G</span>.<span class=\"pl-e\">is_visual</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mark_from</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">is_visual</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>'&lt;<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>'[<span class=\"pl-pds\">\"</span></span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mark_to</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">is_visual</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>'&gt;<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>']<span class=\"pl-pds\">\"</span></span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">n_content_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-smi\">mark_to</span>) <span class=\"pl-k\">-</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-smi\">mark_from</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">n_content_lines</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">' </span></span>} <span class=\"pl-k\">end</span>\n        <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>```<span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-cce\">\\n</span>```<span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">' </span></span>}\n      <span class=\"pl-k\">end</span>,\n    },\n  },\n})\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">rhs</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>&lt;Cmd&gt;lua _G.is_visual=true&lt;CR&gt;:&lt;C-u&gt;lua MiniSurround.add('visual')&lt;CR&gt;<span class=\"pl-pds\">]]</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>sa<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">rhs</span>, { <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n<p dir=\"auto\">Quick notes:</p>\n<ul dir=\"auto\">\n<li>It doesn't compute whole content per se, but directly decides whether it is single or multiple line. It does so by utilizing information from marks depending on mode.</li>\n<li>As it seems to always be executed in Normal mode, there needs to be a way to distinguish when adding is performed in Visual or Operator-pending mode. This is the cause of all the <code class=\"notranslate\">_G.is_visual</code> trickery. If you decide to only apply this in Visual mode, then no need for that.</li>\n<li>It doesn't really work when multiline text is indented. It is by design of 'mini.surround' that it will place left surrounding part at the left of the first non-blank character in linewise mode. You can try <code class=\"notranslate\">config.respect_selection_type = true</code> and <code class=\"notranslate\">{ left = '```', right = '```' }</code> as returned value, but it will indent the code (again, by design to account for more common use cases).</li>\n</ul>\n<hr>\n<p dir=\"auto\">Another solution would be to make a prompt for user to add extra key press and tell which type of code surrounding they want. For example, with <code class=\"notranslate\">vim.fn.getcharstr()</code> and information message with <code class=\"notranslate\">print()</code>.</p>\n<hr>\n<p dir=\"auto\">That said, my <strong>proper</strong> solution would be to advise you to use separate surroundings for single and multi line cases. The first one is plain <code class=\"notranslate\">`</code>, the second one can be mapped to <code class=\"notranslate\">c</code>.</p>",
+            "bodyText": "There is no easy method to do this, because callable output specification gets called without arguments and no guarantees at what Neovim state it does so. But it is an interesting use case.\nHere is my closest attempt:\nrequire('mini.surround').setup({\n  custom_surroundings = {\n    c = {\n      output = function()\n        local is_visual = _G.is_visual\n        _G.is_visual = nil\n        local mark_from = is_visual and \"'<\" or \"'[\"\n        local mark_to = is_visual and \"'>\" or \"']\"\n        local n_content_lines = vim.fn.line(mark_to) - vim.fn.line(mark_from)\n        if n_content_lines == 0 then return { left = '`', right = '`' } end\n        return { left = '```\\n', right = '\\n```\\n' }\n      end,\n    },\n  },\n})\n\nlocal rhs = [[<Cmd>lua _G.is_visual=true<CR>:<C-u>lua MiniSurround.add('visual')<CR>]]\nvim.keymap.set('x', 'sa', rhs, { silent = true })\nQuick notes:\n\nIt doesn't compute whole content per se, but directly decides whether it is single or multiple line. It does so by utilizing information from marks depending on mode.\nAs it seems to always be executed in Normal mode, there needs to be a way to distinguish when adding is performed in Visual or Operator-pending mode. This is the cause of all the _G.is_visual trickery. If you decide to only apply this in Visual mode, then no need for that.\nIt doesn't really work when multiline text is indented. It is by design of 'mini.surround' that it will place left surrounding part at the left of the first non-blank character in linewise mode. You can try config.respect_selection_type = true and { left = '```', right = '```' } as returned value, but it will indent the code (again, by design to account for more common use cases).\n\n\nAnother solution would be to make a prompt for user to add extra key press and tell which type of code surrounding they want. For example, with vim.fn.getcharstr() and information message with print().\n\nThat said, my proper solution would be to advise you to use separate surroundings for single and multi line cases. The first one is plain `, the second one can be mapped to c.",
+            "createdAt": "2023-09-03T09:30:44Z",
+            "createdViaEmail": false,
+            "databaseId": 6896106,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AaTnq",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-09-03T09:30:44Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/50316549?u=3235f7eada2edd1473e4e809fda810ee2e0f2b9e&v=4",
+                        "login": "aca",
+                        "resourcePath": "/aca",
+                        "url": "https://github.com/aca"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks!\r\n\r\nBy the way, respect_selection_type = true, adds wierd character `^@`,  is it bug?\r\n\r\n    ```�\r\n        wer\r\n        wer\r\n    �```�\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Thanks!</p>\n<p dir=\"auto\">By the way, respect_selection_type = true, adds wierd character <code class=\"notranslate\">^@</code>,  is it bug?</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"```�\n    wer\n    wer\n�```�\"><pre class=\"notranslate\"><code class=\"notranslate\">```�\n    wer\n    wer\n�```�\n</code></pre></div>",
+                    "bodyText": "Thanks!\nBy the way, respect_selection_type = true, adds wierd character ^@,  is it bug?\n```�\n    wer\n    wer\n�```�",
+                    "createdAt": "2023-09-03T09:46:40Z",
+                    "createdViaEmail": false,
+                    "databaseId": 6896165,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/50316549?u=3235f7eada2edd1473e4e809fda810ee2e0f2b9e&v=4",
+                        "login": "aca",
+                        "resourcePath": "/aca",
+                        "url": "https://github.com/aca"
+                    },
+                    "id": "DC_kwDOFoksYM4AaTol",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2023-09-03T09:47:03Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2023-09-03T09:46:40Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 6896106,
+                        "id": "DC_kwDOFoksYM4AaTnq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896106"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896165",
+                    "updatedAt": "2023-09-03T09:47:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896165"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Thanks!\r\n> \r\n> By the way, respect_selection_type = true, adds wierd character `^@`, is it bug?\r\n> \r\n> ```\r\n> ```�\r\n>     wer\r\n>     wer\r\n> �```�\r\n> ```\r\n\r\nThose are `\\n` characters and not needed. Use `{ left = '```', right = '```' }` directly.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Thanks!</p>\n<p dir=\"auto\">By the way, respect_selection_type = true, adds wierd character <code class=\"notranslate\">^@</code>, is it bug?</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"```�\n    wer\n    wer\n�```�\"><pre class=\"notranslate\"><code class=\"notranslate\">```�\n    wer\n    wer\n�```�\n</code></pre></div>\n</blockquote>\n<p dir=\"auto\">Those are <code class=\"notranslate\">\\n</code> characters and not needed. Use <code class=\"notranslate\">{ left = '```', right = '```' }</code> directly.</p>",
+                    "bodyText": "Thanks!\nBy the way, respect_selection_type = true, adds wierd character ^@, is it bug?\n```�\n    wer\n    wer\n�```�\n\n\nThose are \\n characters and not needed. Use { left = '```', right = '```' } directly.",
+                    "createdAt": "2023-09-03T10:17:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 6896277,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AaTqV",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2023-09-03T10:17:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 6896106,
+                        "id": "DC_kwDOFoksYM4AaTnq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896106"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896277",
+                    "updatedAt": "2023-09-03T10:17:31Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896277"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896106",
+            "updatedAt": "2023-09-03T09:30:44Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896106"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/50316549?u=3235f7eada2edd1473e4e809fda810ee2e0f2b9e&v=4",
+                "login": "aca",
+                "resourcePath": "/aca",
+                "url": "https://github.com/aca"
+            },
+            "authorAssociation": "NONE",
+            "body": "Thanks! \r\n\r\nI ended up with this to make it work with indent.\r\nThis is so messy, but just for the record if anyone needs it.\r\n\r\n```\r\n        [\"c\"] = {\r\n            -- https://github.com/echasnovski/mini.nvim/discussions/462\r\n            output = function()\r\n                -- is_visual doesn't work\r\n                -- local is_visual = vim.tbl_contains({ 'v', 'V', '\\22' }, vim.fn.mode())\r\n                -- local mark_from = is_visual and \"'<\" or \"'[\"\r\n                -- local mark_to = is_visual and \"'>\" or \"']\"\r\n                local mark_from = \"'<\"\r\n                local mark_to = \"'>\"\r\n                local startline = vim.fn.line(mark_from)\r\n                local endline = vim.fn.line(mark_to)\r\n                local n_content_lines = endline - startline\r\n                if n_content_lines == 0 then\r\n                    return { left = \"`\", right = \"`\" }\r\n                end\r\n                local firstline = vim.api.nvim_buf_get_lines(0, startline - 1, startline, false)\r\n                local _, indent = string.find(firstline[1], '^%s*')\r\n                if indent ~= nil then\r\n                    return { left = \"```\\n\" .. string.rep(\" \", indent) , right = \"\\n\" .. string.rep(\" \", indent) .. \"```\\n\" }\r\n                else\r\n                    return { left = \"```\\n\", right = \"\\n```\\n\" }\r\n                end\r\n            end,\r\n        },\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Thanks!</p>\n<p dir=\"auto\">I ended up with this to make it work with indent.<br>\nThis is so messy, but just for the record if anyone needs it.</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"        [&quot;c&quot;] = {\n            -- https://github.com/echasnovski/mini.nvim/discussions/462\n            output = function()\n                -- is_visual doesn't work\n                -- local is_visual = vim.tbl_contains({ 'v', 'V', '\\22' }, vim.fn.mode())\n                -- local mark_from = is_visual and &quot;'&lt;&quot; or &quot;'[&quot;\n                -- local mark_to = is_visual and &quot;'&gt;&quot; or &quot;']&quot;\n                local mark_from = &quot;'&lt;&quot;\n                local mark_to = &quot;'&gt;&quot;\n                local startline = vim.fn.line(mark_from)\n                local endline = vim.fn.line(mark_to)\n                local n_content_lines = endline - startline\n                if n_content_lines == 0 then\n                    return { left = &quot;`&quot;, right = &quot;`&quot; }\n                end\n                local firstline = vim.api.nvim_buf_get_lines(0, startline - 1, startline, false)\n                local _, indent = string.find(firstline[1], '^%s*')\n                if indent ~= nil then\n                    return { left = &quot;```\\n&quot; .. string.rep(&quot; &quot;, indent) , right = &quot;\\n&quot; .. string.rep(&quot; &quot;, indent) .. &quot;```\\n&quot; }\n                else\n                    return { left = &quot;```\\n&quot;, right = &quot;\\n```\\n&quot; }\n                end\n            end,\n        },\"><pre class=\"notranslate\"><code class=\"notranslate\">        [\"c\"] = {\n            -- https://github.com/echasnovski/mini.nvim/discussions/462\n            output = function()\n                -- is_visual doesn't work\n                -- local is_visual = vim.tbl_contains({ 'v', 'V', '\\22' }, vim.fn.mode())\n                -- local mark_from = is_visual and \"'&lt;\" or \"'[\"\n                -- local mark_to = is_visual and \"'&gt;\" or \"']\"\n                local mark_from = \"'&lt;\"\n                local mark_to = \"'&gt;\"\n                local startline = vim.fn.line(mark_from)\n                local endline = vim.fn.line(mark_to)\n                local n_content_lines = endline - startline\n                if n_content_lines == 0 then\n                    return { left = \"`\", right = \"`\" }\n                end\n                local firstline = vim.api.nvim_buf_get_lines(0, startline - 1, startline, false)\n                local _, indent = string.find(firstline[1], '^%s*')\n                if indent ~= nil then\n                    return { left = \"```\\n\" .. string.rep(\" \", indent) , right = \"\\n\" .. string.rep(\" \", indent) .. \"```\\n\" }\n                else\n                    return { left = \"```\\n\", right = \"\\n```\\n\" }\n                end\n            end,\n        },\n</code></pre></div>",
+            "bodyText": "Thanks!\nI ended up with this to make it work with indent.\nThis is so messy, but just for the record if anyone needs it.\n        [\"c\"] = {\n            -- https://github.com/echasnovski/mini.nvim/discussions/462\n            output = function()\n                -- is_visual doesn't work\n                -- local is_visual = vim.tbl_contains({ 'v', 'V', '\\22' }, vim.fn.mode())\n                -- local mark_from = is_visual and \"'<\" or \"'[\"\n                -- local mark_to = is_visual and \"'>\" or \"']\"\n                local mark_from = \"'<\"\n                local mark_to = \"'>\"\n                local startline = vim.fn.line(mark_from)\n                local endline = vim.fn.line(mark_to)\n                local n_content_lines = endline - startline\n                if n_content_lines == 0 then\n                    return { left = \"`\", right = \"`\" }\n                end\n                local firstline = vim.api.nvim_buf_get_lines(0, startline - 1, startline, false)\n                local _, indent = string.find(firstline[1], '^%s*')\n                if indent ~= nil then\n                    return { left = \"```\\n\" .. string.rep(\" \", indent) , right = \"\\n\" .. string.rep(\" \", indent) .. \"```\\n\" }\n                else\n                    return { left = \"```\\n\", right = \"\\n```\\n\" }\n                end\n            end,\n        },",
+            "createdAt": "2023-09-03T10:35:31Z",
+            "createdViaEmail": false,
+            "databaseId": 6896352,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AaTrg",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-09-03T10:35:31Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896352",
+            "updatedAt": "2023-09-03T10:35:32Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/462#discussioncomment-6896352"
+        }
+    ],
+    "createdAt": "2023-09-03T08:43:35Z",
+    "createdViaEmail": false,
+    "databaseId": 5586201,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AVT0Z",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vpB",
+                "name": "mini.surround"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 462,
+    "poll": null,
+    "publishedAt": "2023-09-03T08:43:35Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/462",
+    "stateReason": "RESOLVED",
+    "title": "[mini.surround] how to do conditional surrounding based on input?",
+    "updatedAt": "2023-09-03T10:35:31Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/462"
+}

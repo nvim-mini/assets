@@ -1,0 +1,964 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 18815039,
+        "id": "DC_kwDOFoksYM4BHxg_",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+    },
+    "answerChosenAt": "2026-10-08T11:39:14Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+        "login": "drewlwhitney",
+        "resourcePath": "/drewlwhitney",
+        "url": "https://github.com/drewlwhitney"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.ai\n\n### Question\n\nHello!\r\n\r\nI'm trying to create a few custom text objects for Markdown files. I was hoping to use:\r\n- `mb` for Markdown Bold\r\n- `mi` for Markdown Italics\r\n- `mc` for Markdown Code\r\n- etc.\r\n\r\nSo if I have\r\n\r\n```markdown\r\nfoo **bar** baz\r\n```\r\n\r\nI could do `dimb` to delete \"bar\".\r\n\r\nI know I can create these with `gen_spec.pari()`, but the documentation says the mapping must be a single character. Is there any workaround for this?\r\n\r\nThanks!",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Hello!</p>\n<p dir=\"auto\">I'm trying to create a few custom text objects for Markdown files. I was hoping to use:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">mb</code> for Markdown Bold</li>\n<li><code class=\"notranslate\">mi</code> for Markdown Italics</li>\n<li><code class=\"notranslate\">mc</code> for Markdown Code</li>\n<li>etc.</li>\n</ul>\n<p dir=\"auto\">So if I have</p>\n<div class=\"highlight highlight-text-md notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"foo **bar** baz\"><pre class=\"notranslate\">foo <span class=\"pl-s\">**</span>bar<span class=\"pl-s\">**</span> baz</pre></div>\n<p dir=\"auto\">I could do <code class=\"notranslate\">dimb</code> to delete \"bar\".</p>\n<p dir=\"auto\">I know I can create these with <code class=\"notranslate\">gen_spec.pari()</code>, but the documentation says the mapping must be a single character. Is there any workaround for this?</p>\n<p dir=\"auto\">Thanks!</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai\nQuestion\nHello!\nI'm trying to create a few custom text objects for Markdown files. I was hoping to use:\n\nmb for Markdown Bold\nmi for Markdown Italics\nmc for Markdown Code\netc.\n\nSo if I have\nfoo **bar** baz\nI could do dimb to delete \"bar\".\nI know I can create these with gen_spec.pari(), but the documentation says the mapping must be a single character. Is there any workaround for this?\nThanks!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-10-08T11:38:56Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/164784990?u=e413d47d864fb2123c707d7c791d00a409ebb28a&v=4",
+                "login": "kgeminicdev",
+                "resourcePath": "/kgeminicdev",
+                "url": "https://github.com/kgeminicdev"
+            },
+            "authorAssociation": "NONE",
+            "body": "Not through the `a`/`i` mappings. mini.ai reads the id with a single `getcharstr()`, so `m` is all it ever sees.\n\n`custom_textobjects` is just a table lookup, though, and `MiniAi.select_textobject()` will take any key from it. So you can use multi-character keys there and add the `imb`/`amb` mappings yourself:\n\n```lua\nlocal ai = require('mini.ai')\nai.setup({\n  custom_textobjects = {\n    mb = { '%*%*().-()%*%*' },                  -- **bold**\n    mi = { '%f[%*]%*()[^%*].-()%*%f[^%*]' },    -- *italic*\n    mc = { '`()[^`]-()`' },                     -- `code`\n  },\n})\n\nfor _, ai_type in ipairs({ 'a', 'i' }) do\n  for _, id in ipairs({ 'mb', 'mi', 'mc' }) do\n    vim.keymap.set({ 'x', 'o' }, ai_type .. id, function() ai.select_textobject(ai_type, id) end)\n  end\nend\n```\n\nI tested it on `foo **bar** baz`: `dimb` gives `foo **** baz`, `damb` gives `foo  baz`, and `vimb`, `cimb` and `.` repeat all work. To keep this markdown-only, put the mappings in `after/ftplugin/markdown.lua` with `buffer = true`. The `custom_textobjects` entries can stay global, since they only fire through these mappings.\n\nYou could also make `m` a function that calls `vim.fn.getcharstr()` and returns the matching spec. That works for the first use, but `.` waits for you to press `b` again, so I'd go with the mappings.\n",
+            "bodyHTML": "<p dir=\"auto\">Not through the <code class=\"notranslate\">a</code>/<code class=\"notranslate\">i</code> mappings. mini.ai reads the id with a single <code class=\"notranslate\">getcharstr()</code>, so <code class=\"notranslate\">m</code> is all it ever sees.</p>\n<p dir=\"auto\"><code class=\"notranslate\">custom_textobjects</code> is just a table lookup, though, and <code class=\"notranslate\">MiniAi.select_textobject()</code> will take any key from it. So you can use multi-character keys there and add the <code class=\"notranslate\">imb</code>/<code class=\"notranslate\">amb</code> mappings yourself:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local ai = require('mini.ai')\nai.setup({\n  custom_textobjects = {\n    mb = { '%*%*().-()%*%*' },                  -- **bold**\n    mi = { '%f[%*]%*()[^%*].-()%*%f[^%*]' },    -- *italic*\n    mc = { '`()[^`]-()`' },                     -- `code`\n  },\n})\n\nfor _, ai_type in ipairs({ 'a', 'i' }) do\n  for _, id in ipairs({ 'mb', 'mi', 'mc' }) do\n    vim.keymap.set({ 'x', 'o' }, ai_type .. id, function() ai.select_textobject(ai_type, id) end)\n  end\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">ai</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">ai</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">mb</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%*%*().-()%*%*<span class=\"pl-pds\">' </span></span>},                  <span class=\"pl-c\"><span class=\"pl-c\">--</span> **bold**</span>\n    <span class=\"pl-smi\">mi</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[%*]%*()[^%*].-()%*%f[^%*]<span class=\"pl-pds\">' </span></span>},    <span class=\"pl-c\"><span class=\"pl-c\">--</span> *italic*</span>\n    <span class=\"pl-smi\">mc</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`()[^`]-()`<span class=\"pl-pds\">' </span></span>},                     <span class=\"pl-c\"><span class=\"pl-c\">--</span> `code`</span>\n  },\n})\n\n<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span>}) <span class=\"pl-k\">do</span>\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">id</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mb<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mi<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mc<span class=\"pl-pds\">' </span></span>}) <span class=\"pl-k\">do</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">id</span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">ai</span>.<span class=\"pl-c1\">select_textobject</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">I tested it on <code class=\"notranslate\">foo **bar** baz</code>: <code class=\"notranslate\">dimb</code> gives <code class=\"notranslate\">foo **** baz</code>, <code class=\"notranslate\">damb</code> gives <code class=\"notranslate\">foo  baz</code>, and <code class=\"notranslate\">vimb</code>, <code class=\"notranslate\">cimb</code> and <code class=\"notranslate\">.</code> repeat all work. To keep this markdown-only, put the mappings in <code class=\"notranslate\">after/ftplugin/markdown.lua</code> with <code class=\"notranslate\">buffer = true</code>. The <code class=\"notranslate\">custom_textobjects</code> entries can stay global, since they only fire through these mappings.</p>\n<p dir=\"auto\">You could also make <code class=\"notranslate\">m</code> a function that calls <code class=\"notranslate\">vim.fn.getcharstr()</code> and returns the matching spec. That works for the first use, but <code class=\"notranslate\">.</code> waits for you to press <code class=\"notranslate\">b</code> again, so I'd go with the mappings.</p>",
+            "bodyText": "Not through the a/i mappings. mini.ai reads the id with a single getcharstr(), so m is all it ever sees.\ncustom_textobjects is just a table lookup, though, and MiniAi.select_textobject() will take any key from it. So you can use multi-character keys there and add the imb/amb mappings yourself:\nlocal ai = require('mini.ai')\nai.setup({\n  custom_textobjects = {\n    mb = { '%*%*().-()%*%*' },                  -- **bold**\n    mi = { '%f[%*]%*()[^%*].-()%*%f[^%*]' },    -- *italic*\n    mc = { '`()[^`]-()`' },                     -- `code`\n  },\n})\n\nfor _, ai_type in ipairs({ 'a', 'i' }) do\n  for _, id in ipairs({ 'mb', 'mi', 'mc' }) do\n    vim.keymap.set({ 'x', 'o' }, ai_type .. id, function() ai.select_textobject(ai_type, id) end)\n  end\nend\nI tested it on foo **bar** baz: dimb gives foo **** baz, damb gives foo  baz, and vimb, cimb and . repeat all work. To keep this markdown-only, put the mappings in after/ftplugin/markdown.lua with buffer = true. The custom_textobjects entries can stay global, since they only fire through these mappings.\nYou could also make m a function that calls vim.fn.getcharstr() and returns the matching spec. That works for the first use, but . waits for you to press b again, so I'd go with the mappings.",
+            "createdAt": "2026-10-07T23:15:38Z",
+            "createdViaEmail": false,
+            "databaseId": 18802936,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BHuj4",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-10-07T23:15:38Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+                        "login": "drewlwhitney",
+                        "resourcePath": "/drewlwhitney",
+                        "url": "https://github.com/drewlwhitney"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "SICK! I was going to try something similar to this but was in class xD.\r\n\r\nWhen `mini.ai` runs an operation, for example with `dib`, does it essentially:\r\n1. Note that the operation is `delete`\r\n2. Visually select the region corresponding to `ib` (inside a block)\r\n3. Send the `d` key to delete the selected text?\r\n\r\nThat would make sense for this; all you have to do to make custom text objects work from operator-pending mode is select the region of interest. Let me know if it's more complicated than that.\r\n\r\nThanks!",
+                    "bodyHTML": "<p dir=\"auto\">SICK! I was going to try something similar to this but was in class xD.</p>\n<p dir=\"auto\">When <code class=\"notranslate\">mini.ai</code> runs an operation, for example with <code class=\"notranslate\">dib</code>, does it essentially:</p>\n<ol dir=\"auto\">\n<li>Note that the operation is <code class=\"notranslate\">delete</code></li>\n<li>Visually select the region corresponding to <code class=\"notranslate\">ib</code> (inside a block)</li>\n<li>Send the <code class=\"notranslate\">d</code> key to delete the selected text?</li>\n</ol>\n<p dir=\"auto\">That would make sense for this; all you have to do to make custom text objects work from operator-pending mode is select the region of interest. Let me know if it's more complicated than that.</p>\n<p dir=\"auto\">Thanks!</p>",
+                    "bodyText": "SICK! I was going to try something similar to this but was in class xD.\nWhen mini.ai runs an operation, for example with dib, does it essentially:\n\nNote that the operation is delete\nVisually select the region corresponding to ib (inside a block)\nSend the d key to delete the selected text?\n\nThat would make sense for this; all you have to do to make custom text objects work from operator-pending mode is select the region of interest. Let me know if it's more complicated than that.\nThanks!",
+                    "createdAt": "2026-10-08T00:33:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18803525,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+                        "login": "drewlwhitney",
+                        "resourcePath": "/drewlwhitney",
+                        "url": "https://github.com/drewlwhitney"
+                    },
+                    "id": "DC_kwDOFoksYM4BHutF",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-10-08T00:34:17Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-08T00:33:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18802936,
+                        "id": "DC_kwDOFoksYM4BHuj4",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18803525",
+                    "updatedAt": "2026-10-08T00:34:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18803525"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/164784990?u=e413d47d864fb2123c707d7c791d00a409ebb28a&v=4",
+                        "login": "kgeminicdev",
+                        "resourcePath": "/kgeminicdev",
+                        "url": "https://github.com/kgeminicdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Close, but mini.ai never sends the `d`. In operator-pending mode the `i`/`a` maps just run `MiniAi.select_textobject()`, which enters Visual mode and selects the region. When the mapping returns with a Visual selection, Vim itself applies the pending operator to it. That's standard Vim behavior for omaps (`:h omap-info`). So yes, selecting the region is all a custom textobject has to do, which is why the `imb` maps work for any operator.\n\nThe one extra bit is that it passes along the operator-pending mode, so forced motions like `dVimb` (linewise) work, and it allows an empty selection for `c`/`d` only, so `cimb` on `****` still works.\n",
+                    "bodyHTML": "<p dir=\"auto\">Close, but mini.ai never sends the <code class=\"notranslate\">d</code>. In operator-pending mode the <code class=\"notranslate\">i</code>/<code class=\"notranslate\">a</code> maps just run <code class=\"notranslate\">MiniAi.select_textobject()</code>, which enters Visual mode and selects the region. When the mapping returns with a Visual selection, Vim itself applies the pending operator to it. That's standard Vim behavior for omaps (<code class=\"notranslate\">:h omap-info</code>). So yes, selecting the region is all a custom textobject has to do, which is why the <code class=\"notranslate\">imb</code> maps work for any operator.</p>\n<p dir=\"auto\">The one extra bit is that it passes along the operator-pending mode, so forced motions like <code class=\"notranslate\">dVimb</code> (linewise) work, and it allows an empty selection for <code class=\"notranslate\">c</code>/<code class=\"notranslate\">d</code> only, so <code class=\"notranslate\">cimb</code> on <code class=\"notranslate\">****</code> still works.</p>",
+                    "bodyText": "Close, but mini.ai never sends the d. In operator-pending mode the i/a maps just run MiniAi.select_textobject(), which enters Visual mode and selects the region. When the mapping returns with a Visual selection, Vim itself applies the pending operator to it. That's standard Vim behavior for omaps (:h omap-info). So yes, selecting the region is all a custom textobject has to do, which is why the imb maps work for any operator.\nThe one extra bit is that it passes along the operator-pending mode, so forced motions like dVimb (linewise) work, and it allows an empty selection for c/d only, so cimb on **** still works.",
+                    "createdAt": "2026-10-08T04:37:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18805791,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BHvQf",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-08T04:37:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18802936,
+                        "id": "DC_kwDOFoksYM4BHuj4",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18805791",
+                    "updatedAt": "2026-10-08T04:37:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18805791"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936",
+            "updatedAt": "2026-10-07T23:15:38Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Although using any fields in `config.custom_textobjects` (as suggested in [this comment](https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936)) may work, this is not guaranteed to be in the future (that's the reason I unmarked it as the answer). Textobject id is indeed only a single character by default, otherwise there is no good (robust yet not complex) way of knowing when to stop asking for user input.\r\n\r\nThere are several approaches that solve the original problem here:\r\n\r\n1. The way I'd recommend approaching the problem of \"textobjects for markdown\" is through buffer-local config created for files with `markdown` filetype. This is such a useful and common approach, that [MiniMax has a dedicated example of it](https://github.com/nvim-mini/MiniMax/blob/14bd13f20268cc6c8464afedfbe4ab2430f9c353/configs/nvim-0.12/after/ftplugin/markdown.lua#L28). It is for mini.surround', but a similar approach is for 'mini.ai' textobjects:\r\n    1.1. Create a `~/.config/nvim/after/ftplugin/markdown.lua` lua.\r\n    1.2. Add (a variation of) [these lines](https://github.com/nvim-mini/mini.nvim/blob/fa9037326e9996381e34a14b6350e18168618532/doc/mini-ai.txt#L510) to it. If using `*` and `_` is not mnemonic enough, I'd go with `B` for `bold`, `I` for `italic`, etc.\r\n\r\n2. Use escaped variants of `<C-...>` keys in the global config instead of two-char ones (note that not all `<C-...>` will work, but it still something):\r\n\r\n    ```lua\r\n    local ai = require('mini.ai')\r\n    ai.setup({\r\n      custom_textobjects = {\r\n        ['\\2'] = ai.gen_spec.pair('*', '*', { type = 'greedy' }), -- <C-b>\r\n        ['\\t'] = ai.gen_spec.pair('_', '_', { type = 'greedy' }), -- <C-i>, a.k.a. <Tab>\r\n      },\r\n    })\r\n    ```\r\n\r\n3. Follow this part of [this comment](https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936):\r\n\r\n    > You could also make `m` a function that calls `vim.fn.getcharstr()` and returns the matching spec. That works for the first use, but `.` waits for you to press `b` again, so I'd go with the mappings.",
+            "bodyHTML": "<p dir=\"auto\">Although using any fields in <code class=\"notranslate\">config.custom_textobjects</code> (as suggested in <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2574/hovercard?comment_id=18802936\">this comment</a>) may work, this is not guaranteed to be in the future (that's the reason I unmarked it as the answer). Textobject id is indeed only a single character by default, otherwise there is no good (robust yet not complex) way of knowing when to stop asking for user input.</p>\n<p dir=\"auto\">There are several approaches that solve the original problem here:</p>\n<ol dir=\"auto\">\n<li>\n<p dir=\"auto\">The way I'd recommend approaching the problem of \"textobjects for markdown\" is through buffer-local config created for files with <code class=\"notranslate\">markdown</code> filetype. This is such a useful and common approach, that <a href=\"https://github.com/nvim-mini/MiniMax/blob/14bd13f20268cc6c8464afedfbe4ab2430f9c353/configs/nvim-0.12/after/ftplugin/markdown.lua#L28\">MiniMax has a dedicated example of it</a>. It is for mini.surround', but a similar approach is for 'mini.ai' textobjects:<br>\n1.1. Create a <code class=\"notranslate\">~/.config/nvim/after/ftplugin/markdown.lua</code> lua.<br>\n1.2. Add (a variation of) <a href=\"https://github.com/nvim-mini/mini.nvim/blob/fa9037326e9996381e34a14b6350e18168618532/doc/mini-ai.txt#L510\">these lines</a> to it. If using <code class=\"notranslate\">*</code> and <code class=\"notranslate\">_</code> is not mnemonic enough, I'd go with <code class=\"notranslate\">B</code> for <code class=\"notranslate\">bold</code>, <code class=\"notranslate\">I</code> for <code class=\"notranslate\">italic</code>, etc.</p>\n</li>\n<li>\n<p dir=\"auto\">Use escaped variants of <code class=\"notranslate\">&lt;C-...&gt;</code> keys in the global config instead of two-char ones (note that not all <code class=\"notranslate\">&lt;C-...&gt;</code> will work, but it still something):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local ai = require('mini.ai')\nai.setup({\n  custom_textobjects = {\n    ['\\2'] = ai.gen_spec.pair('*', '*', { type = 'greedy' }), -- &lt;C-b&gt;\n    ['\\t'] = ai.gen_spec.pair('_', '_', { type = 'greedy' }), -- &lt;C-i&gt;, a.k.a. &lt;Tab&gt;\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">ai</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">ai</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    [<span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-cce\">\\2</span><span class=\"pl-pds\">'</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">pair</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>*<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>*<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>greedy<span class=\"pl-pds\">' </span></span>}), <span class=\"pl-c\"><span class=\"pl-c\">--</span> &lt;C-b&gt;</span>\n    [<span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-cce\">\\t</span><span class=\"pl-pds\">'</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">pair</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>_<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>_<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">type</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>greedy<span class=\"pl-pds\">' </span></span>}), <span class=\"pl-c\"><span class=\"pl-c\">--</span> &lt;C-i&gt;, a.k.a. &lt;Tab&gt;</span>\n  },\n})</pre></div>\n</li>\n<li>\n<p dir=\"auto\">Follow this part of <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18802936\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2574/hovercard?comment_id=18802936\">this comment</a>:</p>\n<blockquote>\n<p dir=\"auto\">You could also make <code class=\"notranslate\">m</code> a function that calls <code class=\"notranslate\">vim.fn.getcharstr()</code> and returns the matching spec. That works for the first use, but <code class=\"notranslate\">.</code> waits for you to press <code class=\"notranslate\">b</code> again, so I'd go with the mappings.</p>\n</blockquote>\n</li>\n</ol>",
+            "bodyText": "Although using any fields in config.custom_textobjects (as suggested in this comment) may work, this is not guaranteed to be in the future (that's the reason I unmarked it as the answer). Textobject id is indeed only a single character by default, otherwise there is no good (robust yet not complex) way of knowing when to stop asking for user input.\nThere are several approaches that solve the original problem here:\n\n\nThe way I'd recommend approaching the problem of \"textobjects for markdown\" is through buffer-local config created for files with markdown filetype. This is such a useful and common approach, that MiniMax has a dedicated example of it. It is for mini.surround', but a similar approach is for 'mini.ai' textobjects:\n1.1. Create a ~/.config/nvim/after/ftplugin/markdown.lua lua.\n1.2. Add (a variation of) these lines to it. If using * and _ is not mnemonic enough, I'd go with B for bold, I for italic, etc.\n\n\nUse escaped variants of <C-...> keys in the global config instead of two-char ones (note that not all <C-...> will work, but it still something):\nlocal ai = require('mini.ai')\nai.setup({\n  custom_textobjects = {\n    ['\\2'] = ai.gen_spec.pair('*', '*', { type = 'greedy' }), -- <C-b>\n    ['\\t'] = ai.gen_spec.pair('_', '_', { type = 'greedy' }), -- <C-i>, a.k.a. <Tab>\n  },\n})\n\n\nFollow this part of this comment:\n\nYou could also make m a function that calls vim.fn.getcharstr() and returns the matching spec. That works for the first use, but . waits for you to press b again, so I'd go with the mappings.",
+            "createdAt": "2026-10-08T11:38:56Z",
+            "createdViaEmail": false,
+            "databaseId": 18815039,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BHxg_",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-10-08T11:38:56Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 6,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+                        "login": "drewlwhitney",
+                        "resourcePath": "/drewlwhitney",
+                        "url": "https://github.com/drewlwhitney"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Does `gen_spec.pair()` allow the pattern to work with `next` and `last`? I don't know if I'm doing something wrong but I'm having trouble getting `dilmb` and `dinmb` to work.\r\n\r\nI'll need to experiment with the match strings as well. I'd love to get it to work like quotes do, so in\r\n\r\n```markdown\r\n**foo**\r\n_\r\n**bar**\r\n```\r\n\r\nwhere the cursor is at the `_` character, `vimb` would select `bar`, not the region in between `foo` and `bar`.\r\n\r\nThanks!",
+                    "bodyHTML": "<p dir=\"auto\">Does <code class=\"notranslate\">gen_spec.pair()</code> allow the pattern to work with <code class=\"notranslate\">next</code> and <code class=\"notranslate\">last</code>? I don't know if I'm doing something wrong but I'm having trouble getting <code class=\"notranslate\">dilmb</code> and <code class=\"notranslate\">dinmb</code> to work.</p>\n<p dir=\"auto\">I'll need to experiment with the match strings as well. I'd love to get it to work like quotes do, so in</p>\n<div class=\"highlight highlight-text-md notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"**foo**\n_\n**bar**\"><pre class=\"notranslate\"><span class=\"pl-s\">**</span>foo<span class=\"pl-s\">**</span>\n_\n<span class=\"pl-s\">**</span>bar<span class=\"pl-s\">**</span></pre></div>\n<p dir=\"auto\">where the cursor is at the <code class=\"notranslate\">_</code> character, <code class=\"notranslate\">vimb</code> would select <code class=\"notranslate\">bar</code>, not the region in between <code class=\"notranslate\">foo</code> and <code class=\"notranslate\">bar</code>.</p>\n<p dir=\"auto\">Thanks!</p>",
+                    "bodyText": "Does gen_spec.pair() allow the pattern to work with next and last? I don't know if I'm doing something wrong but I'm having trouble getting dilmb and dinmb to work.\nI'll need to experiment with the match strings as well. I'd love to get it to work like quotes do, so in\n**foo**\n_\n**bar**\nwhere the cursor is at the _ character, vimb would select bar, not the region in between foo and bar.\nThanks!",
+                    "createdAt": "2026-10-08T14:58:33Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18818436,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BHyWE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-08T14:58:33Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18815039,
+                        "id": "DC_kwDOFoksYM4BHxg_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18818436",
+                    "updatedAt": "2026-10-08T14:58:33Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18818436"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Does `gen_spec.pair()` allow the pattern to work with `next` and `last`? I don't know if I'm doing something wrong but I'm having trouble getting `dilmb` and `dinmb` to work.\r\n\r\nYes, they do, if applied correctly. If you follow the explicit `select_textobject` approach from the above comment, then you'd also have to create separate  sets of `ilmc`, `inmc`, etc. mappings.\r\n\r\n> I'll need to experiment with the match strings as well. I'd love to get it to work like quotes do, so in\r\n\r\nThis would require using `{ type = 'balanced' }` as `opts`, as [described here](https://nvim-mini.org/mini.nvim/doc/mini-ai.html#miniai.gen_spec.pair).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Does <code class=\"notranslate\">gen_spec.pair()</code> allow the pattern to work with <code class=\"notranslate\">next</code> and <code class=\"notranslate\">last</code>? I don't know if I'm doing something wrong but I'm having trouble getting <code class=\"notranslate\">dilmb</code> and <code class=\"notranslate\">dinmb</code> to work.</p>\n</blockquote>\n<p dir=\"auto\">Yes, they do, if applied correctly. If you follow the explicit <code class=\"notranslate\">select_textobject</code> approach from the above comment, then you'd also have to create separate  sets of <code class=\"notranslate\">ilmc</code>, <code class=\"notranslate\">inmc</code>, etc. mappings.</p>\n<blockquote>\n<p dir=\"auto\">I'll need to experiment with the match strings as well. I'd love to get it to work like quotes do, so in</p>\n</blockquote>\n<p dir=\"auto\">This would require using <code class=\"notranslate\">{ type = 'balanced' }</code> as <code class=\"notranslate\">opts</code>, as <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-ai.html#miniai.gen_spec.pair\" rel=\"nofollow\">described here</a>.</p>",
+                    "bodyText": "Does gen_spec.pair() allow the pattern to work with next and last? I don't know if I'm doing something wrong but I'm having trouble getting dilmb and dinmb to work.\n\nYes, they do, if applied correctly. If you follow the explicit select_textobject approach from the above comment, then you'd also have to create separate  sets of ilmc, inmc, etc. mappings.\n\nI'll need to experiment with the match strings as well. I'd love to get it to work like quotes do, so in\n\nThis would require using { type = 'balanced' } as opts, as described here.",
+                    "createdAt": "2026-10-08T15:26:32Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18818760,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BHybI",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-08T15:26:32Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18815039,
+                        "id": "DC_kwDOFoksYM4BHxg_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18818760",
+                    "updatedAt": "2026-10-08T15:26:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18818760"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+                        "login": "drewlwhitney",
+                        "resourcePath": "/drewlwhitney",
+                        "url": "https://github.com/drewlwhitney"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I tried to use `balanced` but it doesn't allow more than one character. Is there any way to have separate patterns for bold (\\*\\*TEXT\\*\\*) and italics (\\*TEXT\\*) while using a balanced search?\r\n\r\nIf I wanted to make separate, manual keybinds for the `next` and `last` actions, is there a function that lets you select the next/last text-object regions?\r\n\r\nThanks!",
+                    "bodyHTML": "<p dir=\"auto\">I tried to use <code class=\"notranslate\">balanced</code> but it doesn't allow more than one character. Is there any way to have separate patterns for bold (**TEXT**) and italics (*TEXT*) while using a balanced search?</p>\n<p dir=\"auto\">If I wanted to make separate, manual keybinds for the <code class=\"notranslate\">next</code> and <code class=\"notranslate\">last</code> actions, is there a function that lets you select the next/last text-object regions?</p>\n<p dir=\"auto\">Thanks!</p>",
+                    "bodyText": "I tried to use balanced but it doesn't allow more than one character. Is there any way to have separate patterns for bold (**TEXT**) and italics (*TEXT*) while using a balanced search?\nIf I wanted to make separate, manual keybinds for the next and last actions, is there a function that lets you select the next/last text-object regions?\nThanks!",
+                    "createdAt": "2026-10-09T20:06:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18842298,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+                        "login": "drewlwhitney",
+                        "resourcePath": "/drewlwhitney",
+                        "url": "https://github.com/drewlwhitney"
+                    },
+                    "id": "DC_kwDOFoksYM4BH4K6",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-10-13T18:42:15Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-09T20:06:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18815039,
+                        "id": "DC_kwDOFoksYM4BHxg_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18842298",
+                    "updatedAt": "2026-10-13T18:42:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18842298"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I tried to use `balanced` but it doesn't allow more than one character. Is there any way to have separate patterns for bold (**TEXT**) and italics (_TEXT_) while using a balanced search?\r\n\r\nThe `type = 'balanced'` is described in the help as \"Equivalent to using `%bxy` as first pattern\". Lua's `%bxy` pattern, unfortunately, only allows a single character for both `x` and `y`.\r\n\r\nThe best suggestion for the behavior in markdown are present in the help and they prefer `type = 'greedy'`.\r\n\r\n> If I wanted to make separate, manual keybinds for the `next` and `last` actions, is there a function that lets you select the next/last text-object regions?\r\n\r\n[`MiniAi.select_textobject()`](https://nvim-mini.org/mini.nvim/doc/mini-ai.html#miniai.select_textobject) accepts the same `opts` as [`MiniAi.find_textobject()`](https://nvim-mini.org/mini.nvim/doc/mini-ai.html#miniai.find_textobject), which can accept `opts.search_method`. So to use a specific search method, the mapping RHS (right hand side) should use inside of it `MiniAi.select_textobject(..., { search_method = '...' })`.\r\n\r\nNote, that there might still be shortcomings of creating manual mappings due to many small details in how mappings are used in Neovim. So the best suggestion still stands to not use manual mappings with \"more-than-two-characters\" ids, but follow the marked answer suggestions.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I tried to use <code class=\"notranslate\">balanced</code> but it doesn't allow more than one character. Is there any way to have separate patterns for bold (<strong>TEXT</strong>) and italics (<em>TEXT</em>) while using a balanced search?</p>\n</blockquote>\n<p dir=\"auto\">The <code class=\"notranslate\">type = 'balanced'</code> is described in the help as \"Equivalent to using <code class=\"notranslate\">%bxy</code> as first pattern\". Lua's <code class=\"notranslate\">%bxy</code> pattern, unfortunately, only allows a single character for both <code class=\"notranslate\">x</code> and <code class=\"notranslate\">y</code>.</p>\n<p dir=\"auto\">The best suggestion for the behavior in markdown are present in the help and they prefer <code class=\"notranslate\">type = 'greedy'</code>.</p>\n<blockquote>\n<p dir=\"auto\">If I wanted to make separate, manual keybinds for the <code class=\"notranslate\">next</code> and <code class=\"notranslate\">last</code> actions, is there a function that lets you select the next/last text-object regions?</p>\n</blockquote>\n<p dir=\"auto\"><a href=\"https://nvim-mini.org/mini.nvim/doc/mini-ai.html#miniai.select_textobject\" rel=\"nofollow\"><code class=\"notranslate\">MiniAi.select_textobject()</code></a> accepts the same <code class=\"notranslate\">opts</code> as <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-ai.html#miniai.find_textobject\" rel=\"nofollow\"><code class=\"notranslate\">MiniAi.find_textobject()</code></a>, which can accept <code class=\"notranslate\">opts.search_method</code>. So to use a specific search method, the mapping RHS (right hand side) should use inside of it <code class=\"notranslate\">MiniAi.select_textobject(..., { search_method = '...' })</code>.</p>\n<p dir=\"auto\">Note, that there might still be shortcomings of creating manual mappings due to many small details in how mappings are used in Neovim. So the best suggestion still stands to not use manual mappings with \"more-than-two-characters\" ids, but follow the marked answer suggestions.</p>",
+                    "bodyText": "I tried to use balanced but it doesn't allow more than one character. Is there any way to have separate patterns for bold (TEXT) and italics (TEXT) while using a balanced search?\n\nThe type = 'balanced' is described in the help as \"Equivalent to using %bxy as first pattern\". Lua's %bxy pattern, unfortunately, only allows a single character for both x and y.\nThe best suggestion for the behavior in markdown are present in the help and they prefer type = 'greedy'.\n\nIf I wanted to make separate, manual keybinds for the next and last actions, is there a function that lets you select the next/last text-object regions?\n\nMiniAi.select_textobject() accepts the same opts as MiniAi.find_textobject(), which can accept opts.search_method. So to use a specific search method, the mapping RHS (right hand side) should use inside of it MiniAi.select_textobject(..., { search_method = '...' }).\nNote, that there might still be shortcomings of creating manual mappings due to many small details in how mappings are used in Neovim. So the best suggestion still stands to not use manual mappings with \"more-than-two-characters\" ids, but follow the marked answer suggestions.",
+                    "createdAt": "2026-10-09T20:28:06Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18842619,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BH4P7",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-09T20:28:06Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18815039,
+                        "id": "DC_kwDOFoksYM4BHxg_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18842619",
+                    "updatedAt": "2026-10-09T20:28:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18842619"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/153559008?v=4",
+                        "login": "drewlwhitney",
+                        "resourcePath": "/drewlwhitney",
+                        "url": "https://github.com/drewlwhitney"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I finally did some reading about Lau patterns and the way `mini.ai` handles textobjects. I found that if binding to `MiniAi.select_textobject()`, empty objects get mutilated. For example if `_` is the cursor position, with \r\n\r\n```\r\n_   **\r\n```\r\n\r\nand `cimi` (delete inside Markdown italics), you get\r\n\r\n```\r\n   *_\r\n```\r\n\r\ninstead of\r\n\r\n```\r\n   *_*\r\n```\r\n\r\ni.e. the right-side `*` gets visually selected then deleted.\r\n\r\nI ended up following your advice and using single-letter bindings. This is what I've got now (also showing `mini.surround`):\r\n\r\n<sub>ftplugin/markdown.lua</sub>\r\n```lua\r\n-- custom text objects for Markdown\r\nvim.b.miniai_config = {\r\n    custom_textobjects = {\r\n        i = { \"%b**\", \"^.().-().$\" }, -- *italic*\r\n        b = { \"%*%*().-()%*%*\" },     -- **bold**\r\n        c = { \"%b``\", \"^.().-().$\" }, -- `code`\r\n        C = { \"```().-()```\" },       -- ```code```\r\n        m = { \"%b$$\", \"^.().*().$\" }, -- $math$\r\n        M = { \"%$%$().-()%$%$\" },     -- $$math$$\r\n        h = { \"==().*()==\" },         -- ==highlight==\r\n    },\r\n}\r\n\r\n-- custom surroundings for Markdown\r\nvim.b.minisurround_config = {\r\n    custom_surroundings = {\r\n        i = { input = { \"%b**\", \"^.().-().$\" }, output = { left = '*', right = '*' } }, -- *italic*\r\n        b = { input = { \"%*%*().-()%*%*\" }, output = { left = \"**\", right = \"**\" } },   -- **bold**\r\n        c = { input = { \"%b``\", \"^.().-().$\" }, output = { left = '`', right = '`' } }, -- `code`\r\n        C = { input = { \"```().-()```\" }, output = { left = \"```\", right = \"```\" } },   -- ```code```\r\n        m = { input = { \"%b$$\", \"^.().*().$\" }, output = { left = '$', right = '$' } }, -- $math$\r\n        M = { input = { \"%$%$().-()%$%$\" }, output = { left = \"$$\", right = \"$$\" } },   -- $$math$$\r\n        h = { input = { \"==().*()==\" }, output = { left = \"==\", right = \"==\" } },       -- ==highlight==\r\n    },\r\n}\r\n```\r\n\r\nThese work really well. Thank you for this amazing plugin ❤️, writing is fun now",
+                    "bodyHTML": "<p dir=\"auto\">I finally did some reading about Lau patterns and the way <code class=\"notranslate\">mini.ai</code> handles textobjects. I found that if binding to <code class=\"notranslate\">MiniAi.select_textobject()</code>, empty objects get mutilated. For example if <code class=\"notranslate\">_</code> is the cursor position, with</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"_   **\"><pre class=\"notranslate\"><code class=\"notranslate\">_   **\n</code></pre></div>\n<p dir=\"auto\">and <code class=\"notranslate\">cimi</code> (delete inside Markdown italics), you get</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"   *_\"><pre class=\"notranslate\"><code class=\"notranslate\">   *_\n</code></pre></div>\n<p dir=\"auto\">instead of</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"   *_*\"><pre class=\"notranslate\"><code class=\"notranslate\">   *_*\n</code></pre></div>\n<p dir=\"auto\">i.e. the right-side <code class=\"notranslate\">*</code> gets visually selected then deleted.</p>\n<p dir=\"auto\">I ended up following your advice and using single-letter bindings. This is what I've got now (also showing <code class=\"notranslate\">mini.surround</code>):</p>\n<p dir=\"auto\"><sub>ftplugin/markdown.lua</sub></p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- custom text objects for Markdown\nvim.b.miniai_config = {\n    custom_textobjects = {\n        i = { &quot;%b**&quot;, &quot;^.().-().$&quot; }, -- *italic*\n        b = { &quot;%*%*().-()%*%*&quot; },     -- **bold**\n        c = { &quot;%b``&quot;, &quot;^.().-().$&quot; }, -- `code`\n        C = { &quot;```().-()```&quot; },       -- ```code```\n        m = { &quot;%b$$&quot;, &quot;^.().*().$&quot; }, -- $math$\n        M = { &quot;%$%$().-()%$%$&quot; },     -- $$math$$\n        h = { &quot;==().*()==&quot; },         -- ==highlight==\n    },\n}\n\n-- custom surroundings for Markdown\nvim.b.minisurround_config = {\n    custom_surroundings = {\n        i = { input = { &quot;%b**&quot;, &quot;^.().-().$&quot; }, output = { left = '*', right = '*' } }, -- *italic*\n        b = { input = { &quot;%*%*().-()%*%*&quot; }, output = { left = &quot;**&quot;, right = &quot;**&quot; } },   -- **bold**\n        c = { input = { &quot;%b``&quot;, &quot;^.().-().$&quot; }, output = { left = '`', right = '`' } }, -- `code`\n        C = { input = { &quot;```().-()```&quot; }, output = { left = &quot;```&quot;, right = &quot;```&quot; } },   -- ```code```\n        m = { input = { &quot;%b$$&quot;, &quot;^.().*().$&quot; }, output = { left = '$', right = '$' } }, -- $math$\n        M = { input = { &quot;%$%$().-()%$%$&quot; }, output = { left = &quot;$$&quot;, right = &quot;$$&quot; } },   -- $$math$$\n        h = { input = { &quot;==().*()==&quot; }, output = { left = &quot;==&quot;, right = &quot;==&quot; } },       -- ==highlight==\n    },\n}\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> custom text objects for Markdown</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b**<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().-().$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-c\"><span class=\"pl-c\">--</span> *italic*</span>\n        <span class=\"pl-smi\">b</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%*%*().-()%*%*<span class=\"pl-pds\">\" </span></span>},     <span class=\"pl-c\"><span class=\"pl-c\">--</span> **bold**</span>\n        <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b``<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().-().$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-c\"><span class=\"pl-c\">--</span> `code`</span>\n        <span class=\"pl-smi\">C</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```().-()```<span class=\"pl-pds\">\" </span></span>},       <span class=\"pl-c\"><span class=\"pl-c\">--</span> ```code```</span>\n        <span class=\"pl-smi\">m</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b$$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().*().$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-c\"><span class=\"pl-c\">--</span> $math$</span>\n        <span class=\"pl-smi\">M</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%$%$().-()%$%$<span class=\"pl-pds\">\" </span></span>},     <span class=\"pl-c\"><span class=\"pl-c\">--</span> $$math$$</span>\n        <span class=\"pl-smi\">h</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>==().*()==<span class=\"pl-pds\">\" </span></span>},         <span class=\"pl-c\"><span class=\"pl-c\">--</span> ==highlight==</span>\n    },\n}\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> custom surroundings for Markdown</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">minisurround_config</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">custom_surroundings</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b**<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().-().$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>*<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>*<span class=\"pl-pds\">' </span></span>} }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> *italic*</span>\n        <span class=\"pl-smi\">b</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%*%*().-()%*%*<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>**<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>**<span class=\"pl-pds\">\" </span></span>} },   <span class=\"pl-c\"><span class=\"pl-c\">--</span> **bold**</span>\n        <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b``<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().-().$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">' </span></span>} }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> `code`</span>\n        <span class=\"pl-smi\">C</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```().-()```<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```<span class=\"pl-pds\">\" </span></span>} },   <span class=\"pl-c\"><span class=\"pl-c\">--</span> ```code```</span>\n        <span class=\"pl-smi\">m</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b$$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().*().$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>$<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>$<span class=\"pl-pds\">' </span></span>} }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> $math$</span>\n        <span class=\"pl-smi\">M</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%$%$().-()%$%$<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>$$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>$$<span class=\"pl-pds\">\" </span></span>} },   <span class=\"pl-c\"><span class=\"pl-c\">--</span> $$math$$</span>\n        <span class=\"pl-smi\">h</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>==().*()==<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>==<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>==<span class=\"pl-pds\">\" </span></span>} },       <span class=\"pl-c\"><span class=\"pl-c\">--</span> ==highlight==</span>\n    },\n}</pre></div>\n<p dir=\"auto\">These work really well. Thank you for this amazing plugin ❤️, writing is fun now</p>",
+                    "bodyText": "I finally did some reading about Lau patterns and the way mini.ai handles textobjects. I found that if binding to MiniAi.select_textobject(), empty objects get mutilated. For example if _ is the cursor position, with\n_   **\n\nand cimi (delete inside Markdown italics), you get\n   *_\n\ninstead of\n   *_*\n\ni.e. the right-side * gets visually selected then deleted.\nI ended up following your advice and using single-letter bindings. This is what I've got now (also showing mini.surround):\nftplugin/markdown.lua\n-- custom text objects for Markdown\nvim.b.miniai_config = {\n    custom_textobjects = {\n        i = { \"%b**\", \"^.().-().$\" }, -- *italic*\n        b = { \"%*%*().-()%*%*\" },     -- **bold**\n        c = { \"%b``\", \"^.().-().$\" }, -- `code`\n        C = { \"```().-()```\" },       -- ```code```\n        m = { \"%b$$\", \"^.().*().$\" }, -- $math$\n        M = { \"%$%$().-()%$%$\" },     -- $$math$$\n        h = { \"==().*()==\" },         -- ==highlight==\n    },\n}\n\n-- custom surroundings for Markdown\nvim.b.minisurround_config = {\n    custom_surroundings = {\n        i = { input = { \"%b**\", \"^.().-().$\" }, output = { left = '*', right = '*' } }, -- *italic*\n        b = { input = { \"%*%*().-()%*%*\" }, output = { left = \"**\", right = \"**\" } },   -- **bold**\n        c = { input = { \"%b``\", \"^.().-().$\" }, output = { left = '`', right = '`' } }, -- `code`\n        C = { input = { \"```().-()```\" }, output = { left = \"```\", right = \"```\" } },   -- ```code```\n        m = { input = { \"%b$$\", \"^.().*().$\" }, output = { left = '$', right = '$' } }, -- $math$\n        M = { input = { \"%$%$().-()%$%$\" }, output = { left = \"$$\", right = \"$$\" } },   -- $$math$$\n        h = { input = { \"==().*()==\" }, output = { left = \"==\", right = \"==\" } },       -- ==highlight==\n    },\n}\nThese work really well. Thank you for this amazing plugin ❤️, writing is fun now",
+                    "createdAt": "2026-11-01T03:41:16Z",
+                    "createdViaEmail": false,
+                    "databaseId": 19326299,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BJuVb",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-11-01T03:41:16Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18815039,
+                        "id": "DC_kwDOFoksYM4BHxg_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-19326299",
+                    "updatedAt": "2026-11-01T03:41:16Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-19326299"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I found that if binding to `MiniAi.select_textobject()`, empty objects get mutilated. For example if `_` is the cursor position, with\r\n\r\nThis is because it is not possible in Neovim in general to visually select nothing. It is always at least a single cell. The `select_textojbect()` itself *does* hack around that, but it works only with a handful of selected operators which are checked via `v:operator`. Maybe something in custom mapping invalidates it, but provided mappings *do* work with them.\r\n\r\n---\r\n\r\nThanks for kind words! Glad you enjoy the plugin and writing again :)",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I found that if binding to <code class=\"notranslate\">MiniAi.select_textobject()</code>, empty objects get mutilated. For example if <code class=\"notranslate\">_</code> is the cursor position, with</p>\n</blockquote>\n<p dir=\"auto\">This is because it is not possible in Neovim in general to visually select nothing. It is always at least a single cell. The <code class=\"notranslate\">select_textojbect()</code> itself <em>does</em> hack around that, but it works only with a handful of selected operators which are checked via <code class=\"notranslate\">v:operator</code>. Maybe something in custom mapping invalidates it, but provided mappings <em>do</em> work with them.</p>\n<hr>\n<p dir=\"auto\">Thanks for kind words! Glad you enjoy the plugin and writing again :)</p>",
+                    "bodyText": "I found that if binding to MiniAi.select_textobject(), empty objects get mutilated. For example if _ is the cursor position, with\n\nThis is because it is not possible in Neovim in general to visually select nothing. It is always at least a single cell. The select_textojbect() itself does hack around that, but it works only with a handful of selected operators which are checked via v:operator. Maybe something in custom mapping invalidates it, but provided mappings do work with them.\n\nThanks for kind words! Glad you enjoy the plugin and writing again :)",
+                    "createdAt": "2026-11-01T12:53:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 19332600,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BJv34",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-11-01T12:53:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18815039,
+                        "id": "DC_kwDOFoksYM4BHxg_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-19332600",
+                    "updatedAt": "2026-11-01T12:53:54Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-19332600"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039",
+            "updatedAt": "2026-10-08T11:38:56Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574#discussioncomment-18815039"
+        }
+    ],
+    "createdAt": "2026-10-07T21:37:57Z",
+    "createdViaEmail": false,
+    "databaseId": 10971748,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ap2pk",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2574,
+    "poll": null,
+    "publishedAt": "2026-10-07T21:37:57Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2574",
+    "stateReason": "RESOLVED",
+    "title": "[mini.ai] Any way to use multiple keys as a trigger for a text object?",
+    "updatedAt": "2026-11-01T12:53:55Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2574"
+}

@@ -1,0 +1,1022 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+        "login": "rmuir",
+        "resourcePath": "/rmuir",
+        "url": "https://github.com/rmuir"
+    },
+    "authorAssociation": "NONE",
+    "body": "Background: trying out mini.completion and it does not play well with ansible-language-server.\r\n\r\nCompletions contain raw tabs (`\\t`), accepting any completion causes raw tab to be added as-is to the document (instead of adjusted for indentation), breaking yaml format and causing new diagnostics.\r\n\r\nServer Problems:\r\n* server sends [completion responses](https://github.com/ansible/vscode-ansible/blob/main/packages/ansible-language-server/src/providers/completionProvider.ts#L645) of textedits with raw tabs (`\\t`). Does not check that client can handle this correctly :) I think this happens to work for vscode because it behaves differently with indentation, e.g. uses `InsertTextMode=2`\r\n* server doesn't indicate [snippet](https://github.com/ansible/vscode-ansible/blob/main/packages/ansible-language-server/src/providers/completionProvider.ts#L572) format of the textedit until 'resolve'. I could be wrong, but this seems really broken to me, but might be easy to get fixed.\r\n\r\nClient Problem:\r\n* imagine some of above were fixed: `mini` still doesn't expand textedits of snippet format unless they have variables or tabstops. This means snippets with `\\t` but no variables or tabstops won't be expanded with correct indentation. This part also seems wrong to me?\r\n\r\nShould the logic maybe be adjusted to also look for tabs? I checked that many friendly-snippets have `\\t` in them. Did not check any other LSP servers, and it will not solve my issue with this language server on its own, but may improve compatibility in general.\r\n\r\n[snippet-hack.patch](https://github.com/user-attachments/files/22930421/snippet-hack.patch)\r\n",
+    "bodyHTML": "<p dir=\"auto\">Background: trying out mini.completion and it does not play well with ansible-language-server.</p>\n<p dir=\"auto\">Completions contain raw tabs (<code class=\"notranslate\">\\t</code>), accepting any completion causes raw tab to be added as-is to the document (instead of adjusted for indentation), breaking yaml format and causing new diagnostics.</p>\n<p dir=\"auto\">Server Problems:</p>\n<ul dir=\"auto\">\n<li>server sends <a href=\"https://github.com/ansible/vscode-ansible/blob/main/packages/ansible-language-server/src/providers/completionProvider.ts#L645\">completion responses</a> of textedits with raw tabs (<code class=\"notranslate\">\\t</code>). Does not check that client can handle this correctly :) I think this happens to work for vscode because it behaves differently with indentation, e.g. uses <code class=\"notranslate\">InsertTextMode=2</code></li>\n<li>server doesn't indicate <a href=\"https://github.com/ansible/vscode-ansible/blob/main/packages/ansible-language-server/src/providers/completionProvider.ts#L572\">snippet</a> format of the textedit until 'resolve'. I could be wrong, but this seems really broken to me, but might be easy to get fixed.</li>\n</ul>\n<p dir=\"auto\">Client Problem:</p>\n<ul dir=\"auto\">\n<li>imagine some of above were fixed: <code class=\"notranslate\">mini</code> still doesn't expand textedits of snippet format unless they have variables or tabstops. This means snippets with <code class=\"notranslate\">\\t</code> but no variables or tabstops won't be expanded with correct indentation. This part also seems wrong to me?</li>\n</ul>\n<p dir=\"auto\">Should the logic maybe be adjusted to also look for tabs? I checked that many friendly-snippets have <code class=\"notranslate\">\\t</code> in them. Did not check any other LSP servers, and it will not solve my issue with this language server on its own, but may improve compatibility in general.</p>\n<p dir=\"auto\"><a href=\"https://github.com/user-attachments/files/22930421/snippet-hack.patch\">snippet-hack.patch</a></p>",
+    "bodyText": "Background: trying out mini.completion and it does not play well with ansible-language-server.\nCompletions contain raw tabs (\\t), accepting any completion causes raw tab to be added as-is to the document (instead of adjusted for indentation), breaking yaml format and causing new diagnostics.\nServer Problems:\n\nserver sends completion responses of textedits with raw tabs (\\t). Does not check that client can handle this correctly :) I think this happens to work for vscode because it behaves differently with indentation, e.g. uses InsertTextMode=2\nserver doesn't indicate snippet format of the textedit until 'resolve'. I could be wrong, but this seems really broken to me, but might be easy to get fixed.\n\nClient Problem:\n\nimagine some of above were fixed: mini still doesn't expand textedits of snippet format unless they have variables or tabstops. This means snippets with \\t but no variables or tabstops won't be expanded with correct indentation. This part also seems wrong to me?\n\nShould the logic maybe be adjusted to also look for tabs? I checked that many friendly-snippets have \\t in them. Did not check any other LSP servers, and it will not solve my issue with this language server on its own, but may improve compatibility in general.\nsnippet-hack.patch",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-10-16T14:31:12Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I know there is already a lot of details in here, but there is something I am missing to fully understand the issue. Could you, please, provide a reproducible example of the issue you describe? It can be with `ansible-language-server` (in which case it requires exact file, cursor position, and sequence of key presses needed to repro). But I'd appreciate an example of an actual snippet body together with text and cursor position to where this snippet is trying to be inserted.\r\n\r\nQuick test showed that I did not have issues with preserving indentation (although `\\t` did insert literally and there were some other issues with matching). Here is what I just did to try to see:\r\n- Create the '~/.config/nvim/snippets/global.json' file with the following contents:\r\n\r\n    ```json\r\n    {\r\n      \"Just text\": {\r\n        \"prefix\": \"ctext\",\r\n        \"body\": \"Just some\\n\\tMulti\\n\\tLine\\nText\",\r\n        \"description\": \"Multiline text\"\r\n      }\r\n    }\r\n    ```\r\n\r\n- Use the following 'mini.snippets' setup:\r\n\r\n    ```lua\r\n    local snippets, config_path = require('mini.snippets'), vim.fn.stdpath('config')\r\n    snippets.setup({\r\n      snippets = {\r\n        snippets.gen_loader.from_file(config_path .. '/snippets/global.json'),\r\n      },\r\n    })\r\n    MiniSnippets.start_lsp_server()\r\n    ```\r\n- Start new Neovim session and in an empty buffer in Insert mode type `<Space><Space>abc<CR>` (this would, probably, preserve two space indentation on a new line; if not - make sure that it is there).\r\n- Press `<C-Space>`. This shows the single available snippet from the 'mini.snippets' LSP server. Yes, it is not marked as snippet.\r\n- Press `<C-n>` to select the entry. It makes it appear in the buffer.\r\n- Press `<C-y>` to accept candidate. This result in the following buffer text (before `Multi` and `Line` there are literal `\\t`, but they are indented):\r\n\r\n    ```\r\n      abc\r\n      Just some\r\n      \tMulti\r\n      \tLine\r\n      Text\r\n    ```\r\n\r\n> Server Problems:\r\n\r\nYes, both look like a server issues. Especially not providing insert kind before 'resolve'. This is against LSP specification and will not work in 'mini.completion'.",
+            "bodyHTML": "<p dir=\"auto\">I know there is already a lot of details in here, but there is something I am missing to fully understand the issue. Could you, please, provide a reproducible example of the issue you describe? It can be with <code class=\"notranslate\">ansible-language-server</code> (in which case it requires exact file, cursor position, and sequence of key presses needed to repro). But I'd appreciate an example of an actual snippet body together with text and cursor position to where this snippet is trying to be inserted.</p>\n<p dir=\"auto\">Quick test showed that I did not have issues with preserving indentation (although <code class=\"notranslate\">\\t</code> did insert literally and there were some other issues with matching). Here is what I just did to try to see:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Create the '~/.config/nvim/snippets/global.json' file with the following contents:</p>\n<div class=\"highlight highlight-source-json notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{\n  &quot;Just text&quot;: {\n    &quot;prefix&quot;: &quot;ctext&quot;,\n    &quot;body&quot;: &quot;Just some\\n\\tMulti\\n\\tLine\\nText&quot;,\n    &quot;description&quot;: &quot;Multiline text&quot;\n  }\n}\"><pre class=\"notranslate\">{\n  <span class=\"pl-ent\">\"Just text\"</span>: {\n    <span class=\"pl-ent\">\"prefix\"</span>: <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ctext<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-ent\">\"body\"</span>: <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Just some<span class=\"pl-cce\">\\n\\t</span>Multi<span class=\"pl-cce\">\\n\\t</span>Line<span class=\"pl-cce\">\\n</span>Text<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-ent\">\"description\"</span>: <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Multiline text<span class=\"pl-pds\">\"</span></span>\n  }\n}</pre></div>\n</li>\n<li>\n<p dir=\"auto\">Use the following 'mini.snippets' setup:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local snippets, config_path = require('mini.snippets'), vim.fn.stdpath('config')\nsnippets.setup({\n  snippets = {\n    snippets.gen_loader.from_file(config_path .. '/snippets/global.json'),\n  },\n})\nMiniSnippets.start_lsp_server()\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">snippets</span>, <span class=\"pl-smi\">config_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.snippets<span class=\"pl-pds\">'</span></span>), <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>config<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">snippets</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">snippets</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">snippets</span>.<span class=\"pl-e\">gen_loader</span>.<span class=\"pl-c1\">from_file</span>(<span class=\"pl-smi\">config_path</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/snippets/global.json<span class=\"pl-pds\">'</span></span>),\n  },\n})\n<span class=\"pl-smi\">MiniSnippets</span>.<span class=\"pl-c1\">start_lsp_server</span>()</pre></div>\n</li>\n<li>\n<p dir=\"auto\">Start new Neovim session and in an empty buffer in Insert mode type <code class=\"notranslate\">&lt;Space&gt;&lt;Space&gt;abc&lt;CR&gt;</code> (this would, probably, preserve two space indentation on a new line; if not - make sure that it is there).</p>\n</li>\n<li>\n<p dir=\"auto\">Press <code class=\"notranslate\">&lt;C-Space&gt;</code>. This shows the single available snippet from the 'mini.snippets' LSP server. Yes, it is not marked as snippet.</p>\n</li>\n<li>\n<p dir=\"auto\">Press <code class=\"notranslate\">&lt;C-n&gt;</code> to select the entry. It makes it appear in the buffer.</p>\n</li>\n<li>\n<p dir=\"auto\">Press <code class=\"notranslate\">&lt;C-y&gt;</code> to accept candidate. This result in the following buffer text (before <code class=\"notranslate\">Multi</code> and <code class=\"notranslate\">Line</code> there are literal <code class=\"notranslate\">\\t</code>, but they are indented):</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"  abc\n  Just some\n  \tMulti\n  \tLine\n  Text\"><pre class=\"notranslate\"><code class=\"notranslate\">  abc\n  Just some\n  \tMulti\n  \tLine\n  Text\n</code></pre></div>\n</li>\n</ul>\n<blockquote>\n<p dir=\"auto\">Server Problems:</p>\n</blockquote>\n<p dir=\"auto\">Yes, both look like a server issues. Especially not providing insert kind before 'resolve'. This is against LSP specification and will not work in 'mini.completion'.</p>",
+            "bodyText": "I know there is already a lot of details in here, but there is something I am missing to fully understand the issue. Could you, please, provide a reproducible example of the issue you describe? It can be with ansible-language-server (in which case it requires exact file, cursor position, and sequence of key presses needed to repro). But I'd appreciate an example of an actual snippet body together with text and cursor position to where this snippet is trying to be inserted.\nQuick test showed that I did not have issues with preserving indentation (although \\t did insert literally and there were some other issues with matching). Here is what I just did to try to see:\n\n\nCreate the '~/.config/nvim/snippets/global.json' file with the following contents:\n{\n  \"Just text\": {\n    \"prefix\": \"ctext\",\n    \"body\": \"Just some\\n\\tMulti\\n\\tLine\\nText\",\n    \"description\": \"Multiline text\"\n  }\n}\n\n\nUse the following 'mini.snippets' setup:\nlocal snippets, config_path = require('mini.snippets'), vim.fn.stdpath('config')\nsnippets.setup({\n  snippets = {\n    snippets.gen_loader.from_file(config_path .. '/snippets/global.json'),\n  },\n})\nMiniSnippets.start_lsp_server()\n\n\nStart new Neovim session and in an empty buffer in Insert mode type <Space><Space>abc<CR> (this would, probably, preserve two space indentation on a new line; if not - make sure that it is there).\n\n\nPress <C-Space>. This shows the single available snippet from the 'mini.snippets' LSP server. Yes, it is not marked as snippet.\n\n\nPress <C-n> to select the entry. It makes it appear in the buffer.\n\n\nPress <C-y> to accept candidate. This result in the following buffer text (before Multi and Line there are literal \\t, but they are indented):\n  abc\n  Just some\n  \tMulti\n  \tLine\n  Text\n\n\n\n\nServer Problems:\n\nYes, both look like a server issues. Especially not providing insert kind before 'resolve'. This is against LSP specification and will not work in 'mini.completion'.",
+            "createdAt": "2025-10-15T17:09:12Z",
+            "createdViaEmail": false,
+            "databaseId": 14689871,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A4CZP",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-15T17:09:12Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 6,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+                        "login": "rmuir",
+                        "resourcePath": "/rmuir",
+                        "url": "https://github.com/rmuir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Yes, I'll give you a repro. It is confusing.\r\n\r\nThe basic problem is that yaml file is indented with spaces. The insertion of the raw `\\t` causes language server to complain about \"illegal tab character\" (with associated diagnostics emitted), and it messes up subsequent completion until you manually change the tab to spaces. \r\n\r\nWhen response is marked as snippet, it is not expanded as literal `\\t` but instead expanded as spaces.",
+                    "bodyHTML": "<p dir=\"auto\">Yes, I'll give you a repro. It is confusing.</p>\n<p dir=\"auto\">The basic problem is that yaml file is indented with spaces. The insertion of the raw <code class=\"notranslate\">\\t</code> causes language server to complain about \"illegal tab character\" (with associated diagnostics emitted), and it messes up subsequent completion until you manually change the tab to spaces.</p>\n<p dir=\"auto\">When response is marked as snippet, it is not expanded as literal <code class=\"notranslate\">\\t</code> but instead expanded as spaces.</p>",
+                    "bodyText": "Yes, I'll give you a repro. It is confusing.\nThe basic problem is that yaml file is indented with spaces. The insertion of the raw \\t causes language server to complain about \"illegal tab character\" (with associated diagnostics emitted), and it messes up subsequent completion until you manually change the tab to spaces.\nWhen response is marked as snippet, it is not expanded as literal \\t but instead expanded as spaces.",
+                    "createdAt": "2025-10-15T17:15:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14689905,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4CZx",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-15T17:15:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14689871,
+                        "id": "DC_kwDOFoksYM4A4CZP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689905",
+                    "updatedAt": "2025-10-15T17:15:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689905"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "So the problem is not quite \"This means snippets with \\t but no variables or tabstops won't be expanded with correct indentation.\", which I understood that there is an issue with preserving indentation of current line? It is only that 'mini.completion' inserts `\\t` literally and not expands it into spaces? If yes, then no repro needed.\r\n\r\nDo you think that `ansible-language-server` is specialized enough to \"know\" that it is not a good idea to use literal `\\t` in places where only space indentation is supported?",
+                    "bodyHTML": "<p dir=\"auto\">So the problem is not quite \"This means snippets with \\t but no variables or tabstops won't be expanded with correct indentation.\", which I understood that there is an issue with preserving indentation of current line? It is only that 'mini.completion' inserts <code class=\"notranslate\">\\t</code> literally and not expands it into spaces? If yes, then no repro needed.</p>\n<p dir=\"auto\">Do you think that <code class=\"notranslate\">ansible-language-server</code> is specialized enough to \"know\" that it is not a good idea to use literal <code class=\"notranslate\">\\t</code> in places where only space indentation is supported?</p>",
+                    "bodyText": "So the problem is not quite \"This means snippets with \\t but no variables or tabstops won't be expanded with correct indentation.\", which I understood that there is an issue with preserving indentation of current line? It is only that 'mini.completion' inserts \\t literally and not expands it into spaces? If yes, then no repro needed.\nDo you think that ansible-language-server is specialized enough to \"know\" that it is not a good idea to use literal \\t in places where only space indentation is supported?",
+                    "createdAt": "2025-10-15T17:44:03Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14690170,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4Cd6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-15T17:44:03Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14689871,
+                        "id": "DC_kwDOFoksYM4A4CZP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690170",
+                    "updatedAt": "2025-10-15T17:44:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690170"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+                        "login": "rmuir",
+                        "resourcePath": "/rmuir",
+                        "url": "https://github.com/rmuir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Here is example repro with a screenshot. if you name it `playbook.yml` and open it with ansible_ls you should be able to see it.\r\n\r\n```yaml\r\n# Basic idea, create a new list element (like shown below) under \"tasks\":\r\n#\r\n# ```\r\n# - name: test\r\n#   asser\r\n# ```\r\n#\r\n# After typing 'asser' you should have completion item of \"ansible.builtin.assert\" available.\r\n# after accepting completion you should have:\r\n#\r\n# - name: test\r\n#   ansible.builtin.assert:\r\n#     <-- cursor indented (NO TABS). if you type 't' it should then complete 'that:' ... and so on\r\n- name: Example\r\n  hosts: localhost\r\n  gather_facts: false\r\n  tasks:\r\n    - name: test\r\n      ansible.builtin.assert:\r\n        that: [ true ]\r\n```\r\n\r\nMaybe this screenshot also helps if you look closely at the `listchars`. You can see there is no issue with indentation, the problem is just the raw tab. It breaks the language-server's parsing:\r\n* causes it to not suggest \"that:\" as an option, even though it is mandatory\r\n* suggests other things instead that are invalid\r\n* issue diagnostic about malformed yaml\r\n\r\nThe inserted `\\t` also causes a treesitter parsing error and incorrect highlighting.\r\n\r\n<img width=\"925\" height=\"452\" alt=\"Screen_Shot_2025-10-15_at_13 38 17\" src=\"https://github.com/user-attachments/assets/0e183a87-0644-4374-ac78-76cce8014fac\" />\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Here is example repro with a screenshot. if you name it <code class=\"notranslate\">playbook.yml</code> and open it with ansible_ls you should be able to see it.</p>\n<div class=\"highlight highlight-source-yaml notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"# Basic idea, create a new list element (like shown below) under &quot;tasks&quot;:\n#\n# ```\n# - name: test\n#   asser\n# ```\n#\n# After typing 'asser' you should have completion item of &quot;ansible.builtin.assert&quot; available.\n# after accepting completion you should have:\n#\n# - name: test\n#   ansible.builtin.assert:\n#     &lt;-- cursor indented (NO TABS). if you type 't' it should then complete 'that:' ... and so on\n- name: Example\n  hosts: localhost\n  gather_facts: false\n  tasks:\n    - name: test\n      ansible.builtin.assert:\n        that: [ true ]\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">#</span> Basic idea, create a new list element (like shown below) under \"tasks\":</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span> ```</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span> - name: test</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span>   asser</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span> ```</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span> After typing 'asser' you should have completion item of \"ansible.builtin.assert\" available.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span> after accepting completion you should have:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span> - name: test</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span>   ansible.builtin.assert:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">#</span>     &lt;-- cursor indented (NO TABS). if you type 't' it should then complete 'that:' ... and so on</span>\n- <span class=\"pl-ent\">name</span>: <span class=\"pl-s\">Example</span>\n  <span class=\"pl-ent\">hosts</span>: <span class=\"pl-s\">localhost</span>\n  <span class=\"pl-ent\">gather_facts</span>: <span class=\"pl-c1\">false</span>\n  <span class=\"pl-ent\">tasks</span>:\n    - <span class=\"pl-ent\">name</span>: <span class=\"pl-s\">test</span>\n      <span class=\"pl-ent\">ansible.builtin.assert</span>:\n        <span class=\"pl-ent\">that</span>: <span class=\"pl-s\">[ true ]</span></pre></div>\n<p dir=\"auto\">Maybe this screenshot also helps if you look closely at the <code class=\"notranslate\">listchars</code>. You can see there is no issue with indentation, the problem is just the raw tab. It breaks the language-server's parsing:</p>\n<ul dir=\"auto\">\n<li>causes it to not suggest \"that:\" as an option, even though it is mandatory</li>\n<li>suggests other things instead that are invalid</li>\n<li>issue diagnostic about malformed yaml</li>\n</ul>\n<p dir=\"auto\">The inserted <code class=\"notranslate\">\\t</code> also causes a treesitter parsing error and incorrect highlighting.</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/504194/501642163-0e183a87-0644-4374-ac78-76cce8014fac.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4OTAsIm5iZiI6MTc5MzU1MjU5MCwicGF0aCI6Ii81MDQxOTQvNTAxNjQyMTYzLTBlMTgzYTg3LTA2NDQtNDM3NC1hYzc4LTc2Y2NlODAxNGZhYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAzMTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iM2YxYzFkNTA2ODU4YTQ0NDJjYmJhY2E0NzhiY2MwM2ExN2UxYjU1NzFmYjcxMzE4ZjIzMDg4NGZhMzQ4NmE5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.S5BbKawmjtSc80YlwuA1AAfQwM98DaZzs_PTTmVXyCg\"><img width=\"925\" height=\"452\" alt=\"Screen_Shot_2025-10-15_at_13 38 17\" src=\"https://private-user-images.githubusercontent.com/504194/501642163-0e183a87-0644-4374-ac78-76cce8014fac.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4OTAsIm5iZiI6MTc5MzU1MjU5MCwicGF0aCI6Ii81MDQxOTQvNTAxNjQyMTYzLTBlMTgzYTg3LTA2NDQtNDM3NC1hYzc4LTc2Y2NlODAxNGZhYy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAzMTBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iM2YxYzFkNTA2ODU4YTQ0NDJjYmJhY2E0NzhiY2MwM2ExN2UxYjU1NzFmYjcxMzE4ZjIzMDg4NGZhMzQ4NmE5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.S5BbKawmjtSc80YlwuA1AAfQwM98DaZzs_PTTmVXyCg\" style=\"max-width: 100%; height: auto; max-height: 452px;; aspect-ratio: 925 / 452; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>",
+                    "bodyText": "Here is example repro with a screenshot. if you name it playbook.yml and open it with ansible_ls you should be able to see it.\n# Basic idea, create a new list element (like shown below) under \"tasks\":\n#\n# ```\n# - name: test\n#   asser\n# ```\n#\n# After typing 'asser' you should have completion item of \"ansible.builtin.assert\" available.\n# after accepting completion you should have:\n#\n# - name: test\n#   ansible.builtin.assert:\n#     <-- cursor indented (NO TABS). if you type 't' it should then complete 'that:' ... and so on\n- name: Example\n  hosts: localhost\n  gather_facts: false\n  tasks:\n    - name: test\n      ansible.builtin.assert:\n        that: [ true ]\nMaybe this screenshot also helps if you look closely at the listchars. You can see there is no issue with indentation, the problem is just the raw tab. It breaks the language-server's parsing:\n\ncauses it to not suggest \"that:\" as an option, even though it is mandatory\nsuggests other things instead that are invalid\nissue diagnostic about malformed yaml\n\nThe inserted \\t also causes a treesitter parsing error and incorrect highlighting.",
+                    "createdAt": "2025-10-15T17:44:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14690180,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4CeE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-15T17:44:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14689871,
+                        "id": "DC_kwDOFoksYM4A4CZP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690180",
+                    "updatedAt": "2025-10-15T17:44:52Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690180"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+                        "login": "rmuir",
+                        "resourcePath": "/rmuir",
+                        "url": "https://github.com/rmuir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> It is only that 'mini.completion' inserts `\\t` literally and not expands it into spaces? If yes, then no repro needed.\r\n\r\nYes. If i force it to be expanded as snippet (`needs_snippet_insert`) then there is no issue. \r\n\r\n> Do you think that `ansible-language-server` is specialized enough to \"know\" that it is not a good idea to use literal `\\t` in places where only space indentation is supported?\r\n\r\nIt knows to emit the diagnostic about it, so I think so. Looking at the code, I think they just made it work for vscode. Language server does not even check that client supports snippets. But I had in mind that if i sent them a one-line PR to set the format as snippet in the first place, it might be the easiest fix, it would just still require a change on the mini side to ensure it is treated that way.\r\n\r\n\r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">It is only that 'mini.completion' inserts <code class=\"notranslate\">\\t</code> literally and not expands it into spaces? If yes, then no repro needed.</p>\n</blockquote>\n<p dir=\"auto\">Yes. If i force it to be expanded as snippet (<code class=\"notranslate\">needs_snippet_insert</code>) then there is no issue.</p>\n<blockquote>\n<p dir=\"auto\">Do you think that <code class=\"notranslate\">ansible-language-server</code> is specialized enough to \"know\" that it is not a good idea to use literal <code class=\"notranslate\">\\t</code> in places where only space indentation is supported?</p>\n</blockquote>\n<p dir=\"auto\">It knows to emit the diagnostic about it, so I think so. Looking at the code, I think they just made it work for vscode. Language server does not even check that client supports snippets. But I had in mind that if i sent them a one-line PR to set the format as snippet in the first place, it might be the easiest fix, it would just still require a change on the mini side to ensure it is treated that way.</p>",
+                    "bodyText": "It is only that 'mini.completion' inserts \\t literally and not expands it into spaces? If yes, then no repro needed.\n\nYes. If i force it to be expanded as snippet (needs_snippet_insert) then there is no issue.\n\nDo you think that ansible-language-server is specialized enough to \"know\" that it is not a good idea to use literal \\t in places where only space indentation is supported?\n\nIt knows to emit the diagnostic about it, so I think so. Looking at the code, I think they just made it work for vscode. Language server does not even check that client supports snippets. But I had in mind that if i sent them a one-line PR to set the format as snippet in the first place, it might be the easiest fix, it would just still require a change on the mini side to ensure it is treated that way.",
+                    "createdAt": "2025-10-15T17:58:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14690267,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4Cfb",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-15T17:58:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14689871,
+                        "id": "DC_kwDOFoksYM4A4CZP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690267",
+                    "updatedAt": "2025-10-15T17:58:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690267"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... it would just still require a change on the mini side to ensure it is treated that way.\r\n\r\nAt first glance, I think it makes sense here to restrict number of cases when candidate is marked as snippet but 'mini.completion' does not treat it as such. I'd go even further and make the extra check not for tabstop, but for any whitespace (`word:find('%s') ~= nil`). If it is marked as a snippet and contains a whitespace, then it probably needs to be treated as a snippet.\r\n\r\nIt still seems to work for the use case that prompted this workaround solution (described in the comment; like LSP server marking *every* candidate as snippet, even just words).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... it would just still require a change on the mini side to ensure it is treated that way.</p>\n</blockquote>\n<p dir=\"auto\">At first glance, I think it makes sense here to restrict number of cases when candidate is marked as snippet but 'mini.completion' does not treat it as such. I'd go even further and make the extra check not for tabstop, but for any whitespace (<code class=\"notranslate\">word:find('%s') ~= nil</code>). If it is marked as a snippet and contains a whitespace, then it probably needs to be treated as a snippet.</p>\n<p dir=\"auto\">It still seems to work for the use case that prompted this workaround solution (described in the comment; like LSP server marking <em>every</em> candidate as snippet, even just words).</p>",
+                    "bodyText": "... it would just still require a change on the mini side to ensure it is treated that way.\n\nAt first glance, I think it makes sense here to restrict number of cases when candidate is marked as snippet but 'mini.completion' does not treat it as such. I'd go even further and make the extra check not for tabstop, but for any whitespace (word:find('%s') ~= nil). If it is marked as a snippet and contains a whitespace, then it probably needs to be treated as a snippet.\nIt still seems to work for the use case that prompted this workaround solution (described in the comment; like LSP server marking every candidate as snippet, even just words).",
+                    "createdAt": "2025-10-15T18:12:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14690388,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4ChU",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-15T18:12:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14689871,
+                        "id": "DC_kwDOFoksYM4A4CZP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690388",
+                    "updatedAt": "2025-10-15T18:12:38Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690388"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+                        "login": "rmuir",
+                        "resourcePath": "/rmuir",
+                        "url": "https://github.com/rmuir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you for working thru it with me! I can try to work up PRs for this one, might be a couple of days. ",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for working thru it with me! I can try to work up PRs for this one, might be a couple of days.</p>",
+                    "bodyText": "Thank you for working thru it with me! I can try to work up PRs for this one, might be a couple of days.",
+                    "createdAt": "2025-10-15T19:28:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14690893,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4CpN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-15T19:28:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14689871,
+                        "id": "DC_kwDOFoksYM4A4CZP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690893",
+                    "updatedAt": "2025-10-15T19:28:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14690893"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871",
+            "updatedAt": "2025-10-15T17:09:13Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14689871"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The 'mini.completion' part of this should now be resolved on latest `main`. In the end, I decided to go the middle road and treat only newlines and tabs as \"snippet features that require explicit `snippet_insert` call\".\r\n\r\nThanks for pointing out this use case!",
+            "bodyHTML": "<p dir=\"auto\">The 'mini.completion' part of this should now be resolved on latest <code class=\"notranslate\">main</code>. In the end, I decided to go the middle road and treat only newlines and tabs as \"snippet features that require explicit <code class=\"notranslate\">snippet_insert</code> call\".</p>\n<p dir=\"auto\">Thanks for pointing out this use case!</p>",
+            "bodyText": "The 'mini.completion' part of this should now be resolved on latest main. In the end, I decided to go the middle road and treat only newlines and tabs as \"snippet features that require explicit snippet_insert call\".\nThanks for pointing out this use case!",
+            "createdAt": "2025-10-16T14:31:12Z",
+            "createdViaEmail": false,
+            "databaseId": 14699926,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A4E2W",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-16T14:31:12Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+                        "login": "rmuir",
+                        "resourcePath": "/rmuir",
+                        "url": "https://github.com/rmuir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you! draft PR to the language server: https://github.com/ansible/vscode-ansible/pull/2215\r\n\r\nIt works with your latest commit: will see what the maintainers say.",
+                    "bodyHTML": "<p dir=\"auto\">Thank you! draft PR to the language server: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3524377822\" data-permission-text=\"Title is private\" data-url=\"https://github.com/ansible/vscode-ansible/issues/2215\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/ansible/vscode-ansible/pull/2215/hovercard\" href=\"https://github.com/ansible/vscode-ansible/pull/2215\">ansible/vscode-ansible#2215</a></p>\n<p dir=\"auto\">It works with your latest commit: will see what the maintainers say.</p>",
+                    "bodyText": "Thank you! draft PR to the language server: ansible/vscode-ansible#2215\nIt works with your latest commit: will see what the maintainers say.",
+                    "createdAt": "2025-10-17T04:06:15Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14705272,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4GJ4",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-17T04:06:15Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14699926,
+                        "id": "DC_kwDOFoksYM4A4E2W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14699926"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14705272",
+                    "updatedAt": "2025-10-17T04:06:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14705272"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I don't think \"Many clients (e.g. neovim mini.completion) cannot defer the insertTextFormat property until completionItem/resolve:\" is the best reason for this change.\r\n\r\nThere is a dedicated [`resolveSupport` field of client capabilities](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionClientCapabilities) which lists all the fields that client can handle supplied in `completionItem/resolve` response. All other properties that are not included in that list [*must* be provided in `textDocument/completion` response](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion).\r\n\r\nSo if `insertTextFormat` is absent in `resolveSupport` property array, then it *must* be supplied in `textDocument/completion` response or never at all. Otherwise the server violates the LSP specification.",
+                    "bodyHTML": "<p dir=\"auto\">I don't think \"Many clients (e.g. neovim mini.completion) cannot defer the insertTextFormat property until completionItem/resolve:\" is the best reason for this change.</p>\n<p dir=\"auto\">There is a dedicated <a href=\"https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionClientCapabilities\" rel=\"nofollow\"><code class=\"notranslate\">resolveSupport</code> field of client capabilities</a> which lists all the fields that client can handle supplied in <code class=\"notranslate\">completionItem/resolve</code> response. All other properties that are not included in that list <a href=\"https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#textDocument_completion\" rel=\"nofollow\"><em>must</em> be provided in <code class=\"notranslate\">textDocument/completion</code> response</a>.</p>\n<p dir=\"auto\">So if <code class=\"notranslate\">insertTextFormat</code> is absent in <code class=\"notranslate\">resolveSupport</code> property array, then it <em>must</em> be supplied in <code class=\"notranslate\">textDocument/completion</code> response or never at all. Otherwise the server violates the LSP specification.</p>",
+                    "bodyText": "I don't think \"Many clients (e.g. neovim mini.completion) cannot defer the insertTextFormat property until completionItem/resolve:\" is the best reason for this change.\nThere is a dedicated resolveSupport field of client capabilities which lists all the fields that client can handle supplied in completionItem/resolve response. All other properties that are not included in that list must be provided in textDocument/completion response.\nSo if insertTextFormat is absent in resolveSupport property array, then it must be supplied in textDocument/completion response or never at all. Otherwise the server violates the LSP specification.",
+                    "createdAt": "2025-10-17T10:04:52Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14708233,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4G4J",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-17T10:04:52Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14699926,
+                        "id": "DC_kwDOFoksYM4A4E2W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14699926"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14708233",
+                    "updatedAt": "2025-10-17T10:04:53Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14708233"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/504194?u=3b5b052eef1b6f5ea284ef5224938378866e1dd2&v=4",
+                        "login": "rmuir",
+                        "resourcePath": "/rmuir",
+                        "url": "https://github.com/rmuir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I worded the text in the way I did after looking at their sources and tests :) Of course it is a violation of specification, but the server is not even tested in that way and I'm honestly not sure the project is concerned with it or even knows about it. I guess it is a bit of a gamble, I will definitely re-use your argument if needed.",
+                    "bodyHTML": "<p dir=\"auto\">I worded the text in the way I did after looking at their sources and tests :) Of course it is a violation of specification, but the server is not even tested in that way and I'm honestly not sure the project is concerned with it or even knows about it. I guess it is a bit of a gamble, I will definitely re-use your argument if needed.</p>",
+                    "bodyText": "I worded the text in the way I did after looking at their sources and tests :) Of course it is a violation of specification, but the server is not even tested in that way and I'm honestly not sure the project is concerned with it or even knows about it. I guess it is a bit of a gamble, I will definitely re-use your argument if needed.",
+                    "createdAt": "2025-10-17T11:13:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14708709,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4G_l",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-17T11:13:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14699926,
+                        "id": "DC_kwDOFoksYM4A4E2W",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14699926"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14708709",
+                    "updatedAt": "2025-10-17T11:13:24Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14708709"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14699926",
+            "updatedAt": "2025-10-16T14:31:14Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070#discussioncomment-14699926"
+        }
+    ],
+    "createdAt": "2025-10-15T15:09:07Z",
+    "createdViaEmail": false,
+    "databaseId": 9030369,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Aicrh",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2070,
+    "poll": null,
+    "publishedAt": "2025-10-15T15:09:07Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2070",
+    "stateReason": "RESOLVED",
+    "title": "mini.completion: expand snippets with  tabstops, variables, and also TABS?",
+    "updatedAt": "2025-10-17T11:13:23Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2070"
+}

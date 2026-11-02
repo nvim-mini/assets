@@ -1,0 +1,527 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/875361?u=64c1bc0f3ab70f503e0c0140d4c253c9150706ae&v=4",
+        "login": "ro0gr",
+        "resourcePath": "/ro0gr",
+        "url": "https://github.com/ro0gr"
+    },
+    "authorAssociation": "NONE",
+    "body": "Right now, by default `mini.statusline` overrides the `laststatus` option and sets it to be `2`. This kinda of makes sense cause if you have a statusline plugin, you probably do not want the statusline being hidden.. However, I find this behavior confusing, cause it does silently overide an exlicit user configuration.\r\n\r\n### Some background\r\n\r\nI use the https://github.com/nvim-lua/kickstart.nvim, which includes the `mini.statusline` as a plugin enabled by default. I didn't even know that I use this plugin, until I realized my `laststatus` option set to `3` is not respected anymore. Note, it worked fine after re-sourcing my config but then it just **silently**_(and that's where I believe the problem is)_ stopped working after I reload my neovim instance. So for some time I didn't even realize I have my `laststatus` broken.\r\n\r\nSince the kickstart.nvim does not have any preferences on the `laststatus`, I assume it's not the kickstart.nvim responsibility to make a decisiion about the [`set_vim_settings`](https://github.com/echasnovski/mini.nvim/blob/d8faae693d266ee4f3a2bf1fb7ca4bc81314c3e9/lua/mini/statusline.lua#L171-L174) option.\r\n\r\n### What's the issue\r\n\r\nMy first attempt to address the issue was to respect the `laststatus=3` https://github.com/echasnovski/mini.statusline/pull/1. However, now I think the problem is really about mutating the `laststatus` at the first place. \r\n\r\nThe current behavior makes configuring the `laststatus` in config pointless for the user. At the same time if I change the option via command line the value gets applied properly, so I can still hide the statusbar. This feels incosistent. \r\n\r\nI understand that there is a special explanation for the `laststatus=3` in the README. However, isn't it better if we don't need configuration for this at all?\r\n\r\n### Suggestion\r\n\r\nI'd like the plugin to not mutate the users global settings, and provide a user with an informative feedback in case of the \"wrong\" `laststatus` is detected on editor startup.\r\n\r\nAs far as I can tell the plugin works just fine with either `laststatus=2` and `laststatus=3`. So we could whitelist them and do nothing if one of them is recognized. Otherwise, we could just warn the user that the `laststatus` he has specified in the nvim config does not work nice with the plugin.\r\n\r\n_Alternatively, instead of allowing \"good\" `laststatus` values we could maintain a list of \"bad\" values. However, it might cause issues with forward compatibility in case if new possible values would be added by the nvim in the future._\r\n",
+    "bodyHTML": "<p dir=\"auto\">Right now, by default <code class=\"notranslate\">mini.statusline</code> overrides the <code class=\"notranslate\">laststatus</code> option and sets it to be <code class=\"notranslate\">2</code>. This kinda of makes sense cause if you have a statusline plugin, you probably do not want the statusline being hidden.. However, I find this behavior confusing, cause it does silently overide an exlicit user configuration.</p>\n<h3 dir=\"auto\">Some background</h3>\n<p dir=\"auto\">I use the <a href=\"https://github.com/nvim-lua/kickstart.nvim\">https://github.com/nvim-lua/kickstart.nvim</a>, which includes the <code class=\"notranslate\">mini.statusline</code> as a plugin enabled by default. I didn't even know that I use this plugin, until I realized my <code class=\"notranslate\">laststatus</code> option set to <code class=\"notranslate\">3</code> is not respected anymore. Note, it worked fine after re-sourcing my config but then it just <strong>silently</strong><em>(and that's where I believe the problem is)</em> stopped working after I reload my neovim instance. So for some time I didn't even realize I have my <code class=\"notranslate\">laststatus</code> broken.</p>\n<p dir=\"auto\">Since the kickstart.nvim does not have any preferences on the <code class=\"notranslate\">laststatus</code>, I assume it's not the kickstart.nvim responsibility to make a decisiion about the <a href=\"https://github.com/echasnovski/mini.nvim/blob/d8faae693d266ee4f3a2bf1fb7ca4bc81314c3e9/lua/mini/statusline.lua#L171-L174\"><code class=\"notranslate\">set_vim_settings</code></a> option.</p>\n<h3 dir=\"auto\">What's the issue</h3>\n<p dir=\"auto\">My first attempt to address the issue was to respect the <code class=\"notranslate\">laststatus=3</code> <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2450810379\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.statusline/issues/1\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.statusline/pull/1/hovercard\" href=\"https://github.com/nvim-mini/mini.statusline/pull/1\">nvim-mini/mini.statusline#1</a>. However, now I think the problem is really about mutating the <code class=\"notranslate\">laststatus</code> at the first place.</p>\n<p dir=\"auto\">The current behavior makes configuring the <code class=\"notranslate\">laststatus</code> in config pointless for the user. At the same time if I change the option via command line the value gets applied properly, so I can still hide the statusbar. This feels incosistent.</p>\n<p dir=\"auto\">I understand that there is a special explanation for the <code class=\"notranslate\">laststatus=3</code> in the README. However, isn't it better if we don't need configuration for this at all?</p>\n<h3 dir=\"auto\">Suggestion</h3>\n<p dir=\"auto\">I'd like the plugin to not mutate the users global settings, and provide a user with an informative feedback in case of the \"wrong\" <code class=\"notranslate\">laststatus</code> is detected on editor startup.</p>\n<p dir=\"auto\">As far as I can tell the plugin works just fine with either <code class=\"notranslate\">laststatus=2</code> and <code class=\"notranslate\">laststatus=3</code>. So we could whitelist them and do nothing if one of them is recognized. Otherwise, we could just warn the user that the <code class=\"notranslate\">laststatus</code> he has specified in the nvim config does not work nice with the plugin.</p>\n<p dir=\"auto\"><em>Alternatively, instead of allowing \"good\" <code class=\"notranslate\">laststatus</code> values we could maintain a list of \"bad\" values. However, it might cause issues with forward compatibility in case if new possible values would be added by the nvim in the future.</em></p>",
+    "bodyText": "Right now, by default mini.statusline overrides the laststatus option and sets it to be 2. This kinda of makes sense cause if you have a statusline plugin, you probably do not want the statusline being hidden.. However, I find this behavior confusing, cause it does silently overide an exlicit user configuration.\nSome background\nI use the https://github.com/nvim-lua/kickstart.nvim, which includes the mini.statusline as a plugin enabled by default. I didn't even know that I use this plugin, until I realized my laststatus option set to 3 is not respected anymore. Note, it worked fine after re-sourcing my config but then it just silently(and that's where I believe the problem is) stopped working after I reload my neovim instance. So for some time I didn't even realize I have my laststatus broken.\nSince the kickstart.nvim does not have any preferences on the laststatus, I assume it's not the kickstart.nvim responsibility to make a decisiion about the set_vim_settings option.\nWhat's the issue\nMy first attempt to address the issue was to respect the laststatus=3 nvim-mini/mini.statusline#1. However, now I think the problem is really about mutating the laststatus at the first place.\nThe current behavior makes configuring the laststatus in config pointless for the user. At the same time if I change the option via command line the value gets applied properly, so I can still hide the statusbar. This feels incosistent.\nI understand that there is a special explanation for the laststatus=3 in the README. However, isn't it better if we don't need configuration for this at all?\nSuggestion\nI'd like the plugin to not mutate the users global settings, and provide a user with an informative feedback in case of the \"wrong\" laststatus is detected on editor startup.\nAs far as I can tell the plugin works just fine with either laststatus=2 and laststatus=3. So we could whitelist them and do nothing if one of them is recognized. Otherwise, we could just warn the user that the laststatus he has specified in the nvim config does not work nice with the plugin.\nAlternatively, instead of allowing \"good\" laststatus values we could maintain a list of \"bad\" values. However, it might cause issues with forward compatibility in case if new possible values would be added by the nvim in the future.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-08-12T18:11:23Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/875361?u=64c1bc0f3ab70f503e0c0140d4c253c9150706ae&v=4",
+                "login": "ro0gr",
+                "resourcePath": "/ro0gr",
+                "url": "https://github.com/ro0gr"
+            },
+            "authorAssociation": "NONE",
+            "body": "If the suggestion gets some support, I will work PR with a pleasure.",
+            "bodyHTML": "<p dir=\"auto\">If the suggestion gets some support, I will work PR with a pleasure.</p>",
+            "bodyText": "If the suggestion gets some support, I will work PR with a pleasure.",
+            "createdAt": "2024-08-06T16:43:45Z",
+            "createdViaEmail": false,
+            "databaseId": 10255999,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnH5_",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-06T16:43:45Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10255999",
+            "updatedAt": "2024-08-06T16:43:47Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10255999"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the suggestion!\r\n\r\nI already gave the answer in https://github.com/echasnovski/mini.statusline/pull/1:\r\n\r\n> The documentation unambiguously and explicitly says what to do if user wants to use `laststatus = 3`. I think the current behavior is fine.\r\n\r\n------\r\n\r\n> The current behavior makes configuring the laststatus in config pointless for the user.\r\n\r\nIt does not. If user wants to use `laststatus = 3`, it is as straightforward as:\r\n\r\n```lua\r\nvim.o.laststatus = 3\r\nrequire('mini.statusline').setup({ set_vim_settings = false })\r\n```\r\n\r\n> I'd like the plugin to not mutate the users global settings, and provide a user with an informative feedback in case of the \"wrong\" `laststatus` is detected on editor startup.\r\n\r\nOne of the main design goals of 'mini.nvim' modules is to make them work as much as reasonably possible after a single `require('mini.xxx').setup()`. Not ensuring proper `laststatus` goes against this.\r\n\r\n------\r\n\r\nAt the moment, I don't think there is a need to change anything. But I'll take some time to maybe rethink.\r\n",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion!</p>\n<p dir=\"auto\">I already gave the answer in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2450810379\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.statusline/issues/1\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.statusline/pull/1/hovercard\" href=\"https://github.com/nvim-mini/mini.statusline/pull/1\">nvim-mini/mini.statusline#1</a>:</p>\n<blockquote>\n<p dir=\"auto\">The documentation unambiguously and explicitly says what to do if user wants to use <code class=\"notranslate\">laststatus = 3</code>. I think the current behavior is fine.</p>\n</blockquote>\n<hr>\n<blockquote>\n<p dir=\"auto\">The current behavior makes configuring the laststatus in config pointless for the user.</p>\n</blockquote>\n<p dir=\"auto\">It does not. If user wants to use <code class=\"notranslate\">laststatus = 3</code>, it is as straightforward as:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.o.laststatus = 3\nrequire('mini.statusline').setup({ set_vim_settings = false })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">laststatus</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">3</span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.statusline<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">set_vim_settings</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })</pre></div>\n<blockquote>\n<p dir=\"auto\">I'd like the plugin to not mutate the users global settings, and provide a user with an informative feedback in case of the \"wrong\" <code class=\"notranslate\">laststatus</code> is detected on editor startup.</p>\n</blockquote>\n<p dir=\"auto\">One of the main design goals of 'mini.nvim' modules is to make them work as much as reasonably possible after a single <code class=\"notranslate\">require('mini.xxx').setup()</code>. Not ensuring proper <code class=\"notranslate\">laststatus</code> goes against this.</p>\n<hr>\n<p dir=\"auto\">At the moment, I don't think there is a need to change anything. But I'll take some time to maybe rethink.</p>",
+            "bodyText": "Thanks for the suggestion!\nI already gave the answer in nvim-mini/mini.statusline#1:\n\nThe documentation unambiguously and explicitly says what to do if user wants to use laststatus = 3. I think the current behavior is fine.\n\n\n\nThe current behavior makes configuring the laststatus in config pointless for the user.\n\nIt does not. If user wants to use laststatus = 3, it is as straightforward as:\nvim.o.laststatus = 3\nrequire('mini.statusline').setup({ set_vim_settings = false })\n\nI'd like the plugin to not mutate the users global settings, and provide a user with an informative feedback in case of the \"wrong\" laststatus is detected on editor startup.\n\nOne of the main design goals of 'mini.nvim' modules is to make them work as much as reasonably possible after a single require('mini.xxx').setup(). Not ensuring proper laststatus goes against this.\n\nAt the moment, I don't think there is a need to change anything. But I'll take some time to maybe rethink.",
+            "createdAt": "2024-08-06T16:58:29Z",
+            "createdViaEmail": false,
+            "databaseId": 10256144,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnH8Q",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-06T16:58:29Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/875361?u=64c1bc0f3ab70f503e0c0140d4c253c9150706ae&v=4",
+                        "login": "ro0gr",
+                        "resourcePath": "/ro0gr",
+                        "url": "https://github.com/ro0gr"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for your reply!\r\n\r\nNot arguing here, and I can definitely live with whatever is decided here, cause I found the reason of my confusion already. But I think this is not straightforward at all, and let me have another try to explain it from a slightly other angle:\r\n\r\nLet's ignore my kickstart usecase(maybe not only mine) for a moment, and say I have the `mini.statusline`(and many others) installed for some time and working fine. Then, someday I decide to experiment with a plain neovim option for the `laststatus`. But suddenly it does not work. And now I have to figure out the plugin in the equation and do the special treatment from the README to disable the mutation behavior.\r\n\r\n_Just trying to explain what's wrong IMO and why it isn't straighforward to have a dedicated option to restore the default neovim behavior._",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for your reply!</p>\n<p dir=\"auto\">Not arguing here, and I can definitely live with whatever is decided here, cause I found the reason of my confusion already. But I think this is not straightforward at all, and let me have another try to explain it from a slightly other angle:</p>\n<p dir=\"auto\">Let's ignore my kickstart usecase(maybe not only mine) for a moment, and say I have the <code class=\"notranslate\">mini.statusline</code>(and many others) installed for some time and working fine. Then, someday I decide to experiment with a plain neovim option for the <code class=\"notranslate\">laststatus</code>. But suddenly it does not work. And now I have to figure out the plugin in the equation and do the special treatment from the README to disable the mutation behavior.</p>\n<p dir=\"auto\"><em>Just trying to explain what's wrong IMO and why it isn't straighforward to have a dedicated option to restore the default neovim behavior.</em></p>",
+                    "bodyText": "Thanks for your reply!\nNot arguing here, and I can definitely live with whatever is decided here, cause I found the reason of my confusion already. But I think this is not straightforward at all, and let me have another try to explain it from a slightly other angle:\nLet's ignore my kickstart usecase(maybe not only mine) for a moment, and say I have the mini.statusline(and many others) installed for some time and working fine. Then, someday I decide to experiment with a plain neovim option for the laststatus. But suddenly it does not work. And now I have to figure out the plugin in the equation and do the special treatment from the README to disable the mutation behavior.\nJust trying to explain what's wrong IMO and why it isn't straighforward to have a dedicated option to restore the default neovim behavior.",
+                    "createdAt": "2024-08-06T17:15:01Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10256303,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnH-v",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-06T17:15:01Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10256144,
+                        "id": "DC_kwDOFoksYM4AnH8Q",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10256144"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10256303",
+                    "updatedAt": "2024-08-06T17:15:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10256303"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10256144",
+            "updatedAt": "2024-08-06T16:58:30Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10256144"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks again for the suggestion!\r\n\r\nAfter thinking about it, making `set_vim_settings` be \"ensure that statusline is always visible\" is closer to what it was originally designed to do. So now on latest `main` branch its default `true` value results in setting `laststatus=2` only if it was 0 (never show) or 1 (show if there are more than one window).",
+            "bodyHTML": "<p dir=\"auto\">Thanks again for the suggestion!</p>\n<p dir=\"auto\">After thinking about it, making <code class=\"notranslate\">set_vim_settings</code> be \"ensure that statusline is always visible\" is closer to what it was originally designed to do. So now on latest <code class=\"notranslate\">main</code> branch its default <code class=\"notranslate\">true</code> value results in setting <code class=\"notranslate\">laststatus=2</code> only if it was 0 (never show) or 1 (show if there are more than one window).</p>",
+            "bodyText": "Thanks again for the suggestion!\nAfter thinking about it, making set_vim_settings be \"ensure that statusline is always visible\" is closer to what it was originally designed to do. So now on latest main branch its default true value results in setting laststatus=2 only if it was 0 (never show) or 1 (show if there are more than one window).",
+            "createdAt": "2024-08-12T18:11:23Z",
+            "createdViaEmail": false,
+            "databaseId": 10317572,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnW8E",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-12T18:11:23Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/875361?u=64c1bc0f3ab70f503e0c0140d4c253c9150706ae&v=4",
+                        "login": "ro0gr",
+                        "resourcePath": "/ro0gr",
+                        "url": "https://github.com/ro0gr"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Awesome! Thanks for the change 👍",
+                    "bodyHTML": "<p dir=\"auto\">Awesome! Thanks for the change 👍</p>",
+                    "bodyText": "Awesome! Thanks for the change 👍",
+                    "createdAt": "2024-08-12T21:34:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10319024,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnXSw",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-12T21:34:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10317572,
+                        "id": "DC_kwDOFoksYM4AnW8E",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10317572"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10319024",
+                    "updatedAt": "2024-08-12T21:34:02Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10319024"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10317572",
+            "updatedAt": "2024-08-12T18:11:23Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120#discussioncomment-10317572"
+        }
+    ],
+    "createdAt": "2024-08-06T16:27:20Z",
+    "createdViaEmail": false,
+    "databaseId": 7018871,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/875361?u=64c1bc0f3ab70f503e0c0140d4c253c9150706ae&v=4",
+        "login": "ro0gr",
+        "resourcePath": "/ro0gr",
+        "url": "https://github.com/ro0gr"
+    },
+    "id": "D_kwDOFoksYM4Aaxl3",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vjI",
+                "name": "mini.statusline"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-08-06T16:40:30Z",
+    "locked": false,
+    "number": 1120,
+    "poll": null,
+    "publishedAt": "2024-08-06T16:27:20Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1120",
+    "stateReason": "RESOLVED",
+    "title": "[mini.statusline] Stop overriding the `laststatus` user option?",
+    "updatedAt": "2024-08-12T21:34:02Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1120"
+}

@@ -1,0 +1,530 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/42902458?v=4",
+        "login": "rohrsben",
+        "resourcePath": "/rohrsben",
+        "url": "https://github.com/rohrsben"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hello! To get right into it, some context: I'm trying to determine the source of a severe (~500MB a second) memory leak. I'm posting this here as a discussion because \r\n- mini.snippets is a potential cause (though admittedly I'd be surprised)\r\n- this community has been very helpful in the past, and can hopefully give me some pointers\r\n\r\nWhat I'm interested in is just a way to narrow down the cause, not an intense code review of entirely separate projects or anything.\r\n\r\nSo far the leak has occurred only when editing my ~1000 line rust repo. Specifically, from what I can remember it has always happened after accepting an LSP snippet suggestion, while inside/creating an `assert!`. This helps explain what I believe are the contenders (most likely to least? maybe?):\r\n- rust-analyzer\r\n- blink.cmp\r\n- tabout.nvim\r\n- mini.snippets\r\n- an interaction between 2+ of the above\r\n\r\nA primary issue is that I cannot think of a way to narrow down the cause, as the minimal case requires all 4 in action. Any thoughts or insights would be greatly appreciated! If anyone wants configuration or situation clarification (lots of -tion there) ask away, but I want to stress again that I'm not expecting any free work from anyone. Thanks!",
+    "bodyHTML": "<p dir=\"auto\">Hello! To get right into it, some context: I'm trying to determine the source of a severe (~500MB a second) memory leak. I'm posting this here as a discussion because</p>\n<ul dir=\"auto\">\n<li>mini.snippets is a potential cause (though admittedly I'd be surprised)</li>\n<li>this community has been very helpful in the past, and can hopefully give me some pointers</li>\n</ul>\n<p dir=\"auto\">What I'm interested in is just a way to narrow down the cause, not an intense code review of entirely separate projects or anything.</p>\n<p dir=\"auto\">So far the leak has occurred only when editing my ~1000 line rust repo. Specifically, from what I can remember it has always happened after accepting an LSP snippet suggestion, while inside/creating an <code class=\"notranslate\">assert!</code>. This helps explain what I believe are the contenders (most likely to least? maybe?):</p>\n<ul dir=\"auto\">\n<li>rust-analyzer</li>\n<li>blink.cmp</li>\n<li>tabout.nvim</li>\n<li>mini.snippets</li>\n<li>an interaction between 2+ of the above</li>\n</ul>\n<p dir=\"auto\">A primary issue is that I cannot think of a way to narrow down the cause, as the minimal case requires all 4 in action. Any thoughts or insights would be greatly appreciated! If anyone wants configuration or situation clarification (lots of -tion there) ask away, but I want to stress again that I'm not expecting any free work from anyone. Thanks!</p>",
+    "bodyText": "Hello! To get right into it, some context: I'm trying to determine the source of a severe (~500MB a second) memory leak. I'm posting this here as a discussion because\n\nmini.snippets is a potential cause (though admittedly I'd be surprised)\nthis community has been very helpful in the past, and can hopefully give me some pointers\n\nWhat I'm interested in is just a way to narrow down the cause, not an intense code review of entirely separate projects or anything.\nSo far the leak has occurred only when editing my ~1000 line rust repo. Specifically, from what I can remember it has always happened after accepting an LSP snippet suggestion, while inside/creating an assert!. This helps explain what I believe are the contenders (most likely to least? maybe?):\n\nrust-analyzer\nblink.cmp\ntabout.nvim\nmini.snippets\nan interaction between 2+ of the above\n\nA primary issue is that I cannot think of a way to narrow down the cause, as the minimal case requires all 4 in action. Any thoughts or insights would be greatly appreciated! If anyone wants configuration or situation clarification (lots of -tion there) ask away, but I want to stress again that I'm not expecting any free work from anyone. Thanks!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hi!\r\n\r\nJudging by the list of contenders, I'd indeed suspect `rust-analyzer` here.\r\n\r\nMy approach would be to try to eliminate Neovim plugin side of things by swapping them with alternatives. If the leak reproduces with an alternative plugin, then it is likely that neither of original or alternative plugin are the cause. Like, replace 'blink.cmp' with another completion plugin ('mini.completion', for example) and try to reproduce. Do the same with 'tabout.nvim' (there is 'mini.keymap', but not how this type of plugin is necessary to reproduce the leak) and 'mini.snippets' ('LuaSnip' or built-in `vim.snippet`, for example).\r\n\r\nWhat would help here:\r\n- Exact setup (as minimal as possible) and *exact* steps with which you can reliably reproduce the issue. This would help a lot.\r\n- Exact Neovim version with which you can reproduce it.",
+            "bodyHTML": "<p dir=\"auto\">Hi!</p>\n<p dir=\"auto\">Judging by the list of contenders, I'd indeed suspect <code class=\"notranslate\">rust-analyzer</code> here.</p>\n<p dir=\"auto\">My approach would be to try to eliminate Neovim plugin side of things by swapping them with alternatives. If the leak reproduces with an alternative plugin, then it is likely that neither of original or alternative plugin are the cause. Like, replace 'blink.cmp' with another completion plugin ('mini.completion', for example) and try to reproduce. Do the same with 'tabout.nvim' (there is 'mini.keymap', but not how this type of plugin is necessary to reproduce the leak) and 'mini.snippets' ('LuaSnip' or built-in <code class=\"notranslate\">vim.snippet</code>, for example).</p>\n<p dir=\"auto\">What would help here:</p>\n<ul dir=\"auto\">\n<li>Exact setup (as minimal as possible) and <em>exact</em> steps with which you can reliably reproduce the issue. This would help a lot.</li>\n<li>Exact Neovim version with which you can reproduce it.</li>\n</ul>",
+            "bodyText": "Hi!\nJudging by the list of contenders, I'd indeed suspect rust-analyzer here.\nMy approach would be to try to eliminate Neovim plugin side of things by swapping them with alternatives. If the leak reproduces with an alternative plugin, then it is likely that neither of original or alternative plugin are the cause. Like, replace 'blink.cmp' with another completion plugin ('mini.completion', for example) and try to reproduce. Do the same with 'tabout.nvim' (there is 'mini.keymap', but not how this type of plugin is necessary to reproduce the leak) and 'mini.snippets' ('LuaSnip' or built-in vim.snippet, for example).\nWhat would help here:\n\nExact setup (as minimal as possible) and exact steps with which you can reliably reproduce the issue. This would help a lot.\nExact Neovim version with which you can reproduce it.",
+            "createdAt": "2025-07-19T08:42:30Z",
+            "createdViaEmail": false,
+            "databaseId": 13815543,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A0s73",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-07-19T08:42:30Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/42902458?v=4",
+                        "login": "rohrsben",
+                        "resourcePath": "/rohrsben",
+                        "url": "https://github.com/rohrsben"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Ah, very good idea. Something I forgot to mention, according to `btop` rust analyzer only ever uses ~1gb, when the leak happens it is neovim itself which increases in usage. Is it still possible for rust analyzer to be the culprit, aka would it somehow affect the neovim process's memory usage? (if you have domain knowledge, I know it's not your main area)\r\n\r\n> there is 'mini.keymap', but not [sure] how this type of plugin is necessary to reproduce the leak\r\n\r\nI switch snippet nodes using tab, via a binding in `blink`, and `tabout.nvim` is also bound to tab. So a small chance that they get stuck in a loop or something and `blink`'s external binary loses its mind, was my thought process.\r\n\r\nNow to try and find a repro haha. Thanks for the response!",
+                    "bodyHTML": "<p dir=\"auto\">Ah, very good idea. Something I forgot to mention, according to <code class=\"notranslate\">btop</code> rust analyzer only ever uses ~1gb, when the leak happens it is neovim itself which increases in usage. Is it still possible for rust analyzer to be the culprit, aka would it somehow affect the neovim process's memory usage? (if you have domain knowledge, I know it's not your main area)</p>\n<blockquote>\n<p dir=\"auto\">there is 'mini.keymap', but not [sure] how this type of plugin is necessary to reproduce the leak</p>\n</blockquote>\n<p dir=\"auto\">I switch snippet nodes using tab, via a binding in <code class=\"notranslate\">blink</code>, and <code class=\"notranslate\">tabout.nvim</code> is also bound to tab. So a small chance that they get stuck in a loop or something and <code class=\"notranslate\">blink</code>'s external binary loses its mind, was my thought process.</p>\n<p dir=\"auto\">Now to try and find a repro haha. Thanks for the response!</p>",
+                    "bodyText": "Ah, very good idea. Something I forgot to mention, according to btop rust analyzer only ever uses ~1gb, when the leak happens it is neovim itself which increases in usage. Is it still possible for rust analyzer to be the culprit, aka would it somehow affect the neovim process's memory usage? (if you have domain knowledge, I know it's not your main area)\n\nthere is 'mini.keymap', but not [sure] how this type of plugin is necessary to reproduce the leak\n\nI switch snippet nodes using tab, via a binding in blink, and tabout.nvim is also bound to tab. So a small chance that they get stuck in a loop or something and blink's external binary loses its mind, was my thought process.\nNow to try and find a repro haha. Thanks for the response!",
+                    "createdAt": "2025-07-19T09:41:52Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13815820,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/42902458?v=4",
+                        "login": "rohrsben",
+                        "resourcePath": "/rohrsben",
+                        "url": "https://github.com/rohrsben"
+                    },
+                    "id": "DC_kwDOFoksYM4A0tAM",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-07-19T09:42:52Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-19T09:41:52Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13815543,
+                        "id": "DC_kwDOFoksYM4A0s73",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815543"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815820",
+                    "updatedAt": "2025-07-19T09:42:52Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815820"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Is it still possible for rust analyzer to be the culprit, aka would it somehow affect the neovim process's memory usage? (if you have domain knowledge, I know it's not your main area)\r\n\r\nNot directly, but yes it is possible. All LSP stuff is still processed by Neovim's internal Lua code. Maybe they don't interact well in this particular case. But if it can only be reproduced with `rust-analyzer`, then it is probably its fault and not Neovim's.\r\n\r\n> I switch snippet nodes using tab, via a binding in `blink`, and `tabout.nvim` is also bound to tab. So a small chance that they get stuck in a loop or something and `blink`'s external binary loses its mind, was my thought process.\r\n\r\nSounds reasonable, although the ~500Mb per second feels a bit too much for this. Then I'd start by disabling 'tabout.nvim' completely and try to reproduce.\r\n\r\n---\r\n\r\nWould you mind keeping this updated if you find something new, please? I am curious now :thinking:",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Is it still possible for rust analyzer to be the culprit, aka would it somehow affect the neovim process's memory usage? (if you have domain knowledge, I know it's not your main area)</p>\n</blockquote>\n<p dir=\"auto\">Not directly, but yes it is possible. All LSP stuff is still processed by Neovim's internal Lua code. Maybe they don't interact well in this particular case. But if it can only be reproduced with <code class=\"notranslate\">rust-analyzer</code>, then it is probably its fault and not Neovim's.</p>\n<blockquote>\n<p dir=\"auto\">I switch snippet nodes using tab, via a binding in <code class=\"notranslate\">blink</code>, and <code class=\"notranslate\">tabout.nvim</code> is also bound to tab. So a small chance that they get stuck in a loop or something and <code class=\"notranslate\">blink</code>'s external binary loses its mind, was my thought process.</p>\n</blockquote>\n<p dir=\"auto\">Sounds reasonable, although the ~500Mb per second feels a bit too much for this. Then I'd start by disabling 'tabout.nvim' completely and try to reproduce.</p>\n<hr>\n<p dir=\"auto\">Would you mind keeping this updated if you find something new, please? I am curious now 🤔</p>",
+                    "bodyText": "Is it still possible for rust analyzer to be the culprit, aka would it somehow affect the neovim process's memory usage? (if you have domain knowledge, I know it's not your main area)\n\nNot directly, but yes it is possible. All LSP stuff is still processed by Neovim's internal Lua code. Maybe they don't interact well in this particular case. But if it can only be reproduced with rust-analyzer, then it is probably its fault and not Neovim's.\n\nI switch snippet nodes using tab, via a binding in blink, and tabout.nvim is also bound to tab. So a small chance that they get stuck in a loop or something and blink's external binary loses its mind, was my thought process.\n\nSounds reasonable, although the ~500Mb per second feels a bit too much for this. Then I'd start by disabling 'tabout.nvim' completely and try to reproduce.\n\nWould you mind keeping this updated if you find something new, please? I am curious now 🤔",
+                    "createdAt": "2025-07-19T11:33:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13816260,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A0tHE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-19T11:33:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13815543,
+                        "id": "DC_kwDOFoksYM4A0s73",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815543"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13816260",
+                    "updatedAt": "2025-07-19T11:33:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13816260"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/42902458?v=4",
+                        "login": "rohrsben",
+                        "resourcePath": "/rohrsben",
+                        "url": "https://github.com/rohrsben"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Crazy timing! Just kinda finished the repro step. Took me awhile to figure out `ydotool` syntax and work out the kinks in my script haha\r\n\r\nNew info: closing the terminal does not kill the memory leak, I have to terminate the `nvim` process itself.\r\n\r\nNow time to strip down the rust file itself, and then on to replacing plugins!",
+                    "bodyHTML": "<p dir=\"auto\">Crazy timing! Just kinda finished the repro step. Took me awhile to figure out <code class=\"notranslate\">ydotool</code> syntax and work out the kinks in my script haha</p>\n<p dir=\"auto\">New info: closing the terminal does not kill the memory leak, I have to terminate the <code class=\"notranslate\">nvim</code> process itself.</p>\n<p dir=\"auto\">Now time to strip down the rust file itself, and then on to replacing plugins!</p>",
+                    "bodyText": "Crazy timing! Just kinda finished the repro step. Took me awhile to figure out ydotool syntax and work out the kinks in my script haha\nNew info: closing the terminal does not kill the memory leak, I have to terminate the nvim process itself.\nNow time to strip down the rust file itself, and then on to replacing plugins!",
+                    "createdAt": "2025-07-19T11:38:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13816289,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A0tHh",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-19T11:38:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13815543,
+                        "id": "DC_kwDOFoksYM4A0s73",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815543"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13816289",
+                    "updatedAt": "2025-07-19T11:38:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13816289"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Took me awhile to figure out `ydotool` syntax and work out the kinks in my script haha\r\n\r\nThat's a bit of an overkill, I'd say. Usually it is enough to have something like \"Ensure <these necessary for the reprot CLI tools> are installed, start Neovim with <this config, that autoinstalls necessary plugins>, open <this file>, perform <these steps>\". No need to write a mega script, docker container, or anything liker that. For example, I've never heard about `ydotool` and don't have it installed (so won't benefit from its script).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Took me awhile to figure out <code class=\"notranslate\">ydotool</code> syntax and work out the kinks in my script haha</p>\n</blockquote>\n<p dir=\"auto\">That's a bit of an overkill, I'd say. Usually it is enough to have something like \"Ensure  are installed, start Neovim with &lt;this config, that autoinstalls necessary plugins&gt;, open , perform \". No need to write a mega script, docker container, or anything liker that. For example, I've never heard about <code class=\"notranslate\">ydotool</code> and don't have it installed (so won't benefit from its script).</p>",
+                    "bodyText": "Took me awhile to figure out ydotool syntax and work out the kinks in my script haha\n\nThat's a bit of an overkill, I'd say. Usually it is enough to have something like \"Ensure  are installed, start Neovim with <this config, that autoinstalls necessary plugins>, open , perform \". No need to write a mega script, docker container, or anything liker that. For example, I've never heard about ydotool and don't have it installed (so won't benefit from its script).",
+                    "createdAt": "2025-07-19T12:01:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13816404,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A0tJU",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-19T12:01:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13815543,
+                        "id": "DC_kwDOFoksYM4A0s73",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815543"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13816404",
+                    "updatedAt": "2025-07-19T12:01:58Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13816404"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815543",
+            "updatedAt": "2025-07-19T08:42:31Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900#discussioncomment-13815543"
+        }
+    ],
+    "createdAt": "2025-07-19T07:27:22Z",
+    "createdViaEmail": false,
+    "databaseId": 8602442,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ag0NK",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1900,
+    "poll": null,
+    "publishedAt": "2025-07-19T07:27:22Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1900",
+    "stateReason": null,
+    "title": "Need help tracking down a memory leak",
+    "updatedAt": "2025-07-19T12:01:57Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1900"
+}

@@ -1,0 +1,374 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12761521,
+        "id": "DC_kwDOFoksYM4Awrmx",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12761521"
+    },
+    "answerChosenAt": "2025-04-08T08:48:19Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.completion\n\n### Question\n\n\r\nhttps://github.com/user-attachments/assets/1ae40359-248c-4e4d-a8b4-51555d8da778\r\n\r\n<details>\r\n\r\n<summary>init.lua</summary>\r\n\r\n```lua\r\n\r\n---@diagnostic disable: undefined-global\r\nlocal function setup_deps(path_to_site)\r\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\r\n  if not vim.uv.fs_stat(mini_path) then\r\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\r\n    vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\r\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\r\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\r\n  end\r\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\r\nend\r\n\r\nlocal function setup_native_autocompletion()\r\n  vim.api.nvim_create_autocmd(\"LspAttach\", {\r\n    group = vim.api.nvim_create_augroup(\"my.lsp\", {}),\r\n    callback = function(args)\r\n      local client = assert(vim.lsp.get_client_by_id(args.data.client_id))\r\n      if client:supports_method(\"textDocument/completion\") then\r\n        local chars = {} -- optional: trigger autocompletion on EVERY keypress. May be slow!\r\n        -- stylua: ignore\r\n        for i = 32, 126 do table.insert(chars, string.char(i)) end\r\n        client.server_capabilities.completionProvider.triggerCharacters = chars\r\n        vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = true })\r\n      end\r\n    end,\r\n  })\r\nend\r\n\r\nlocal function setup_mini_autocompletion()\r\n  require(\"mini.snippets\").setup() -- only using lsp snippets...\r\n  require(\"mini.completion\").setup({ lsp_completion = { auto_setup = false, source_func = \"omnifunc\" } })\r\nend\r\n\r\nlocal function custom_on_attach(_, bufnr) vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\" end\r\n\r\nlocal use_mini = false\r\nvim.g.mapleader = \" \"\r\nvim.o.shortmess = \"CFOSWaco\"\r\nvim.o.completeopt = \"menuone,noselect,fuzzy\"\r\n\r\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\r\nMiniDeps.now(function()\r\n  require(\"mini.icons\").setup()\r\n  MiniIcons.tweak_lsp_kind()\r\n  MiniDeps.add({ source = \"nvim-treesitter/nvim-treesitter\", checkout = \"master\" })\r\n  require(\"nvim-treesitter.configs\").setup({ ensure_installed = { \"rust\" } })\r\n\r\n  if use_mini then\r\n    setup_mini_autocompletion()\r\n  else\r\n    setup_native_autocompletion()\r\n  end\r\n\r\n  MiniDeps.add(\"neovim/nvim-lspconfig\")\r\n  require(\"lspconfig\").rust_analyzer.setup({ -- have rust-analyzer installed...\r\n    on_attach = use_mini and custom_on_attach or nil,\r\n  })\r\nend)\r\n\r\n```\r\n\r\n</details>\r\n\r\n<details>\r\n\r\n<summary>rust code</summary>\r\n\r\n```rust\r\n// start a simple project with \"cargo new demo\"\r\n// cd demo, and edit src/main.rs\r\nfn main() {\r\n    println!(\"Hello, world!\");\r\n}\r\n\r\nstruct Dog<Breed> {\r\n    name: String,\r\n}\r\n\r\n```\r\n\r\n</details>\r\n\r\nI like working with the code snippets provided by the `lsp`. However, sometimes they can be hard to use.\r\n\r\nIn the video, the `lsp` returns the following snippet:\r\n\r\n```lua\r\n{ body = \"PhantomData<$0>\" }\r\n```\r\n\r\nInside the `$0`, a generic can be placed, `T` for example. After doing so, I have to \"overcome\" the closing `>` in order to be able to continue typing. See the video, at \"00:15\" and \"00:40\".\r\n\r\nWhen using native autocompletion, I can type `<c-o>a` and continue. Alternatively, I am also able to avoid snippet activation by not pressing `<c-y>`.\r\n \r\nWith mini, when I type `<c-o>`, the selection in the popup moves one down instead of changing the mode. There is no way to have the word \"PhantomData\" completed without also activating the snippet(by design...).\r\n\r\nWould it be possible to have `<c-o>` behave as in native autocompletion?\r\n\r\nSidenote: A much better `lsp` snippet would have been:\r\n\r\n```lua\r\n{ body = \"PhantomData<$1>$0\" } \r\n```\r\n\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.completion</p>\n<h3 dir=\"auto\">Question</h3>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">no_ctrl_o.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/431264244-1ae40359-248c-4e4d-a8b4-51555d8da778.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwODIsIm5iZiI6MTc5MzU1Mjc4MiwicGF0aCI6Ii81ODM3MDQzMy80MzEyNjQyNDQtMWFlNDAzNTktMjQ4Yy00ZTRkLWE4YjQtNTE1NTVkOGRhNzc4Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDYyMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWNjMzNiYzJmZTAzN2I5ZWU0ODNmMGIyZTUxMjVlNjU4YzMwYjFlMmUzOWQxMGQ2OTg4MDc1YzhhN2VmMGExYmUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.51W5N-xf6G-nsRKTkXKNs1b-FPcGISbs_ukDJjF3D_k\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/431264244-1ae40359-248c-4e4d-a8b4-51555d8da778.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwODIsIm5iZiI6MTc5MzU1Mjc4MiwicGF0aCI6Ii81ODM3MDQzMy80MzEyNjQyNDQtMWFlNDAzNTktMjQ4Yy00ZTRkLWE4YjQtNTE1NTVkOGRhNzc4Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDYyMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWNjMzNiYzJmZTAzN2I5ZWU0ODNmMGIyZTUxMjVlNjU4YzMwYjFlMmUzOWQxMGQ2OTg4MDc1YzhhN2VmMGExYmUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.51W5N-xf6G-nsRKTkXKNs1b-FPcGISbs_ukDJjF3D_k\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<details>\n<summary>init.lua</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\n---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. &quot;pack/deps/start/mini.nvim&quot;\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo &quot;Installing `mini.nvim`&quot; | redraw')\n    vim.fn.system({ &quot;git&quot;, &quot;clone&quot;, &quot;--filter=blob:none&quot;, &quot;https://github.com/echasnovski/mini.nvim&quot;, mini_path })\n    vim.cmd(&quot;packadd mini.nvim | helptags ALL&quot;)\n    vim.cmd('echo &quot;Installed `mini.nvim`&quot; | redraw')\n  end\n  require(&quot;mini.deps&quot;).setup({ path = { package = path_to_site } })\nend\n\nlocal function setup_native_autocompletion()\n  vim.api.nvim_create_autocmd(&quot;LspAttach&quot;, {\n    group = vim.api.nvim_create_augroup(&quot;my.lsp&quot;, {}),\n    callback = function(args)\n      local client = assert(vim.lsp.get_client_by_id(args.data.client_id))\n      if client:supports_method(&quot;textDocument/completion&quot;) then\n        local chars = {} -- optional: trigger autocompletion on EVERY keypress. May be slow!\n        -- stylua: ignore\n        for i = 32, 126 do table.insert(chars, string.char(i)) end\n        client.server_capabilities.completionProvider.triggerCharacters = chars\n        vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = true })\n      end\n    end,\n  })\nend\n\nlocal function setup_mini_autocompletion()\n  require(&quot;mini.snippets&quot;).setup() -- only using lsp snippets...\n  require(&quot;mini.completion&quot;).setup({ lsp_completion = { auto_setup = false, source_func = &quot;omnifunc&quot; } })\nend\n\nlocal function custom_on_attach(_, bufnr) vim.bo[bufnr].omnifunc = &quot;v:lua.MiniCompletion.completefunc_lsp&quot; end\n\nlocal use_mini = false\nvim.g.mapleader = &quot; &quot;\nvim.o.shortmess = &quot;CFOSWaco&quot;\nvim.o.completeopt = &quot;menuone,noselect,fuzzy&quot;\n\nsetup_deps(vim.fn.stdpath(&quot;data&quot;) .. &quot;/site/&quot;)\nMiniDeps.now(function()\n  require(&quot;mini.icons&quot;).setup()\n  MiniIcons.tweak_lsp_kind()\n  MiniDeps.add({ source = &quot;nvim-treesitter/nvim-treesitter&quot;, checkout = &quot;master&quot; })\n  require(&quot;nvim-treesitter.configs&quot;).setup({ ensure_installed = { &quot;rust&quot; } })\n\n  if use_mini then\n    setup_mini_autocompletion()\n  else\n    setup_native_autocompletion()\n  end\n\n  MiniDeps.add(&quot;neovim/nvim-lspconfig&quot;)\n  require(&quot;lspconfig&quot;).rust_analyzer.setup({ -- have rust-analyzer installed...\n    on_attach = use_mini and custom_on_attach or nil,\n  })\nend)\n\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">undefined-global</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_deps</span>(<span class=\"pl-smi\">path_to_site</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pack/deps/start/mini.nvim<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">mini_path</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installing `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>clone<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--filter=blob:none<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/echasnovski/mini.nvim<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">mini_path</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>packadd mini.nvim | helptags ALL<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installed `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.deps<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> } })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_native_autocompletion</span>()\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>LspAttach<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>my.lsp<span class=\"pl-pds\">\"</span></span>, {}),\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">client</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">assert</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">get_client_by_id</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">client_id</span>))\n      <span class=\"pl-k\">if</span> <span class=\"pl-en\">client</span>:<span class=\"pl-c1\">supports_method</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>textDocument/completion<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">chars</span> <span class=\"pl-k\">=</span> {} <span class=\"pl-c\"><span class=\"pl-c\">--</span> optional: trigger autocompletion on EVERY keypress. May be slow!</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore</span>\n        <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">32</span>, <span class=\"pl-c1\">126</span> <span class=\"pl-k\">do</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">chars</span>, <span class=\"pl-c1\">string.char</span>(<span class=\"pl-smi\">i</span>)) <span class=\"pl-k\">end</span>\n        <span class=\"pl-smi\">client</span>.<span class=\"pl-e\">server_capabilities</span>.<span class=\"pl-e\">completionProvider</span>.<span class=\"pl-e\">triggerCharacters</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">chars</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-e\">completion</span>.<span class=\"pl-c1\">enable</span>(<span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">client</span>.<span class=\"pl-e\">id</span>, <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">buf</span>, { <span class=\"pl-smi\">autotrigger</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>,\n  })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_mini_autocompletion</span>()\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.snippets<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> only using lsp snippets...</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.completion<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">lsp_completion</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">auto_setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">source_func</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>omnifunc<span class=\"pl-pds\">\" </span></span>} })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">custom_on_attach</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">bufnr</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">bufnr</span>].<span class=\"pl-e\">omnifunc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>v:lua.MiniCompletion.completefunc_lsp<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">use_mini</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">mapleader</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">shortmess</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>CFOSWaco<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">completeopt</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>menuone,noselect,fuzzy<span class=\"pl-pds\">\"</span></span>\n\n<span class=\"pl-c1\">setup_deps</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/site/<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">now</span>(<span class=\"pl-k\">function</span>()\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.icons<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n  <span class=\"pl-smi\">MiniIcons</span>.<span class=\"pl-c1\">tweak_lsp_kind</span>()\n  <span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">add</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-treesitter/nvim-treesitter<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">checkout</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>master<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-treesitter.configs<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">ensure_installed</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>rust<span class=\"pl-pds\">\" </span></span>} })\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">use_mini</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">setup_mini_autocompletion</span>()\n  <span class=\"pl-k\">else</span>\n    <span class=\"pl-c1\">setup_native_autocompletion</span>()\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">add</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>neovim/nvim-lspconfig<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lspconfig<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">rust_analyzer</span>.<span class=\"pl-c1\">setup</span>({ <span class=\"pl-c\"><span class=\"pl-c\">--</span> have rust-analyzer installed...</span>\n    <span class=\"pl-smi\">on_attach</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">use_mini</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">custom_on_attach</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>,\n  })\n<span class=\"pl-k\">end</span>)\n</pre></div>\n</details>\n<details>\n<summary>rust code</summary>\n<div class=\"highlight highlight-source-rust notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"// start a simple project with &quot;cargo new demo&quot;\n// cd demo, and edit src/main.rs\nfn main() {\n    println!(&quot;Hello, world!&quot;);\n}\n\nstruct Dog&lt;Breed&gt; {\n    name: String,\n}\n\"><pre class=\"notranslate\"><span class=\"pl-c\">// start a simple project with \"cargo new demo\"</span>\n<span class=\"pl-c\">// cd demo, and edit src/main.rs</span>\n<span class=\"pl-k\">fn</span> <span class=\"pl-en\">main</span><span class=\"pl-kos\">(</span><span class=\"pl-kos\">)</span> <span class=\"pl-kos\">{</span>\n    <span class=\"pl-en\">println</span><span class=\"pl-en\">!</span><span class=\"pl-kos\">(</span><span class=\"pl-s\">\"Hello, world!\"</span><span class=\"pl-kos\">)</span><span class=\"pl-kos\">;</span>\n<span class=\"pl-kos\">}</span>\n\n<span class=\"pl-k\">struct</span> <span class=\"pl-smi\">Dog</span><span class=\"pl-kos\">&lt;</span><span class=\"pl-smi\">Breed</span><span class=\"pl-kos\">&gt;</span> <span class=\"pl-kos\">{</span>\n    <span class=\"pl-c1\">name</span><span class=\"pl-kos\">:</span> <span class=\"pl-smi\">String</span><span class=\"pl-kos\">,</span>\n<span class=\"pl-kos\">}</span></pre></div>\n</details>\n<p dir=\"auto\">I like working with the code snippets provided by the <code class=\"notranslate\">lsp</code>. However, sometimes they can be hard to use.</p>\n<p dir=\"auto\">In the video, the <code class=\"notranslate\">lsp</code> returns the following snippet:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{ body = &quot;PhantomData&lt;$0&gt;&quot; }\"><pre class=\"notranslate\">{ <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>PhantomData&lt;$0&gt;<span class=\"pl-pds\">\" </span></span>}</pre></div>\n<p dir=\"auto\">Inside the <code class=\"notranslate\">$0</code>, a generic can be placed, <code class=\"notranslate\">T</code> for example. After doing so, I have to \"overcome\" the closing <code class=\"notranslate\">&gt;</code> in order to be able to continue typing. See the video, at \"00:15\" and \"00:40\".</p>\n<p dir=\"auto\">When using native autocompletion, I can type <code class=\"notranslate\">&lt;c-o&gt;a</code> and continue. Alternatively, I am also able to avoid snippet activation by not pressing <code class=\"notranslate\">&lt;c-y&gt;</code>.</p>\n<p dir=\"auto\">With mini, when I type <code class=\"notranslate\">&lt;c-o&gt;</code>, the selection in the popup moves one down instead of changing the mode. There is no way to have the word \"PhantomData\" completed without also activating the snippet(by design...).</p>\n<p dir=\"auto\">Would it be possible to have <code class=\"notranslate\">&lt;c-o&gt;</code> behave as in native autocompletion?</p>\n<p dir=\"auto\">Sidenote: A much better <code class=\"notranslate\">lsp</code> snippet would have been:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{ body = &quot;PhantomData&lt;$1&gt;$0&quot; } \"><pre class=\"notranslate\">{ <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>PhantomData&lt;$1&gt;$0<span class=\"pl-pds\">\" </span></span>} </pre></div>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.completion\nQuestion\n\n  \n    \n    \n\n    no_ctrl_o.mp4\n    \n  \n\n  \n\n  \n\n\n\ninit.lua\n---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n    vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\n  end\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\nend\n\nlocal function setup_native_autocompletion()\n  vim.api.nvim_create_autocmd(\"LspAttach\", {\n    group = vim.api.nvim_create_augroup(\"my.lsp\", {}),\n    callback = function(args)\n      local client = assert(vim.lsp.get_client_by_id(args.data.client_id))\n      if client:supports_method(\"textDocument/completion\") then\n        local chars = {} -- optional: trigger autocompletion on EVERY keypress. May be slow!\n        -- stylua: ignore\n        for i = 32, 126 do table.insert(chars, string.char(i)) end\n        client.server_capabilities.completionProvider.triggerCharacters = chars\n        vim.lsp.completion.enable(true, client.id, args.buf, { autotrigger = true })\n      end\n    end,\n  })\nend\n\nlocal function setup_mini_autocompletion()\n  require(\"mini.snippets\").setup() -- only using lsp snippets...\n  require(\"mini.completion\").setup({ lsp_completion = { auto_setup = false, source_func = \"omnifunc\" } })\nend\n\nlocal function custom_on_attach(_, bufnr) vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\" end\n\nlocal use_mini = false\nvim.g.mapleader = \" \"\nvim.o.shortmess = \"CFOSWaco\"\nvim.o.completeopt = \"menuone,noselect,fuzzy\"\n\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\nMiniDeps.now(function()\n  require(\"mini.icons\").setup()\n  MiniIcons.tweak_lsp_kind()\n  MiniDeps.add({ source = \"nvim-treesitter/nvim-treesitter\", checkout = \"master\" })\n  require(\"nvim-treesitter.configs\").setup({ ensure_installed = { \"rust\" } })\n\n  if use_mini then\n    setup_mini_autocompletion()\n  else\n    setup_native_autocompletion()\n  end\n\n  MiniDeps.add(\"neovim/nvim-lspconfig\")\n  require(\"lspconfig\").rust_analyzer.setup({ -- have rust-analyzer installed...\n    on_attach = use_mini and custom_on_attach or nil,\n  })\nend)\n\n\n\nrust code\n// start a simple project with \"cargo new demo\"\n// cd demo, and edit src/main.rs\nfn main() {\n    println!(\"Hello, world!\");\n}\n\nstruct Dog<Breed> {\n    name: String,\n}\n\nI like working with the code snippets provided by the lsp. However, sometimes they can be hard to use.\nIn the video, the lsp returns the following snippet:\n{ body = \"PhantomData<$0>\" }\nInside the $0, a generic can be placed, T for example. After doing so, I have to \"overcome\" the closing > in order to be able to continue typing. See the video, at \"00:15\" and \"00:40\".\nWhen using native autocompletion, I can type <c-o>a and continue. Alternatively, I am also able to avoid snippet activation by not pressing <c-y>.\nWith mini, when I type <c-o>, the selection in the popup moves one down instead of changing the mode. There is no way to have the word \"PhantomData\" completed without also activating the snippet(by design...).\nWould it be possible to have <c-o> behave as in native autocompletion?\nSidenote: A much better lsp snippet would have been:\n{ body = \"PhantomData<$1>$0\" }",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-04-08T08:48:16Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> Would it be possible to have `<c-o>` behave as in native autocompletion?\r\n\r\nI am afraid the answer to the particular question is \"no, if you want to keep using 'omnifunc'\". This is because `<C-o>` key is *very hard-coded* after `<C-x><C-o>` is pressed (i.e. 'omnifunc' completion is triggered, which is what 'mini.completion' is doing). As in \"it is currently impossible to override in this situation, at all\". It is documented in `:h i_CTRL-X_CTRL-O` and [mentioned in the help](https://github.com/echasnovski/mini.nvim/blob/fe8a669078a5066220262f173bf901f322e39c05/doc/mini-completion.txt#L284-L286) (although in a slightly different place).\r\n\r\nThe reason this doesn't happen with built-in completion is because it uses `vim.fn.complete()` directly. The downside of this is that it won't re-trigger on `<BS>` and implementing it requires non-trivial workarounds (which built-in completion still hasn't done yet). The re-trigger on `<BS>` works with 'completefunc' and 'omnifunc', which (if I remember correctly) was the main reason to even choose this 'completefunc'/'omnifunc' in the first place about 4 years ago.\r\n\r\nThe are several possible solutions to the problem:\r\n- Use `lsp_completion.source_func = 'completefunc'` (with or without `auto_setup`), *but* this will \"disable\" the `<C-u>` key (for the same reason, see `:h i_CTRL-X_CTRL-U`) which I find more critical.\r\n- Use mappings similar to [`move_with_alt`](https://github.com/echasnovski/mini.nvim/blob/fe8a669078a5066220262f173bf901f322e39c05/doc/mini-basics.txt#L307-L320) from 'mini.basics' to move in Insert/Command-line mode. I personally prefer this solution.\r\n- Create an issue in 'rust-analyzer' to have snippets follow `\"PhantomData<$1>$0\"` design.\r\n- Somehow manually modify such snippets in `lsp_completion.process_items`. This might get complicated, but should be doable.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">Would it be possible to have <code class=\"notranslate\">&lt;c-o&gt;</code> behave as in native autocompletion?</p>\n</blockquote>\n<p dir=\"auto\">I am afraid the answer to the particular question is \"no, if you want to keep using 'omnifunc'\". This is because <code class=\"notranslate\">&lt;C-o&gt;</code> key is <em>very hard-coded</em> after <code class=\"notranslate\">&lt;C-x&gt;&lt;C-o&gt;</code> is pressed (i.e. 'omnifunc' completion is triggered, which is what 'mini.completion' is doing). As in \"it is currently impossible to override in this situation, at all\". It is documented in <code class=\"notranslate\">:h i_CTRL-X_CTRL-O</code> and <a href=\"https://github.com/echasnovski/mini.nvim/blob/fe8a669078a5066220262f173bf901f322e39c05/doc/mini-completion.txt#L284-L286\">mentioned in the help</a> (although in a slightly different place).</p>\n<p dir=\"auto\">The reason this doesn't happen with built-in completion is because it uses <code class=\"notranslate\">vim.fn.complete()</code> directly. The downside of this is that it won't re-trigger on <code class=\"notranslate\">&lt;BS&gt;</code> and implementing it requires non-trivial workarounds (which built-in completion still hasn't done yet). The re-trigger on <code class=\"notranslate\">&lt;BS&gt;</code> works with 'completefunc' and 'omnifunc', which (if I remember correctly) was the main reason to even choose this 'completefunc'/'omnifunc' in the first place about 4 years ago.</p>\n<p dir=\"auto\">The are several possible solutions to the problem:</p>\n<ul dir=\"auto\">\n<li>Use <code class=\"notranslate\">lsp_completion.source_func = 'completefunc'</code> (with or without <code class=\"notranslate\">auto_setup</code>), <em>but</em> this will \"disable\" the <code class=\"notranslate\">&lt;C-u&gt;</code> key (for the same reason, see <code class=\"notranslate\">:h i_CTRL-X_CTRL-U</code>) which I find more critical.</li>\n<li>Use mappings similar to <a href=\"https://github.com/echasnovski/mini.nvim/blob/fe8a669078a5066220262f173bf901f322e39c05/doc/mini-basics.txt#L307-L320\"><code class=\"notranslate\">move_with_alt</code></a> from 'mini.basics' to move in Insert/Command-line mode. I personally prefer this solution.</li>\n<li>Create an issue in 'rust-analyzer' to have snippets follow <code class=\"notranslate\">\"PhantomData&lt;$1&gt;$0\"</code> design.</li>\n<li>Somehow manually modify such snippets in <code class=\"notranslate\">lsp_completion.process_items</code>. This might get complicated, but should be doable.</li>\n</ul>",
+            "bodyText": "Would it be possible to have <c-o> behave as in native autocompletion?\n\nI am afraid the answer to the particular question is \"no, if you want to keep using 'omnifunc'\". This is because <C-o> key is very hard-coded after <C-x><C-o> is pressed (i.e. 'omnifunc' completion is triggered, which is what 'mini.completion' is doing). As in \"it is currently impossible to override in this situation, at all\". It is documented in :h i_CTRL-X_CTRL-O and mentioned in the help (although in a slightly different place).\nThe reason this doesn't happen with built-in completion is because it uses vim.fn.complete() directly. The downside of this is that it won't re-trigger on <BS> and implementing it requires non-trivial workarounds (which built-in completion still hasn't done yet). The re-trigger on <BS> works with 'completefunc' and 'omnifunc', which (if I remember correctly) was the main reason to even choose this 'completefunc'/'omnifunc' in the first place about 4 years ago.\nThe are several possible solutions to the problem:\n\nUse lsp_completion.source_func = 'completefunc' (with or without auto_setup), but this will \"disable\" the <C-u> key (for the same reason, see :h i_CTRL-X_CTRL-U) which I find more critical.\nUse mappings similar to move_with_alt from 'mini.basics' to move in Insert/Command-line mode. I personally prefer this solution.\nCreate an issue in 'rust-analyzer' to have snippets follow \"PhantomData<$1>$0\" design.\nSomehow manually modify such snippets in lsp_completion.process_items. This might get complicated, but should be doable.",
+            "createdAt": "2025-04-08T08:48:16Z",
+            "createdViaEmail": false,
+            "databaseId": 12761521,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Awrmx",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-08T08:48:16Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thank you for taking the time to answer my question so thoroughly!\r\nFor now, I will use `completefunc`, as I never use `I_CTRL-U`. \r\n\r\nI do have the mini.basics mappings. Automating their usage will require some training...)\r\n\r\nI am linking an earlier question as well as the answer is a bit related:\r\n\r\n[[mini.completion] Completefunc or omnifunc?](https://github.com/echasnovski/mini.nvim/discussions/1673)\r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for taking the time to answer my question so thoroughly!<br>\nFor now, I will use <code class=\"notranslate\">completefunc</code>, as I never use <code class=\"notranslate\">I_CTRL-U</code>.</p>\n<p dir=\"auto\">I do have the mini.basics mappings. Automating their usage will require some training...)</p>\n<p dir=\"auto\">I am linking an earlier question as well as the answer is a bit related:</p>\n<p dir=\"auto\"><a href=\"https://github.com/echasnovski/mini.nvim/discussions/1673\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1673/hovercard\">[mini.completion] Completefunc or omnifunc?</a></p>",
+                    "bodyText": "Thank you for taking the time to answer my question so thoroughly!\nFor now, I will use completefunc, as I never use I_CTRL-U.\nI do have the mini.basics mappings. Automating their usage will require some training...)\nI am linking an earlier question as well as the answer is a bit related:\n[mini.completion] Completefunc or omnifunc?",
+                    "createdAt": "2025-04-08T11:57:27Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12763778,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AwsKC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-08T11:57:27Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12761521,
+                        "id": "DC_kwDOFoksYM4Awrmx",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12761521"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12763778",
+                    "updatedAt": "2025-04-08T11:57:29Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12763778"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I do have the mini.basics mappings. Automating their usage will require some training...)\r\n\r\nFor me at least 90% of their usage is with `<M-l>` to move once out of some paired character. Usually even if 'mini.pairs' supports it (like `)`, etc.), just because a single mapping leads to less mental overhead.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I do have the mini.basics mappings. Automating their usage will require some training...)</p>\n</blockquote>\n<p dir=\"auto\">For me at least 90% of their usage is with <code class=\"notranslate\">&lt;M-l&gt;</code> to move once out of some paired character. Usually even if 'mini.pairs' supports it (like <code class=\"notranslate\">)</code>, etc.), just because a single mapping leads to less mental overhead.</p>",
+                    "bodyText": "I do have the mini.basics mappings. Automating their usage will require some training...)\n\nFor me at least 90% of their usage is with <M-l> to move once out of some paired character. Usually even if 'mini.pairs' supports it (like ), etc.), just because a single mapping leads to less mental overhead.",
+                    "createdAt": "2025-04-08T12:10:59Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12763925,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AwsMV",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-08T12:10:59Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12761521,
+                        "id": "DC_kwDOFoksYM4Awrmx",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12761521"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12763925",
+                    "updatedAt": "2025-04-08T12:10:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12763925"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12761521",
+            "updatedAt": "2025-04-08T08:48:17Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736#discussioncomment-12761521"
+        }
+    ],
+    "createdAt": "2025-04-08T08:16:24Z",
+    "createdViaEmail": false,
+    "databaseId": 8178043,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AfMl7",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1736,
+    "poll": null,
+    "publishedAt": "2025-04-08T08:16:24Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1736",
+    "stateReason": "RESOLVED",
+    "title": "[mini.completion] No ctrl-o to escape insert mode when popup is active?",
+    "updatedAt": "2025-04-08T12:10:59Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1736"
+}

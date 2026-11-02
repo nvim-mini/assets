@@ -1,0 +1,875 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 10520739,
+        "id": "DC_kwDOFoksYM4AoIij",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+    },
+    "answerChosenAt": "2024-09-02T13:02:01Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "Now that we have alignment with [buf_lines](https://github.com/echasnovski/mini.nvim/commit/0b0cc07697e298351b6543d5d4db5372b71897f2), I really want the same for `grep_live`. My first thought was to use `mini.align`. Why re-invent the wheel, right?\r\n\r\n```lua\r\nlocal show_align_on_nul = function(buf_id, items, query, opts)\r\n  items = MiniAlign.align_strings(items, {\r\n    justify_side = { \"left\", \"right\", \"right\" },\r\n    merge_delimiter = { \"\", \" \", \"\", \" \", \"\" },\r\n    split_pattern = \"%z\",\r\n  })\r\n  MiniPick.default_show(buf_id, items, query, opts)\r\nend\r\n\r\nMiniPick.registry.grep_live_align = function()\r\n  MiniPick.builtin.grep_live({}, { source = { show = show_align_on_nul } })\r\nend\r\n```\r\n\r\nAlas, it doesn't work because of `vim.fn.strdisplaywidth` on [line 1549 in mini.align](https://github.com/echasnovski/mini.nvim/blob/73f2e7a596bbb4e6ae6728d3a4426221ffc9512d/lua/mini/align.lua#L1549). It seems the NUL byte separator in the Lua string means that vim treats this as a blob instead, which is not compatible with that function. If I cheat and change that function to `string.len`, you can get an idea of what it would look like:\r\n\r\n<img width=\"1075\" alt=\"image\" src=\"https://github.com/user-attachments/assets/66b0adaf-9a45-4f44-9691-f8b29a81b5ce\">\r\n\r\nAnyone have any simple suggestions? Thanks!\r\n\r\n---\r\nUpdated solution with monkey patching based on this [comment](https://github.com/echasnovski/mini.nvim/discussions/1192#discussioncomment-10520739):\r\n\r\n```lua\r\nlocal show_align_on_nul = function(buf_id, items, query, opts)\r\n  -- HACK: `items` is an array of strings with \\0 byte separators, cannot use strdisplaywidth.\r\n  local original = vim.fn.strdisplaywidth\r\n  vim.fn.strdisplaywidth = string.len\r\n  items = MiniAlign.align_strings(items, {\r\n    justify_side = { \"left\", \"right\", \"right\" },\r\n    merge_delimiter = { \"\", \" \", \"\", \" \", \"\" },\r\n    split_pattern = \"%z\",\r\n  })\r\n  vim.fn.strdisplaywidth = original\r\n  MiniPick.default_show(buf_id, items, query, opts)\r\nend\r\n\r\nMiniPick.registry.grep_live_align = function()\r\n  MiniPick.builtin.grep_live({}, { source = { show = show_align_on_nul } })\r\nend\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Now that we have alignment with <a href=\"https://github.com/echasnovski/mini.nvim/commit/0b0cc07697e298351b6543d5d4db5372b71897f2\">buf_lines</a>, I really want the same for <code class=\"notranslate\">grep_live</code>. My first thought was to use <code class=\"notranslate\">mini.align</code>. Why re-invent the wheel, right?</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local show_align_on_nul = function(buf_id, items, query, opts)\n  items = MiniAlign.align_strings(items, {\n    justify_side = { &quot;left&quot;, &quot;right&quot;, &quot;right&quot; },\n    merge_delimiter = { &quot;&quot;, &quot; &quot;, &quot;&quot;, &quot; &quot;, &quot;&quot; },\n    split_pattern = &quot;%z&quot;,\n  })\n  MiniPick.default_show(buf_id, items, query, opts)\nend\n\nMiniPick.registry.grep_live_align = function()\n  MiniPick.builtin.grep_live({}, { source = { show = show_align_on_nul } })\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">show_align_on_nul</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAlign</span>.<span class=\"pl-c1\">align_strings</span>(<span class=\"pl-smi\">items</span>, {\n    <span class=\"pl-smi\">justify_side</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">merge_delimiter</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">split_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%z<span class=\"pl-pds\">\"</span></span>,\n  })\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">grep_live_align</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">grep_live</span>({}, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_align_on_nul</span> } })\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Alas, it doesn't work because of <code class=\"notranslate\">vim.fn.strdisplaywidth</code> on <a href=\"https://github.com/echasnovski/mini.nvim/blob/73f2e7a596bbb4e6ae6728d3a4426221ffc9512d/lua/mini/align.lua#L1549\">line 1549 in mini.align</a>. It seems the NUL byte separator in the Lua string means that vim treats this as a blob instead, which is not compatible with that function. If I cheat and change that function to <code class=\"notranslate\">string.len</code>, you can get an idea of what it would look like:</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/363512327-66b0adaf-9a45-4f44-9691-f8b29a81b5ce.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MzgsIm5iZiI6MTc5MzU1MjYzOCwicGF0aCI6Ii83NDc4NTUvMzYzNTEyMzI3LTY2YjBhZGFmLTlhNDUtNGY0NC05NjkxLWY4YjI5YTgxYjVjZS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAzNThaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1hNjg0OTMzMWQzYWNkNWE0ZmQ5ZDM0N2YxYTViNDJiZjE0NTI4NTBiZWUyZjU2Y2U3OGE0YzkyNTUyZTEwMzJjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.K6tXKda1y-hAuI9FO1geBWJvc6-nRuLTcDAPjaS785A\"><img width=\"1075\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/747855/363512327-66b0adaf-9a45-4f44-9691-f8b29a81b5ce.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MzgsIm5iZiI6MTc5MzU1MjYzOCwicGF0aCI6Ii83NDc4NTUvMzYzNTEyMzI3LTY2YjBhZGFmLTlhNDUtNGY0NC05NjkxLWY4YjI5YTgxYjVjZS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAzNThaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1hNjg0OTMzMWQzYWNkNWE0ZmQ5ZDM0N2YxYTViNDJiZjE0NTI4NTBiZWUyZjU2Y2U3OGE0YzkyNTUyZTEwMzJjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.K6tXKda1y-hAuI9FO1geBWJvc6-nRuLTcDAPjaS785A\" style=\"max-width: 100%;\"></a>\n<p dir=\"auto\">Anyone have any simple suggestions? Thanks!</p>\n<hr>\n<p dir=\"auto\">Updated solution with monkey patching based on this <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1192#discussioncomment-10520739\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1192/hovercard?comment_id=10520739\">comment</a>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local show_align_on_nul = function(buf_id, items, query, opts)\n  -- HACK: `items` is an array of strings with \\0 byte separators, cannot use strdisplaywidth.\n  local original = vim.fn.strdisplaywidth\n  vim.fn.strdisplaywidth = string.len\n  items = MiniAlign.align_strings(items, {\n    justify_side = { &quot;left&quot;, &quot;right&quot;, &quot;right&quot; },\n    merge_delimiter = { &quot;&quot;, &quot; &quot;, &quot;&quot;, &quot; &quot;, &quot;&quot; },\n    split_pattern = &quot;%z&quot;,\n  })\n  vim.fn.strdisplaywidth = original\n  MiniPick.default_show(buf_id, items, query, opts)\nend\n\nMiniPick.registry.grep_live_align = function()\n  MiniPick.builtin.grep_live({}, { source = { show = show_align_on_nul } })\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">show_align_on_nul</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> HACK: `items` is an array of strings with \\0 byte separators, cannot use strdisplaywidth.</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">original</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">strdisplaywidth</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">strdisplaywidth</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.len</span>\n  <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAlign</span>.<span class=\"pl-c1\">align_strings</span>(<span class=\"pl-smi\">items</span>, {\n    <span class=\"pl-smi\">justify_side</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">merge_delimiter</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">split_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%z<span class=\"pl-pds\">\"</span></span>,\n  })\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">strdisplaywidth</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">original</span>\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">grep_live_align</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">grep_live</span>({}, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_align_on_nul</span> } })\n<span class=\"pl-k\">end</span></pre></div>",
+    "bodyText": "Now that we have alignment with buf_lines, I really want the same for grep_live. My first thought was to use mini.align. Why re-invent the wheel, right?\nlocal show_align_on_nul = function(buf_id, items, query, opts)\n  items = MiniAlign.align_strings(items, {\n    justify_side = { \"left\", \"right\", \"right\" },\n    merge_delimiter = { \"\", \" \", \"\", \" \", \"\" },\n    split_pattern = \"%z\",\n  })\n  MiniPick.default_show(buf_id, items, query, opts)\nend\n\nMiniPick.registry.grep_live_align = function()\n  MiniPick.builtin.grep_live({}, { source = { show = show_align_on_nul } })\nend\nAlas, it doesn't work because of vim.fn.strdisplaywidth on line 1549 in mini.align. It seems the NUL byte separator in the Lua string means that vim treats this as a blob instead, which is not compatible with that function. If I cheat and change that function to string.len, you can get an idea of what it would look like:\n\nAnyone have any simple suggestions? Thanks!\n\nUpdated solution with monkey patching based on this comment:\nlocal show_align_on_nul = function(buf_id, items, query, opts)\n  -- HACK: `items` is an array of strings with \\0 byte separators, cannot use strdisplaywidth.\n  local original = vim.fn.strdisplaywidth\n  vim.fn.strdisplaywidth = string.len\n  items = MiniAlign.align_strings(items, {\n    justify_side = { \"left\", \"right\", \"right\" },\n    merge_delimiter = { \"\", \" \", \"\", \" \", \"\" },\n    split_pattern = \"%z\",\n  })\n  vim.fn.strdisplaywidth = original\n  MiniPick.default_show(buf_id, items, query, opts)\nend\n\nMiniPick.registry.grep_live_align = function()\n  MiniPick.builtin.grep_live({}, { source = { show = show_align_on_nul } })\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The *simplest* (and the *hackiest*) suggestion is to temporarily monkey patch `vim.fn.strdisplaywidth = string.len`.\r\n\r\nThe *more proper* suggestion would be to replace `\\0` with come rare character (or even `'│'` right away), align using replaced character as split pattern, and then replace them back to be `\\0`.\r\n\r\n------\r\n\r\nJust a note: as `grep_live` is a fairly performance critical function, I don't think it having alignment option similar to `MiniExtra.pickers.buf_lines` is a good idea.",
+            "bodyHTML": "<p dir=\"auto\">The <em>simplest</em> (and the <em>hackiest</em>) suggestion is to temporarily monkey patch <code class=\"notranslate\">vim.fn.strdisplaywidth = string.len</code>.</p>\n<p dir=\"auto\">The <em>more proper</em> suggestion would be to replace <code class=\"notranslate\">\\0</code> with come rare character (or even <code class=\"notranslate\">'│'</code> right away), align using replaced character as split pattern, and then replace them back to be <code class=\"notranslate\">\\0</code>.</p>\n<hr>\n<p dir=\"auto\">Just a note: as <code class=\"notranslate\">grep_live</code> is a fairly performance critical function, I don't think it having alignment option similar to <code class=\"notranslate\">MiniExtra.pickers.buf_lines</code> is a good idea.</p>",
+            "bodyText": "The simplest (and the hackiest) suggestion is to temporarily monkey patch vim.fn.strdisplaywidth = string.len.\nThe more proper suggestion would be to replace \\0 with come rare character (or even '│' right away), align using replaced character as split pattern, and then replace them back to be \\0.\n\nJust a note: as grep_live is a fairly performance critical function, I don't think it having alignment option similar to MiniExtra.pickers.buf_lines is a good idea.",
+            "createdAt": "2024-09-02T12:46:03Z",
+            "createdViaEmail": false,
+            "databaseId": 10520739,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AoIij",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-09-02T12:46:03Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 7,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks. I monkey patched as it was the simplest approach.\r\n\r\nFrom a performance point of view, I cannot perceive a difference, but I can perceive the newfound order in the universe now that things are aligned properly 😄 \r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Thanks. I monkey patched as it was the simplest approach.</p>\n<p dir=\"auto\">From a performance point of view, I cannot perceive a difference, but I can perceive the newfound order in the universe now that things are aligned properly 😄</p>",
+                    "bodyText": "Thanks. I monkey patched as it was the simplest approach.\nFrom a performance point of view, I cannot perceive a difference, but I can perceive the newfound order in the universe now that things are aligned properly 😄",
+                    "createdAt": "2024-09-02T12:56:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10520874,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoIkq",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-02T12:56:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520874",
+                    "updatedAt": "2024-09-02T12:56:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520874"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Make sure for it to be monkey-patched temporarily, though. Just in case.\r\n\r\n> ... I can perceive the newfound order in the universe now that things are aligned properly 😄\r\n\r\nThat's an impressive sales pitch. I was convinced for second that performance was not worth it here. But only for a second :sweat_smile:",
+                    "bodyHTML": "<p dir=\"auto\">Make sure for it to be monkey-patched temporarily, though. Just in case.</p>\n<blockquote>\n<p dir=\"auto\">... I can perceive the newfound order in the universe now that things are aligned properly 😄</p>\n</blockquote>\n<p dir=\"auto\">That's an impressive sales pitch. I was convinced for second that performance was not worth it here. But only for a second 😅</p>",
+                    "bodyText": "Make sure for it to be monkey-patched temporarily, though. Just in case.\n\n... I can perceive the newfound order in the universe now that things are aligned properly 😄\n\nThat's an impressive sales pitch. I was convinced for second that performance was not worth it here. But only for a second 😅",
+                    "createdAt": "2024-09-02T13:08:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10521033,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoInJ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-02T13:08:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10521033",
+                    "updatedAt": "2024-09-02T13:08:24Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10521033"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... I was convinced for second that performance was not worth it here. But only for a second 😅\r\n\r\nA second? Well, that's an eternity compared to any perceived performance hit that may be incurred 😄\r\n\r\nIn all seriousness, I'm very sensitive to lag (recall our [discussion](https://github.com/echasnovski/mini.nvim/issues/826#issuecomment-2067760802) on the synchronous fallback of mini.completion). If I noticed any compromise whatsoever on the user experience, I would abandon, but I honestly don't—perhaps a testament to the performance of mini.align?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... I was convinced for second that performance was not worth it here. But only for a second 😅</p>\n</blockquote>\n<p dir=\"auto\">A second? Well, that's an eternity compared to any perceived performance hit that may be incurred 😄</p>\n<p dir=\"auto\">In all seriousness, I'm very sensitive to lag (recall our <a href=\"https://github.com/echasnovski/mini.nvim/issues/826#issuecomment-2067760802\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/826/hovercard\">discussion</a> on the synchronous fallback of mini.completion). If I noticed any compromise whatsoever on the user experience, I would abandon, but I honestly don't—perhaps a testament to the performance of mini.align?</p>",
+                    "bodyText": "... I was convinced for second that performance was not worth it here. But only for a second 😅\n\nA second? Well, that's an eternity compared to any perceived performance hit that may be incurred 😄\nIn all seriousness, I'm very sensitive to lag (recall our discussion on the synchronous fallback of mini.completion). If I noticed any compromise whatsoever on the user experience, I would abandon, but I honestly don't—perhaps a testament to the performance of mini.align?",
+                    "createdAt": "2024-09-02T13:26:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10521209,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoIp5",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-02T13:26:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10521209",
+                    "updatedAt": "2024-09-02T13:26:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10521209"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... perhaps a testament to the performance of mini.align?\r\n\r\nYeah, maybe. But mostly because I missed that this is a `show` override which acts only on visible entries, which aren't that many. Yet it means another issue which I don't really like: alignment will change after query change and even scrolling.\r\n\r\nI remembered the original reason on why alignment was not implemented in the first place: on wide file names it makes the matched line barely visible or completely invisible. Although most file matches are relative, it still has negative effect. The one counter measure for this is making picker occupy full instance width, though.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... perhaps a testament to the performance of mini.align?</p>\n</blockquote>\n<p dir=\"auto\">Yeah, maybe. But mostly because I missed that this is a <code class=\"notranslate\">show</code> override which acts only on visible entries, which aren't that many. Yet it means another issue which I don't really like: alignment will change after query change and even scrolling.</p>\n<p dir=\"auto\">I remembered the original reason on why alignment was not implemented in the first place: on wide file names it makes the matched line barely visible or completely invisible. Although most file matches are relative, it still has negative effect. The one counter measure for this is making picker occupy full instance width, though.</p>",
+                    "bodyText": "... perhaps a testament to the performance of mini.align?\n\nYeah, maybe. But mostly because I missed that this is a show override which acts only on visible entries, which aren't that many. Yet it means another issue which I don't really like: alignment will change after query change and even scrolling.\nI remembered the original reason on why alignment was not implemented in the first place: on wide file names it makes the matched line barely visible or completely invisible. Although most file matches are relative, it still has negative effect. The one counter measure for this is making picker occupy full instance width, though.",
+                    "createdAt": "2024-09-03T07:49:31Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10528568,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoKc4",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-03T07:49:31Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10528568",
+                    "updatedAt": "2024-09-03T07:49:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10528568"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... alignment will change after query change and even scrolling.\r\n\r\nThis does not bother me nearly as much as the default behavior of not having any alignment though.\r\n\r\n> I remembered the original reason on why alignment was not implemented in the first place: on wide file names it makes the matched line barely visible or completely invisible. Although most file matches are relative, it still has negative effect. The one counter measure for this is making picker occupy full instance width, though.\r\n\r\nYes, that's still somewhat a problem with the default behavior. So, this morning I increased the width of this particular picker a bit. Curiously, when looking to find the default you use for width, what is the significance of 0.618?  Without knowing the answer, I bumped the width to 0.816 as an homage to you 😄. I also tweaked my new picker to truncate directories from pathnames to help mitigate the width issue. While the pathname is truncated in the main picker list, one can always see the full pathname in the picker window title while previewing.\r\n\r\n<img width=\"1050\" alt=\"image\" src=\"https://github.com/user-attachments/assets/3668cb0c-1ff3-4d5c-8e12-e24667bb42f7\">\r\n \r\nSince I use a non-ascii truncation indicator (`…`), my monkey patch of `strdisplaywidth` with `string.len` no longer worked.  So, I had to revert to changing the NUL byte to some other somewhat unique separator, then align, then revert back. And, while this probably makes your brain scream due to inefficiency, it still works without noticeable delay and I didn't have to reimplement an alignment function.\r\n\r\n```lua\r\nlocal sep = package.config:sub(1, 1)\r\nlocal function truncate_path(path)\r\n  local parts = vim.split(path, sep)\r\n  if #parts > 2 then\r\n    parts = { parts[1], \"…\", parts[#parts] }\r\n  end\r\n  return table.concat(parts, sep)\r\nend\r\n\r\nlocal function map_gsub(items, pattern, replacement)\r\n  return vim.tbl_map(function(item)\r\n    item, _ = string.gsub(item, pattern, replacement)\r\n    return item\r\n  end, items)\r\nend\r\n\r\nlocal show_align_on_nul = function(buf_id, items, query, opts)\r\n  -- Shorten the pathname to keep the width of the picker window to something\r\n  -- a bit more reasonable for longer pathnames.\r\n  items = map_gsub(items, \"^%Z+\", truncate_path)\r\n\r\n  -- Because items is an array of blobs (contains a NUL byte), align_strings\r\n  -- will not work because it expects strings. So, convert the NUL bytes to a\r\n  -- unique (hopefully) separator, then align, and revert back.\r\n  items = map_gsub(items, \"%z\", \"#|#\")\r\n  items = MiniAlign.align_strings(items, {\r\n    justify_side = { \"left\", \"right\", \"right\" },\r\n    merge_delimiter = { \"\", \" \", \"\", \" \", \"\" },\r\n    split_pattern = \"#|#\",\r\n  })\r\n  items = map_gsub(items, \"#|#\", \"\\0\")\r\n\r\n  -- Back to the regularly scheduled program :-)\r\n  MiniPick.default_show(buf_id, items, query, opts)\r\nend\r\n\r\nMiniPick.registry.grep_live_align = function()\r\n  MiniPick.builtin.grep_live({}, {\r\n    source = { show = show_align_on_nul },\r\n    window = { config = { width = math.floor(0.816 * vim.o.columns) } },\r\n  })\r\nend\r\n\r\n```",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... alignment will change after query change and even scrolling.</p>\n</blockquote>\n<p dir=\"auto\">This does not bother me nearly as much as the default behavior of not having any alignment though.</p>\n<blockquote>\n<p dir=\"auto\">I remembered the original reason on why alignment was not implemented in the first place: on wide file names it makes the matched line barely visible or completely invisible. Although most file matches are relative, it still has negative effect. The one counter measure for this is making picker occupy full instance width, though.</p>\n</blockquote>\n<p dir=\"auto\">Yes, that's still somewhat a problem with the default behavior. So, this morning I increased the width of this particular picker a bit. Curiously, when looking to find the default you use for width, what is the significance of 0.618?  Without knowing the answer, I bumped the width to 0.816 as an homage to you 😄. I also tweaked my new picker to truncate directories from pathnames to help mitigate the width issue. While the pathname is truncated in the main picker list, one can always see the full pathname in the picker window title while previewing.</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/364006294-3668cb0c-1ff3-4d5c-8e12-e24667bb42f7.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MzksIm5iZiI6MTc5MzU1MjYzOSwicGF0aCI6Ii83NDc4NTUvMzY0MDA2Mjk0LTM2NjhjYjBjLTFmZjMtNGQ1Yy04ZTEyLWUyNDY2N2JiNDJmNy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAzNTlaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1jZGY0MTUyMDYwNDYyODhiYjg0NGY2MzFhY2I0NzdjZjE1NjYyNzE4OTU1NTgxZmMzOTdmZmI5ZDkwOTNmYjU4JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.CY3YBYupQRPSamIa8UJsVNSd8aj9aDdOeDzgJgSydKI\"><img width=\"1050\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/747855/364006294-3668cb0c-1ff3-4d5c-8e12-e24667bb42f7.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MzksIm5iZiI6MTc5MzU1MjYzOSwicGF0aCI6Ii83NDc4NTUvMzY0MDA2Mjk0LTM2NjhjYjBjLTFmZjMtNGQ1Yy04ZTEyLWUyNDY2N2JiNDJmNy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAzNTlaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1jZGY0MTUyMDYwNDYyODhiYjg0NGY2MzFhY2I0NzdjZjE1NjYyNzE4OTU1NTgxZmMzOTdmZmI5ZDkwOTNmYjU4JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.CY3YBYupQRPSamIa8UJsVNSd8aj9aDdOeDzgJgSydKI\" style=\"max-width: 100%;\"></a>\n<p dir=\"auto\">Since I use a non-ascii truncation indicator (<code class=\"notranslate\">…</code>), my monkey patch of <code class=\"notranslate\">strdisplaywidth</code> with <code class=\"notranslate\">string.len</code> no longer worked.  So, I had to revert to changing the NUL byte to some other somewhat unique separator, then align, then revert back. And, while this probably makes your brain scream due to inefficiency, it still works without noticeable delay and I didn't have to reimplement an alignment function.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local sep = package.config:sub(1, 1)\nlocal function truncate_path(path)\n  local parts = vim.split(path, sep)\n  if #parts &gt; 2 then\n    parts = { parts[1], &quot;…&quot;, parts[#parts] }\n  end\n  return table.concat(parts, sep)\nend\n\nlocal function map_gsub(items, pattern, replacement)\n  return vim.tbl_map(function(item)\n    item, _ = string.gsub(item, pattern, replacement)\n    return item\n  end, items)\nend\n\nlocal show_align_on_nul = function(buf_id, items, query, opts)\n  -- Shorten the pathname to keep the width of the picker window to something\n  -- a bit more reasonable for longer pathnames.\n  items = map_gsub(items, &quot;^%Z+&quot;, truncate_path)\n\n  -- Because items is an array of blobs (contains a NUL byte), align_strings\n  -- will not work because it expects strings. So, convert the NUL bytes to a\n  -- unique (hopefully) separator, then align, and revert back.\n  items = map_gsub(items, &quot;%z&quot;, &quot;#|#&quot;)\n  items = MiniAlign.align_strings(items, {\n    justify_side = { &quot;left&quot;, &quot;right&quot;, &quot;right&quot; },\n    merge_delimiter = { &quot;&quot;, &quot; &quot;, &quot;&quot;, &quot; &quot;, &quot;&quot; },\n    split_pattern = &quot;#|#&quot;,\n  })\n  items = map_gsub(items, &quot;#|#&quot;, &quot;\\0&quot;)\n\n  -- Back to the regularly scheduled program :-)\n  MiniPick.default_show(buf_id, items, query, opts)\nend\n\nMiniPick.registry.grep_live_align = function()\n  MiniPick.builtin.grep_live({}, {\n    source = { show = show_align_on_nul },\n    window = { config = { width = math.floor(0.816 * vim.o.columns) } },\n  })\nend\n\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">sep</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">package.config</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">1</span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">truncate_path</span>(<span class=\"pl-smi\">path</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">parts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">sep</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">parts</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">parts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">parts</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>…<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">parts</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">parts</span>] }\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">parts</span>, <span class=\"pl-smi\">sep</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">map_gsub</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">replacement</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.gsub</span>(<span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">replacement</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">item</span>\n  <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">show_align_on_nul</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Shorten the pathname to keep the width of the picker window to something</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> a bit more reasonable for longer pathnames.</span>\n  <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">map_gsub</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%Z+<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">truncate_path</span>)\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Because items is an array of blobs (contains a NUL byte), align_strings</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> will not work because it expects strings. So, convert the NUL bytes to a</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> unique (hopefully) separator, then align, and revert back.</span>\n  <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">map_gsub</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%z<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#|#<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAlign</span>.<span class=\"pl-c1\">align_strings</span>(<span class=\"pl-smi\">items</span>, {\n    <span class=\"pl-smi\">justify_side</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">merge_delimiter</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">split_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#|#<span class=\"pl-pds\">\"</span></span>,\n  })\n  <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">map_gsub</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#|#<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\0</span><span class=\"pl-pds\">\"</span></span>)\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Back to the regularly scheduled program :-)</span>\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">grep_live_align</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">grep_live</span>({}, {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_align_on_nul</span> },\n    <span class=\"pl-smi\">window</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">config</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.816</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span>) } },\n  })\n<span class=\"pl-k\">end</span>\n</pre></div>",
+                    "bodyText": "... alignment will change after query change and even scrolling.\n\nThis does not bother me nearly as much as the default behavior of not having any alignment though.\n\nI remembered the original reason on why alignment was not implemented in the first place: on wide file names it makes the matched line barely visible or completely invisible. Although most file matches are relative, it still has negative effect. The one counter measure for this is making picker occupy full instance width, though.\n\nYes, that's still somewhat a problem with the default behavior. So, this morning I increased the width of this particular picker a bit. Curiously, when looking to find the default you use for width, what is the significance of 0.618?  Without knowing the answer, I bumped the width to 0.816 as an homage to you 😄. I also tweaked my new picker to truncate directories from pathnames to help mitigate the width issue. While the pathname is truncated in the main picker list, one can always see the full pathname in the picker window title while previewing.\n\nSince I use a non-ascii truncation indicator (…), my monkey patch of strdisplaywidth with string.len no longer worked.  So, I had to revert to changing the NUL byte to some other somewhat unique separator, then align, then revert back. And, while this probably makes your brain scream due to inefficiency, it still works without noticeable delay and I didn't have to reimplement an alignment function.\nlocal sep = package.config:sub(1, 1)\nlocal function truncate_path(path)\n  local parts = vim.split(path, sep)\n  if #parts > 2 then\n    parts = { parts[1], \"…\", parts[#parts] }\n  end\n  return table.concat(parts, sep)\nend\n\nlocal function map_gsub(items, pattern, replacement)\n  return vim.tbl_map(function(item)\n    item, _ = string.gsub(item, pattern, replacement)\n    return item\n  end, items)\nend\n\nlocal show_align_on_nul = function(buf_id, items, query, opts)\n  -- Shorten the pathname to keep the width of the picker window to something\n  -- a bit more reasonable for longer pathnames.\n  items = map_gsub(items, \"^%Z+\", truncate_path)\n\n  -- Because items is an array of blobs (contains a NUL byte), align_strings\n  -- will not work because it expects strings. So, convert the NUL bytes to a\n  -- unique (hopefully) separator, then align, and revert back.\n  items = map_gsub(items, \"%z\", \"#|#\")\n  items = MiniAlign.align_strings(items, {\n    justify_side = { \"left\", \"right\", \"right\" },\n    merge_delimiter = { \"\", \" \", \"\", \" \", \"\" },\n    split_pattern = \"#|#\",\n  })\n  items = map_gsub(items, \"#|#\", \"\\0\")\n\n  -- Back to the regularly scheduled program :-)\n  MiniPick.default_show(buf_id, items, query, opts)\nend\n\nMiniPick.registry.grep_live_align = function()\n  MiniPick.builtin.grep_live({}, {\n    source = { show = show_align_on_nul },\n    window = { config = { width = math.floor(0.816 * vim.o.columns) } },\n  })\nend",
+                    "createdAt": "2024-09-03T13:55:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10532616,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoLcI",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-03T13:55:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10532616",
+                    "updatedAt": "2024-09-03T13:55:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10532616"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Curiously, when looking to find the default you use for width, what is the significance of 0.618?\r\n\r\nhttps://en.wikipedia.org/wiki/Golden_ratio",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Curiously, when looking to find the default you use for width, what is the significance of 0.618?</p>\n</blockquote>\n<p dir=\"auto\"><a href=\"https://en.wikipedia.org/wiki/Golden_ratio\" rel=\"nofollow\">https://en.wikipedia.org/wiki/Golden_ratio</a></p>",
+                    "bodyText": "Curiously, when looking to find the default you use for width, what is the significance of 0.618?\n\nhttps://en.wikipedia.org/wiki/Golden_ratio",
+                    "createdAt": "2024-09-03T14:01:59Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10532705,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoLdh",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-03T14:01:59Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10532705",
+                    "updatedAt": "2024-09-03T14:02:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10532705"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/13407106?u=1bdb1e884ef95b0c780d65511cc515a20a41ce67&v=4",
+                        "login": "dwoodwardgb",
+                        "resourcePath": "/dwoodwardgb",
+                        "url": "https://github.com/dwoodwardgb"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you so much @pkazmier !!! This is the one piece I was missing to get into Mini pick!",
+                    "bodyHTML": "<p dir=\"auto\">Thank you so much <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a> !!! This is the one piece I was missing to get into Mini pick!</p>",
+                    "bodyText": "Thank you so much @pkazmier !!! This is the one piece I was missing to get into Mini pick!",
+                    "createdAt": "2025-09-05T11:17:01Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14317274,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2nba",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-05T11:17:01Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10520739,
+                        "id": "DC_kwDOFoksYM4AoIij",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-14317274",
+                    "updatedAt": "2025-09-05T11:17:01Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-14317274"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739",
+            "updatedAt": "2024-09-02T12:46:04Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10520739"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Very nice!",
+            "bodyHTML": "<p dir=\"auto\">Very nice!</p>",
+            "bodyText": "Very nice!",
+            "createdAt": "2024-09-02T13:24:55Z",
+            "createdViaEmail": false,
+            "databaseId": 10521199,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AoIpv",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-09-02T13:24:55Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10521199",
+            "updatedAt": "2024-09-02T13:24:56Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192#discussioncomment-10521199"
+        }
+    ],
+    "createdAt": "2024-09-01T18:14:53Z",
+    "createdViaEmail": false,
+    "databaseId": 7120144,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "id": "D_kwDOFoksYM4AbKUQ",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABFT_L1w",
+                "name": "mini.align"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2024-09-02T13:30:28Z",
+    "locked": false,
+    "number": 1192,
+    "poll": null,
+    "publishedAt": "2024-09-01T18:14:53Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1192",
+    "stateReason": null,
+    "title": "[mini.pick] alignment with grep_live?",
+    "updatedAt": "2025-09-05T11:17:01Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1192"
+}

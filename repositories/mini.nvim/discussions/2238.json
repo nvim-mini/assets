@@ -1,0 +1,452 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "### Related\r\n\r\n- https://github.com/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12136572\r\n- https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-14667620\r\n- https://github.com/nvim-mini/mini.nvim/discussions/1695#discussioncomment-12639903\r\n\r\n### Features\r\n\r\nMulti-topic enhancement for `mini.files` preview with frequently requested features:\r\n\r\n- Adjust preview width to fit the screen\r\n- Toggle preview with `<M-p>`\r\n- Scroll preview with `<C-f>`, `<C-b>`, `<C-g>`\r\n- Numbered preview lines\r\n- Custom preview error messages\r\n\r\n### Video\r\n\r\nhttps://github.com/user-attachments/assets/d52250b6-7646-4fde-9144-ba9ef79e8fbb\r\n\r\n### Code\r\n\r\n<details><summary>Click me</summary>\r\n\r\n```lua\r\nlocal MiniFiles = require(\"mini.files\")\r\nMiniFiles.setup({\r\n  windows = {\r\n    preview = false,\r\n    width_preview = 100,\r\n  },\r\n})\r\n\r\nlocal open_buf_file = function(buf)\r\n  buf = buf or 0\r\n  MiniFiles.open(vim.bo[buf].buftype == \"\" and vim.api.nvim_buf_get_name(buf) or nil, true)\r\nend\r\n-- stylua: ignore start\r\nvim.keymap.set(\"n\", \"<Leader>F\", function() MiniFiles.open() end, { desc = \"Open files\" })\r\nvim.keymap.set(\"n\", \"<Leader>.F\", function() open_buf_file() end, { desc = \"Open files (current buf)\" })\r\nvim.keymap.set(\"n\", \"<Leader>@F\", function() MiniFiles.open(vim.fn.getcwd()) end, { desc = \"Open files (cwd)\" })\r\nvim.keymap.set(\"n\", \"<Leader>~F\", function() MiniFiles.open(\"~\") end, { desc = \"Open files (system home)\" })\r\n-- stylua: ignore end\r\n\r\nlocal files_au = vim.api.nvim_create_augroup(\"minifiles\", { clear = true })\r\n\r\nlocal files_get_path = function(buf)\r\n  local path = vim.api.nvim_buf_get_name(buf):match(\"^minifiles://%d+/(.*)$\")\r\n  local stat = vim.uv.fs_stat(path)\r\n  return path, stat\r\nend\r\n\r\nlocal get_preview_win = function()\r\n  if not MiniFiles.config.windows.preview then\r\n    return\r\n  end\r\n  local ok, state = pcall(MiniFiles.get_explorer_state)\r\n  if not ok or not state then\r\n    return\r\n  end\r\n  local rightmost_win = state.windows[#state.windows].win_id\r\n  if rightmost_win == vim.api.nvim_get_current_win() then\r\n    return\r\n  end\r\n  return rightmost_win\r\nend\r\n\r\nlocal preview_win_call = function(callback)\r\n  local win = get_preview_win()\r\n  if win then\r\n    vim.api.nvim_win_call(win, callback)\r\n  end\r\nend\r\n\r\n-- Set preview 'number'\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesWindowUpdate\",\r\n  desc = \"Define `mini.files` window options\",\r\n  group = files_au,\r\n  callback = function(e)\r\n    local win = e.data.win_id\r\n    local buf = e.data.buf_id\r\n    local _, stat = files_get_path(buf)\r\n    if stat and stat.type ~= \"directory\" then\r\n      vim.wo[win].number = true\r\n    end\r\n  end,\r\n})\r\n\r\n-- Resize preview\r\n\r\nlocal refresh_preview = function()\r\n  local width_focus = MiniFiles.config.windows.width_focus\r\n  local width_preview = MiniFiles.config.windows.width_preview\r\n  local preview_width = math.min(vim.o.columns - width_focus - 4, width_preview)\r\n  MiniFiles.refresh({ windows = { width_preview = preview_width } })\r\nend\r\nlocal resize_autocmd = function(event, opts)\r\n  vim.api.nvim_create_autocmd(\r\n    event,\r\n    vim.tbl_extend(\"keep\", opts, { desc = \"Resize `mini.files` preview to be always visible\", group = files_au })\r\n  )\r\nend\r\nresize_autocmd(\"VimResized\", { callback = refresh_preview })\r\nresize_autocmd(\"User\", { pattern = \"MiniFilesWindowOpen\", callback = vim.schedule_wrap(refresh_preview) })\r\n\r\n-- Buf keymaps\r\n\r\n-- NOTE: Toggle preview with <M-p>\r\n--       Scroll preview with <C-f>, <C-b>, <C-g>\r\n\r\nlocal toggle_preview = function()\r\n  local is_preview = MiniFiles.config.windows.preview\r\n  local is_preview_next = not is_preview\r\n  MiniFiles.config.windows.preview = is_preview_next\r\n  MiniFiles.trim_right()\r\n  MiniFiles.refresh({ windows = { preview = is_preview_next } })\r\n  if is_preview then\r\n    local branch = MiniFiles.get_explorer_state().branch\r\n    table.remove(branch)\r\n    MiniFiles.set_branch(branch)\r\n  end\r\nend\r\nlocal norm_in_preview = function(keys)\r\n  preview_win_call(function()\r\n    local key = vim.api.nvim_replace_termcodes(keys, true, false, true)\r\n    vim.cmd.norm({ key, bang = true })\r\n  end)\r\nend\r\nlocal jump_edges = function()\r\n  preview_win_call(function()\r\n    local last = vim.fn.line(\".\") == vim.fn.line(\"$\")\r\n    vim.cmd.norm({ last and \"gg\" or \"G\", bang = true })\r\n  end)\r\nend\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesBufferCreate\",\r\n  desc = \"Set `mini.files` buffer keymaps\",\r\n  group = files_au,\r\n  callback = function(e)\r\n    local buf_map = function(mode, lhs, rhs, opts)\r\n      opts = vim.tbl_extend(\"keep\", opts or {}, { buffer = e.data.buf_id })\r\n      vim.keymap.set(mode, lhs, rhs, opts)\r\n    end\r\n    -- stylua: ignore start\r\n    buf_map(\"n\", \"<M-p>\", function() toggle_preview() end, { desc = \"Toggle preview\" })\r\n    buf_map(\"n\", \"<C-b>\", function() norm_in_preview(\"<C-u>\") end, { desc = \"Scroll preview backwards\" })\r\n    buf_map(\"n\", \"<C-f>\", function() norm_in_preview(\"<C-d>\") end, { desc = \"Scroll preview upwards\" })\r\n    buf_map(\"n\", \"<C-g>\", function() jump_edges() end, { desc = \"Jump edges\" })\r\n  end,\r\n})\r\n\r\n-- Custom preview: extend lines\r\n\r\n-- NOTE: For performance reasons, MiniFiles limits the preview to the visible screen (vim.o.lines).\r\n--       To enable scrolling, we need to manually set the number of lines for the preview.\r\n--       Without this code, using scrolling keymaps (`<C-b>`,`<C-f>`,`<C-g>`) doesn't make sense.\r\n\r\n-- https://github.com/nvim-mini/mini.nvim/blob/c163117900c17d4abf30bc09452a261c8536060c/lua/mini/files.lua#L2310-L2314\r\nlocal validate_file = function(path)\r\n  local fd, _, err = vim.uv.fs_open(path, \"r\", 1)\r\n  if not fd then\r\n    return err, nil\r\n  end\r\n  local is_binary = vim.uv.fs_read(fd, 1024):find(\"\\0\") ~= nil\r\n  vim.uv.fs_close(fd)\r\n  return false, is_binary\r\nend\r\n\r\nlocal files_preview_ns = vim.api.nvim_create_namespace(\"minifiles\")\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesBufferUpdate\",\r\n  desc = \"Extend `mini.files` preview lines; adjust preview error display\",\r\n  callback = function(args)\r\n    local buf = args.data.buf_id\r\n    local path, stat = files_get_path(buf)\r\n    if not stat or stat.type == \"directory\" then\r\n      return\r\n    end\r\n    local extm_id = 1\r\n    local error = function(msg)\r\n      local hl = \"Text\"\r\n      vim.treesitter.stop(buf)\r\n      vim.api.nvim_buf_set_lines(buf, 0, -1, true, {})\r\n      vim.api.nvim_buf_set_extmark(buf, files_preview_ns, 0, 0, {\r\n        id = extm_id,\r\n        virt_text_pos = \"overlay\",\r\n        virt_text = { { msg, hl } },\r\n      })\r\n    end\r\n    local warn = function(msg)\r\n      local hl = \"WarningMsg\"\r\n      vim.api.nvim_buf_set_extmark(buf, files_preview_ns, 0, 0, {\r\n        id = extm_id,\r\n        virt_text_pos = \"right_align\",\r\n        virt_text = { { msg, hl } },\r\n      })\r\n    end\r\n    local no_access, is_binary = validate_file(path)\r\n    local format_msg = function(msg)\r\n      msg = \" \" .. msg .. string.rep(\" \", MiniFiles.config.windows.width_preview)\r\n      return string.gsub(msg, \" \", \"-\")\r\n    end\r\n    if no_access then\r\n      error(format_msg(\"No access\"))\r\n      return\r\n    end\r\n    if is_binary then\r\n      error(format_msg(\"Non text file\"))\r\n      return\r\n    end\r\n    if stat.size > 512 * 1024 then\r\n      warn(\"Large file detected (>512KB)\")\r\n      return\r\n    end\r\n    local read_ok, read_lines = pcall(vim.fn.readfile, path, \"\")\r\n    if read_ok then\r\n      local lines = vim.split(table.concat(read_lines, \"\\n\"), \"\\n\")\r\n      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)\r\n    end\r\n  end,\r\n})\r\n```\r\n\r\n</details>",
+    "bodyHTML": "<h3 dir=\"auto\">Related</h3>\n<ul dir=\"auto\">\n<li><a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"7944738\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/1564\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1564/hovercard?comment_id=12136572\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/1564#discussioncomment-12136572\">#1564 (comment)</a></li>\n<li><a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6766544\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/936\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/936/hovercard?comment_id=14667620\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-14667620\">#936 (reply in thread)</a></li>\n<li><a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"8120077\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/1695\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1695/hovercard?comment_id=12639903\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/1695#discussioncomment-12639903\">#1695 (comment)</a></li>\n</ul>\n<h3 dir=\"auto\">Features</h3>\n<p dir=\"auto\">Multi-topic enhancement for <code class=\"notranslate\">mini.files</code> preview with frequently requested features:</p>\n<ul dir=\"auto\">\n<li>Adjust preview width to fit the screen</li>\n<li>Toggle preview with <code class=\"notranslate\">&lt;M-p&gt;</code></li>\n<li>Scroll preview with <code class=\"notranslate\">&lt;C-f&gt;</code>, <code class=\"notranslate\">&lt;C-b&gt;</code>, <code class=\"notranslate\">&lt;C-g&gt;</code></li>\n<li>Numbered preview lines</li>\n<li>Custom preview error messages</li>\n</ul>\n<h3 dir=\"auto\">Video</h3>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">files-preview.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/539179926-d52250b6-7646-4fde-9144-ba9ef79e8fbb.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NDAsIm5iZiI6MTc5MzU1MjQ0MCwicGF0aCI6Ii8xMTk4NDUwNDUvNTM5MTc5OTI2LWQ1MjI1MGI2LTc2NDYtNGZkZS05MTQ0LWJhOWVmNzllOGZiYi5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAwNDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1lN2Y5YTBlNTVhMmIzNDFlZGYwOGQyOTU3OTk0ZGVmNGMxYjA4ZTlkMGE2NmFmYzk2Nzk2NjNlZjg3MzhjNDMxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.DsueT3SBTZQKTuLKHli-GdhSIHPu-CbhzOVa5G8PRMc\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/539179926-d52250b6-7646-4fde-9144-ba9ef79e8fbb.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NDAsIm5iZiI6MTc5MzU1MjQ0MCwicGF0aCI6Ii8xMTk4NDUwNDUvNTM5MTc5OTI2LWQ1MjI1MGI2LTc2NDYtNGZkZS05MTQ0LWJhOWVmNzllOGZiYi5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAwNDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1lN2Y5YTBlNTVhMmIzNDFlZGYwOGQyOTU3OTk0ZGVmNGMxYjA4ZTlkMGE2NmFmYzk2Nzk2NjNlZjg3MzhjNDMxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.DsueT3SBTZQKTuLKHli-GdhSIHPu-CbhzOVa5G8PRMc\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<h3 dir=\"auto\">Code</h3>\n<details><summary>Click me</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local MiniFiles = require(&quot;mini.files&quot;)\nMiniFiles.setup({\n  windows = {\n    preview = false,\n    width_preview = 100,\n  },\n})\n\nlocal open_buf_file = function(buf)\n  buf = buf or 0\n  MiniFiles.open(vim.bo[buf].buftype == &quot;&quot; and vim.api.nvim_buf_get_name(buf) or nil, true)\nend\n-- stylua: ignore start\nvim.keymap.set(&quot;n&quot;, &quot;&lt;Leader&gt;F&quot;, function() MiniFiles.open() end, { desc = &quot;Open files&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;Leader&gt;.F&quot;, function() open_buf_file() end, { desc = &quot;Open files (current buf)&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;Leader&gt;@F&quot;, function() MiniFiles.open(vim.fn.getcwd()) end, { desc = &quot;Open files (cwd)&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;Leader&gt;~F&quot;, function() MiniFiles.open(&quot;~&quot;) end, { desc = &quot;Open files (system home)&quot; })\n-- stylua: ignore end\n\nlocal files_au = vim.api.nvim_create_augroup(&quot;minifiles&quot;, { clear = true })\n\nlocal files_get_path = function(buf)\n  local path = vim.api.nvim_buf_get_name(buf):match(&quot;^minifiles://%d+/(.*)$&quot;)\n  local stat = vim.uv.fs_stat(path)\n  return path, stat\nend\n\nlocal get_preview_win = function()\n  if not MiniFiles.config.windows.preview then\n    return\n  end\n  local ok, state = pcall(MiniFiles.get_explorer_state)\n  if not ok or not state then\n    return\n  end\n  local rightmost_win = state.windows[#state.windows].win_id\n  if rightmost_win == vim.api.nvim_get_current_win() then\n    return\n  end\n  return rightmost_win\nend\n\nlocal preview_win_call = function(callback)\n  local win = get_preview_win()\n  if win then\n    vim.api.nvim_win_call(win, callback)\n  end\nend\n\n-- Set preview 'number'\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesWindowUpdate&quot;,\n  desc = &quot;Define `mini.files` window options&quot;,\n  group = files_au,\n  callback = function(e)\n    local win = e.data.win_id\n    local buf = e.data.buf_id\n    local _, stat = files_get_path(buf)\n    if stat and stat.type ~= &quot;directory&quot; then\n      vim.wo[win].number = true\n    end\n  end,\n})\n\n-- Resize preview\n\nlocal refresh_preview = function()\n  local width_focus = MiniFiles.config.windows.width_focus\n  local width_preview = MiniFiles.config.windows.width_preview\n  local preview_width = math.min(vim.o.columns - width_focus - 4, width_preview)\n  MiniFiles.refresh({ windows = { width_preview = preview_width } })\nend\nlocal resize_autocmd = function(event, opts)\n  vim.api.nvim_create_autocmd(\n    event,\n    vim.tbl_extend(&quot;keep&quot;, opts, { desc = &quot;Resize `mini.files` preview to be always visible&quot;, group = files_au })\n  )\nend\nresize_autocmd(&quot;VimResized&quot;, { callback = refresh_preview })\nresize_autocmd(&quot;User&quot;, { pattern = &quot;MiniFilesWindowOpen&quot;, callback = vim.schedule_wrap(refresh_preview) })\n\n-- Buf keymaps\n\n-- NOTE: Toggle preview with &lt;M-p&gt;\n--       Scroll preview with &lt;C-f&gt;, &lt;C-b&gt;, &lt;C-g&gt;\n\nlocal toggle_preview = function()\n  local is_preview = MiniFiles.config.windows.preview\n  local is_preview_next = not is_preview\n  MiniFiles.config.windows.preview = is_preview_next\n  MiniFiles.trim_right()\n  MiniFiles.refresh({ windows = { preview = is_preview_next } })\n  if is_preview then\n    local branch = MiniFiles.get_explorer_state().branch\n    table.remove(branch)\n    MiniFiles.set_branch(branch)\n  end\nend\nlocal norm_in_preview = function(keys)\n  preview_win_call(function()\n    local key = vim.api.nvim_replace_termcodes(keys, true, false, true)\n    vim.cmd.norm({ key, bang = true })\n  end)\nend\nlocal jump_edges = function()\n  preview_win_call(function()\n    local last = vim.fn.line(&quot;.&quot;) == vim.fn.line(&quot;$&quot;)\n    vim.cmd.norm({ last and &quot;gg&quot; or &quot;G&quot;, bang = true })\n  end)\nend\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesBufferCreate&quot;,\n  desc = &quot;Set `mini.files` buffer keymaps&quot;,\n  group = files_au,\n  callback = function(e)\n    local buf_map = function(mode, lhs, rhs, opts)\n      opts = vim.tbl_extend(&quot;keep&quot;, opts or {}, { buffer = e.data.buf_id })\n      vim.keymap.set(mode, lhs, rhs, opts)\n    end\n    -- stylua: ignore start\n    buf_map(&quot;n&quot;, &quot;&lt;M-p&gt;&quot;, function() toggle_preview() end, { desc = &quot;Toggle preview&quot; })\n    buf_map(&quot;n&quot;, &quot;&lt;C-b&gt;&quot;, function() norm_in_preview(&quot;&lt;C-u&gt;&quot;) end, { desc = &quot;Scroll preview backwards&quot; })\n    buf_map(&quot;n&quot;, &quot;&lt;C-f&gt;&quot;, function() norm_in_preview(&quot;&lt;C-d&gt;&quot;) end, { desc = &quot;Scroll preview upwards&quot; })\n    buf_map(&quot;n&quot;, &quot;&lt;C-g&gt;&quot;, function() jump_edges() end, { desc = &quot;Jump edges&quot; })\n  end,\n})\n\n-- Custom preview: extend lines\n\n-- NOTE: For performance reasons, MiniFiles limits the preview to the visible screen (vim.o.lines).\n--       To enable scrolling, we need to manually set the number of lines for the preview.\n--       Without this code, using scrolling keymaps (`&lt;C-b&gt;`,`&lt;C-f&gt;`,`&lt;C-g&gt;`) doesn't make sense.\n\n-- https://github.com/nvim-mini/mini.nvim/blob/c163117900c17d4abf30bc09452a261c8536060c/lua/mini/files.lua#L2310-L2314\nlocal validate_file = function(path)\n  local fd, _, err = vim.uv.fs_open(path, &quot;r&quot;, 1)\n  if not fd then\n    return err, nil\n  end\n  local is_binary = vim.uv.fs_read(fd, 1024):find(&quot;\\0&quot;) ~= nil\n  vim.uv.fs_close(fd)\n  return false, is_binary\nend\n\nlocal files_preview_ns = vim.api.nvim_create_namespace(&quot;minifiles&quot;)\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesBufferUpdate&quot;,\n  desc = &quot;Extend `mini.files` preview lines; adjust preview error display&quot;,\n  callback = function(args)\n    local buf = args.data.buf_id\n    local path, stat = files_get_path(buf)\n    if not stat or stat.type == &quot;directory&quot; then\n      return\n    end\n    local extm_id = 1\n    local error = function(msg)\n      local hl = &quot;Text&quot;\n      vim.treesitter.stop(buf)\n      vim.api.nvim_buf_set_lines(buf, 0, -1, true, {})\n      vim.api.nvim_buf_set_extmark(buf, files_preview_ns, 0, 0, {\n        id = extm_id,\n        virt_text_pos = &quot;overlay&quot;,\n        virt_text = { { msg, hl } },\n      })\n    end\n    local warn = function(msg)\n      local hl = &quot;WarningMsg&quot;\n      vim.api.nvim_buf_set_extmark(buf, files_preview_ns, 0, 0, {\n        id = extm_id,\n        virt_text_pos = &quot;right_align&quot;,\n        virt_text = { { msg, hl } },\n      })\n    end\n    local no_access, is_binary = validate_file(path)\n    local format_msg = function(msg)\n      msg = &quot; &quot; .. msg .. string.rep(&quot; &quot;, MiniFiles.config.windows.width_preview)\n      return string.gsub(msg, &quot; &quot;, &quot;-&quot;)\n    end\n    if no_access then\n      error(format_msg(&quot;No access&quot;))\n      return\n    end\n    if is_binary then\n      error(format_msg(&quot;Non text file&quot;))\n      return\n    end\n    if stat.size &gt; 512 * 1024 then\n      warn(&quot;Large file detected (&gt;512KB)&quot;)\n      return\n    end\n    local read_ok, read_lines = pcall(vim.fn.readfile, path, &quot;&quot;)\n    if read_ok then\n      local lines = vim.split(table.concat(read_lines, &quot;\\n&quot;), &quot;\\n&quot;)\n      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)\n    end\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniFiles</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n    <span class=\"pl-smi\">width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">100</span>,\n  },\n})\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">open_buf_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>)\n  <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">open</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">buf</span>].<span class=\"pl-e\">buftype</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">buf</span>) <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>, <span class=\"pl-c1\">true</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Leader&gt;F<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">open</span>() <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Open files<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Leader&gt;.F<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">open_buf_file</span>() <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Open files (current buf)<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Leader&gt;@F<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">open</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Open files (cwd)<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Leader&gt;~F<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">open</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>~<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Open files (system home)<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">files_au</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minifiles<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">files_get_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">buf</span>):<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^minifiles://%d+/(.*)$<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">stat</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">path</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">stat</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">get_preview_win</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">get_explorer_state</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">rightmost_win</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">windows</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">state</span>.<span class=\"pl-e\">windows</span>].<span class=\"pl-e\">win_id</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">rightmost_win</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_win</span>() <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">rightmost_win</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">preview_win_call</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">callback</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">get_preview_win</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">win</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_call</span>(<span class=\"pl-smi\">win</span>, <span class=\"pl-smi\">callback</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Set preview 'number'</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesWindowUpdate<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Define `mini.files` window options<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">files_au</span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">e</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">e</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">e</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">stat</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">files_get_path</span>(<span class=\"pl-smi\">buf</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">stat</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">stat</span>.<span class=\"pl-e\">type</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>directory<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">win</span>].<span class=\"pl-e\">number</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Resize preview</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">refresh_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">width_focus</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">width_focus</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">width_preview</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.min</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">width_focus</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">4</span>, <span class=\"pl-smi\">width_preview</span>)\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">refresh</span>({ <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">width_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview_width</span> } })\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">resize_autocmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">event</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(\n    <span class=\"pl-smi\">event</span>,\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Resize `mini.files` preview to be always visible<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">files_au</span> })\n  )\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">resize_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>VimResized<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">refresh_preview</span> })\n<span class=\"pl-c1\">resize_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesWindowOpen<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-smi\">refresh_preview</span>) })\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Buf keymaps</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Toggle preview with &lt;M-p&gt;</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>       Scroll preview with &lt;C-f&gt;, &lt;C-b&gt;, &lt;C-g&gt;</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">toggle_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_preview_next</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">is_preview</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">is_preview_next</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">trim_right</span>()\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">refresh</span>({ <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">is_preview_next</span> } })\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">is_preview</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">branch</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>().<span class=\"pl-e\">branch</span>\n    <span class=\"pl-c1\">table.remove</span>(<span class=\"pl-smi\">branch</span>)\n    <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">set_branch</span>(<span class=\"pl-smi\">branch</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">norm_in_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">keys</span>)\n  <span class=\"pl-c1\">preview_win_call</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">key</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">norm</span>({ <span class=\"pl-smi\">key</span>, <span class=\"pl-smi\">bang</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n  <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">jump_edges</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c1\">preview_win_call</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">last</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">==</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>$<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">norm</span>({ <span class=\"pl-smi\">last</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gg<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>G<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bang</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n  <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesBufferCreate<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Set `mini.files` buffer keymaps<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">files_au</span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">e</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">buf_map</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">lhs</span>, <span class=\"pl-smi\">rhs</span>, <span class=\"pl-smi\">opts</span>)\n      <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">e</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span> })\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">lhs</span>, <span class=\"pl-smi\">rhs</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n    <span class=\"pl-c1\">buf_map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;M-p&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">toggle_preview</span>() <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Toggle preview<span class=\"pl-pds\">\" </span></span>})\n    <span class=\"pl-c1\">buf_map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-b&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">norm_in_preview</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-u&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Scroll preview backwards<span class=\"pl-pds\">\" </span></span>})\n    <span class=\"pl-c1\">buf_map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-f&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">norm_in_preview</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-d&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Scroll preview upwards<span class=\"pl-pds\">\" </span></span>})\n    <span class=\"pl-c1\">buf_map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-g&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">jump_edges</span>() <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Jump edges<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Custom preview: extend lines</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: For performance reasons, MiniFiles limits the preview to the visible screen (vim.o.lines).</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>       To enable scrolling, we need to manually set the number of lines for the preview.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>       Without this code, using scrolling keymaps (`&lt;C-b&gt;`,`&lt;C-f&gt;`,`&lt;C-g&gt;`) doesn't make sense.</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> https://github.com/nvim-mini/mini.nvim/blob/c163117900c17d4abf30bc09452a261c8536060c/lua/mini/files.lua#L2310-L2314</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">validate_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">path</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fd</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">err</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_open</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>r<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">fd</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">err</span>, <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_binary</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_read</span>(<span class=\"pl-smi\">fd</span>, <span class=\"pl-c1\">1024</span>):<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\0</span><span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_close</span>(<span class=\"pl-smi\">fd</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">is_binary</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">files_preview_ns</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minifiles<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesBufferUpdate<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Extend `mini.files` preview lines; adjust preview error display<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">stat</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">files_get_path</span>(<span class=\"pl-smi\">buf</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">stat</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">stat</span>.<span class=\"pl-e\">type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>directory<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">extm_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">error</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">msg</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Text<span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-c1\">stop</span>(<span class=\"pl-smi\">buf</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">true</span>, {})\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_extmark</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">files_preview_ns</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">0</span>, {\n        <span class=\"pl-smi\">id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">extm_id</span>,\n        <span class=\"pl-smi\">virt_text_pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>overlay<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">virt_text</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-smi\">msg</span>, <span class=\"pl-smi\">hl</span> } },\n      })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">warn</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">msg</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>WarningMsg<span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_extmark</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">files_preview_ns</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">0</span>, {\n        <span class=\"pl-smi\">id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">extm_id</span>,\n        <span class=\"pl-smi\">virt_text_pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right_align<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">virt_text</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-smi\">msg</span>, <span class=\"pl-smi\">hl</span> } },\n      })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">no_access</span>, <span class=\"pl-smi\">is_binary</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">validate_file</span>(<span class=\"pl-smi\">path</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">format_msg</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">msg</span>)\n      <span class=\"pl-smi\">msg</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">msg</span> <span class=\"pl-k\">..</span> <span class=\"pl-c1\">string.rep</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">width_preview</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.gsub</span>(<span class=\"pl-smi\">msg</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">no_access</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">error</span>(<span class=\"pl-c1\">format_msg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>No access<span class=\"pl-pds\">\"</span></span>))\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">is_binary</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">error</span>(<span class=\"pl-c1\">format_msg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Non text file<span class=\"pl-pds\">\"</span></span>))\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">stat</span>.<span class=\"pl-e\">size</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">512</span> <span class=\"pl-k\">*</span> <span class=\"pl-c1\">1024</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">warn</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Large file detected (&gt;512KB)<span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">read_ok</span>, <span class=\"pl-smi\">read_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">readfile</span>, <span class=\"pl-smi\">path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">read_ok</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">read_lines</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">lines</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n</details>",
+    "bodyText": "Related\n\n#1564 (comment)\n#936 (reply in thread)\n#1695 (comment)\n\nFeatures\nMulti-topic enhancement for mini.files preview with frequently requested features:\n\nAdjust preview width to fit the screen\nToggle preview with <M-p>\nScroll preview with <C-f>, <C-b>, <C-g>\nNumbered preview lines\nCustom preview error messages\n\nVideo\n\n  \n    \n    \n\n    files-preview.mp4\n    \n  \n\n  \n\n  \n\n\nCode\nClick me\nlocal MiniFiles = require(\"mini.files\")\nMiniFiles.setup({\n  windows = {\n    preview = false,\n    width_preview = 100,\n  },\n})\n\nlocal open_buf_file = function(buf)\n  buf = buf or 0\n  MiniFiles.open(vim.bo[buf].buftype == \"\" and vim.api.nvim_buf_get_name(buf) or nil, true)\nend\n-- stylua: ignore start\nvim.keymap.set(\"n\", \"<Leader>F\", function() MiniFiles.open() end, { desc = \"Open files\" })\nvim.keymap.set(\"n\", \"<Leader>.F\", function() open_buf_file() end, { desc = \"Open files (current buf)\" })\nvim.keymap.set(\"n\", \"<Leader>@F\", function() MiniFiles.open(vim.fn.getcwd()) end, { desc = \"Open files (cwd)\" })\nvim.keymap.set(\"n\", \"<Leader>~F\", function() MiniFiles.open(\"~\") end, { desc = \"Open files (system home)\" })\n-- stylua: ignore end\n\nlocal files_au = vim.api.nvim_create_augroup(\"minifiles\", { clear = true })\n\nlocal files_get_path = function(buf)\n  local path = vim.api.nvim_buf_get_name(buf):match(\"^minifiles://%d+/(.*)$\")\n  local stat = vim.uv.fs_stat(path)\n  return path, stat\nend\n\nlocal get_preview_win = function()\n  if not MiniFiles.config.windows.preview then\n    return\n  end\n  local ok, state = pcall(MiniFiles.get_explorer_state)\n  if not ok or not state then\n    return\n  end\n  local rightmost_win = state.windows[#state.windows].win_id\n  if rightmost_win == vim.api.nvim_get_current_win() then\n    return\n  end\n  return rightmost_win\nend\n\nlocal preview_win_call = function(callback)\n  local win = get_preview_win()\n  if win then\n    vim.api.nvim_win_call(win, callback)\n  end\nend\n\n-- Set preview 'number'\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesWindowUpdate\",\n  desc = \"Define `mini.files` window options\",\n  group = files_au,\n  callback = function(e)\n    local win = e.data.win_id\n    local buf = e.data.buf_id\n    local _, stat = files_get_path(buf)\n    if stat and stat.type ~= \"directory\" then\n      vim.wo[win].number = true\n    end\n  end,\n})\n\n-- Resize preview\n\nlocal refresh_preview = function()\n  local width_focus = MiniFiles.config.windows.width_focus\n  local width_preview = MiniFiles.config.windows.width_preview\n  local preview_width = math.min(vim.o.columns - width_focus - 4, width_preview)\n  MiniFiles.refresh({ windows = { width_preview = preview_width } })\nend\nlocal resize_autocmd = function(event, opts)\n  vim.api.nvim_create_autocmd(\n    event,\n    vim.tbl_extend(\"keep\", opts, { desc = \"Resize `mini.files` preview to be always visible\", group = files_au })\n  )\nend\nresize_autocmd(\"VimResized\", { callback = refresh_preview })\nresize_autocmd(\"User\", { pattern = \"MiniFilesWindowOpen\", callback = vim.schedule_wrap(refresh_preview) })\n\n-- Buf keymaps\n\n-- NOTE: Toggle preview with <M-p>\n--       Scroll preview with <C-f>, <C-b>, <C-g>\n\nlocal toggle_preview = function()\n  local is_preview = MiniFiles.config.windows.preview\n  local is_preview_next = not is_preview\n  MiniFiles.config.windows.preview = is_preview_next\n  MiniFiles.trim_right()\n  MiniFiles.refresh({ windows = { preview = is_preview_next } })\n  if is_preview then\n    local branch = MiniFiles.get_explorer_state().branch\n    table.remove(branch)\n    MiniFiles.set_branch(branch)\n  end\nend\nlocal norm_in_preview = function(keys)\n  preview_win_call(function()\n    local key = vim.api.nvim_replace_termcodes(keys, true, false, true)\n    vim.cmd.norm({ key, bang = true })\n  end)\nend\nlocal jump_edges = function()\n  preview_win_call(function()\n    local last = vim.fn.line(\".\") == vim.fn.line(\"$\")\n    vim.cmd.norm({ last and \"gg\" or \"G\", bang = true })\n  end)\nend\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesBufferCreate\",\n  desc = \"Set `mini.files` buffer keymaps\",\n  group = files_au,\n  callback = function(e)\n    local buf_map = function(mode, lhs, rhs, opts)\n      opts = vim.tbl_extend(\"keep\", opts or {}, { buffer = e.data.buf_id })\n      vim.keymap.set(mode, lhs, rhs, opts)\n    end\n    -- stylua: ignore start\n    buf_map(\"n\", \"<M-p>\", function() toggle_preview() end, { desc = \"Toggle preview\" })\n    buf_map(\"n\", \"<C-b>\", function() norm_in_preview(\"<C-u>\") end, { desc = \"Scroll preview backwards\" })\n    buf_map(\"n\", \"<C-f>\", function() norm_in_preview(\"<C-d>\") end, { desc = \"Scroll preview upwards\" })\n    buf_map(\"n\", \"<C-g>\", function() jump_edges() end, { desc = \"Jump edges\" })\n  end,\n})\n\n-- Custom preview: extend lines\n\n-- NOTE: For performance reasons, MiniFiles limits the preview to the visible screen (vim.o.lines).\n--       To enable scrolling, we need to manually set the number of lines for the preview.\n--       Without this code, using scrolling keymaps (`<C-b>`,`<C-f>`,`<C-g>`) doesn't make sense.\n\n-- https://github.com/nvim-mini/mini.nvim/blob/c163117900c17d4abf30bc09452a261c8536060c/lua/mini/files.lua#L2310-L2314\nlocal validate_file = function(path)\n  local fd, _, err = vim.uv.fs_open(path, \"r\", 1)\n  if not fd then\n    return err, nil\n  end\n  local is_binary = vim.uv.fs_read(fd, 1024):find(\"\\0\") ~= nil\n  vim.uv.fs_close(fd)\n  return false, is_binary\nend\n\nlocal files_preview_ns = vim.api.nvim_create_namespace(\"minifiles\")\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesBufferUpdate\",\n  desc = \"Extend `mini.files` preview lines; adjust preview error display\",\n  callback = function(args)\n    local buf = args.data.buf_id\n    local path, stat = files_get_path(buf)\n    if not stat or stat.type == \"directory\" then\n      return\n    end\n    local extm_id = 1\n    local error = function(msg)\n      local hl = \"Text\"\n      vim.treesitter.stop(buf)\n      vim.api.nvim_buf_set_lines(buf, 0, -1, true, {})\n      vim.api.nvim_buf_set_extmark(buf, files_preview_ns, 0, 0, {\n        id = extm_id,\n        virt_text_pos = \"overlay\",\n        virt_text = { { msg, hl } },\n      })\n    end\n    local warn = function(msg)\n      local hl = \"WarningMsg\"\n      vim.api.nvim_buf_set_extmark(buf, files_preview_ns, 0, 0, {\n        id = extm_id,\n        virt_text_pos = \"right_align\",\n        virt_text = { { msg, hl } },\n      })\n    end\n    local no_access, is_binary = validate_file(path)\n    local format_msg = function(msg)\n      msg = \" \" .. msg .. string.rep(\" \", MiniFiles.config.windows.width_preview)\n      return string.gsub(msg, \" \", \"-\")\n    end\n    if no_access then\n      error(format_msg(\"No access\"))\n      return\n    end\n    if is_binary then\n      error(format_msg(\"Non text file\"))\n      return\n    end\n    if stat.size > 512 * 1024 then\n      warn(\"Large file detected (>512KB)\")\n      return\n    end\n    local read_ok, read_lines = pcall(vim.fn.readfile, path, \"\")\n    if read_ok then\n      local lines = vim.split(table.concat(read_lines, \"\\n\"), \"\\n\")\n      vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)\n    end\n  end,\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Ooof. That's a lot of code :) Thanks for sharing!\r\n\r\nI'll address couple of points:\r\n\r\n- There is no scroll preview mostly because it reads only very limited portion at the start of the file. For better performance.\r\n- Other customizations will probably be easier to do if/when I have made up my mind with the small config redesign. But not yet sure about specifics, so won't make it public yet.",
+            "bodyHTML": "<p dir=\"auto\">Ooof. That's a lot of code :) Thanks for sharing!</p>\n<p dir=\"auto\">I'll address couple of points:</p>\n<ul dir=\"auto\">\n<li>There is no scroll preview mostly because it reads only very limited portion at the start of the file. For better performance.</li>\n<li>Other customizations will probably be easier to do if/when I have made up my mind with the small config redesign. But not yet sure about specifics, so won't make it public yet.</li>\n</ul>",
+            "bodyText": "Ooof. That's a lot of code :) Thanks for sharing!\nI'll address couple of points:\n\nThere is no scroll preview mostly because it reads only very limited portion at the start of the file. For better performance.\nOther customizations will probably be easier to do if/when I have made up my mind with the small config redesign. But not yet sure about specifics, so won't make it public yet.",
+            "createdAt": "2026-01-22T14:33:10Z",
+            "createdViaEmail": false,
+            "databaseId": 15571332,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A7ZmE",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-01-22T14:33:10Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "It would also be great to be able to focus the preview window, at least with the mouse.",
+                    "bodyHTML": "<p dir=\"auto\">It would also be great to be able to focus the preview window, at least with the mouse.</p>",
+                    "bodyText": "It would also be great to be able to focus the preview window, at least with the mouse.",
+                    "createdAt": "2026-02-04T10:31:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15692870,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A73RG",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-02-04T10:31:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15571332,
+                        "id": "DC_kwDOFoksYM4A7ZmE",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15571332"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15692870",
+                    "updatedAt": "2026-02-04T10:31:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15692870"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Also probably not something that is aligned with how previews are treated in 'mini.files'. Again, mostly because there is a limited portion of the file shown for performance reasons.",
+                    "bodyHTML": "<p dir=\"auto\">Also probably not something that is aligned with how previews are treated in 'mini.files'. Again, mostly because there is a limited portion of the file shown for performance reasons.</p>",
+                    "bodyText": "Also probably not something that is aligned with how previews are treated in 'mini.files'. Again, mostly because there is a limited portion of the file shown for performance reasons.",
+                    "createdAt": "2026-02-04T10:41:06Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15692946,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A73SS",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-02-04T10:41:06Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15571332,
+                        "id": "DC_kwDOFoksYM4A7ZmE",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15571332"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15692946",
+                    "updatedAt": "2026-02-04T10:41:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15692946"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "I understand, but I want to throw a few thoughts into the void that crossed my mind earlier:\r\n\r\n1. I would use a different filetype for the preview buffer (or `vim.b.minifiles_preview = true`) to make it easier to distinguish it in autocmds.\r\n2. I would allow focusing the preview window (disable cursor tracking when the preview window is focused).\r\n\r\nI think changing focus from the preview window is kind of a bad side effect. It might be partially solvable in user space by using `eventignore` or by removing `MiniFiles` events, but I doubt these solutions will even work.\r\n\r\nThere might still be issues, such as the preview window sharing the same keymaps as other windows (for example, `h` jumps over one window). However, this can be easily fixed in the user configuration by adjusting keymaps manually in an autocmd.\r\n\r\nIdeally, preview behavior should be supported at the configuration level, similar to how it works in `mini.pick`. This would make things like ZIP previews or scrollable previews much easier to implement.\r\n\r\nBut I consider point 2 especially important, because there's currently no way to address it through user configuration, as far as I know.",
+                    "bodyHTML": "<p dir=\"auto\">I understand, but I want to throw a few thoughts into the void that crossed my mind earlier:</p>\n<ol dir=\"auto\">\n<li>I would use a different filetype for the preview buffer (or <code class=\"notranslate\">vim.b.minifiles_preview = true</code>) to make it easier to distinguish it in autocmds.</li>\n<li>I would allow focusing the preview window (disable cursor tracking when the preview window is focused).</li>\n</ol>\n<p dir=\"auto\">I think changing focus from the preview window is kind of a bad side effect. It might be partially solvable in user space by using <code class=\"notranslate\">eventignore</code> or by removing <code class=\"notranslate\">MiniFiles</code> events, but I doubt these solutions will even work.</p>\n<p dir=\"auto\">There might still be issues, such as the preview window sharing the same keymaps as other windows (for example, <code class=\"notranslate\">h</code> jumps over one window). However, this can be easily fixed in the user configuration by adjusting keymaps manually in an autocmd.</p>\n<p dir=\"auto\">Ideally, preview behavior should be supported at the configuration level, similar to how it works in <code class=\"notranslate\">mini.pick</code>. This would make things like ZIP previews or scrollable previews much easier to implement.</p>\n<p dir=\"auto\">But I consider point 2 especially important, because there's currently no way to address it through user configuration, as far as I know.</p>",
+                    "bodyText": "I understand, but I want to throw a few thoughts into the void that crossed my mind earlier:\n\nI would use a different filetype for the preview buffer (or vim.b.minifiles_preview = true) to make it easier to distinguish it in autocmds.\nI would allow focusing the preview window (disable cursor tracking when the preview window is focused).\n\nI think changing focus from the preview window is kind of a bad side effect. It might be partially solvable in user space by using eventignore or by removing MiniFiles events, but I doubt these solutions will even work.\nThere might still be issues, such as the preview window sharing the same keymaps as other windows (for example, h jumps over one window). However, this can be easily fixed in the user configuration by adjusting keymaps manually in an autocmd.\nIdeally, preview behavior should be supported at the configuration level, similar to how it works in mini.pick. This would make things like ZIP previews or scrollable previews much easier to implement.\nBut I consider point 2 especially important, because there's currently no way to address it through user configuration, as far as I know.",
+                    "createdAt": "2026-02-05T13:09:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15706300,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A76i8",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-02-19T22:27:18Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-02-05T13:09:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15571332,
+                        "id": "DC_kwDOFoksYM4A7ZmE",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15571332"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15706300",
+                    "updatedAt": "2026-02-19T22:27:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15706300"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15571332",
+            "updatedAt": "2026-01-22T14:33:10Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238#discussioncomment-15571332"
+        }
+    ],
+    "createdAt": "2026-01-22T14:22:21Z",
+    "createdViaEmail": false,
+    "databaseId": 9376013,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AjxEN",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2026-03-03T18:36:24Z",
+    "locked": false,
+    "number": 2238,
+    "poll": null,
+    "publishedAt": "2026-01-22T14:22:21Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2238",
+    "stateReason": null,
+    "title": "[mini.files] Better/scrollable preview",
+    "updatedAt": "2026-03-03T18:36:24Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2238"
+}

@@ -1,0 +1,457 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 16868803,
+        "id": "DC_kwDOFoksYM4BAWXD",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16868803"
+    },
+    "answerChosenAt": "2026-05-10T11:16:33Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/300146?v=4",
+        "login": "savchenko",
+        "resourcePath": "/savchenko",
+        "url": "https://github.com/savchenko"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.bufremove\n\n### Question\n\nIs it possible to automatically close tab if:\r\n1. There is >1 tab open\r\n2. Buffer that is being closed is the only buffer in the current tab\r\n\r\nUser story:\r\n1. I have 2 tabs open and edit `foo.bar` in the tab &#8470;2\r\n2. I call `MiniBufremove.wipeout()`\r\n3. I am left with an empty `[No Name]` tab\r\n\r\nExpected behaviour:\r\n- Empty tab &#8470;2 is closed automatically",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.bufremove</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Is it possible to automatically close tab if:</p>\n<ol dir=\"auto\">\n<li>There is &gt;1 tab open</li>\n<li>Buffer that is being closed is the only buffer in the current tab</li>\n</ol>\n<p dir=\"auto\">User story:</p>\n<ol dir=\"auto\">\n<li>I have 2 tabs open and edit <code class=\"notranslate\">foo.bar</code> in the tab №2</li>\n<li>I call <code class=\"notranslate\">MiniBufremove.wipeout()</code></li>\n<li>I am left with an empty <code class=\"notranslate\">[No Name]</code> tab</li>\n</ol>\n<p dir=\"auto\">Expected behaviour:</p>\n<ul dir=\"auto\">\n<li>Empty tab №2 is closed automatically</li>\n</ul>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.bufremove\nQuestion\nIs it possible to automatically close tab if:\n\nThere is >1 tab open\nBuffer that is being closed is the only buffer in the current tab\n\nUser story:\n\nI have 2 tabs open and edit foo.bar in the tab №2\nI call MiniBufremove.wipeout()\nI am left with an empty [No Name] tab\n\nExpected behaviour:\n\nEmpty tab №2 is closed automatically",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-05-09T09:45:10Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Yes, this is possible via a custom `MiniBufremove.wipeout()` wrapper. Like this:\r\n\r\n```lua\r\nlocal my_wipeout = function()\r\n  if #vim.api.nvim_list_tabpages() > 1 and #vim.api.nvim_tabpage_list_wins(0) then vim.cmd('quit') end\r\n  MiniBufremove.wipeout()\r\nend\r\nvim.keymap.set('n', '<Leader>bw', my_wipeout)\r\n```\r\n\r\nCouple of notes:\r\n- This will not be part of 'mini.bufremove' as its whole point is to have a way to wipeout/delete a buffer while preserving window layout. Closing a window/tabpage is a layout change.\r\n- The \"Buffer that is being closed is the only buffer in the current tab\" is a bit inaccurate. From `:h windows-intro`:\r\n\r\n    > A buffer is the in-memory text of a file.\r\n    > A window is a viewport on a buffer.\r\n    > A tab page is a collection of windows.\r\n\r\n    So it will be more accurate to say \"The current window that displays the current buffer is the only one in the current tabpage\". But this also shows a small problem with the initial question: there can be more windows that show the buffer-to-be-wiped-out. Even in the current tabpage. So that should be taken into account either as a known limitation or by making a wrapper more complex.",
+            "bodyHTML": "<p dir=\"auto\">Yes, this is possible via a custom <code class=\"notranslate\">MiniBufremove.wipeout()</code> wrapper. Like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local my_wipeout = function()\n  if #vim.api.nvim_list_tabpages() &gt; 1 and #vim.api.nvim_tabpage_list_wins(0) then vim.cmd('quit') end\n  MiniBufremove.wipeout()\nend\nvim.keymap.set('n', '&lt;Leader&gt;bw', my_wipeout)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">my_wipeout</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_tabpages</span>() <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_tabpage_list_wins</span>(<span class=\"pl-c1\">0</span>) <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>quit<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">MiniBufremove</span>.<span class=\"pl-c1\">wipeout</span>()\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Leader&gt;bw<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">my_wipeout</span>)</pre></div>\n<p dir=\"auto\">Couple of notes:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">This will not be part of 'mini.bufremove' as its whole point is to have a way to wipeout/delete a buffer while preserving window layout. Closing a window/tabpage is a layout change.</p>\n</li>\n<li>\n<p dir=\"auto\">The \"Buffer that is being closed is the only buffer in the current tab\" is a bit inaccurate. From <code class=\"notranslate\">:h windows-intro</code>:</p>\n<blockquote>\n<p dir=\"auto\">A buffer is the in-memory text of a file.<br>\nA window is a viewport on a buffer.<br>\nA tab page is a collection of windows.</p>\n</blockquote>\n<p dir=\"auto\">So it will be more accurate to say \"The current window that displays the current buffer is the only one in the current tabpage\". But this also shows a small problem with the initial question: there can be more windows that show the buffer-to-be-wiped-out. Even in the current tabpage. So that should be taken into account either as a known limitation or by making a wrapper more complex.</p>\n</li>\n</ul>",
+            "bodyText": "Yes, this is possible via a custom MiniBufremove.wipeout() wrapper. Like this:\nlocal my_wipeout = function()\n  if #vim.api.nvim_list_tabpages() > 1 and #vim.api.nvim_tabpage_list_wins(0) then vim.cmd('quit') end\n  MiniBufremove.wipeout()\nend\nvim.keymap.set('n', '<Leader>bw', my_wipeout)\nCouple of notes:\n\n\nThis will not be part of 'mini.bufremove' as its whole point is to have a way to wipeout/delete a buffer while preserving window layout. Closing a window/tabpage is a layout change.\n\n\nThe \"Buffer that is being closed is the only buffer in the current tab\" is a bit inaccurate. From :h windows-intro:\n\nA buffer is the in-memory text of a file.\nA window is a viewport on a buffer.\nA tab page is a collection of windows.\n\nSo it will be more accurate to say \"The current window that displays the current buffer is the only one in the current tabpage\". But this also shows a small problem with the initial question: there can be more windows that show the buffer-to-be-wiped-out. Even in the current tabpage. So that should be taken into account either as a known limitation or by making a wrapper more complex.",
+            "createdAt": "2026-05-09T09:45:09Z",
+            "createdViaEmail": false,
+            "databaseId": 16861238,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BAUg2",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-05-09T09:45:09Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/300146?v=4",
+                        "login": "savchenko",
+                        "resourcePath": "/savchenko",
+                        "url": "https://github.com/savchenko"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Appreciate the snippet. It \"sort of\" works, but not quite as expected. Consider the following:\r\n\r\n- 3 _buffers_ opened in 3 _tabs_. nVim is showing tab 3:\r\n  <img width=\"887\" height=\"70\" alt=\"image\" src=\"https://github.com/user-attachments/assets/881c7d8a-fcf9-405e-ab23-751917e5fecf\" />\r\n\r\n- I execute `my_wipeout()`. Expected result: 2 tabs left with `filetypes.lua` (2nd tab) being active. Actual result: \r\n  <img width=\"513\" height=\"68\" alt=\"image\" src=\"https://github.com/user-attachments/assets/2c6c5f44-3a2e-400b-a867-de127ac48c80\" />\r\n\r\nHow come?.. Let's check the `:buffers`:\r\n```\r\n:buffers\r\n  1 %a   \"mini.lua\"                     line 8\r\n  3  h   \"diff.lua\"                     line 4\r\n```\r\n\r\nSo, instead of `diff.lua` which was loaded in tab 3, the `my_wipeout()` removed inactive buffer `filetypes.lua`! Quite a twist.",
+                    "bodyHTML": "<p dir=\"auto\">Appreciate the snippet. It \"sort of\" works, but not quite as expected. Consider the following:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">3 <em>buffers</em> opened in 3 <em>tabs</em>. nVim is showing tab 3:<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/300146/590060596-881c7d8a-fcf9-405e-ab23-751917e5fecf.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NjcsIm5iZiI6MTc5MzU1MjM2NywicGF0aCI6Ii8zMDAxNDYvNTkwMDYwNTk2LTg4MWM3ZDhhLWZjZjktNDA1ZS1hYjIzLTc1MTkxN2U1ZmVjZi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU5MjdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05MzBhMWJhMDQxNGQxZWI4NDVmMGRmMWE0Y2Y3YjRjNDVkNmVmYTBjN2YxNDQ5MmU1ZTRhNDU0NWE3MDk2OGIxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.qj5g8msKgYelcBoa0d-8T4XREJIY0cozaj3qZu__PLk\"><img width=\"887\" height=\"70\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/300146/590060596-881c7d8a-fcf9-405e-ab23-751917e5fecf.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NjcsIm5iZiI6MTc5MzU1MjM2NywicGF0aCI6Ii8zMDAxNDYvNTkwMDYwNTk2LTg4MWM3ZDhhLWZjZjktNDA1ZS1hYjIzLTc1MTkxN2U1ZmVjZi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU5MjdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05MzBhMWJhMDQxNGQxZWI4NDVmMGRmMWE0Y2Y3YjRjNDVkNmVmYTBjN2YxNDQ5MmU1ZTRhNDU0NWE3MDk2OGIxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.qj5g8msKgYelcBoa0d-8T4XREJIY0cozaj3qZu__PLk\" style=\"max-width: 100%; height: auto; max-height: 70px;; aspect-ratio: 887 / 70; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></p>\n</li>\n<li>\n<p dir=\"auto\">I execute <code class=\"notranslate\">my_wipeout()</code>. Expected result: 2 tabs left with <code class=\"notranslate\">filetypes.lua</code> (2nd tab) being active. Actual result:<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/300146/590060676-2c6c5f44-3a2e-400b-a867-de127ac48c80.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NjcsIm5iZiI6MTc5MzU1MjM2NywicGF0aCI6Ii8zMDAxNDYvNTkwMDYwNjc2LTJjNmM1ZjQ0LTNhMmUtNDAwYi1hODY3LWRlMTI3YWM0OGM4MC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU5MjdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mNDkzOTA4ODAyZmYwMGFlZTEwNDg5ZmQ1ZTcxNmIyMGEyYmEzODE1ZmY1ZmFhY2I0NmFmOTY2ODkwYTA3Mzk2JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.ACKIRgpXE9bjYBVMtoVZPKblA7UWRu4F3-Yh8ICCFPI\"><img width=\"513\" height=\"68\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/300146/590060676-2c6c5f44-3a2e-400b-a867-de127ac48c80.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NjcsIm5iZiI6MTc5MzU1MjM2NywicGF0aCI6Ii8zMDAxNDYvNTkwMDYwNjc2LTJjNmM1ZjQ0LTNhMmUtNDAwYi1hODY3LWRlMTI3YWM0OGM4MC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU5MjdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mNDkzOTA4ODAyZmYwMGFlZTEwNDg5ZmQ1ZTcxNmIyMGEyYmEzODE1ZmY1ZmFhY2I0NmFmOTY2ODkwYTA3Mzk2JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.ACKIRgpXE9bjYBVMtoVZPKblA7UWRu4F3-Yh8ICCFPI\" style=\"max-width: 100%; height: auto; max-height: 68px;; aspect-ratio: 513 / 68; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></p>\n</li>\n</ul>\n<p dir=\"auto\">How come?.. Let's check the <code class=\"notranslate\">:buffers</code>:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\":buffers\n  1 %a   &quot;mini.lua&quot;                     line 8\n  3  h   &quot;diff.lua&quot;                     line 4\"><pre class=\"notranslate\"><code class=\"notranslate\">:buffers\n  1 %a   \"mini.lua\"                     line 8\n  3  h   \"diff.lua\"                     line 4\n</code></pre></div>\n<p dir=\"auto\">So, instead of <code class=\"notranslate\">diff.lua</code> which was loaded in tab 3, the <code class=\"notranslate\">my_wipeout()</code> removed inactive buffer <code class=\"notranslate\">filetypes.lua</code>! Quite a twist.</p>",
+                    "bodyText": "Appreciate the snippet. It \"sort of\" works, but not quite as expected. Consider the following:\n\n\n3 buffers opened in 3 tabs. nVim is showing tab 3:\n\n\n\nI execute my_wipeout(). Expected result: 2 tabs left with filetypes.lua (2nd tab) being active. Actual result:\n\n\n\nHow come?.. Let's check the :buffers:\n:buffers\n  1 %a   \"mini.lua\"                     line 8\n  3  h   \"diff.lua\"                     line 4\n\nSo, instead of diff.lua which was loaded in tab 3, the my_wipeout() removed inactive buffer filetypes.lua! Quite a twist.",
+                    "createdAt": "2026-05-10T02:43:19Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16866400,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BAVxg",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-05-10T02:43:19Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16861238,
+                        "id": "DC_kwDOFoksYM4BAUg2",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16861238"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16866400",
+                    "updatedAt": "2026-05-10T02:43:19Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16866400"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Quite a twist.\r\n\r\nThe code snippet could indeed be better. And trying to improve it would be more productive. Here is a more accurate version:\r\n\r\n```lua\r\nlocal my_wipeout = function()\r\n  local buf_id = vim.api.nvim_get_current_buf()\r\n  if #vim.api.nvim_list_tabpages() > 1 and #vim.api.nvim_tabpage_list_wins(0) then vim.cmd('quit') end\r\n  MiniBufremove.wipeout(buf_id)\r\nend\r\nvim.keymap.set('n', '<Leader>bw', my_wipeout)\r\n```",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Quite a twist.</p>\n</blockquote>\n<p dir=\"auto\">The code snippet could indeed be better. And trying to improve it would be more productive. Here is a more accurate version:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local my_wipeout = function()\n  local buf_id = vim.api.nvim_get_current_buf()\n  if #vim.api.nvim_list_tabpages() &gt; 1 and #vim.api.nvim_tabpage_list_wins(0) then vim.cmd('quit') end\n  MiniBufremove.wipeout(buf_id)\nend\nvim.keymap.set('n', '&lt;Leader&gt;bw', my_wipeout)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">my_wipeout</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_tabpages</span>() <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_tabpage_list_wins</span>(<span class=\"pl-c1\">0</span>) <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>quit<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">MiniBufremove</span>.<span class=\"pl-c1\">wipeout</span>(<span class=\"pl-smi\">buf_id</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Leader&gt;bw<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">my_wipeout</span>)</pre></div>",
+                    "bodyText": "Quite a twist.\n\nThe code snippet could indeed be better. And trying to improve it would be more productive. Here is a more accurate version:\nlocal my_wipeout = function()\n  local buf_id = vim.api.nvim_get_current_buf()\n  if #vim.api.nvim_list_tabpages() > 1 and #vim.api.nvim_tabpage_list_wins(0) then vim.cmd('quit') end\n  MiniBufremove.wipeout(buf_id)\nend\nvim.keymap.set('n', '<Leader>bw', my_wipeout)",
+                    "createdAt": "2026-05-10T11:16:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16868803,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BAWXD",
+                    "includesCreatedEdit": false,
+                    "isAnswer": true,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-05-10T11:16:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16861238,
+                        "id": "DC_kwDOFoksYM4BAUg2",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16861238"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16868803",
+                    "updatedAt": "2026-05-10T11:16:25Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16868803"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/300146?v=4",
+                        "login": "savchenko",
+                        "resourcePath": "/savchenko",
+                        "url": "https://github.com/savchenko"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks heaps, this works much better!",
+                    "bodyHTML": "<p dir=\"auto\">Thanks heaps, this works much better!</p>",
+                    "bodyText": "Thanks heaps, this works much better!",
+                    "createdAt": "2026-05-11T01:21:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16873591,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BAXh3",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-05-11T01:21:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16861238,
+                        "id": "DC_kwDOFoksYM4BAUg2",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16861238"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16873591",
+                    "updatedAt": "2026-05-11T01:21:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16873591"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16861238",
+            "updatedAt": "2026-05-09T09:45:09Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412#discussioncomment-16861238"
+        }
+    ],
+    "createdAt": "2026-05-09T04:23:18Z",
+    "createdViaEmail": false,
+    "databaseId": 10029607,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AmQon",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1um9",
+                "name": "mini.bufremove"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2412,
+    "poll": null,
+    "publishedAt": "2026-05-09T04:23:18Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2412",
+    "stateReason": "RESOLVED",
+    "title": "[mini.bufremove] Automatically close empty tabs",
+    "updatedAt": "2026-05-11T01:21:57Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2412"
+}

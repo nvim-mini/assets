@@ -1,0 +1,462 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 11983219,
+        "id": "DC_kwDOFoksYM4Attlz",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11983219"
+    },
+    "answerChosenAt": "2025-01-28T11:27:37Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/8271207?u=8dd294392e482dc4fae73179ff25205da6edbd3a&v=4",
+        "login": "eric-hansen",
+        "resourcePath": "/eric-hansen",
+        "url": "https://github.com/eric-hansen"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.files\n\n### Question\n\nI couldn't find anything, and I'm not super great with Lua.  But what I'm wondering is if it's possible to have an additional mapping for synching changes made in mini.files?\r\n\r\nSo instead of hitting `=` in normal mode, I could do `<C-s>` while in insert mode, or something akin to that?\r\n\r\nAn alternative would be to just remap the synch to `<C-s>` but I also would prefer not to have to constantly go back into insert to keep making changes (i.e.: creating multiple files in a newly made folder).",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.files</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I couldn't find anything, and I'm not super great with Lua.  But what I'm wondering is if it's possible to have an additional mapping for synching changes made in mini.files?</p>\n<p dir=\"auto\">So instead of hitting <code class=\"notranslate\">=</code> in normal mode, I could do <code class=\"notranslate\">&lt;C-s&gt;</code> while in insert mode, or something akin to that?</p>\n<p dir=\"auto\">An alternative would be to just remap the synch to <code class=\"notranslate\">&lt;C-s&gt;</code> but I also would prefer not to have to constantly go back into insert to keep making changes (i.e.: creating multiple files in a newly made folder).</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.files\nQuestion\nI couldn't find anything, and I'm not super great with Lua.  But what I'm wondering is if it's possible to have an additional mapping for synching changes made in mini.files?\nSo instead of hitting = in normal mode, I could do <C-s> while in insert mode, or something akin to that?\nAn alternative would be to just remap the synch to <C-s> but I also would prefer not to have to constantly go back into insert to keep making changes (i.e.: creating multiple files in a newly made folder).",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-01-28T11:27:33Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Sure, that should be possible by going the same route as [this example for making buffer-local mappings](https://github.com/echasnovski/mini.nvim/blob/12ebac8280869048c286d13bd35cfa6653e07642/doc/mini-files.txt#L445). So something like this:\r\n\r\n```lua\r\nvim.api.nvim_create_autocmd('User', {\r\n  pattern = 'MiniFilesBufferCreate',\r\n  callback = function(args)\r\n    vim.keymap.set('i', '<C-s>', function() MiniFiles.synchronize() end, { buffer = args.data.buf_id })\r\n  end,\r\n})\r\n```\r\n\r\nSo although this works, it would not be very useful to always stay in Insert mode, as synchronization might rearrange lines according to sorting and put cursor at the file/directory name start.\r\n\r\nMy suggestion would be try and get used to a generally assumed way of making edits in Neovim/Vim: the non-typing activity is usually better to do from Normal mode. There is a reason it is called Normal, as it is assumed for user to stay mostly inside of it during text edits.\r\n\r\n> (i.e.: creating multiple files in a newly made folder).\r\n\r\nI am not sure I understand the problem here. It is possible to create multiple files inside a directory (by adding more than one new line and doing sync after that). So if it is a newly created directory, that would require creating a directory (text edit + sync), navigate inside of it, create more than one file (text edit + sync). FYI, for a single file inside a new directory it is possible to add a line 'new-dir/new-subdir/new-file' and 'mini.files' will create all those new directories and a file.",
+            "bodyHTML": "<p dir=\"auto\">Sure, that should be possible by going the same route as <a href=\"https://github.com/echasnovski/mini.nvim/blob/12ebac8280869048c286d13bd35cfa6653e07642/doc/mini-files.txt#L445\">this example for making buffer-local mappings</a>. So something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args)\n    vim.keymap.set('i', '&lt;C-s&gt;', function() MiniFiles.synchronize() end, { buffer = args.data.buf_id })\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniFilesBufferCreate<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-s&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">synchronize</span>() <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span> })\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">So although this works, it would not be very useful to always stay in Insert mode, as synchronization might rearrange lines according to sorting and put cursor at the file/directory name start.</p>\n<p dir=\"auto\">My suggestion would be try and get used to a generally assumed way of making edits in Neovim/Vim: the non-typing activity is usually better to do from Normal mode. There is a reason it is called Normal, as it is assumed for user to stay mostly inside of it during text edits.</p>\n<blockquote>\n<p dir=\"auto\">(i.e.: creating multiple files in a newly made folder).</p>\n</blockquote>\n<p dir=\"auto\">I am not sure I understand the problem here. It is possible to create multiple files inside a directory (by adding more than one new line and doing sync after that). So if it is a newly created directory, that would require creating a directory (text edit + sync), navigate inside of it, create more than one file (text edit + sync). FYI, for a single file inside a new directory it is possible to add a line 'new-dir/new-subdir/new-file' and 'mini.files' will create all those new directories and a file.</p>",
+            "bodyText": "Sure, that should be possible by going the same route as this example for making buffer-local mappings. So something like this:\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args)\n    vim.keymap.set('i', '<C-s>', function() MiniFiles.synchronize() end, { buffer = args.data.buf_id })\n  end,\n})\nSo although this works, it would not be very useful to always stay in Insert mode, as synchronization might rearrange lines according to sorting and put cursor at the file/directory name start.\nMy suggestion would be try and get used to a generally assumed way of making edits in Neovim/Vim: the non-typing activity is usually better to do from Normal mode. There is a reason it is called Normal, as it is assumed for user to stay mostly inside of it during text edits.\n\n(i.e.: creating multiple files in a newly made folder).\n\nI am not sure I understand the problem here. It is possible to create multiple files inside a directory (by adding more than one new line and doing sync after that). So if it is a newly created directory, that would require creating a directory (text edit + sync), navigate inside of it, create more than one file (text edit + sync). FYI, for a single file inside a new directory it is possible to add a line 'new-dir/new-subdir/new-file' and 'mini.files' will create all those new directories and a file.",
+            "createdAt": "2025-01-28T11:27:33Z",
+            "createdViaEmail": false,
+            "databaseId": 11983219,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Attlz",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-01-28T11:27:33Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/8271207?u=8dd294392e482dc4fae73179ff25205da6edbd3a&v=4",
+                        "login": "eric-hansen",
+                        "resourcePath": "/eric-hansen",
+                        "url": "https://github.com/eric-hansen"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> My suggestion would be try and get used to a generally assumed way of making edits in Neovim/Vim: the non-typing activity is usually better to do from Normal mode. There is a reason it is called Normal, as it is assumed for user to stay mostly inside of it during text edits.\r\n\r\nI'm pretty familiar and comfortable with the *vim way of editing,  But with mini.files, it just feels clunky to have to insert to add a folder, then get out of insert, sync, go back into insert, and continue from there.\r\n\r\nWhich isn't any different than how one has to do things in say nvim-tree, so this isn't really a criticsm towards mini.files.\r\n\r\nBut, say I have a bare folder:\r\n\r\n```\r\nthefolder/\r\n```\r\n\r\nand I want to create multiple files in a subfolder in there, to ultimately look like this:\r\n\r\n```\r\nthefolder/\r\n└── files\r\n    └── main\r\n        ├── 1.txt\r\n        ├── 10.txt\r\n        ├── 2.txt\r\n        ├── 3.txt\r\n        ├── 4.txt\r\n        ├── 5.txt\r\n        ├── 6.txt\r\n        ├── 7.txt\r\n        ├── 8.txt\r\n        └── 9.txt\r\n```\r\n\r\nBy default, I would have to go into insert, then do `files/main/1.txt`, then escape, =, back into insert.  and repeat doing `i<file><Esc>=` key stroke inside of `thefolder/files/main`.\r\n\r\nUse case for this would be Ansible, where a role or task may have multiple files for different needs based on conditionals.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">My suggestion would be try and get used to a generally assumed way of making edits in Neovim/Vim: the non-typing activity is usually better to do from Normal mode. There is a reason it is called Normal, as it is assumed for user to stay mostly inside of it during text edits.</p>\n</blockquote>\n<p dir=\"auto\">I'm pretty familiar and comfortable with the *vim way of editing,  But with mini.files, it just feels clunky to have to insert to add a folder, then get out of insert, sync, go back into insert, and continue from there.</p>\n<p dir=\"auto\">Which isn't any different than how one has to do things in say nvim-tree, so this isn't really a criticsm towards mini.files.</p>\n<p dir=\"auto\">But, say I have a bare folder:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"thefolder/\"><pre class=\"notranslate\"><code class=\"notranslate\">thefolder/\n</code></pre></div>\n<p dir=\"auto\">and I want to create multiple files in a subfolder in there, to ultimately look like this:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"thefolder/\n└── files\n    └── main\n        ├── 1.txt\n        ├── 10.txt\n        ├── 2.txt\n        ├── 3.txt\n        ├── 4.txt\n        ├── 5.txt\n        ├── 6.txt\n        ├── 7.txt\n        ├── 8.txt\n        └── 9.txt\"><pre class=\"notranslate\"><code class=\"notranslate\">thefolder/\n└── files\n    └── main\n        ├── 1.txt\n        ├── 10.txt\n        ├── 2.txt\n        ├── 3.txt\n        ├── 4.txt\n        ├── 5.txt\n        ├── 6.txt\n        ├── 7.txt\n        ├── 8.txt\n        └── 9.txt\n</code></pre></div>\n<p dir=\"auto\">By default, I would have to go into insert, then do <code class=\"notranslate\">files/main/1.txt</code>, then escape, =, back into insert.  and repeat doing <code class=\"notranslate\">i&lt;file&gt;&lt;Esc&gt;=</code> key stroke inside of <code class=\"notranslate\">thefolder/files/main</code>.</p>\n<p dir=\"auto\">Use case for this would be Ansible, where a role or task may have multiple files for different needs based on conditionals.</p>",
+                    "bodyText": "My suggestion would be try and get used to a generally assumed way of making edits in Neovim/Vim: the non-typing activity is usually better to do from Normal mode. There is a reason it is called Normal, as it is assumed for user to stay mostly inside of it during text edits.\n\nI'm pretty familiar and comfortable with the *vim way of editing,  But with mini.files, it just feels clunky to have to insert to add a folder, then get out of insert, sync, go back into insert, and continue from there.\nWhich isn't any different than how one has to do things in say nvim-tree, so this isn't really a criticsm towards mini.files.\nBut, say I have a bare folder:\nthefolder/\n\nand I want to create multiple files in a subfolder in there, to ultimately look like this:\nthefolder/\n└── files\n    └── main\n        ├── 1.txt\n        ├── 10.txt\n        ├── 2.txt\n        ├── 3.txt\n        ├── 4.txt\n        ├── 5.txt\n        ├── 6.txt\n        ├── 7.txt\n        ├── 8.txt\n        └── 9.txt\n\nBy default, I would have to go into insert, then do files/main/1.txt, then escape, =, back into insert.  and repeat doing i<file><Esc>= key stroke inside of thefolder/files/main.\nUse case for this would be Ansible, where a role or task may have multiple files for different needs based on conditionals.",
+                    "createdAt": "2025-01-28T14:21:04Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11984822,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Att-2",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-01-28T14:21:04Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11983219,
+                        "id": "DC_kwDOFoksYM4Attlz",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11983219"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11984822",
+                    "updatedAt": "2025-01-28T14:21:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11984822"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... and repeat doing `i<file><Esc>=` key stroke inside of `thefolder/files/main`.\r\n\r\nThat's not necessarily the case. It is possible to create more than one file system entry by adding more than one line. So in this case it would be something like:\r\n- `o` - `2.txt` - `<Esc>` to add first file.\r\n- `yy8p` (`8gmm` if you use 'multiply' from 'mini.operators') to add 8 new lines.\r\n- `<C-v>G` - `g<C-a>` to make all 9 new lines different.\r\n- `=` to sync, read message, and confirm. All files are selected.\r\n\r\nAnd if there is no easy system in file names, it is the matter of adding all lines at once in Insert mode (`i` - `1.txt<CR>2.txt<CR>...`), escape into Normal mode, and sync.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... and repeat doing <code class=\"notranslate\">i&lt;file&gt;&lt;Esc&gt;=</code> key stroke inside of <code class=\"notranslate\">thefolder/files/main</code>.</p>\n</blockquote>\n<p dir=\"auto\">That's not necessarily the case. It is possible to create more than one file system entry by adding more than one line. So in this case it would be something like:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">o</code> - <code class=\"notranslate\">2.txt</code> - <code class=\"notranslate\">&lt;Esc&gt;</code> to add first file.</li>\n<li><code class=\"notranslate\">yy8p</code> (<code class=\"notranslate\">8gmm</code> if you use 'multiply' from 'mini.operators') to add 8 new lines.</li>\n<li><code class=\"notranslate\">&lt;C-v&gt;G</code> - <code class=\"notranslate\">g&lt;C-a&gt;</code> to make all 9 new lines different.</li>\n<li><code class=\"notranslate\">=</code> to sync, read message, and confirm. All files are selected.</li>\n</ul>\n<p dir=\"auto\">And if there is no easy system in file names, it is the matter of adding all lines at once in Insert mode (<code class=\"notranslate\">i</code> - <code class=\"notranslate\">1.txt&lt;CR&gt;2.txt&lt;CR&gt;...</code>), escape into Normal mode, and sync.</p>",
+                    "bodyText": "... and repeat doing i<file><Esc>= key stroke inside of thefolder/files/main.\n\nThat's not necessarily the case. It is possible to create more than one file system entry by adding more than one line. So in this case it would be something like:\n\no - 2.txt - <Esc> to add first file.\nyy8p (8gmm if you use 'multiply' from 'mini.operators') to add 8 new lines.\n<C-v>G - g<C-a> to make all 9 new lines different.\n= to sync, read message, and confirm. All files are selected.\n\nAnd if there is no easy system in file names, it is the matter of adding all lines at once in Insert mode (i - 1.txt<CR>2.txt<CR>...), escape into Normal mode, and sync.",
+                    "createdAt": "2025-01-28T14:58:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11985234,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AtuFS",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-01-28T15:00:39Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-01-28T14:58:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11983219,
+                        "id": "DC_kwDOFoksYM4Attlz",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11983219"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11985234",
+                    "updatedAt": "2025-01-28T15:00:39Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11985234"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/8271207?u=8dd294392e482dc4fae73179ff25205da6edbd3a&v=4",
+                        "login": "eric-hansen",
+                        "resourcePath": "/eric-hansen",
+                        "url": "https://github.com/eric-hansen"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Nice, that'll work.  Thanks!  Never been good w/ vim motions (probably a sentiment to what you said originally??), so this will help me a lot.",
+                    "bodyHTML": "<p dir=\"auto\">Nice, that'll work.  Thanks!  Never been good w/ vim motions (probably a sentiment to what you said originally??), so this will help me a lot.</p>",
+                    "bodyText": "Nice, that'll work.  Thanks!  Never been good w/ vim motions (probably a sentiment to what you said originally??), so this will help me a lot.",
+                    "createdAt": "2025-01-28T15:01:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11985265,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AtuFx",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-01-28T15:01:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11983219,
+                        "id": "DC_kwDOFoksYM4Attlz",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11983219"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11985265",
+                    "updatedAt": "2025-01-28T15:01:08Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11985265"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11983219",
+            "updatedAt": "2025-01-28T11:27:33Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532#discussioncomment-11983219"
+        }
+    ],
+    "createdAt": "2025-01-28T11:11:13Z",
+    "createdViaEmail": false,
+    "databaseId": 7885163,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AeFFr",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1532,
+    "poll": null,
+    "publishedAt": "2025-01-28T11:11:13Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1532",
+    "stateReason": "RESOLVED",
+    "title": "In mini.files how to add a new mapping for synchronizing?",
+    "updatedAt": "2025-01-28T15:01:07Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1532"
+}

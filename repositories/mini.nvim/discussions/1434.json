@@ -1,0 +1,1212 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/69218859?u=6b7b0e89bc0fe564f3ef9de96977c531c35a0492&v=4",
+        "login": "bvngee",
+        "resourcePath": "/bvngee",
+        "url": "https://github.com/bvngee"
+    },
+    "authorAssociation": "NONE",
+    "body": "In the mini.ai help file, there's this custom textobject example:\r\n```lua\r\n-- Word with camel case support:\r\n{\r\n  {\r\n    '%u[%l%d]+%f[^%l%d]',\r\n    '%f[%S][%l%d]+%f[^%l%d]',\r\n    '%f[%P][%l%d]+%f[^%l%d]',\r\n    '^[%l%d]+%f[^%l%d]',\r\n  },\r\n  '^().*()$'\r\n}\r\n```\r\nI absolutely love this textobject and use it to rename variables/functions all the time. However, it has problems:\r\n- breaks with SNAKE_CASE_IN_UPPERCASE\r\n- doesn't work with some instances of Snake_Case_Titlecase (i.e. single-letter words)\r\n- supports regular standalone lowercase words, but not uppercase ones\r\n- **worst of all:** There's no comments or explanations and it looks like Egyptian hieroglyphics.\r\n\r\nSo, here's my updated version that fixes these issues with sufficient comments. It supports, as far as I can tell, all text cases and capitalizations:\r\n\r\n```lua\r\n-- snake_case, camelCase, PascalCase, etc; all capitalizations\r\n{\r\n  -- Lua 5.1 character classes and the undocumented frontier pattern:\r\n  -- https://www.lua.org/manual/5.1/manual.html#5.4.1\r\n  -- http://lua-users.org/wiki/FrontierPattern\r\n  -- note: when I say \"letter\" I technically mean \"letter or digit\"\r\n  {\r\n    -- Matches a single uppercase letter followed by 1+ lowercase letters.\r\n    -- This covers:\r\n    -- - PascalCaseWords (or the latter part of camelCaseWords)\r\n    '%u[%l%d]+%f[^%l%d]', -- An uppercase letter, 1+ lowercase letters, to end of lowercase letters\r\n\r\n    -- Matches lowercase letters up until not lowercase letter.\r\n    -- This covers:\r\n    -- - start of camelCaseWords (just the `camel`)\r\n    -- - snake_case_words in lowercase\r\n    -- - regular lowercase words\r\n    '%f[^%s%p][%l%d]+%f[^%l%d]', -- after whitespace/punctuation, 1+ lowercase letters, to end of lowercase letters\r\n    '^[%l%d]+%f[^%l%d]', -- after beginning of line, 1+ lowercase letters, to end of lowercase letters\r\n\r\n    -- Matches uppercase or lowercase letters up until not letters.\r\n    -- This covers:\r\n    -- - SNAKE_CASE_WORDS in uppercase\r\n    -- - Snake_Case_Words in titlecase\r\n    -- - regular UPPERCASE words\r\n    -- (it must be both uppercase and lowercase otherwise it will\r\n    -- match just the first letter of PascalCaseWords)\r\n    '%f[^%s%p][%a%d]+%f[^%a%d]', -- after whitespace/punctuation, 1+ letters, to end of letters\r\n    '^[%a%d]+%f[^%a%d]', -- after beginning of line, 1+ letters, to end of letters \r\n  },\r\n  '^().*()$',\r\n}\r\n```\r\n\r\nTrust me, you will not regret this. This is one of the biggest quality-of-life improvements I've had with vim editing yet. Take a look:\r\n\r\nhttps://github.com/user-attachments/assets/20262f27-4486-4cb1-8e3a-d39ac40fa0b5\r\n\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\">In the mini.ai help file, there's this custom textobject example:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Word with camel case support:\n{\n  {\n    '%u[%l%d]+%f[^%l%d]',\n    '%f[%S][%l%d]+%f[^%l%d]',\n    '%f[%P][%l%d]+%f[^%l%d]',\n    '^[%l%d]+%f[^%l%d]',\n  },\n  '^().*()$'\n}\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Word with camel case support:</span>\n{\n  {\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%u[%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[%S][%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[%P][%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^[%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>,\n  },\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^().*()$<span class=\"pl-pds\">'</span></span>\n}</pre></div>\n<p dir=\"auto\">I absolutely love this textobject and use it to rename variables/functions all the time. However, it has problems:</p>\n<ul dir=\"auto\">\n<li>breaks with SNAKE_CASE_IN_UPPERCASE</li>\n<li>doesn't work with some instances of Snake_Case_Titlecase (i.e. single-letter words)</li>\n<li>supports regular standalone lowercase words, but not uppercase ones</li>\n<li><strong>worst of all:</strong> There's no comments or explanations and it looks like Egyptian hieroglyphics.</li>\n</ul>\n<p dir=\"auto\">So, here's my updated version that fixes these issues with sufficient comments. It supports, as far as I can tell, all text cases and capitalizations:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- snake_case, camelCase, PascalCase, etc; all capitalizations\n{\n  -- Lua 5.1 character classes and the undocumented frontier pattern:\n  -- https://www.lua.org/manual/5.1/manual.html#5.4.1\n  -- http://lua-users.org/wiki/FrontierPattern\n  -- note: when I say &quot;letter&quot; I technically mean &quot;letter or digit&quot;\n  {\n    -- Matches a single uppercase letter followed by 1+ lowercase letters.\n    -- This covers:\n    -- - PascalCaseWords (or the latter part of camelCaseWords)\n    '%u[%l%d]+%f[^%l%d]', -- An uppercase letter, 1+ lowercase letters, to end of lowercase letters\n\n    -- Matches lowercase letters up until not lowercase letter.\n    -- This covers:\n    -- - start of camelCaseWords (just the `camel`)\n    -- - snake_case_words in lowercase\n    -- - regular lowercase words\n    '%f[^%s%p][%l%d]+%f[^%l%d]', -- after whitespace/punctuation, 1+ lowercase letters, to end of lowercase letters\n    '^[%l%d]+%f[^%l%d]', -- after beginning of line, 1+ lowercase letters, to end of lowercase letters\n\n    -- Matches uppercase or lowercase letters up until not letters.\n    -- This covers:\n    -- - SNAKE_CASE_WORDS in uppercase\n    -- - Snake_Case_Words in titlecase\n    -- - regular UPPERCASE words\n    -- (it must be both uppercase and lowercase otherwise it will\n    -- match just the first letter of PascalCaseWords)\n    '%f[^%s%p][%a%d]+%f[^%a%d]', -- after whitespace/punctuation, 1+ letters, to end of letters\n    '^[%a%d]+%f[^%a%d]', -- after beginning of line, 1+ letters, to end of letters \n  },\n  '^().*()$',\n}\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> snake_case, camelCase, PascalCase, etc; all capitalizations</span>\n{\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Lua 5.1 character classes and the undocumented frontier pattern:</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> https://www.lua.org/manual/5.1/manual.html#5.4.1</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> http://lua-users.org/wiki/FrontierPattern</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> note: when I say \"letter\" I technically mean \"letter or digit\"</span>\n  {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Matches a single uppercase letter followed by 1+ lowercase letters.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> This covers:</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - PascalCaseWords (or the latter part of camelCaseWords)</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%u[%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> An uppercase letter, 1+ lowercase letters, to end of lowercase letters</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Matches lowercase letters up until not lowercase letter.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> This covers:</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - start of camelCaseWords (just the `camel`)</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - snake_case_words in lowercase</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - regular lowercase words</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[^%s%p][%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> after whitespace/punctuation, 1+ lowercase letters, to end of lowercase letters</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^[%l%d]+%f[^%l%d]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> after beginning of line, 1+ lowercase letters, to end of lowercase letters</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Matches uppercase or lowercase letters up until not letters.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> This covers:</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - SNAKE_CASE_WORDS in uppercase</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - Snake_Case_Words in titlecase</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - regular UPPERCASE words</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> (it must be both uppercase and lowercase otherwise it will</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> match just the first letter of PascalCaseWords)</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f[^%s%p][%a%d]+%f[^%a%d]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> after whitespace/punctuation, 1+ letters, to end of letters</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^[%a%d]+%f[^%a%d]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> after beginning of line, 1+ letters, to end of letters </span>\n  },\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^().*()$<span class=\"pl-pds\">'</span></span>,\n}</pre></div>\n<p dir=\"auto\">Trust me, you will not regret this. This is one of the biggest quality-of-life improvements I've had with vim editing yet. Take a look:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">perfect-textobj.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/69218859/398915653-20262f27-4486-4cb1-8e3a-d39ac40fa0b5.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NTUsIm5iZiI6MTc5MzU1MjU1NSwicGF0aCI6Ii82OTIxODg1OS8zOTg5MTU2NTMtMjAyNjJmMjctNDQ4Ni00Y2IxLThlM2EtZDM5YWM0MGZhMGI1Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWJlMDBlZjY1MDMzNmE5NTJkZDEyNzAxMjliY2U0ZjA2OGJiZGVhYTNhYzFiOTA4MzgyNWQwZDUwN2Q5ODNjMTgmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.Ms4nBT80wd_lcRv6h66SeoMbQ83DLBC66nul3UfG4qk\" data-canonical-src=\"https://private-user-images.githubusercontent.com/69218859/398915653-20262f27-4486-4cb1-8e3a-d39ac40fa0b5.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NTUsIm5iZiI6MTc5MzU1MjU1NSwicGF0aCI6Ii82OTIxODg1OS8zOTg5MTU2NTMtMjAyNjJmMjctNDQ4Ni00Y2IxLThlM2EtZDM5YWM0MGZhMGI1Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWJlMDBlZjY1MDMzNmE5NTJkZDEyNzAxMjliY2U0ZjA2OGJiZGVhYTNhYzFiOTA4MzgyNWQwZDUwN2Q5ODNjMTgmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.Ms4nBT80wd_lcRv6h66SeoMbQ83DLBC66nul3UfG4qk\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+    "bodyText": "In the mini.ai help file, there's this custom textobject example:\n-- Word with camel case support:\n{\n  {\n    '%u[%l%d]+%f[^%l%d]',\n    '%f[%S][%l%d]+%f[^%l%d]',\n    '%f[%P][%l%d]+%f[^%l%d]',\n    '^[%l%d]+%f[^%l%d]',\n  },\n  '^().*()$'\n}\nI absolutely love this textobject and use it to rename variables/functions all the time. However, it has problems:\n\nbreaks with SNAKE_CASE_IN_UPPERCASE\ndoesn't work with some instances of Snake_Case_Titlecase (i.e. single-letter words)\nsupports regular standalone lowercase words, but not uppercase ones\nworst of all: There's no comments or explanations and it looks like Egyptian hieroglyphics.\n\nSo, here's my updated version that fixes these issues with sufficient comments. It supports, as far as I can tell, all text cases and capitalizations:\n-- snake_case, camelCase, PascalCase, etc; all capitalizations\n{\n  -- Lua 5.1 character classes and the undocumented frontier pattern:\n  -- https://www.lua.org/manual/5.1/manual.html#5.4.1\n  -- http://lua-users.org/wiki/FrontierPattern\n  -- note: when I say \"letter\" I technically mean \"letter or digit\"\n  {\n    -- Matches a single uppercase letter followed by 1+ lowercase letters.\n    -- This covers:\n    -- - PascalCaseWords (or the latter part of camelCaseWords)\n    '%u[%l%d]+%f[^%l%d]', -- An uppercase letter, 1+ lowercase letters, to end of lowercase letters\n\n    -- Matches lowercase letters up until not lowercase letter.\n    -- This covers:\n    -- - start of camelCaseWords (just the `camel`)\n    -- - snake_case_words in lowercase\n    -- - regular lowercase words\n    '%f[^%s%p][%l%d]+%f[^%l%d]', -- after whitespace/punctuation, 1+ lowercase letters, to end of lowercase letters\n    '^[%l%d]+%f[^%l%d]', -- after beginning of line, 1+ lowercase letters, to end of lowercase letters\n\n    -- Matches uppercase or lowercase letters up until not letters.\n    -- This covers:\n    -- - SNAKE_CASE_WORDS in uppercase\n    -- - Snake_Case_Words in titlecase\n    -- - regular UPPERCASE words\n    -- (it must be both uppercase and lowercase otherwise it will\n    -- match just the first letter of PascalCaseWords)\n    '%f[^%s%p][%a%d]+%f[^%a%d]', -- after whitespace/punctuation, 1+ letters, to end of letters\n    '^[%a%d]+%f[^%a%d]', -- after beginning of line, 1+ letters, to end of letters \n  },\n  '^().*()$',\n}\nTrust me, you will not regret this. This is one of the biggest quality-of-life improvements I've had with vim editing yet. Take a look:\n\n  \n    \n    \n\n    perfect-textobj.mp4",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 5,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/69218859?u=6b7b0e89bc0fe564f3ef9de96977c531c35a0492&v=4",
+                "login": "bvngee",
+                "resourcePath": "/bvngee",
+                "url": "https://github.com/bvngee"
+            },
+            "authorAssociation": "NONE",
+            "body": "I'd be interested to hear if anyone thinks the regex can be simplified. It took me quite a while to understand what it was doing (especially the %f pattern) but I could very likely be missing some opportunity for further improvement.",
+            "bodyHTML": "<p dir=\"auto\">I'd be interested to hear if anyone thinks the regex can be simplified. It took me quite a while to understand what it was doing (especially the %f pattern) but I could very likely be missing some opportunity for further improvement.</p>",
+            "bodyText": "I'd be interested to hear if anyone thinks the regex can be simplified. It took me quite a while to understand what it was doing (especially the %f pattern) but I could very likely be missing some opportunity for further improvement.",
+            "createdAt": "2024-12-27T10:37:10Z",
+            "createdViaEmail": false,
+            "databaseId": 11676706,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Asiwi",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-12-27T10:37:10Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I'd be interested to hear if anyone thinks the regex can be simplified. It took me quite a while to understand what it was doing (especially the %f pattern) but I could very likely be missing some opportunity for further improvement.\r\n\r\nOne thing comes to mind: `[%a%d]` set (all letters and digits) is quite literally `%w` (all alphanumeric characters).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I'd be interested to hear if anyone thinks the regex can be simplified. It took me quite a while to understand what it was doing (especially the %f pattern) but I could very likely be missing some opportunity for further improvement.</p>\n</blockquote>\n<p dir=\"auto\">One thing comes to mind: <code class=\"notranslate\">[%a%d]</code> set (all letters and digits) is quite literally <code class=\"notranslate\">%w</code> (all alphanumeric characters).</p>",
+                    "bodyText": "I'd be interested to hear if anyone thinks the regex can be simplified. It took me quite a while to understand what it was doing (especially the %f pattern) but I could very likely be missing some opportunity for further improvement.\n\nOne thing comes to mind: [%a%d] set (all letters and digits) is quite literally %w (all alphanumeric characters).",
+                    "createdAt": "2024-12-27T12:49:52Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11677317,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Asi6F",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-12-27T12:49:52Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11676706,
+                        "id": "DC_kwDOFoksYM4Asiwi",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11676706"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11677317",
+                    "updatedAt": "2024-12-27T12:49:53Z",
+                    "upvoteCount": 1,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11677317"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11676706",
+            "updatedAt": "2024-12-27T10:37:10Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11676706"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Nice job of \"translating\" Lua patterns into regular English :) As with any regex-like systems, first time encountering them can be daunting. It gets easier with time.\r\n\r\nThe example was mostly added as a demo of capabilities for what looks like a popular textobject. I personally don't like using it as it feels \"too magical\". Regular Vim/Neovim operators textobjects together with `a_` / `i_` from 'mini.ai' feels enough for me. But everyone is different :)",
+            "bodyHTML": "<p dir=\"auto\">Nice job of \"translating\" Lua patterns into regular English :) As with any regex-like systems, first time encountering them can be daunting. It gets easier with time.</p>\n<p dir=\"auto\">The example was mostly added as a demo of capabilities for what looks like a popular textobject. I personally don't like using it as it feels \"too magical\". Regular Vim/Neovim operators textobjects together with <code class=\"notranslate\">a_</code> / <code class=\"notranslate\">i_</code> from 'mini.ai' feels enough for me. But everyone is different :)</p>",
+            "bodyText": "Nice job of \"translating\" Lua patterns into regular English :) As with any regex-like systems, first time encountering them can be daunting. It gets easier with time.\nThe example was mostly added as a demo of capabilities for what looks like a popular textobject. I personally don't like using it as it feels \"too magical\". Regular Vim/Neovim operators textobjects together with a_ / i_ from 'mini.ai' feels enough for me. But everyone is different :)",
+            "createdAt": "2024-12-27T12:52:29Z",
+            "createdViaEmail": false,
+            "databaseId": 11677325,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Asi6N",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-12-27T12:52:29Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11677325",
+            "updatedAt": "2024-12-27T12:52:29Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-11677325"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/383250?v=4",
+                "login": "JeanMertz",
+                "resourcePath": "/JeanMertz",
+                "url": "https://github.com/JeanMertz"
+            },
+            "authorAssociation": "NONE",
+            "body": "Thank you for this. I've been playing around with this and it does work great. One thing I cannot get to work: select multiple subwords.\r\n\r\nFor example, given this:\r\n\r\n```\r\n*FooBarBaz\r\n```\r\n\r\nHow would I make a selection:\r\n\r\n```\r\n<FooBar>Baz\r\n```\r\n\r\nHere's what works for a single inner word for me:\r\n\r\n```\r\nv(isual)i(nner)s(ubword)\r\n<Foo>BarBaz\r\n```\r\n\r\nAll of these don't work\r\n\r\n```\r\n-- not sure what happens here, even `FooBarBazQux` extends the entire word,\r\n-- so I assume some other motion is triggered.\r\n--\r\n-- I *assume* this should be the correct textobject motion to get what I want, but\r\n-- it's not working.\r\nv2is \r\n<FooBarBaz>\r\n```\r\n\r\n```\r\n2vis\r\n<Foo>BarBaz\r\n```\r\n\r\n```\r\n-- Errors (as expected, `2` is not a valid configured selection target).\r\nvi2s\r\n```\r\n\r\n```\r\n-- I understand `next` and `last` skip over existing text before applying the selection\r\n-- So this is applying the correct motion before selection, added for completion.\r\nvins\r\nFoo<Bar>Baz\r\n```\r\n\r\n```\r\n-- Again, working as expected.\r\nv2ins\r\nFooBar<Baz>\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Thank you for this. I've been playing around with this and it does work great. One thing I cannot get to work: select multiple subwords.</p>\n<p dir=\"auto\">For example, given this:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"*FooBarBaz\"><pre class=\"notranslate\"><code class=\"notranslate\">*FooBarBaz\n</code></pre></div>\n<p dir=\"auto\">How would I make a selection:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"&lt;FooBar&gt;Baz\"><pre class=\"notranslate\"><code class=\"notranslate\">&lt;FooBar&gt;Baz\n</code></pre></div>\n<p dir=\"auto\">Here's what works for a single inner word for me:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"v(isual)i(nner)s(ubword)\n&lt;Foo&gt;BarBaz\"><pre class=\"notranslate\"><code class=\"notranslate\">v(isual)i(nner)s(ubword)\n&lt;Foo&gt;BarBaz\n</code></pre></div>\n<p dir=\"auto\">All of these don't work</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"-- not sure what happens here, even `FooBarBazQux` extends the entire word,\n-- so I assume some other motion is triggered.\n--\n-- I *assume* this should be the correct textobject motion to get what I want, but\n-- it's not working.\nv2is \n&lt;FooBarBaz&gt;\"><pre class=\"notranslate\"><code class=\"notranslate\">-- not sure what happens here, even `FooBarBazQux` extends the entire word,\n-- so I assume some other motion is triggered.\n--\n-- I *assume* this should be the correct textobject motion to get what I want, but\n-- it's not working.\nv2is \n&lt;FooBarBaz&gt;\n</code></pre></div>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"2vis\n&lt;Foo&gt;BarBaz\"><pre class=\"notranslate\"><code class=\"notranslate\">2vis\n&lt;Foo&gt;BarBaz\n</code></pre></div>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"-- Errors (as expected, `2` is not a valid configured selection target).\nvi2s\"><pre class=\"notranslate\"><code class=\"notranslate\">-- Errors (as expected, `2` is not a valid configured selection target).\nvi2s\n</code></pre></div>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"-- I understand `next` and `last` skip over existing text before applying the selection\n-- So this is applying the correct motion before selection, added for completion.\nvins\nFoo&lt;Bar&gt;Baz\"><pre class=\"notranslate\"><code class=\"notranslate\">-- I understand `next` and `last` skip over existing text before applying the selection\n-- So this is applying the correct motion before selection, added for completion.\nvins\nFoo&lt;Bar&gt;Baz\n</code></pre></div>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"-- Again, working as expected.\nv2ins\nFooBar&lt;Baz&gt;\"><pre class=\"notranslate\"><code class=\"notranslate\">-- Again, working as expected.\nv2ins\nFooBar&lt;Baz&gt;\n</code></pre></div>",
+            "bodyText": "Thank you for this. I've been playing around with this and it does work great. One thing I cannot get to work: select multiple subwords.\nFor example, given this:\n*FooBarBaz\n\nHow would I make a selection:\n<FooBar>Baz\n\nHere's what works for a single inner word for me:\nv(isual)i(nner)s(ubword)\n<Foo>BarBaz\n\nAll of these don't work\n-- not sure what happens here, even `FooBarBazQux` extends the entire word,\n-- so I assume some other motion is triggered.\n--\n-- I *assume* this should be the correct textobject motion to get what I want, but\n-- it's not working.\nv2is \n<FooBarBaz>\n\n2vis\n<Foo>BarBaz\n\n-- Errors (as expected, `2` is not a valid configured selection target).\nvi2s\n\n-- I understand `next` and `last` skip over existing text before applying the selection\n-- So this is applying the correct motion before selection, added for completion.\nvins\nFoo<Bar>Baz\n\n-- Again, working as expected.\nv2ins\nFooBar<Baz>",
+            "createdAt": "2025-04-07T10:15:09Z",
+            "createdViaEmail": false,
+            "databaseId": 12749084,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Awokc",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-07T10:15:09Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-12749084",
+            "updatedAt": "2025-04-07T10:15:10Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-12749084"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "### Why\r\n\r\nAdded support for around `snake_case`, `kebab-case`.\r\n\r\n> [!TIP]\r\n> I prefer left-handed underscores over right-handed ones. It can be useful when using subword motion plugins like [chrisgrieser/nvim-spider](https://github.com/chrisgrieser/nvim-spider). Use `t` instead of `f` to find the next position to paste the yanked subword.\r\n\r\n### Around first (preferred)\r\n\r\n> [!NOTE]\r\n> End subwords with numbers.\r\n\r\n<details open><summary>New!</summary>\r\n\r\n```lua\r\ncustom_textobjects = {\r\n  e = function(ai_type, id, opts)\r\n    local SEP = \"_%-\"\r\n    if ai_type == \"a\" then\r\n      -- stylua: ignore\r\n      return {\r\n        {\r\n          -- pattern, [^_]pattern__\r\n          \"%f[%a\"..SEP..\"]%l+%d*[\"..SEP..\"]*\",\r\n          \"%f[%w\"..SEP..\"]%d+[\"..SEP..\"]*\",\r\n          \"%f[%u\"..SEP..\"]%u%f[%A]%d*[\"..SEP..\"]*\",\r\n          \"%f[%u\"..SEP..\"]%u%l+%d*[\"..SEP..\"]*\",\r\n          \"%f[%u\"..SEP..\"]%u%u+%d*[\"..SEP..\"]*\",\r\n          --__pattern\r\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%l+%d*\",\r\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%d+\",\r\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%u%f[%A]%d*\",\r\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%u%l+%d*\",\r\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%u%u+%d*\",\r\n          --[_]pattern__[%s]\r\n          \"%f[^\"..SEP..\"]%l+%d*[\"..SEP..\"]+%f[%s]\",\r\n          \"%f[^\"..SEP..\"]%d+[\"..SEP..\"]+%f[%s]\",\r\n          \"%f[^\"..SEP..\"]%u%f[%A]%d*[\"..SEP..\"]+%f[%s]\",\r\n          \"%f[^\"..SEP..\"]%u%l+%d*[\"..SEP..\"]+%f[%s]\",\r\n          \"%f[^\"..SEP..\"]%u%u+%d*[\"..SEP..\"]+%f[%s]\",\r\n        },\r\n        \"^().*()$\",\r\n      }\r\n    end\r\n    if ai_type == \"i\" then\r\n      local reg = MiniAi.find_textobject(\"a\", id, opts)\r\n      if reg then\r\n        local line = vim.fn.getline(reg.from.line)\r\n        local _, s = line:find(\"^[\" .. SEP .. \"]*.\", reg.from.col)\r\n        local e = line:sub(1, reg.to.col):find(\".[\" .. SEP .. \"]*$\")\r\n        return vim.tbl_deep_extend(\"force\", reg, { from = { col = s }, to = { col = e } })\r\n      end\r\n    end\r\n  end,\r\n},\r\n```\r\n\r\n</details>\r\n\r\n### Hybrid\r\n\r\n> [!WARNING]\r\n> Known issue: the separator isn’t recognized as part of a subword, so the cursor should not be placed on the separator in certain edge cases.\r\n\r\n<details><summary>Hide</summary>\r\n\r\n```lua\r\nlocal MiniAi = require 'mini.ai'\r\nMiniAi.setup {\r\n  custom_textobjects = {\r\n    -- NOTE: Use any subword pattern you like, just ignore separators\r\n    e = {\r\n      {\r\n        \"%f[%a]%l+%d*\",\r\n        \"%f[%w]%d+\",\r\n        \"%f[%u]%u%f[%A]%d*\",\r\n        \"%f[%u]%u%l+%d*\",\r\n        \"%f[%u]%u%u+%d*\",\r\n      },\r\n    },\r\n  },\r\n}\r\nlocal around_subword = function(reg)\r\n  reg = vim.deepcopy(reg)\r\n  local SEP = \"[_%-]+\"\r\n  local line = vim.fn.getline(reg.from.line)\r\n  local left = line:sub(1, reg.from.col - 1):find(SEP .. \"$\")\r\n  local _, right = line:find(\"^\" .. SEP, reg.to.col + 1)\r\n  if left then\r\n    reg.from.col = left\r\n  elseif right then\r\n    reg.to.col = right\r\n  end\r\n  return reg\r\nend\r\nvim.keymap.set({ \"x\", \"o\" }, \"ae\", function()\r\n  local reg = MiniAi.find_textobject(\"i\", \"e\")\r\n  if reg then\r\n    MiniAi.config.custom_textobjects[\"Virt\"] = around_subword(reg)\r\n    MiniAi.select_textobject(\"i\", \"Virt\")\r\n  end\r\nend)\r\n```\r\n\r\n</details>\r\n\r\n### Pattern only\r\n\r\n> [!CAUTION]\r\n> Pattern only approach has collisions, see https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713.\r\n\r\n<details><summary>Hide (bad)</summary>\r\n\r\n```lua\r\nlocal ai = require 'mini.ai'\r\nai.setup {\r\n  custom_textobjects = {\r\n    e = {\r\n      {\r\n        -- __-1, __-U, __-l, __-1_, __-U_, __-l_\r\n        '[^_%-]()[_%-]+()%w()()[%s%p]',\r\n        '^()[_%-]+()%w()()[%s%p]',\r\n        -- __-123SNAKE\r\n        '[^_%-]()[_%-]+()%d+%u[%u%d]+()()',\r\n        '^()[_%-]+()%d+%u[%u%d]+()()',\r\n        -- __-123snake\r\n        '[^_%-]()[_%-]+()%d+%l[%l%d]+()()',\r\n        '^()[_%-]+()%d+%l[%l%d]+()()',\r\n        -- __-SNAKE, __-SNAKE123\r\n        '[^_%-]()[_%-]+()%u[%u%d]+()()',\r\n        '^()[_%-]+()%u[%u%d]+()()',\r\n        -- __-snake, __-Snake, __-snake123, __-Snake123\r\n        '[^_%-]()[_%-]+()%a[%l%d]+()()',\r\n        '^()[_%-]+()%a[%l%d]+()()',\r\n        -- UPPER, UPPER123, UPPER-__, UPPER123-__\r\n        -- No support: 123UPPER\r\n        '[^_%-%u]()()%u[%u%d]+()[_%-]*()',\r\n        '^()()%u[%u%d]+()[_%-]*()',\r\n        -- UPlower, UPlower123, UPlower-__, UPlower123-__\r\n        '%u%u()()[%l%d]+()[_%-]*()',\r\n        -- lower, lower123, lower-__, lower123-__\r\n        '[^_%-%w]()()[%l%d]+()[_%-]*()',\r\n        '^()()[%l%d]+()[_%-]*()',\r\n        -- Camel, Camel123, Camel-__, Camel123-__\r\n        '[^_%-%u]()()%u[%l%d]+()[_%-]*()',\r\n        '^()()%u[%l%d]+()[_%-]*()',\r\n      },\r\n    },\r\n  },\r\n}\r\n```\r\n\r\n</details>",
+            "bodyHTML": "<h3 dir=\"auto\">Why</h3>\n<p dir=\"auto\">Added support for around <code class=\"notranslate\">snake_case</code>, <code class=\"notranslate\">kebab-case</code>.</p>\n<div class=\"markdown-alert markdown-alert-tip\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-light-bulb mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z\"></path></svg>Tip</p><p dir=\"auto\">I prefer left-handed underscores over right-handed ones. It can be useful when using subword motion plugins like <a href=\"https://github.com/chrisgrieser/nvim-spider\">chrisgrieser/nvim-spider</a>. Use <code class=\"notranslate\">t</code> instead of <code class=\"notranslate\">f</code> to find the next position to paste the yanked subword.</p>\n</div>\n<h3 dir=\"auto\">Around first (preferred)</h3>\n<div class=\"markdown-alert markdown-alert-note\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-info mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Note</p><p dir=\"auto\">End subwords with numbers.</p>\n</div>\n<details open=\"\"><summary>New!</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"custom_textobjects = {\n  e = function(ai_type, id, opts)\n    local SEP = &quot;_%-&quot;\n    if ai_type == &quot;a&quot; then\n      -- stylua: ignore\n      return {\n        {\n          -- pattern, [^_]pattern__\n          &quot;%f[%a&quot;..SEP..&quot;]%l+%d*[&quot;..SEP..&quot;]*&quot;,\n          &quot;%f[%w&quot;..SEP..&quot;]%d+[&quot;..SEP..&quot;]*&quot;,\n          &quot;%f[%u&quot;..SEP..&quot;]%u%f[%A]%d*[&quot;..SEP..&quot;]*&quot;,\n          &quot;%f[%u&quot;..SEP..&quot;]%u%l+%d*[&quot;..SEP..&quot;]*&quot;,\n          &quot;%f[%u&quot;..SEP..&quot;]%u%u+%d*[&quot;..SEP..&quot;]*&quot;,\n          --__pattern\n          &quot;%f[&quot;..SEP..&quot;][&quot;..SEP..&quot;]+%l+%d*&quot;,\n          &quot;%f[&quot;..SEP..&quot;][&quot;..SEP..&quot;]+%d+&quot;,\n          &quot;%f[&quot;..SEP..&quot;][&quot;..SEP..&quot;]+%u%f[%A]%d*&quot;,\n          &quot;%f[&quot;..SEP..&quot;][&quot;..SEP..&quot;]+%u%l+%d*&quot;,\n          &quot;%f[&quot;..SEP..&quot;][&quot;..SEP..&quot;]+%u%u+%d*&quot;,\n          --[_]pattern__[%s]\n          &quot;%f[^&quot;..SEP..&quot;]%l+%d*[&quot;..SEP..&quot;]+%f[%s]&quot;,\n          &quot;%f[^&quot;..SEP..&quot;]%d+[&quot;..SEP..&quot;]+%f[%s]&quot;,\n          &quot;%f[^&quot;..SEP..&quot;]%u%f[%A]%d*[&quot;..SEP..&quot;]+%f[%s]&quot;,\n          &quot;%f[^&quot;..SEP..&quot;]%u%l+%d*[&quot;..SEP..&quot;]+%f[%s]&quot;,\n          &quot;%f[^&quot;..SEP..&quot;]%u%u+%d*[&quot;..SEP..&quot;]+%f[%s]&quot;,\n        },\n        &quot;^().*()$&quot;,\n      }\n    end\n    if ai_type == &quot;i&quot; then\n      local reg = MiniAi.find_textobject(&quot;a&quot;, id, opts)\n      if reg then\n        local line = vim.fn.getline(reg.from.line)\n        local _, s = line:find(&quot;^[&quot; .. SEP .. &quot;]*.&quot;, reg.from.col)\n        local e = line:sub(1, reg.to.col):find(&quot;.[&quot; .. SEP .. &quot;]*$&quot;)\n        return vim.tbl_deep_extend(&quot;force&quot;, reg, { from = { col = s }, to = { col = e } })\n      end\n    end\n  end,\n},\"><pre class=\"notranslate\"><span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-en\">e</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">SEP</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>_%-<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>a<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore</span>\n      <span class=\"pl-k\">return</span> {\n        {\n          <span class=\"pl-c\"><span class=\"pl-c\">--</span> pattern, [^_]pattern__</span>\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%a<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%l+%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%w<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%d+[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%u%f[%A]%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%u%l+%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%u%u+%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-c\"><span class=\"pl-c\">--</span>__pattern</span>\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>][<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%l+%d*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>][<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%d+<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>][<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%u%f[%A]%d*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>][<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%u%l+%d*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>][<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%u%u+%d*<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-c\"><span class=\"pl-c\">--</span>[_]pattern__[%s]</span>\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[^<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%l+%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%f[%s]<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[^<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%d+[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%f[%s]<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[^<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%u%f[%A]%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%f[%s]<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[^<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%u%l+%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%f[%s]<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[^<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]%u%u+%d*[<span class=\"pl-pds\">\"</span></span><span class=\"pl-k\">..</span><span class=\"pl-smi\">SEP</span><span class=\"pl-k\">..</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]+%f[%s]<span class=\"pl-pds\">\"</span></span>,\n        },\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^().*()$<span class=\"pl-pds\">\"</span></span>,\n      }\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>a<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getline</span>(<span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">line</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">s</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^[<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">SEP</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">col</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">to</span>.<span class=\"pl-e\">col</span>):<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.[<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">SEP</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]*$<span class=\"pl-pds\">\"</span></span>)\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">reg</span>, { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">s</span> }, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">e</span> } })\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>,\n},</pre></div>\n</details>\n<h3 dir=\"auto\">Hybrid</h3>\n<div class=\"markdown-alert markdown-alert-warning\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-alert mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z\"></path></svg>Warning</p><p dir=\"auto\">Known issue: the separator isn’t recognized as part of a subword, so the cursor should not be placed on the separator in certain edge cases.</p>\n</div>\n<details><summary>Hide</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local MiniAi = require 'mini.ai'\nMiniAi.setup {\n  custom_textobjects = {\n    -- NOTE: Use any subword pattern you like, just ignore separators\n    e = {\n      {\n        &quot;%f[%a]%l+%d*&quot;,\n        &quot;%f[%w]%d+&quot;,\n        &quot;%f[%u]%u%f[%A]%d*&quot;,\n        &quot;%f[%u]%u%l+%d*&quot;,\n        &quot;%f[%u]%u%u+%d*&quot;,\n      },\n    },\n  },\n}\nlocal around_subword = function(reg)\n  reg = vim.deepcopy(reg)\n  local SEP = &quot;[_%-]+&quot;\n  local line = vim.fn.getline(reg.from.line)\n  local left = line:sub(1, reg.from.col - 1):find(SEP .. &quot;$&quot;)\n  local _, right = line:find(&quot;^&quot; .. SEP, reg.to.col + 1)\n  if left then\n    reg.from.col = left\n  elseif right then\n    reg.to.col = right\n  end\n  return reg\nend\nvim.keymap.set({ &quot;x&quot;, &quot;o&quot; }, &quot;ae&quot;, function()\n  local reg = MiniAi.find_textobject(&quot;i&quot;, &quot;e&quot;)\n  if reg then\n    MiniAi.config.custom_textobjects[&quot;Virt&quot;] = around_subword(reg)\n    MiniAi.select_textobject(&quot;i&quot;, &quot;Virt&quot;)\n  end\nend)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniAi</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">setup</span> {\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Use any subword pattern you like, just ignore separators</span>\n    <span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> {\n      {\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%a]%l+%d*<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%w]%d+<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u]%u%f[%A]%d*<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u]%u%l+%d*<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u]%u%u+%d*<span class=\"pl-pds\">\"</span></span>,\n      },\n    },\n  },\n}\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">around_subword</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">reg</span>)\n  <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">deepcopy</span>(<span class=\"pl-smi\">reg</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">SEP</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[_%-]+<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getline</span>(<span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">line</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>):<span class=\"pl-c1\">find</span>(<span class=\"pl-smi\">SEP</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>$<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">SEP</span>, <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">to</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">left</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">left</span>\n  <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">right</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">to</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">right</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">reg</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>x<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ae<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>e<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">custom_textobjects</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Virt<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">around_subword</span>(<span class=\"pl-smi\">reg</span>)\n    <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">select_textobject</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Virt<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>)</pre></div>\n</details>\n<h3 dir=\"auto\">Pattern only</h3>\n<div class=\"markdown-alert markdown-alert-caution\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-stop mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Caution</p><p dir=\"auto\">Pattern only approach has collisions, see <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"7748816\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/1434\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1434/hovercard?comment_id=14467713\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713\">#1434 (comment)</a>.</p>\n</div>\n<details><summary>Hide (bad)</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local ai = require 'mini.ai'\nai.setup {\n  custom_textobjects = {\n    e = {\n      {\n        -- __-1, __-U, __-l, __-1_, __-U_, __-l_\n        '[^_%-]()[_%-]+()%w()()[%s%p]',\n        '^()[_%-]+()%w()()[%s%p]',\n        -- __-123SNAKE\n        '[^_%-]()[_%-]+()%d+%u[%u%d]+()()',\n        '^()[_%-]+()%d+%u[%u%d]+()()',\n        -- __-123snake\n        '[^_%-]()[_%-]+()%d+%l[%l%d]+()()',\n        '^()[_%-]+()%d+%l[%l%d]+()()',\n        -- __-SNAKE, __-SNAKE123\n        '[^_%-]()[_%-]+()%u[%u%d]+()()',\n        '^()[_%-]+()%u[%u%d]+()()',\n        -- __-snake, __-Snake, __-snake123, __-Snake123\n        '[^_%-]()[_%-]+()%a[%l%d]+()()',\n        '^()[_%-]+()%a[%l%d]+()()',\n        -- UPPER, UPPER123, UPPER-__, UPPER123-__\n        -- No support: 123UPPER\n        '[^_%-%u]()()%u[%u%d]+()[_%-]*()',\n        '^()()%u[%u%d]+()[_%-]*()',\n        -- UPlower, UPlower123, UPlower-__, UPlower123-__\n        '%u%u()()[%l%d]+()[_%-]*()',\n        -- lower, lower123, lower-__, lower123-__\n        '[^_%-%w]()()[%l%d]+()[_%-]*()',\n        '^()()[%l%d]+()[_%-]*()',\n        -- Camel, Camel123, Camel-__, Camel123-__\n        '[^_%-%u]()()%u[%l%d]+()[_%-]*()',\n        '^()()%u[%l%d]+()[_%-]*()',\n      },\n    },\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">ai</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-smi\">ai</span>.<span class=\"pl-c1\">setup</span> {\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> {\n      {\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> __-1, __-U, __-l, __-1_, __-U_, __-l_</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-]()[_%-]+()%w()()[%s%p]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()[_%-]+()%w()()[%s%p]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> __-123SNAKE</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-]()[_%-]+()%d+%u[%u%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()[_%-]+()%d+%u[%u%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> __-123snake</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-]()[_%-]+()%d+%l[%l%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()[_%-]+()%d+%l[%l%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> __-SNAKE, __-SNAKE123</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-]()[_%-]+()%u[%u%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()[_%-]+()%u[%u%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> __-snake, __-Snake, __-snake123, __-Snake123</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-]()[_%-]+()%a[%l%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()[_%-]+()%a[%l%d]+()()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> UPPER, UPPER123, UPPER-__, UPPER123-__</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> No support: 123UPPER</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-%u]()()%u[%u%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()()%u[%u%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> UPlower, UPlower123, UPlower-__, UPlower123-__</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%u%u()()[%l%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> lower, lower123, lower-__, lower123-__</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-%w]()()[%l%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()()[%l%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Camel, Camel123, Camel-__, Camel123-__</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^_%-%u]()()%u[%l%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^()()%u[%l%d]+()[_%-]*()<span class=\"pl-pds\">'</span></span>,\n      },\n    },\n  },\n}</pre></div>\n</details>",
+            "bodyText": "Why\nAdded support for around snake_case, kebab-case.\nTipI prefer left-handed underscores over right-handed ones. It can be useful when using subword motion plugins like chrisgrieser/nvim-spider. Use t instead of f to find the next position to paste the yanked subword.\n\nAround first (preferred)\nNoteEnd subwords with numbers.\n\nNew!\ncustom_textobjects = {\n  e = function(ai_type, id, opts)\n    local SEP = \"_%-\"\n    if ai_type == \"a\" then\n      -- stylua: ignore\n      return {\n        {\n          -- pattern, [^_]pattern__\n          \"%f[%a\"..SEP..\"]%l+%d*[\"..SEP..\"]*\",\n          \"%f[%w\"..SEP..\"]%d+[\"..SEP..\"]*\",\n          \"%f[%u\"..SEP..\"]%u%f[%A]%d*[\"..SEP..\"]*\",\n          \"%f[%u\"..SEP..\"]%u%l+%d*[\"..SEP..\"]*\",\n          \"%f[%u\"..SEP..\"]%u%u+%d*[\"..SEP..\"]*\",\n          --__pattern\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%l+%d*\",\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%d+\",\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%u%f[%A]%d*\",\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%u%l+%d*\",\n          \"%f[\"..SEP..\"][\"..SEP..\"]+%u%u+%d*\",\n          --[_]pattern__[%s]\n          \"%f[^\"..SEP..\"]%l+%d*[\"..SEP..\"]+%f[%s]\",\n          \"%f[^\"..SEP..\"]%d+[\"..SEP..\"]+%f[%s]\",\n          \"%f[^\"..SEP..\"]%u%f[%A]%d*[\"..SEP..\"]+%f[%s]\",\n          \"%f[^\"..SEP..\"]%u%l+%d*[\"..SEP..\"]+%f[%s]\",\n          \"%f[^\"..SEP..\"]%u%u+%d*[\"..SEP..\"]+%f[%s]\",\n        },\n        \"^().*()$\",\n      }\n    end\n    if ai_type == \"i\" then\n      local reg = MiniAi.find_textobject(\"a\", id, opts)\n      if reg then\n        local line = vim.fn.getline(reg.from.line)\n        local _, s = line:find(\"^[\" .. SEP .. \"]*.\", reg.from.col)\n        local e = line:sub(1, reg.to.col):find(\".[\" .. SEP .. \"]*$\")\n        return vim.tbl_deep_extend(\"force\", reg, { from = { col = s }, to = { col = e } })\n      end\n    end\n  end,\n},\n\nHybrid\nWarningKnown issue: the separator isn’t recognized as part of a subword, so the cursor should not be placed on the separator in certain edge cases.\n\nHide\nlocal MiniAi = require 'mini.ai'\nMiniAi.setup {\n  custom_textobjects = {\n    -- NOTE: Use any subword pattern you like, just ignore separators\n    e = {\n      {\n        \"%f[%a]%l+%d*\",\n        \"%f[%w]%d+\",\n        \"%f[%u]%u%f[%A]%d*\",\n        \"%f[%u]%u%l+%d*\",\n        \"%f[%u]%u%u+%d*\",\n      },\n    },\n  },\n}\nlocal around_subword = function(reg)\n  reg = vim.deepcopy(reg)\n  local SEP = \"[_%-]+\"\n  local line = vim.fn.getline(reg.from.line)\n  local left = line:sub(1, reg.from.col - 1):find(SEP .. \"$\")\n  local _, right = line:find(\"^\" .. SEP, reg.to.col + 1)\n  if left then\n    reg.from.col = left\n  elseif right then\n    reg.to.col = right\n  end\n  return reg\nend\nvim.keymap.set({ \"x\", \"o\" }, \"ae\", function()\n  local reg = MiniAi.find_textobject(\"i\", \"e\")\n  if reg then\n    MiniAi.config.custom_textobjects[\"Virt\"] = around_subword(reg)\n    MiniAi.select_textobject(\"i\", \"Virt\")\n  end\nend)\n\nPattern only\nCautionPattern only approach has collisions, see #1434 (comment).\n\nHide (bad)\nlocal ai = require 'mini.ai'\nai.setup {\n  custom_textobjects = {\n    e = {\n      {\n        -- __-1, __-U, __-l, __-1_, __-U_, __-l_\n        '[^_%-]()[_%-]+()%w()()[%s%p]',\n        '^()[_%-]+()%w()()[%s%p]',\n        -- __-123SNAKE\n        '[^_%-]()[_%-]+()%d+%u[%u%d]+()()',\n        '^()[_%-]+()%d+%u[%u%d]+()()',\n        -- __-123snake\n        '[^_%-]()[_%-]+()%d+%l[%l%d]+()()',\n        '^()[_%-]+()%d+%l[%l%d]+()()',\n        -- __-SNAKE, __-SNAKE123\n        '[^_%-]()[_%-]+()%u[%u%d]+()()',\n        '^()[_%-]+()%u[%u%d]+()()',\n        -- __-snake, __-Snake, __-snake123, __-Snake123\n        '[^_%-]()[_%-]+()%a[%l%d]+()()',\n        '^()[_%-]+()%a[%l%d]+()()',\n        -- UPPER, UPPER123, UPPER-__, UPPER123-__\n        -- No support: 123UPPER\n        '[^_%-%u]()()%u[%u%d]+()[_%-]*()',\n        '^()()%u[%u%d]+()[_%-]*()',\n        -- UPlower, UPlower123, UPlower-__, UPlower123-__\n        '%u%u()()[%l%d]+()[_%-]*()',\n        -- lower, lower123, lower-__, lower123-__\n        '[^_%-%w]()()[%l%d]+()[_%-]*()',\n        '^()()[%l%d]+()[_%-]*()',\n        -- Camel, Camel123, Camel-__, Camel123-__\n        '[^_%-%u]()()%u[%l%d]+()[_%-]*()',\n        '^()()%u[%l%d]+()[_%-]*()',\n      },\n    },\n  },\n}",
+            "createdAt": "2025-05-22T19:04:35Z",
+            "createdViaEmail": false,
+            "databaseId": 13238259,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4Ayf_z",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-15T18:39:00Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-05-22T19:04:35Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-13238259",
+            "updatedAt": "2026-03-15T18:39:00Z",
+            "upvoteCount": 5,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-13238259"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "@echasnovski,\r\n\r\nThere’s only one small problem with defining patterns as in the provided example: the first matching pattern always wins, not necessarily the most relevant one. For example, my pattern groups collide on the string `lowerUPPER`. If the cursor is on the letter `U`, the match is still `lower`. Ideally, if there is only an inner group, it should define the winning result:\r\n\r\n```\r\n\"[^%u%l]()%l%l+%d*()[^%l%d]\"\r\n          ^^^^^^^^\r\n```\r\n\r\nExample pattern:\r\n\r\n```lua\r\ne = {\r\n  {\r\n    -- lower123\r\n    '[^%u%l]()%l%l+%d*()[^%l%d]',\r\n    -- UPPER123\r\n    '[^%u]()%u%u+%d*()%u%l',\r\n    '[^%u]()%u%u+%d*()[^%d]',\r\n    -- Camel123NAME4\r\n    '()%u%l+%d*()[^%d]',\r\n    -- U, l, 1\r\n    '[^%u]()%u()[^%u%l]',\r\n    '[^%l]()%l()[^%l]',\r\n    '[^%d]()%d()[^%d]',\r\n    -- 123|UPPER, 123|lower, 123|Camel\r\n    '[%s%p]()%d+()[^%d]',\r\n  },\r\n},\r\n```",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>,</p>\n<p dir=\"auto\">There’s only one small problem with defining patterns as in the provided example: the first matching pattern always wins, not necessarily the most relevant one. For example, my pattern groups collide on the string <code class=\"notranslate\">lowerUPPER</code>. If the cursor is on the letter <code class=\"notranslate\">U</code>, the match is still <code class=\"notranslate\">lower</code>. Ideally, if there is only an inner group, it should define the winning result:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"&quot;[^%u%l]()%l%l+%d*()[^%l%d]&quot;\n          ^^^^^^^^\"><pre class=\"notranslate\"><code class=\"notranslate\">\"[^%u%l]()%l%l+%d*()[^%l%d]\"\n          ^^^^^^^^\n</code></pre></div>\n<p dir=\"auto\">Example pattern:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"e = {\n  {\n    -- lower123\n    '[^%u%l]()%l%l+%d*()[^%l%d]',\n    -- UPPER123\n    '[^%u]()%u%u+%d*()%u%l',\n    '[^%u]()%u%u+%d*()[^%d]',\n    -- Camel123NAME4\n    '()%u%l+%d*()[^%d]',\n    -- U, l, 1\n    '[^%u]()%u()[^%u%l]',\n    '[^%l]()%l()[^%l]',\n    '[^%d]()%d()[^%d]',\n    -- 123|UPPER, 123|lower, 123|Camel\n    '[%s%p]()%d+()[^%d]',\n  },\n},\"><pre class=\"notranslate\"><span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> {\n  {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> lower123</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u%l]()%l%l+%d*()[^%l%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> UPPER123</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u]()%u%u+%d*()%u%l<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u]()%u%u+%d*()[^%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Camel123NAME4</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>()%u%l+%d*()[^%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> U, l, 1</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u]()%u()[^%u%l]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%l]()%l()[^%l]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%d]()%d()[^%d]<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> 123|UPPER, 123|lower, 123|Camel</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[%s%p]()%d+()[^%d]<span class=\"pl-pds\">'</span></span>,\n  },\n},</pre></div>",
+            "bodyText": "@echasnovski,\nThere’s only one small problem with defining patterns as in the provided example: the first matching pattern always wins, not necessarily the most relevant one. For example, my pattern groups collide on the string lowerUPPER. If the cursor is on the letter U, the match is still lower. Ideally, if there is only an inner group, it should define the winning result:\n\"[^%u%l]()%l%l+%d*()[^%l%d]\"\n          ^^^^^^^^\n\nExample pattern:\ne = {\n  {\n    -- lower123\n    '[^%u%l]()%l%l+%d*()[^%l%d]',\n    -- UPPER123\n    '[^%u]()%u%u+%d*()%u%l',\n    '[^%u]()%u%u+%d*()[^%d]',\n    -- Camel123NAME4\n    '()%u%l+%d*()[^%d]',\n    -- U, l, 1\n    '[^%u]()%u()[^%u%l]',\n    '[^%l]()%l()[^%l]',\n    '[^%d]()%d()[^%d]',\n    -- 123|UPPER, 123|lower, 123|Camel\n    '[%s%p]()%d+()[^%d]',\n  },\n},",
+            "createdAt": "2025-09-21T08:59:30Z",
+            "createdViaEmail": false,
+            "databaseId": 14467713,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A3MKB",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-09-30T12:08:09Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-09-21T08:59:30Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 7,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> There’s only one small problem with defining patterns as in the provided example: the first matching pattern always wins, not necessarily the most relevant one.\r\n\r\nI don't think this is the case. The \"best\" pattern wins, with definition of \"best\" depending on search method. What might be happening, is that for *overlapping* matched regions  the one with smaller width wins.\r\n\r\n> For example, my pattern groups collide on the string `lowerUPPER`. If the cursor is on the letter `U`, the match is still `lower`. Ideally, if there is only an inner group, it should define the winning result:\r\n\r\nI can not reproduce. Here are the steps:\r\n\r\n- Use the following setup:\r\n\r\n    ```lua\r\n    require('mini.ai').setup({\r\n      custom_textobjects = {\r\n        e = {\r\n          {\r\n            -- lower123\r\n            '[^%u%l]()%l%l+%d*()[^%l%d]',\r\n            -- UPPER123\r\n            '[^%u]()%u%u+%d*()%u%l',\r\n            '[^%u]()%u%u+%d*()[^%d]',\r\n            -- Camel123NAME4\r\n            '()%u%l+%d*()[^%d]',\r\n            -- U, l, 1\r\n            '[^%u]()%u()[^%u%l]',\r\n            '[^%l]()%l()[^%l]',\r\n            '[^%d]()%d()[^%d]',\r\n            -- 123|UPPER, 123|lower, 123|Camel\r\n            '[%s%p]()%d+()[^%d]',\r\n          },\r\n        },\r\n      },\r\n    })\r\n    ```\r\n- In fresh session, open a buffer and type `lowerUPPER`.\r\n- With cursor on `U`, press `vie`. It selects `UPPER`.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">There’s only one small problem with defining patterns as in the provided example: the first matching pattern always wins, not necessarily the most relevant one.</p>\n</blockquote>\n<p dir=\"auto\">I don't think this is the case. The \"best\" pattern wins, with definition of \"best\" depending on search method. What might be happening, is that for <em>overlapping</em> matched regions  the one with smaller width wins.</p>\n<blockquote>\n<p dir=\"auto\">For example, my pattern groups collide on the string <code class=\"notranslate\">lowerUPPER</code>. If the cursor is on the letter <code class=\"notranslate\">U</code>, the match is still <code class=\"notranslate\">lower</code>. Ideally, if there is only an inner group, it should define the winning result:</p>\n</blockquote>\n<p dir=\"auto\">I can not reproduce. Here are the steps:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Use the following setup:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.ai').setup({\n  custom_textobjects = {\n    e = {\n      {\n        -- lower123\n        '[^%u%l]()%l%l+%d*()[^%l%d]',\n        -- UPPER123\n        '[^%u]()%u%u+%d*()%u%l',\n        '[^%u]()%u%u+%d*()[^%d]',\n        -- Camel123NAME4\n        '()%u%l+%d*()[^%d]',\n        -- U, l, 1\n        '[^%u]()%u()[^%u%l]',\n        '[^%l]()%l()[^%l]',\n        '[^%d]()%d()[^%d]',\n        -- 123|UPPER, 123|lower, 123|Camel\n        '[%s%p]()%d+()[^%d]',\n      },\n    },\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> {\n      {\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> lower123</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u%l]()%l%l+%d*()[^%l%d]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> UPPER123</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u]()%u%u+%d*()%u%l<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u]()%u%u+%d*()[^%d]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Camel123NAME4</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>()%u%l+%d*()[^%d]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> U, l, 1</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%u]()%u()[^%u%l]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%l]()%l()[^%l]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%d]()%d()[^%d]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> 123|UPPER, 123|lower, 123|Camel</span>\n        <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[%s%p]()%d+()[^%d]<span class=\"pl-pds\">'</span></span>,\n      },\n    },\n  },\n})</pre></div>\n</li>\n<li>\n<p dir=\"auto\">In fresh session, open a buffer and type <code class=\"notranslate\">lowerUPPER</code>.</p>\n</li>\n<li>\n<p dir=\"auto\">With cursor on <code class=\"notranslate\">U</code>, press <code class=\"notranslate\">vie</code>. It selects <code class=\"notranslate\">UPPER</code>.</p>\n</li>\n</ul>",
+                    "bodyText": "There’s only one small problem with defining patterns as in the provided example: the first matching pattern always wins, not necessarily the most relevant one.\n\nI don't think this is the case. The \"best\" pattern wins, with definition of \"best\" depending on search method. What might be happening, is that for overlapping matched regions  the one with smaller width wins.\n\nFor example, my pattern groups collide on the string lowerUPPER. If the cursor is on the letter U, the match is still lower. Ideally, if there is only an inner group, it should define the winning result:\n\nI can not reproduce. Here are the steps:\n\n\nUse the following setup:\nrequire('mini.ai').setup({\n  custom_textobjects = {\n    e = {\n      {\n        -- lower123\n        '[^%u%l]()%l%l+%d*()[^%l%d]',\n        -- UPPER123\n        '[^%u]()%u%u+%d*()%u%l',\n        '[^%u]()%u%u+%d*()[^%d]',\n        -- Camel123NAME4\n        '()%u%l+%d*()[^%d]',\n        -- U, l, 1\n        '[^%u]()%u()[^%u%l]',\n        '[^%l]()%l()[^%l]',\n        '[^%d]()%d()[^%d]',\n        -- 123|UPPER, 123|lower, 123|Camel\n        '[%s%p]()%d+()[^%d]',\n      },\n    },\n  },\n})\n\n\nIn fresh session, open a buffer and type lowerUPPER.\n\n\nWith cursor on U, press vie. It selects UPPER.",
+                    "createdAt": "2025-09-21T11:09:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14468229,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3MSF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-21T11:09:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14468229",
+                    "updatedAt": "2025-09-21T11:09:14Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14468229"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "<details>\r\n\r\n<summary>Video</summary>\r\n\r\nhttps://github.com/user-attachments/assets/94482b2e-0eb5-4c0a-a479-d837ebdd5ac4\r\n\r\n</details>\r\n\r\nYou're right. It works in a new buffer without spaces. I probably need to explicitly specify the spaces for patterns.",
+                    "bodyHTML": "<details>\n<summary>Video</summary>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">cie.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/492020276-94482b2e-0eb5-4c0a-a479-d837ebdd5ac4.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NTYsIm5iZiI6MTc5MzU1MjU1NiwicGF0aCI6Ii8xMTk4NDUwNDUvNDkyMDIwMjc2LTk0NDgyYjJlLTBlYjUtNGMwYS1hNDc5LWQ4MzdlYmRkNWFjNC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMzZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04NzRiNjY2OTRjMDAxY2VhMmY4OWZkNTRlM2UwYzZkMmY0NzdlM2NhMDBmNDkwMzRmNmVkZTRlZjQzNjIwOGVjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.zbP9L9tdNVr04zTsaR9-t2LXyPXqEbkn42QUMO06PT8\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/492020276-94482b2e-0eb5-4c0a-a479-d837ebdd5ac4.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NTYsIm5iZiI6MTc5MzU1MjU1NiwicGF0aCI6Ii8xMTk4NDUwNDUvNDkyMDIwMjc2LTk0NDgyYjJlLTBlYjUtNGMwYS1hNDc5LWQ4MzdlYmRkNWFjNC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMzZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04NzRiNjY2OTRjMDAxY2VhMmY4OWZkNTRlM2UwYzZkMmY0NzdlM2NhMDBmNDkwMzRmNmVkZTRlZjQzNjIwOGVjJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.zbP9L9tdNVr04zTsaR9-t2LXyPXqEbkn42QUMO06PT8\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n</details>\n<p dir=\"auto\">You're right. It works in a new buffer without spaces. I probably need to explicitly specify the spaces for patterns.</p>",
+                    "bodyText": "Video\n\n  \n    \n    \n\n    cie.mp4\n    \n  \n\n  \n\n  \n\n\n\nYou're right. It works in a new buffer without spaces. I probably need to explicitly specify the spaces for patterns.",
+                    "createdAt": "2025-09-21T12:01:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14468417,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A3MVB",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-23T18:48:20Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-21T12:01:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14468417",
+                    "updatedAt": "2025-09-23T18:48:21Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14468417"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> You're right. It works in a new buffer without spaces. I probably need to explicitly specify the spaces for patterns.\r\n\r\nAs suspected, this seems to be the case of overlapping regions:\r\n- `-- lowerUPPER` selects `lower` with cursor on `U`.\r\n- `-- lowerrUPPER` select `UPPER` with cursor on `U`.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">You're right. It works in a new buffer without spaces. I probably need to explicitly specify the spaces for patterns.</p>\n</blockquote>\n<p dir=\"auto\">As suspected, this seems to be the case of overlapping regions:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">-- lowerUPPER</code> selects <code class=\"notranslate\">lower</code> with cursor on <code class=\"notranslate\">U</code>.</li>\n<li><code class=\"notranslate\">-- lowerrUPPER</code> select <code class=\"notranslate\">UPPER</code> with cursor on <code class=\"notranslate\">U</code>.</li>\n</ul>",
+                    "bodyText": "You're right. It works in a new buffer without spaces. I probably need to explicitly specify the spaces for patterns.\n\nAs suspected, this seems to be the case of overlapping regions:\n\n-- lowerUPPER selects lower with cursor on U.\n-- lowerrUPPER select UPPER with cursor on U.",
+                    "createdAt": "2025-09-21T12:09:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14468454,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3MVm",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-21T12:09:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14468454",
+                    "updatedAt": "2025-09-21T12:09:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14468454"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Okay, I reworked the pattern. The main idea is to end words with numbers:\r\n\r\n```lua\r\n-- Camel123|lower123|UPPER123|UPPER ...\r\n-- 123|l|U U123\r\n```\r\n\r\n```lua\r\ne = {\r\n  {\r\n    \"%f[%a]%l+%d*\",\r\n    \"%f[%w]%d+\",\r\n    \"%f[%u]%u%f[%A]%d*\",\r\n    \"%f[%u]%u%l+%d*\",\r\n    \"%f[%u]%u%u+%d*\",\r\n  },\r\n}\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Okay, I reworked the pattern. The main idea is to end words with numbers:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Camel123|lower123|UPPER123|UPPER ...\n-- 123|l|U U123\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Camel123|lower123|UPPER123|UPPER ...</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> 123|l|U U123</span></pre></div>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"e = {\n  {\n    &quot;%f[%a]%l+%d*&quot;,\n    &quot;%f[%w]%d+&quot;,\n    &quot;%f[%u]%u%f[%A]%d*&quot;,\n    &quot;%f[%u]%u%l+%d*&quot;,\n    &quot;%f[%u]%u%u+%d*&quot;,\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> {\n  {\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%a]%l+%d*<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%w]%d+<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u]%u%f[%A]%d*<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u]%u%l+%d*<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%u]%u%u+%d*<span class=\"pl-pds\">\"</span></span>,\n  },\n}</pre></div>",
+                    "bodyText": "Okay, I reworked the pattern. The main idea is to end words with numbers:\n-- Camel123|lower123|UPPER123|UPPER ...\n-- 123|l|U U123\ne = {\n  {\n    \"%f[%a]%l+%d*\",\n    \"%f[%w]%d+\",\n    \"%f[%u]%u%f[%A]%d*\",\n    \"%f[%u]%u%l+%d*\",\n    \"%f[%u]%u%u+%d*\",\n  },\n}",
+                    "createdAt": "2025-09-27T14:59:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14529687,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A3bSX",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-28T07:19:45Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-27T14:59:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14529687",
+                    "updatedAt": "2025-09-28T07:19:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14529687"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "For the pattern\r\n\r\n```lua\r\ne = { { \"%f[%a]%l+%d*\" } }\r\n```\r\n\r\n```lua\r\ne = { { \"%l\" } }\r\n```\r\n\r\nand the string\r\n\r\n```\r\ni_next\r\n```\r\n\r\nthe behavior changes with `die/cie/yie` compared to `vie`:\r\n\r\n- With `cie`, `|i_next + cie` results in `|_next` (`i` is replaced)\r\n- With `vie`, `|i_next + vie` results in `i_[next]` (`i` stays, and `next` is selected)",
+                    "bodyHTML": "<p dir=\"auto\">For the pattern</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"e = { { &quot;%f[%a]%l+%d*&quot; } }\"><pre class=\"notranslate\"><span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%a]%l+%d*<span class=\"pl-pds\">\" </span></span>} }</pre></div>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"e = { { &quot;%l&quot; } }\"><pre class=\"notranslate\"><span class=\"pl-smi\">e</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%l<span class=\"pl-pds\">\" </span></span>} }</pre></div>\n<p dir=\"auto\">and the string</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"i_next\"><pre class=\"notranslate\"><code class=\"notranslate\">i_next\n</code></pre></div>\n<p dir=\"auto\">the behavior changes with <code class=\"notranslate\">die/cie/yie</code> compared to <code class=\"notranslate\">vie</code>:</p>\n<ul dir=\"auto\">\n<li>With <code class=\"notranslate\">cie</code>, <code class=\"notranslate\">|i_next + cie</code> results in <code class=\"notranslate\">|_next</code> (<code class=\"notranslate\">i</code> is replaced)</li>\n<li>With <code class=\"notranslate\">vie</code>, <code class=\"notranslate\">|i_next + vie</code> results in <code class=\"notranslate\">i_[next]</code> (<code class=\"notranslate\">i</code> stays, and <code class=\"notranslate\">next</code> is selected)</li>\n</ul>",
+                    "bodyText": "For the pattern\ne = { { \"%f[%a]%l+%d*\" } }\ne = { { \"%l\" } }\nand the string\ni_next\n\nthe behavior changes with die/cie/yie compared to vie:\n\nWith cie, |i_next + cie results in |_next (i is replaced)\nWith vie, |i_next + vie results in i_[next] (i stays, and next is selected)",
+                    "createdAt": "2025-11-14T19:12:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14972653,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5Hbt",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-11-14T19:14:08Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-14T19:12:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14972653",
+                    "updatedAt": "2025-11-14T19:14:08Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14972653"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I would assume this happens with `search_method = 'cover_or_next'`? That's probably expected because a single `v` already selects the whole textobject. And since there is no covering, it selects next. This is a \"side effect\" of consecutive application (like `va)a)` can \"grow\" the selection) of a textobject in Visual mode.",
+                    "bodyHTML": "<p dir=\"auto\">I would assume this happens with <code class=\"notranslate\">search_method = 'cover_or_next'</code>? That's probably expected because a single <code class=\"notranslate\">v</code> already selects the whole textobject. And since there is no covering, it selects next. This is a \"side effect\" of consecutive application (like <code class=\"notranslate\">va)a)</code> can \"grow\" the selection) of a textobject in Visual mode.</p>",
+                    "bodyText": "I would assume this happens with search_method = 'cover_or_next'? That's probably expected because a single v already selects the whole textobject. And since there is no covering, it selects next. This is a \"side effect\" of consecutive application (like va)a) can \"grow\" the selection) of a textobject in Visual mode.",
+                    "createdAt": "2025-11-14T19:29:22Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14972749,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5HdN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-14T19:29:22Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14972749",
+                    "updatedAt": "2025-11-14T19:29:22Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14972749"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Yes, I used the default `search_method`. Just thought I’d share in case it’s something you weren’t aware of. It makes sense though, so not a big deal. Thanks :0",
+                    "bodyHTML": "<p dir=\"auto\">Yes, I used the default <code class=\"notranslate\">search_method</code>. Just thought I’d share in case it’s something you weren’t aware of. It makes sense though, so not a big deal. Thanks :0</p>",
+                    "bodyText": "Yes, I used the default search_method. Just thought I’d share in case it’s something you weren’t aware of. It makes sense though, so not a big deal. Thanks :0",
+                    "createdAt": "2025-11-14T20:22:27Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14973152,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5Hjg",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-11-14T21:20:51Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-14T20:22:27Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14467713,
+                        "id": "DC_kwDOFoksYM4A3MKB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14973152",
+                    "updatedAt": "2025-11-14T21:20:51Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14973152"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713",
+            "updatedAt": "2025-09-30T12:08:09Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434#discussioncomment-14467713"
+        }
+    ],
+    "createdAt": "2024-12-27T10:33:34Z",
+    "createdViaEmail": false,
+    "databaseId": 7748816,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AdjzQ",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1434,
+    "poll": null,
+    "publishedAt": "2024-12-27T10:33:34Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1434",
+    "stateReason": null,
+    "title": "[mini.ai] The perfect mini-word textobject",
+    "updatedAt": "2025-11-14T20:22:27Z",
+    "upvoteCount": 6,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1434"
+}

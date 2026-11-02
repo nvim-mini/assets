@@ -1,0 +1,634 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13583146,
+        "id": "DC_kwDOFoksYM4Az0Mq",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13583146"
+    },
+    "answerChosenAt": "2025-06-26T09:00:15Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/102267595?u=5dc70db49ba57f85bf2209fa73512541bc9f89e3&v=4",
+        "login": "Esteban528",
+        "resourcePath": "/Esteban528",
+        "url": "https://github.com/Esteban528"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.pick\n\n### Question\n\nHi there, I'm a bit new to this, I want to select files from :Pick git_hunks (To view unstaged files) and when I mark one, this file will be added to stage like (git add filename), I used this feature in telescope, but I don't know how I can do it in Mini.pick. \r\n\r\nSo my question is: Is it possible? mark files and add these to the git stage.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.pick</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Hi there, I'm a bit new to this, I want to select files from :Pick git_hunks (To view unstaged files) and when I mark one, this file will be added to stage like (git add filename), I used this feature in telescope, but I don't know how I can do it in Mini.pick.</p>\n<p dir=\"auto\">So my question is: Is it possible? mark files and add these to the git stage.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.pick\nQuestion\nHi there, I'm a bit new to this, I want to select files from :Pick git_hunks (To view unstaged files) and when I mark one, this file will be added to stage like (git add filename), I used this feature in telescope, but I don't know how I can do it in Mini.pick.\nSo my question is: Is it possible? mark files and add these to the git stage.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-06-26T09:00:12Z",
+    "comment_count": 4,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Yes, this (marking hunks, not files, to later apply them) is possible with writing custom `choose_marked`. Something like this:\r\n\r\n```lua\r\nrequire('mini.extra').setup()\r\n\r\nlocal stage_hunk_item = function(item)\r\n  local patch = vim.deepcopy(item.header)\r\n  vim.list_extend(patch, item.hunk)\r\n  local cmd = { 'git', 'apply', '--cached', '-' }\r\n  vim.system(cmd, { stdin = patch }):wait()\r\nend\r\nlocal stage_marked = function(items_marked) vim.tbl_map(stage_hunk_item, items_marked) end\r\n\r\n-- NOTE: Make sure `require('mini.pick').setup()` is called prior to this\r\nMiniPick.registry.git_hunks = function(local_opts)\r\n  MiniExtra.pickers.git_hunks(local_opts, { source = { choose_marked = stage_marked } })\r\nend\r\n```\r\n\r\nSo with this in place:\r\n- `:Pick git_hunks`.\r\n- Mark hunks you'd like to stage (navigate to it and press `<C-x>` with default mappings).\r\n- After all are marked, press `<Alt>+<CR>` with default mappings.\r\n\r\nNote, that this relies on some assumption about the internal structure of items in `git_hunks` picker, but I don't think it will change any time soon.",
+            "bodyHTML": "<p dir=\"auto\">Yes, this (marking hunks, not files, to later apply them) is possible with writing custom <code class=\"notranslate\">choose_marked</code>. Something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.extra').setup()\n\nlocal stage_hunk_item = function(item)\n  local patch = vim.deepcopy(item.header)\n  vim.list_extend(patch, item.hunk)\n  local cmd = { 'git', 'apply', '--cached', '-' }\n  vim.system(cmd, { stdin = patch }):wait()\nend\nlocal stage_marked = function(items_marked) vim.tbl_map(stage_hunk_item, items_marked) end\n\n-- NOTE: Make sure `require('mini.pick').setup()` is called prior to this\nMiniPick.registry.git_hunks = function(local_opts)\n  MiniExtra.pickers.git_hunks(local_opts, { source = { choose_marked = stage_marked } })\nend\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.extra<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>()\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">stage_hunk_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">patch</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">deepcopy</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">header</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">patch</span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">hunk</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>git<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>apply<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>--cached<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>-<span class=\"pl-pds\">' </span></span>}\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-smi\">stdin</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">patch</span> }):<span class=\"pl-c1\">wait</span>()\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">stage_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items_marked</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-smi\">stage_hunk_item</span>, <span class=\"pl-smi\">items_marked</span>) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Make sure `require('mini.pick').setup()` is called prior to this</span>\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">git_hunks</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>)\n  <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">git_hunks</span>(<span class=\"pl-smi\">local_opts</span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">stage_marked</span> } })\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">So with this in place:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">:Pick git_hunks</code>.</li>\n<li>Mark hunks you'd like to stage (navigate to it and press <code class=\"notranslate\">&lt;C-x&gt;</code> with default mappings).</li>\n<li>After all are marked, press <code class=\"notranslate\">&lt;Alt&gt;+&lt;CR&gt;</code> with default mappings.</li>\n</ul>\n<p dir=\"auto\">Note, that this relies on some assumption about the internal structure of items in <code class=\"notranslate\">git_hunks</code> picker, but I don't think it will change any time soon.</p>",
+            "bodyText": "Yes, this (marking hunks, not files, to later apply them) is possible with writing custom choose_marked. Something like this:\nrequire('mini.extra').setup()\n\nlocal stage_hunk_item = function(item)\n  local patch = vim.deepcopy(item.header)\n  vim.list_extend(patch, item.hunk)\n  local cmd = { 'git', 'apply', '--cached', '-' }\n  vim.system(cmd, { stdin = patch }):wait()\nend\nlocal stage_marked = function(items_marked) vim.tbl_map(stage_hunk_item, items_marked) end\n\n-- NOTE: Make sure `require('mini.pick').setup()` is called prior to this\nMiniPick.registry.git_hunks = function(local_opts)\n  MiniExtra.pickers.git_hunks(local_opts, { source = { choose_marked = stage_marked } })\nend\nSo with this in place:\n\n:Pick git_hunks.\nMark hunks you'd like to stage (navigate to it and press <C-x> with default mappings).\nAfter all are marked, press <Alt>+<CR> with default mappings.\n\nNote, that this relies on some assumption about the internal structure of items in git_hunks picker, but I don't think it will change any time soon.",
+            "createdAt": "2025-06-26T09:00:12Z",
+            "createdViaEmail": false,
+            "databaseId": 13583146,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Az0Mq",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-26T09:00:12Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13583146",
+            "updatedAt": "2025-06-26T09:00:13Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13583146"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/102267595?u=5dc70db49ba57f85bf2209fa73512541bc9f89e3&v=4",
+                "login": "Esteban528",
+                "resourcePath": "/Esteban528",
+                "url": "https://github.com/Esteban528"
+            },
+            "authorAssociation": "NONE",
+            "body": "Thanks a lot, it is amazing! Also I can to change color to the hunk according hl group?",
+            "bodyHTML": "<p dir=\"auto\">Thanks a lot, it is amazing! Also I can to change color to the hunk according hl group?</p>",
+            "bodyText": "Thanks a lot, it is amazing! Also I can to change color to the hunk according hl group?",
+            "createdAt": "2025-06-27T01:56:34Z",
+            "createdViaEmail": false,
+            "databaseId": 13592296,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/102267595?u=5dc70db49ba57f85bf2209fa73512541bc9f89e3&v=4",
+                "login": "Esteban528",
+                "resourcePath": "/Esteban528",
+                "url": "https://github.com/Esteban528"
+            },
+            "id": "DC_kwDOFoksYM4Az2bo",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-06-27T02:10:16Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-06-27T01:56:34Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "What colors do you want to change and where? If it about preview, then try adjusting highlight groups like `diff***`. To see available highlight groups, you can do `:h diff` and press `<Tab>`. The ones that start with \"diff\" (and *not* \"Diff\") are used for 'diff' files.\r\n\r\nI right now realized that `:Pick git_hunks` preview doesn't try to use tree-sitter, but it should. After it is added, if there is tree-sitter parser installed for 'diff' language, then it will be more complicated. It will be highlight groups with `.diff` suffix. Like `@diff.added.diff`, `@function.diff`, etc. One way to see specific groups, is to use 'mini.git' and run `:Git diff`. It should show diff with tree-sitter enabled (if set up properly) and then using `:Inspect` will show highlight groups under cursor.",
+                    "bodyHTML": "<p dir=\"auto\">What colors do you want to change and where? If it about preview, then try adjusting highlight groups like <code class=\"notranslate\">diff***</code>. To see available highlight groups, you can do <code class=\"notranslate\">:h diff</code> and press <code class=\"notranslate\">&lt;Tab&gt;</code>. The ones that start with \"diff\" (and <em>not</em> \"Diff\") are used for 'diff' files.</p>\n<p dir=\"auto\">I right now realized that <code class=\"notranslate\">:Pick git_hunks</code> preview doesn't try to use tree-sitter, but it should. After it is added, if there is tree-sitter parser installed for 'diff' language, then it will be more complicated. It will be highlight groups with <code class=\"notranslate\">.diff</code> suffix. Like <code class=\"notranslate\">@diff.added.diff</code>, <code class=\"notranslate\">@function.diff</code>, etc. One way to see specific groups, is to use 'mini.git' and run <code class=\"notranslate\">:Git diff</code>. It should show diff with tree-sitter enabled (if set up properly) and then using <code class=\"notranslate\">:Inspect</code> will show highlight groups under cursor.</p>",
+                    "bodyText": "What colors do you want to change and where? If it about preview, then try adjusting highlight groups like diff***. To see available highlight groups, you can do :h diff and press <Tab>. The ones that start with \"diff\" (and not \"Diff\") are used for 'diff' files.\nI right now realized that :Pick git_hunks preview doesn't try to use tree-sitter, but it should. After it is added, if there is tree-sitter parser installed for 'diff' language, then it will be more complicated. It will be highlight groups with .diff suffix. Like @diff.added.diff, @function.diff, etc. One way to see specific groups, is to use 'mini.git' and run :Git diff. It should show diff with tree-sitter enabled (if set up properly) and then using :Inspect will show highlight groups under cursor.",
+                    "createdAt": "2025-06-27T08:09:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13594666,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Az3Aq",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-27T08:09:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13592296,
+                        "id": "DC_kwDOFoksYM4Az2bo",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13592296"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13594666",
+                    "updatedAt": "2025-06-27T08:09:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13594666"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13592296",
+            "updatedAt": "2025-06-27T02:10:17Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13592296"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/102267595?u=5dc70db49ba57f85bf2209fa73512541bc9f89e3&v=4",
+                "login": "Esteban528",
+                "resourcePath": "/Esteban528",
+                "url": "https://github.com/Esteban528"
+            },
+            "authorAssociation": "NONE",
+            "body": "With what you tell me is enough, I thank you very much. That's just what I needed to know",
+            "bodyHTML": "<p dir=\"auto\">With what you tell me is enough, I thank you very much. That's just what I needed to know</p>",
+            "bodyText": "With what you tell me is enough, I thank you very much. That's just what I needed to know",
+            "createdAt": "2025-06-27T23:13:54Z",
+            "createdViaEmail": false,
+            "databaseId": 13602214,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Az42m",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-27T23:13:54Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13602214",
+            "updatedAt": "2025-06-27T23:13:55Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13602214"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                "login": "231tr0n",
+                "resourcePath": "/231tr0n",
+                "url": "https://github.com/231tr0n"
+            },
+            "authorAssociation": "NONE",
+            "body": "```lua\r\n-- Custom mini.nvim configuration\r\nnow(function()\r\n\tMiniPick.registry.git_hunks = function(local_opts)\r\n\t\tMiniExtra.pickers.git_hunks(local_opts, {\r\n\t\t\tsource = {\r\n\t\t\t\tchoose_marked = function(items_marked)\r\n\t\t\t\t\tvim.tbl_map(function(item)\r\n\t\t\t\t\t\tlocal patch = vim.deepcopy(item.header)\r\n\t\t\t\t\t\tvim.list_extend(patch, item.hunk)\r\n\t\t\t\t\t\tlocal cmd\r\n\t\t\t\t\t\tif local_opts.scope == \"staged\" then\r\n\t\t\t\t\t\t\tcmd = { \"git\", \"apply\", \"--cached\", \"--reverse\", \"-\" }\r\n\t\t\t\t\t\telse\r\n\t\t\t\t\t\t\tcmd = { \"git\", \"apply\", \"--cached\", \"-\" }\r\n\t\t\t\t\t\tend\r\n\t\t\t\t\t\tvim.system(cmd, { stdin = patch }):wait()\r\n\t\t\t\t\tend, items_marked)\r\n\t\t\t\tend,\r\n\t\t\t},\r\n\t\t})\r\n\tend\r\nend)\r\n```\r\nI came up with this snippet to stage and unstage stuff using git after taking a look at your snippet. @echasnovski any chance this action can go to mini.extra for the hunks picker? This can be made the official way to stage and unstage multiple hunks.",
+            "bodyHTML": "<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Custom mini.nvim configuration\nnow(function()\n\tMiniPick.registry.git_hunks = function(local_opts)\n\t\tMiniExtra.pickers.git_hunks(local_opts, {\n\t\t\tsource = {\n\t\t\t\tchoose_marked = function(items_marked)\n\t\t\t\t\tvim.tbl_map(function(item)\n\t\t\t\t\t\tlocal patch = vim.deepcopy(item.header)\n\t\t\t\t\t\tvim.list_extend(patch, item.hunk)\n\t\t\t\t\t\tlocal cmd\n\t\t\t\t\t\tif local_opts.scope == &quot;staged&quot; then\n\t\t\t\t\t\t\tcmd = { &quot;git&quot;, &quot;apply&quot;, &quot;--cached&quot;, &quot;--reverse&quot;, &quot;-&quot; }\n\t\t\t\t\t\telse\n\t\t\t\t\t\t\tcmd = { &quot;git&quot;, &quot;apply&quot;, &quot;--cached&quot;, &quot;-&quot; }\n\t\t\t\t\t\tend\n\t\t\t\t\t\tvim.system(cmd, { stdin = patch }):wait()\n\t\t\t\t\tend, items_marked)\n\t\t\t\tend,\n\t\t\t},\n\t\t})\n\tend\nend)\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Custom mini.nvim configuration</span>\n<span class=\"pl-c1\">now</span>(<span class=\"pl-k\">function</span>()\n\t<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">git_hunks</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>)\n\t\t<span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">git_hunks</span>(<span class=\"pl-smi\">local_opts</span>, {\n\t\t\t<span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t<span class=\"pl-en\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items_marked</span>)\n\t\t\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n\t\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">patch</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">deepcopy</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">header</span>)\n\t\t\t\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">patch</span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">hunk</span>)\n\t\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span>\n\t\t\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">scope</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>staged<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n\t\t\t\t\t\t\t<span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>apply<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--cached<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--reverse<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-<span class=\"pl-pds\">\" </span></span>}\n\t\t\t\t\t\t<span class=\"pl-k\">else</span>\n\t\t\t\t\t\t\t<span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>apply<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--cached<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-<span class=\"pl-pds\">\" </span></span>}\n\t\t\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-smi\">stdin</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">patch</span> }):<span class=\"pl-c1\">wait</span>()\n\t\t\t\t\t<span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items_marked</span>)\n\t\t\t\t<span class=\"pl-k\">end</span>,\n\t\t\t},\n\t\t})\n\t<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>)</pre></div>\n<p dir=\"auto\">I came up with this snippet to stage and unstage stuff using git after taking a look at your snippet. <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> any chance this action can go to mini.extra for the hunks picker? This can be made the official way to stage and unstage multiple hunks.</p>",
+            "bodyText": "-- Custom mini.nvim configuration\nnow(function()\n\tMiniPick.registry.git_hunks = function(local_opts)\n\t\tMiniExtra.pickers.git_hunks(local_opts, {\n\t\t\tsource = {\n\t\t\t\tchoose_marked = function(items_marked)\n\t\t\t\t\tvim.tbl_map(function(item)\n\t\t\t\t\t\tlocal patch = vim.deepcopy(item.header)\n\t\t\t\t\t\tvim.list_extend(patch, item.hunk)\n\t\t\t\t\t\tlocal cmd\n\t\t\t\t\t\tif local_opts.scope == \"staged\" then\n\t\t\t\t\t\t\tcmd = { \"git\", \"apply\", \"--cached\", \"--reverse\", \"-\" }\n\t\t\t\t\t\telse\n\t\t\t\t\t\t\tcmd = { \"git\", \"apply\", \"--cached\", \"-\" }\n\t\t\t\t\t\tend\n\t\t\t\t\t\tvim.system(cmd, { stdin = patch }):wait()\n\t\t\t\t\tend, items_marked)\n\t\t\t\tend,\n\t\t\t},\n\t\t})\n\tend\nend)\nI came up with this snippet to stage and unstage stuff using git after taking a look at your snippet. @echasnovski any chance this action can go to mini.extra for the hunks picker? This can be made the official way to stage and unstage multiple hunks.",
+            "createdAt": "2025-06-28T09:17:50Z",
+            "createdViaEmail": false,
+            "databaseId": 13603986,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                "login": "231tr0n",
+                "resourcePath": "/231tr0n",
+                "url": "https://github.com/231tr0n"
+            },
+            "id": "DC_kwDOFoksYM4Az5SS",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-06-28T09:24:12Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-06-28T09:17:50Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> @echasnovski any chance this action can go to mini.extra for the hunks picker? This can be made the official way to stage and unstage multiple hunks.\r\n\r\nAt the moment, I don't think so. The main idea behind pickers that reference file/buffer positions/regions is that their default usage should navigate to that position/region. The \"choose marked\" action is similar by placing all of them into quickfix list and allowing to navigate through them.\r\n\r\nIt *might* be considered a separate action, but I don't really think it is a good idea. There is 'mini.diff' for applying hunks (and can be used together with quickfix list approach to stage hunks, but not unstage sadly) and more comprehensive Git tools designed to integrate with it (I use and recommend Lazygit).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> any chance this action can go to mini.extra for the hunks picker? This can be made the official way to stage and unstage multiple hunks.</p>\n</blockquote>\n<p dir=\"auto\">At the moment, I don't think so. The main idea behind pickers that reference file/buffer positions/regions is that their default usage should navigate to that position/region. The \"choose marked\" action is similar by placing all of them into quickfix list and allowing to navigate through them.</p>\n<p dir=\"auto\">It <em>might</em> be considered a separate action, but I don't really think it is a good idea. There is 'mini.diff' for applying hunks (and can be used together with quickfix list approach to stage hunks, but not unstage sadly) and more comprehensive Git tools designed to integrate with it (I use and recommend Lazygit).</p>",
+                    "bodyText": "@echasnovski any chance this action can go to mini.extra for the hunks picker? This can be made the official way to stage and unstage multiple hunks.\n\nAt the moment, I don't think so. The main idea behind pickers that reference file/buffer positions/regions is that their default usage should navigate to that position/region. The \"choose marked\" action is similar by placing all of them into quickfix list and allowing to navigate through them.\nIt might be considered a separate action, but I don't really think it is a good idea. There is 'mini.diff' for applying hunks (and can be used together with quickfix list approach to stage hunks, but not unstage sadly) and more comprehensive Git tools designed to integrate with it (I use and recommend Lazygit).",
+                    "createdAt": "2025-06-28T09:38:06Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13604065,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Az5Th",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-28T09:38:06Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13603986,
+                        "id": "DC_kwDOFoksYM4Az5SS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13603986"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13604065",
+                    "updatedAt": "2025-06-28T09:38:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13604065"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13603986",
+            "updatedAt": "2025-06-28T09:24:12Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874#discussioncomment-13603986"
+        }
+    ],
+    "createdAt": "2025-06-26T02:01:57Z",
+    "createdViaEmail": false,
+    "databaseId": 8495790,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AgaKu",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1874,
+    "poll": null,
+    "publishedAt": "2025-06-26T02:01:57Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1874",
+    "stateReason": "RESOLVED",
+    "title": "[Mini.pick] git hunks - Mark as git add",
+    "updatedAt": "2025-06-28T09:38:06Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1874"
+}

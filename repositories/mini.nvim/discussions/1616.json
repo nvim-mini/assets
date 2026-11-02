@@ -1,0 +1,281 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/9512444?u=95866afb0ad92a14fff44da12bd3b1cc8c173962&v=4",
+        "login": "olimorris",
+        "resourcePath": "/olimorris",
+        "url": "https://github.com/olimorris"
+    },
+    "authorAssociation": "NONE",
+    "body": "I just wanna throw some love by the way of mini.test. I'm in the middle of a big refactor for my plugin, [CodeCompanion](https://github.com/olimorris/codecompanion.nvim). Long story short, we have a feature that allows LLMs to run tools on a user's machine. These can be lua functions or actual shell commands. I'd avoided having any real test coverage simply because it felt impossible to try and test tools that needed to leverage `plenary.job`. Sure, I could mock it but it never got close to actual real-life usage.\r\n\r\nThen I invested the time to understand about [child processes](https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md#using-child-process). My word...what they have enabled me to do is incredible. In a minimal amount of effort, I can now test the whole execution chain of a user doing a function tool call, then a command tool call and finally a function tool call. No way that was even remotely possible before this:\r\n\r\n```lua\r\nlocal h = require(\"tests.helpers\")\r\n\r\nlocal new_set = MiniTest.new_set\r\n\r\nlocal child = MiniTest.new_child_neovim()\r\nT = new_set({\r\n  hooks = {\r\n    pre_case = function()\r\n      child.restart({ \"-u\", \"scripts/minimal_init.lua\" })\r\n\r\n      -- Load helpers and set up the environment in the child process\r\n      child.lua([[\r\n        h = require('tests.helpers')\r\n        chat, agent = h.setup_chat_buffer()\r\n\r\n        -- Reset test globals\r\n        _G._test_order = nil\r\n      ]])\r\n    end,\r\n    post_case = function()\r\n      child.lua([[h.teardown_chat_buffer()]])\r\n    end,\r\n    post_once = child.stop,\r\n  },\r\n})\r\n\r\nT[\"Agent\"] = new_set()\r\nT[\"Agent\"][\"queue\"] = new_set()\r\n\r\nT[\"Agent\"][\"queue\"][\"can queue functions and commands\"] = function()\r\n  h.eq(vim.NIL, child.lua_get([[_G._test_order]]))\r\n\r\n  child.lua([[\r\n    local queue = require(\"tests.strategies.chat.agents.tools.stubs.xml.queue_xml\")\r\n    local xml = queue.run()\r\n    agent:execute(chat, xml)\r\n    vim.wait(1000)\r\n  ]])\r\n\r\n  -- Test order\r\n  h.eq(\r\n    \"Func[Setup]->Func[Success]->Func[Exit]->Cmd[Setup]->Cmd[Success]->Cmd[Exit]->Func2[Setup]->Func2[Success]->Func2[Exit]\",\r\n    child.lua_get([[_G._test_order]])\r\n  )\r\n\r\nend\r\n\r\nreturn T\r\n```",
+    "bodyHTML": "<p dir=\"auto\">I just wanna throw some love by the way of mini.test. I'm in the middle of a big refactor for my plugin, <a href=\"https://github.com/olimorris/codecompanion.nvim\">CodeCompanion</a>. Long story short, we have a feature that allows LLMs to run tools on a user's machine. These can be lua functions or actual shell commands. I'd avoided having any real test coverage simply because it felt impossible to try and test tools that needed to leverage <code class=\"notranslate\">plenary.job</code>. Sure, I could mock it but it never got close to actual real-life usage.</p>\n<p dir=\"auto\">Then I invested the time to understand about <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md#using-child-process\">child processes</a>. My word...what they have enabled me to do is incredible. In a minimal amount of effort, I can now test the whole execution chain of a user doing a function tool call, then a command tool call and finally a function tool call. No way that was even remotely possible before this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local h = require(&quot;tests.helpers&quot;)\n\nlocal new_set = MiniTest.new_set\n\nlocal child = MiniTest.new_child_neovim()\nT = new_set({\n  hooks = {\n    pre_case = function()\n      child.restart({ &quot;-u&quot;, &quot;scripts/minimal_init.lua&quot; })\n\n      -- Load helpers and set up the environment in the child process\n      child.lua([[\n        h = require('tests.helpers')\n        chat, agent = h.setup_chat_buffer()\n\n        -- Reset test globals\n        _G._test_order = nil\n      ]])\n    end,\n    post_case = function()\n      child.lua([[h.teardown_chat_buffer()]])\n    end,\n    post_once = child.stop,\n  },\n})\n\nT[&quot;Agent&quot;] = new_set()\nT[&quot;Agent&quot;][&quot;queue&quot;] = new_set()\n\nT[&quot;Agent&quot;][&quot;queue&quot;][&quot;can queue functions and commands&quot;] = function()\n  h.eq(vim.NIL, child.lua_get([[_G._test_order]]))\n\n  child.lua([[\n    local queue = require(&quot;tests.strategies.chat.agents.tools.stubs.xml.queue_xml&quot;)\n    local xml = queue.run()\n    agent:execute(chat, xml)\n    vim.wait(1000)\n  ]])\n\n  -- Test order\n  h.eq(\n    &quot;Func[Setup]-&gt;Func[Success]-&gt;Func[Exit]-&gt;Cmd[Setup]-&gt;Cmd[Success]-&gt;Cmd[Exit]-&gt;Func2[Setup]-&gt;Func2[Success]-&gt;Func2[Exit]&quot;,\n    child.lua_get([[_G._test_order]])\n  )\n\nend\n\nreturn T\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">h</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>tests.helpers<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_set</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniTest</span>.<span class=\"pl-e\">new_set</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">child</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniTest</span>.<span class=\"pl-c1\">new_child_neovim</span>()\n<span class=\"pl-smi\">T</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">new_set</span>({\n  <span class=\"pl-smi\">hooks</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-en\">pre_case</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">restart</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-u<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>scripts/minimal_init.lua<span class=\"pl-pds\">\" </span></span>})\n\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Load helpers and set up the environment in the child process</span>\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[[</span></span>\n<span class=\"pl-s\">        h = require('tests.helpers')</span>\n<span class=\"pl-s\">        chat, agent = h.setup_chat_buffer()</span>\n<span class=\"pl-s\"></span>\n<span class=\"pl-s\">        -- Reset test globals</span>\n<span class=\"pl-s\">        _G._test_order = nil</span>\n<span class=\"pl-s\">      <span class=\"pl-pds\">]]</span></span>)\n    <span class=\"pl-k\">end</span>,\n    <span class=\"pl-en\">post_case</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[[</span>h.teardown_chat_buffer()<span class=\"pl-pds\">]]</span></span>)\n    <span class=\"pl-k\">end</span>,\n    <span class=\"pl-smi\">post_once</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">child</span>.<span class=\"pl-e\">stop</span>,\n  },\n})\n\n<span class=\"pl-smi\">T</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Agent<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">new_set</span>()\n<span class=\"pl-smi\">T</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Agent<span class=\"pl-pds\">\"</span></span>][<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>queue<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">new_set</span>()\n\n<span class=\"pl-smi\">T</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Agent<span class=\"pl-pds\">\"</span></span>][<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>queue<span class=\"pl-pds\">\"</span></span>][<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>can queue functions and commands<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">h</span>.<span class=\"pl-c1\">eq</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">NIL</span>, <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[[</span>_G._test_order<span class=\"pl-pds\">]]</span></span>))\n\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[[</span></span>\n<span class=\"pl-s\">    local queue = require(\"tests.strategies.chat.agents.tools.stubs.xml.queue_xml\")</span>\n<span class=\"pl-s\">    local xml = queue.run()</span>\n<span class=\"pl-s\">    agent:execute(chat, xml)</span>\n<span class=\"pl-s\">    vim.wait(1000)</span>\n<span class=\"pl-s\">  <span class=\"pl-pds\">]]</span></span>)\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Test order</span>\n  <span class=\"pl-smi\">h</span>.<span class=\"pl-c1\">eq</span>(\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Func[Setup]-&gt;Func[Success]-&gt;Func[Exit]-&gt;Cmd[Setup]-&gt;Cmd[Success]-&gt;Cmd[Exit]-&gt;Func2[Setup]-&gt;Func2[Success]-&gt;Func2[Exit]<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[[</span>_G._test_order<span class=\"pl-pds\">]]</span></span>)\n  )\n\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">T</span></pre></div>",
+    "bodyText": "I just wanna throw some love by the way of mini.test. I'm in the middle of a big refactor for my plugin, CodeCompanion. Long story short, we have a feature that allows LLMs to run tools on a user's machine. These can be lua functions or actual shell commands. I'd avoided having any real test coverage simply because it felt impossible to try and test tools that needed to leverage plenary.job. Sure, I could mock it but it never got close to actual real-life usage.\nThen I invested the time to understand about child processes. My word...what they have enabled me to do is incredible. In a minimal amount of effort, I can now test the whole execution chain of a user doing a function tool call, then a command tool call and finally a function tool call. No way that was even remotely possible before this:\nlocal h = require(\"tests.helpers\")\n\nlocal new_set = MiniTest.new_set\n\nlocal child = MiniTest.new_child_neovim()\nT = new_set({\n  hooks = {\n    pre_case = function()\n      child.restart({ \"-u\", \"scripts/minimal_init.lua\" })\n\n      -- Load helpers and set up the environment in the child process\n      child.lua([[\n        h = require('tests.helpers')\n        chat, agent = h.setup_chat_buffer()\n\n        -- Reset test globals\n        _G._test_order = nil\n      ]])\n    end,\n    post_case = function()\n      child.lua([[h.teardown_chat_buffer()]])\n    end,\n    post_once = child.stop,\n  },\n})\n\nT[\"Agent\"] = new_set()\nT[\"Agent\"][\"queue\"] = new_set()\n\nT[\"Agent\"][\"queue\"][\"can queue functions and commands\"] = function()\n  h.eq(vim.NIL, child.lua_get([[_G._test_order]]))\n\n  child.lua([[\n    local queue = require(\"tests.strategies.chat.agents.tools.stubs.xml.queue_xml\")\n    local xml = queue.run()\n    agent:execute(chat, xml)\n    vim.wait(1000)\n  ]])\n\n  -- Test order\n  h.eq(\n    \"Func[Setup]->Func[Success]->Func[Exit]->Cmd[Setup]->Cmd[Success]->Cmd[Exit]->Func2[Setup]->Func2[Success]->Func2[Exit]\",\n    child.lua_get([[_G._test_order]])\n  )\n\nend\n\nreturn T",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the kind words! 'mini.test' also ❤️ you for using it and writing tests for Neovim plugins :)\r\n\r\nAside from clean setup for any test case, one of the biggest test improvements from 'mini.test' child process for me was the ability to use screenshots. It is truly invaluable way of testing a visual side of things which is usually hard/verbose/brittle to do otherwise: extmarks with highlights or virtual text, gutter content, floating windows position/border/title/etc, and more.\r\n\r\nI'd also point out that overall idea of using child process and screenshots is not novel to 'mini.test': Neovim itself uses similar concept and it was the starting point for making a more user-friendly and robust version for plugin authors.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the kind words! 'mini.test' also ❤️ you for using it and writing tests for Neovim plugins :)</p>\n<p dir=\"auto\">Aside from clean setup for any test case, one of the biggest test improvements from 'mini.test' child process for me was the ability to use screenshots. It is truly invaluable way of testing a visual side of things which is usually hard/verbose/brittle to do otherwise: extmarks with highlights or virtual text, gutter content, floating windows position/border/title/etc, and more.</p>\n<p dir=\"auto\">I'd also point out that overall idea of using child process and screenshots is not novel to 'mini.test': Neovim itself uses similar concept and it was the starting point for making a more user-friendly and robust version for plugin authors.</p>",
+            "bodyText": "Thanks for the kind words! 'mini.test' also ❤️ you for using it and writing tests for Neovim plugins :)\nAside from clean setup for any test case, one of the biggest test improvements from 'mini.test' child process for me was the ability to use screenshots. It is truly invaluable way of testing a visual side of things which is usually hard/verbose/brittle to do otherwise: extmarks with highlights or virtual text, gutter content, floating windows position/border/title/etc, and more.\nI'd also point out that overall idea of using child process and screenshots is not novel to 'mini.test': Neovim itself uses similar concept and it was the starting point for making a more user-friendly and robust version for plugin authors.",
+            "createdAt": "2025-02-26T09:06:48Z",
+            "createdViaEmail": false,
+            "databaseId": 12322994,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AvAiy",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-02-26T09:06:48Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/9512444?u=95866afb0ad92a14fff44da12bd3b1cc8c173962&v=4",
+                        "login": "olimorris",
+                        "resourcePath": "/olimorris",
+                        "url": "https://github.com/olimorris"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I can't wait to start exploring screenshots.  The other thing I should have pointed out is how great it is to do `<localleader>tn` to run the nearest case. That coupled with child processes gives such a neat workflow.",
+                    "bodyHTML": "<p dir=\"auto\">I can't wait to start exploring screenshots.  The other thing I should have pointed out is how great it is to do <code class=\"notranslate\">&lt;localleader&gt;tn</code> to run the nearest case. That coupled with child processes gives such a neat workflow.</p>",
+                    "bodyText": "I can't wait to start exploring screenshots.  The other thing I should have pointed out is how great it is to do <localleader>tn to run the nearest case. That coupled with child processes gives such a neat workflow.",
+                    "createdAt": "2025-02-26T10:40:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12324136,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AvA0o",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-26T10:40:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12322994,
+                        "id": "DC_kwDOFoksYM4AvAiy",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1616#discussioncomment-12322994"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1616#discussioncomment-12324136",
+                    "updatedAt": "2025-02-26T10:40:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1616#discussioncomment-12324136"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1616#discussioncomment-12322994",
+            "updatedAt": "2025-02-26T09:06:49Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1616#discussioncomment-12322994"
+        }
+    ],
+    "createdAt": "2025-02-25T23:27:52Z",
+    "createdViaEmail": false,
+    "databaseId": 8013623,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/9512444?u=95866afb0ad92a14fff44da12bd3b1cc8c173962&v=4",
+        "login": "olimorris",
+        "resourcePath": "/olimorris",
+        "url": "https://github.com/olimorris"
+    },
+    "id": "D_kwDOFoksYM4Aekc3",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7_iXcP",
+                "name": "mini.test"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-02-25T23:28:02Z",
+    "locked": false,
+    "number": 1616,
+    "poll": null,
+    "publishedAt": "2025-02-25T23:27:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1616",
+    "stateReason": null,
+    "title": "I ❤️ mini.test",
+    "updatedAt": "2025-02-26T10:40:30Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1616"
+}

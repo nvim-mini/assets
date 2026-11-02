@@ -1,0 +1,192 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/31811?u=d1bf6b46223407d4a5cfec666957196121a836fc&v=4",
+        "login": "tigion",
+        "resourcePath": "/tigion",
+        "url": "https://github.com/tigion"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi!\r\n\r\nMy goal is to be able to use inline text for `rgb()`, `rgba()` and `#000` like the existing `hex_color()`.\r\n\r\nIs the following method the preferred way to use inline text for custom highlighting?\r\n\r\n<img width=\"300\" alt=\"Bildschirmfoto 2024-07-07 um 14 47 50\" src=\"https://github.com/echasnovski/mini.nvim/assets/31811/fa7a5af0-4fc0-496d-9c33-f89d24469398\">\r\n\r\nMy configuration for mini.hipatterns:\r\n```lua\r\nreturn {\r\n  'echasnovski/mini.hipatterns',\r\n  enabled = true,\r\n  version = false,\r\n  opts = {},\r\n  config = function(_, opts)\r\n    require('mini.hipatterns').setup(opts)\r\n\r\n    local hipatterns = require('mini.hipatterns')\r\n\r\n    -- Returns hex color group for matching short hex color.\r\n    --\r\n    ---@param match string\r\n    ---@return string\r\n    local hex_color_short = function(_, match)\r\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\r\n      local r, g, b = match:sub(2, 2), match:sub(3, 3), match:sub(4, 4)\r\n      local hex = string.format('#%s%s%s%s%s%s', r, r, g, g, b, b)\r\n      return hipatterns.compute_hex_color_group(hex, style)\r\n    end\r\n\r\n    -- Returns hex color group for matching rgb() color.\r\n    --\r\n    ---@param match string\r\n    ---@return string\r\n    local rgb_color = function(_, match)\r\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\r\n      local red, green, blue = match:match('rgb%((%d+), ?(%d+), ?(%d+)%)')\r\n      local hex = string.format('#%02x%02x%02x', red, green, blue)\r\n      return hipatterns.compute_hex_color_group(hex, style)\r\n    end\r\n\r\n    -- Returns hex color group for matching rgba() color\r\n    -- or false if alpha is nil or out of range.\r\n    -- The use of the alpha value refers to a black background.\r\n    --\r\n    ---@param match string\r\n    ---@return string|false\r\n    local rgba_color = function(_, match)\r\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\r\n      local red, green, blue, alpha = match:match('rgba%((%d+), ?(%d+), ?(%d+), ?(%d*%.?%d*)%)')\r\n      alpha = tonumber(alpha)\r\n      if alpha == nil or alpha < 0 or alpha > 1 then return false end\r\n      local hex = string.format('#%02x%02x%02x', red * alpha, green * alpha, blue * alpha)\r\n      return hipatterns.compute_hex_color_group(hex, style)\r\n    end\r\n\r\n    -- Returns extmark opts for highlights with virtual inline text.\r\n    --\r\n    ---@param data table Includes `hl_group`, `full_match` and more.\r\n    ---@return table\r\n    local extmark_opts_inline = function(_, _, data)\r\n      return {\r\n        virt_text = { { '', data.hl_group } },\r\n        virt_text_pos = 'inline',\r\n        -- priority = 200,\r\n        right_gravity = false,\r\n      }\r\n    end\r\n\r\n    hipatterns.setup({\r\n      highlighters = {\r\n        -- `#rrggbb`\r\n        -- hex_color = hipatterns.gen_highlighter.hex_color({ style = 'full' }),\r\n        hex_color = hipatterns.gen_highlighter.hex_color({ style = 'inline', inline_text = '' }),\r\n        -- `#rgb`\r\n        hex_color_short = { pattern = '#%x%x%x%f[%X]', group = hex_color_short, extmark_opts = extmark_opts_inline },\r\n        -- `rgb(255, 255, 255)`\r\n        rgb_color = { pattern = 'rgb%(%d+, ?%d+, ?%d+%)', group = rgb_color, extmark_opts = extmark_opts_inline },\r\n        -- `rgba(255, 255, 255, 0.5)`\r\n        rgba_color = {\r\n          pattern = 'rgba%(%d+, ?%d+, ?%d+, ?%d*%.?%d*%)',\r\n          group = rgba_color,\r\n          extmark_opts = extmark_opts_inline,\r\n        },\r\n      },\r\n    })\r\n  end,\r\n}\r\n\r\n```\r\n\r\nThanks for feedback",
+    "bodyHTML": "<p dir=\"auto\">Hi!</p>\n<p dir=\"auto\">My goal is to be able to use inline text for <code class=\"notranslate\">rgb()</code>, <code class=\"notranslate\">rgba()</code> and <code class=\"notranslate\">#000</code> like the existing <code class=\"notranslate\">hex_color()</code>.</p>\n<p dir=\"auto\">Is the following method the preferred way to use inline text for custom highlighting?</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/31811/346336138-fa7a5af0-4fc0-496d-9c33-f89d24469398.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0NTIsIm5iZiI6MTc5MzU1MzE1MiwicGF0aCI6Ii8zMTgxMS8zNDYzMzYxMzgtZmE3YTVhZjAtNGZjMC00OTZkLTljMzMtZjg5ZDI0NDY5Mzk4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTIzMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTQ1ZjkwNGZkZDIzYjg0ZGU0YTNkMDJkMDc5MWU4ODM4NTk1YWRhMTA5YTAyOTQ1MWY2YzczNDZhY2E5Yzc3NGEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.UEaMX4OINycfYobKUUDKt83BBaAeA3dJ8LCXoZWQSo8\"><img width=\"300\" alt=\"Bildschirmfoto 2024-07-07 um 14 47 50\" src=\"https://private-user-images.githubusercontent.com/31811/346336138-fa7a5af0-4fc0-496d-9c33-f89d24469398.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0NTIsIm5iZiI6MTc5MzU1MzE1MiwicGF0aCI6Ii8zMTgxMS8zNDYzMzYxMzgtZmE3YTVhZjAtNGZjMC00OTZkLTljMzMtZjg5ZDI0NDY5Mzk4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTIzMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTQ1ZjkwNGZkZDIzYjg0ZGU0YTNkMDJkMDc5MWU4ODM4NTk1YWRhMTA5YTAyOTQ1MWY2YzczNDZhY2E5Yzc3NGEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.UEaMX4OINycfYobKUUDKt83BBaAeA3dJ8LCXoZWQSo8\" style=\"max-width: 100%;\"></a>\n<p dir=\"auto\">My configuration for mini.hipatterns:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"return {\n  'echasnovski/mini.hipatterns',\n  enabled = true,\n  version = false,\n  opts = {},\n  config = function(_, opts)\n    require('mini.hipatterns').setup(opts)\n\n    local hipatterns = require('mini.hipatterns')\n\n    -- Returns hex color group for matching short hex color.\n    --\n    ---@param match string\n    ---@return string\n    local hex_color_short = function(_, match)\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\n      local r, g, b = match:sub(2, 2), match:sub(3, 3), match:sub(4, 4)\n      local hex = string.format('#%s%s%s%s%s%s', r, r, g, g, b, b)\n      return hipatterns.compute_hex_color_group(hex, style)\n    end\n\n    -- Returns hex color group for matching rgb() color.\n    --\n    ---@param match string\n    ---@return string\n    local rgb_color = function(_, match)\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\n      local red, green, blue = match:match('rgb%((%d+), ?(%d+), ?(%d+)%)')\n      local hex = string.format('#%02x%02x%02x', red, green, blue)\n      return hipatterns.compute_hex_color_group(hex, style)\n    end\n\n    -- Returns hex color group for matching rgba() color\n    -- or false if alpha is nil or out of range.\n    -- The use of the alpha value refers to a black background.\n    --\n    ---@param match string\n    ---@return string|false\n    local rgba_color = function(_, match)\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\n      local red, green, blue, alpha = match:match('rgba%((%d+), ?(%d+), ?(%d+), ?(%d*%.?%d*)%)')\n      alpha = tonumber(alpha)\n      if alpha == nil or alpha &lt; 0 or alpha &gt; 1 then return false end\n      local hex = string.format('#%02x%02x%02x', red * alpha, green * alpha, blue * alpha)\n      return hipatterns.compute_hex_color_group(hex, style)\n    end\n\n    -- Returns extmark opts for highlights with virtual inline text.\n    --\n    ---@param data table Includes `hl_group`, `full_match` and more.\n    ---@return table\n    local extmark_opts_inline = function(_, _, data)\n      return {\n        virt_text = { { '', data.hl_group } },\n        virt_text_pos = 'inline',\n        -- priority = 200,\n        right_gravity = false,\n      }\n    end\n\n    hipatterns.setup({\n      highlighters = {\n        -- `#rrggbb`\n        -- hex_color = hipatterns.gen_highlighter.hex_color({ style = 'full' }),\n        hex_color = hipatterns.gen_highlighter.hex_color({ style = 'inline', inline_text = '' }),\n        -- `#rgb`\n        hex_color_short = { pattern = '#%x%x%x%f[%X]', group = hex_color_short, extmark_opts = extmark_opts_inline },\n        -- `rgb(255, 255, 255)`\n        rgb_color = { pattern = 'rgb%(%d+, ?%d+, ?%d+%)', group = rgb_color, extmark_opts = extmark_opts_inline },\n        -- `rgba(255, 255, 255, 0.5)`\n        rgba_color = {\n          pattern = 'rgba%(%d+, ?%d+, ?%d+, ?%d*%.?%d*%)',\n          group = rgba_color,\n          extmark_opts = extmark_opts_inline,\n        },\n      },\n    })\n  end,\n}\n\"><pre class=\"notranslate\"><span class=\"pl-k\">return</span> {\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>echasnovski/mini.hipatterns<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-smi\">enabled</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n  <span class=\"pl-smi\">version</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {},\n  <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.hipatterns<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hipatterns</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.hipatterns<span class=\"pl-pds\">'</span></span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Returns hex color group for matching short hex color.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">match</span> <span class=\"pl-c1\">string</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">string</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">hex_color_short</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">match</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">style</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>fg<span class=\"pl-pds\">' </span></span><span class=\"pl-c\"><span class=\"pl-c\">--</span> 'fg' or 'bg', for extmark_opts_inline use 'fg'</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">r</span>, <span class=\"pl-smi\">g</span>, <span class=\"pl-smi\">b</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">match</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">2</span>, <span class=\"pl-c1\">2</span>), <span class=\"pl-en\">match</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">3</span>, <span class=\"pl-c1\">3</span>), <span class=\"pl-en\">match</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">4</span>, <span class=\"pl-c1\">4</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hex</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>#%s%s%s%s%s%s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">r</span>, <span class=\"pl-smi\">r</span>, <span class=\"pl-smi\">g</span>, <span class=\"pl-smi\">g</span>, <span class=\"pl-smi\">b</span>, <span class=\"pl-smi\">b</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">hipatterns</span>.<span class=\"pl-c1\">compute_hex_color_group</span>(<span class=\"pl-smi\">hex</span>, <span class=\"pl-smi\">style</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Returns hex color group for matching rgb() color.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">match</span> <span class=\"pl-c1\">string</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">string</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">rgb_color</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">match</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">style</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>fg<span class=\"pl-pds\">' </span></span><span class=\"pl-c\"><span class=\"pl-c\">--</span> 'fg' or 'bg', for extmark_opts_inline use 'fg'</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">red</span>, <span class=\"pl-smi\">green</span>, <span class=\"pl-smi\">blue</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">match</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>rgb%((%d+), ?(%d+), ?(%d+)%)<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hex</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>#%02x%02x%02x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">red</span>, <span class=\"pl-smi\">green</span>, <span class=\"pl-smi\">blue</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">hipatterns</span>.<span class=\"pl-c1\">compute_hex_color_group</span>(<span class=\"pl-smi\">hex</span>, <span class=\"pl-smi\">style</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Returns hex color group for matching rgba() color</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> or false if alpha is nil or out of range.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> The use of the alpha value refers to a black background.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">match</span> <span class=\"pl-c1\">string</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">string</span><span class=\"pl-k\">|</span><span class=\"pl-c1\">false</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">rgba_color</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">match</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">style</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>fg<span class=\"pl-pds\">' </span></span><span class=\"pl-c\"><span class=\"pl-c\">--</span> 'fg' or 'bg', for extmark_opts_inline use 'fg'</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">red</span>, <span class=\"pl-smi\">green</span>, <span class=\"pl-smi\">blue</span>, <span class=\"pl-smi\">alpha</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">match</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>rgba%((%d+), ?(%d+), ?(%d+), ?(%d*%.?%d*)%)<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-smi\">alpha</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">tonumber</span>(<span class=\"pl-smi\">alpha</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">alpha</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">alpha</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">alpha</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hex</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>#%02x%02x%02x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">red</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">alpha</span>, <span class=\"pl-smi\">green</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">alpha</span>, <span class=\"pl-smi\">blue</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">alpha</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">hipatterns</span>.<span class=\"pl-c1\">compute_hex_color_group</span>(<span class=\"pl-smi\">hex</span>, <span class=\"pl-smi\">style</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Returns extmark opts for highlights with virtual inline text.</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">data</span> <span class=\"pl-c1\">table Includes </span><span class=\"pl-s\"><span class=\"pl-pds\">`</span>hl_group<span class=\"pl-pds\">`</span></span><span class=\"pl-k\">, `</span><span class=\"pl-c1\">full_match</span><span class=\"pl-s\"><span class=\"pl-pds\">`</span> and more.</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">table</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">extmark_opts_inline</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">data</span>)\n      <span class=\"pl-k\">return</span> {\n        <span class=\"pl-smi\">virt_text</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">hl_group</span> } },\n        <span class=\"pl-smi\">virt_text_pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>inline<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> priority = 200,</span>\n        <span class=\"pl-smi\">right_gravity</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n      }\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-smi\">hipatterns</span>.<span class=\"pl-c1\">setup</span>({\n      <span class=\"pl-smi\">highlighters</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> `#rrggbb`</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> hex_color = hipatterns.gen_highlighter.hex_color({ style = 'full' }),</span>\n        <span class=\"pl-smi\">hex_color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hipatterns</span>.<span class=\"pl-e\">gen_highlighter</span>.<span class=\"pl-c1\">hex_color</span>({ <span class=\"pl-smi\">style</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>inline<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">inline_text</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span>}),\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> `#rgb`</span>\n        <span class=\"pl-smi\">hex_color_short</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>#%x%x%x%f[%X]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hex_color_short</span>, <span class=\"pl-smi\">extmark_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">extmark_opts_inline</span> },\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> `rgb(255, 255, 255)`</span>\n        <span class=\"pl-smi\">rgb_color</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>rgb%(%d+, ?%d+, ?%d+%)<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">rgb_color</span>, <span class=\"pl-smi\">extmark_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">extmark_opts_inline</span> },\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> `rgba(255, 255, 255, 0.5)`</span>\n        <span class=\"pl-smi\">rgba_color</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>rgba%(%d+, ?%d+, ?%d+, ?%d*%.?%d*%)<span class=\"pl-pds\">'</span></span>,\n          <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">rgba_color</span>,\n          <span class=\"pl-smi\">extmark_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">extmark_opts_inline</span>,\n        },\n      },\n    })\n  <span class=\"pl-k\">end</span>,\n}\n</pre></div>\n<p dir=\"auto\">Thanks for feedback</p>",
+    "bodyText": "Hi!\nMy goal is to be able to use inline text for rgb(), rgba() and #000 like the existing hex_color().\nIs the following method the preferred way to use inline text for custom highlighting?\n\nMy configuration for mini.hipatterns:\nreturn {\n  'echasnovski/mini.hipatterns',\n  enabled = true,\n  version = false,\n  opts = {},\n  config = function(_, opts)\n    require('mini.hipatterns').setup(opts)\n\n    local hipatterns = require('mini.hipatterns')\n\n    -- Returns hex color group for matching short hex color.\n    --\n    ---@param match string\n    ---@return string\n    local hex_color_short = function(_, match)\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\n      local r, g, b = match:sub(2, 2), match:sub(3, 3), match:sub(4, 4)\n      local hex = string.format('#%s%s%s%s%s%s', r, r, g, g, b, b)\n      return hipatterns.compute_hex_color_group(hex, style)\n    end\n\n    -- Returns hex color group for matching rgb() color.\n    --\n    ---@param match string\n    ---@return string\n    local rgb_color = function(_, match)\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\n      local red, green, blue = match:match('rgb%((%d+), ?(%d+), ?(%d+)%)')\n      local hex = string.format('#%02x%02x%02x', red, green, blue)\n      return hipatterns.compute_hex_color_group(hex, style)\n    end\n\n    -- Returns hex color group for matching rgba() color\n    -- or false if alpha is nil or out of range.\n    -- The use of the alpha value refers to a black background.\n    --\n    ---@param match string\n    ---@return string|false\n    local rgba_color = function(_, match)\n      local style = 'fg' -- 'fg' or 'bg', for extmark_opts_inline use 'fg'\n      local red, green, blue, alpha = match:match('rgba%((%d+), ?(%d+), ?(%d+), ?(%d*%.?%d*)%)')\n      alpha = tonumber(alpha)\n      if alpha == nil or alpha < 0 or alpha > 1 then return false end\n      local hex = string.format('#%02x%02x%02x', red * alpha, green * alpha, blue * alpha)\n      return hipatterns.compute_hex_color_group(hex, style)\n    end\n\n    -- Returns extmark opts for highlights with virtual inline text.\n    --\n    ---@param data table Includes `hl_group`, `full_match` and more.\n    ---@return table\n    local extmark_opts_inline = function(_, _, data)\n      return {\n        virt_text = { { '', data.hl_group } },\n        virt_text_pos = 'inline',\n        -- priority = 200,\n        right_gravity = false,\n      }\n    end\n\n    hipatterns.setup({\n      highlighters = {\n        -- `#rrggbb`\n        -- hex_color = hipatterns.gen_highlighter.hex_color({ style = 'full' }),\n        hex_color = hipatterns.gen_highlighter.hex_color({ style = 'inline', inline_text = '' }),\n        -- `#rgb`\n        hex_color_short = { pattern = '#%x%x%x%f[%X]', group = hex_color_short, extmark_opts = extmark_opts_inline },\n        -- `rgb(255, 255, 255)`\n        rgb_color = { pattern = 'rgb%(%d+, ?%d+, ?%d+%)', group = rgb_color, extmark_opts = extmark_opts_inline },\n        -- `rgba(255, 255, 255, 0.5)`\n        rgba_color = {\n          pattern = 'rgba%(%d+, ?%d+, ?%d+, ?%d*%.?%d*%)',\n          group = rgba_color,\n          extmark_opts = extmark_opts_inline,\n        },\n      },\n    })\n  end,\n}\n\nThanks for feedback",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-07-07T13:08:29Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hi!\r\n\r\nI couldn't find any obvious issues with it after skimming through. If it works for you, then it is good enough :)",
+            "bodyHTML": "<p dir=\"auto\">Hi!</p>\n<p dir=\"auto\">I couldn't find any obvious issues with it after skimming through. If it works for you, then it is good enough :)</p>",
+            "bodyText": "Hi!\nI couldn't find any obvious issues with it after skimming through. If it works for you, then it is good enough :)",
+            "createdAt": "2024-07-07T13:08:29Z",
+            "createdViaEmail": false,
+            "databaseId": 9979315,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AmEWz",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-07T13:08:29Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1024#discussioncomment-9979315",
+            "updatedAt": "2024-07-07T13:08:29Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1024#discussioncomment-9979315"
+        }
+    ],
+    "createdAt": "2024-07-07T13:01:56Z",
+    "createdViaEmail": false,
+    "databaseId": 6905706,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AaV9q",
+    "includesCreatedEdit": false,
+    "isAnswered": false,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABSnqSzg",
+                "name": "mini.hipatterns"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1024,
+    "poll": null,
+    "publishedAt": "2024-07-07T13:01:56Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1024",
+    "stateReason": "RESOLVED",
+    "title": "[mini.hipatterns] Question about the use of virtual inline text for custom highlights like hex_color()",
+    "updatedAt": "2024-07-07T13:08:29Z",
+    "upvoteCount": 7,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1024"
+}

@@ -1,0 +1,282 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/3194436?u=9e321d33a6301038b6a68fcb3d2386612a287688&v=4",
+        "login": "shuber2",
+        "resourcePath": "/shuber2",
+        "url": "https://github.com/shuber2"
+    },
+    "authorAssociation": "NONE",
+    "body": "I have published the package [mini-snippets-mutt.nvim](https://github.com/shuber2/mini-snippets-mutt.nvim), which are Lua-based snippets from mutt configurations for **signatures** and **from-addresses**.",
+    "bodyHTML": "<p dir=\"auto\">I have published the package <a href=\"https://github.com/shuber2/mini-snippets-mutt.nvim\">mini-snippets-mutt.nvim</a>, which are Lua-based snippets from mutt configurations for <strong>signatures</strong> and <strong>from-addresses</strong>.</p>",
+    "bodyText": "I have published the package mini-snippets-mutt.nvim, which are Lua-based snippets from mutt configurations for signatures and from-addresses.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing! I am glad that a bit advanced loading capabilities of 'mini.snippets' is put to good use.\r\n\r\nI'd personally rewrite the 'snippets/mail/mutt.lua' file to reduce the nesting. Something like this, maybe:\r\n\r\n<details><summary>Rewrite of 'snippets/mail/mutt.lua'</summary>\r\n\r\n```lua\r\nlocal config = require(\"mini-snippets-mutt\").config\r\nlocal snippets = {}\r\n\r\n-- Signature snippets\r\nlocal read_signature_file = function(file)\r\n    local filename = vim.fn.fnamemodify(file, \":t:r\")\r\n    local body = vim.fn.readfile(file)\r\n    snippets[filename] = {\r\n        prefix = \"sig-\" .. filename,\r\n        body = config.signature_prefix .. table.concat(body, \"\\n\"),\r\n    }\r\nend\r\n\r\nfor _, pattern in ipairs(config.signature_files) do\r\n    for _, file in ipairs(vim.fn.glob(pattern, false, true)) do\r\n        read_signature_file(file)\r\n    end\r\nend\r\n\r\n-- From address snippets\r\nlocal read_address_line = function(line)\r\n    if not line:match(\"^set from\") then return end\r\n    local from = line:match('^set from%s*=%s*\"(.*)\"')\r\n    if not from then return end\r\n    local domain = from:match(\"@(.*)>\")\r\n    if not domain then return end\r\n    snippets[\"from-\" .. domain] = { prefix = \"from-\" .. domain, body = from }\r\nend\r\n\r\nfor _, pattern in ipairs(config.muttrc_files) do\r\n    for _, file in ipairs(vim.fn.glob(pattern, false, true)) do\r\n        for _, line in ipairs(vim.fn.readfile(file)) do\r\n            read_address_line(line)\r\n        end\r\n    end\r\nend\r\n\r\nreturn snippets\r\n```\r\n\r\n</details>",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing! I am glad that a bit advanced loading capabilities of 'mini.snippets' is put to good use.</p>\n<p dir=\"auto\">I'd personally rewrite the 'snippets/mail/mutt.lua' file to reduce the nesting. Something like this, maybe:</p>\n<details><summary>Rewrite of 'snippets/mail/mutt.lua'</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local config = require(&quot;mini-snippets-mutt&quot;).config\nlocal snippets = {}\n\n-- Signature snippets\nlocal read_signature_file = function(file)\n    local filename = vim.fn.fnamemodify(file, &quot;:t:r&quot;)\n    local body = vim.fn.readfile(file)\n    snippets[filename] = {\n        prefix = &quot;sig-&quot; .. filename,\n        body = config.signature_prefix .. table.concat(body, &quot;\\n&quot;),\n    }\nend\n\nfor _, pattern in ipairs(config.signature_files) do\n    for _, file in ipairs(vim.fn.glob(pattern, false, true)) do\n        read_signature_file(file)\n    end\nend\n\n-- From address snippets\nlocal read_address_line = function(line)\n    if not line:match(&quot;^set from&quot;) then return end\n    local from = line:match('^set from%s*=%s*&quot;(.*)&quot;')\n    if not from then return end\n    local domain = from:match(&quot;@(.*)&gt;&quot;)\n    if not domain then return end\n    snippets[&quot;from-&quot; .. domain] = { prefix = &quot;from-&quot; .. domain, body = from }\nend\n\nfor _, pattern in ipairs(config.muttrc_files) do\n    for _, file in ipairs(vim.fn.glob(pattern, false, true)) do\n        for _, line in ipairs(vim.fn.readfile(file)) do\n            read_address_line(line)\n        end\n    end\nend\n\nreturn snippets\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini-snippets-mutt<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">config</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">snippets</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Signature snippets</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">read_signature_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">file</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">filename</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">file</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:t:r<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">readfile</span>(<span class=\"pl-smi\">file</span>)\n    <span class=\"pl-smi\">snippets</span>[<span class=\"pl-smi\">filename</span>] <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>sig-<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">filename</span>,\n        <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">config</span>.<span class=\"pl-e\">signature_prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">body</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>),\n    }\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">config</span>.<span class=\"pl-e\">signature_files</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">file</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">glob</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)) <span class=\"pl-k\">do</span>\n        <span class=\"pl-c1\">read_signature_file</span>(<span class=\"pl-smi\">file</span>)\n    <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> From address snippets</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">read_address_line</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">line</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^set from<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^set from%s*=%s*\"(.*)\"<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">from</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">domain</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">from</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@(.*)&gt;<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">domain</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">snippets</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>from-<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">domain</span>] <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>from-<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">domain</span>, <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">from</span> }\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">config</span>.<span class=\"pl-e\">muttrc_files</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">file</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">glob</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">line</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">readfile</span>(<span class=\"pl-smi\">file</span>)) <span class=\"pl-k\">do</span>\n            <span class=\"pl-c1\">read_address_line</span>(<span class=\"pl-smi\">line</span>)\n        <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">snippets</span></pre></div>\n</details>",
+            "bodyText": "Thanks for sharing! I am glad that a bit advanced loading capabilities of 'mini.snippets' is put to good use.\nI'd personally rewrite the 'snippets/mail/mutt.lua' file to reduce the nesting. Something like this, maybe:\nRewrite of 'snippets/mail/mutt.lua'\nlocal config = require(\"mini-snippets-mutt\").config\nlocal snippets = {}\n\n-- Signature snippets\nlocal read_signature_file = function(file)\n    local filename = vim.fn.fnamemodify(file, \":t:r\")\n    local body = vim.fn.readfile(file)\n    snippets[filename] = {\n        prefix = \"sig-\" .. filename,\n        body = config.signature_prefix .. table.concat(body, \"\\n\"),\n    }\nend\n\nfor _, pattern in ipairs(config.signature_files) do\n    for _, file in ipairs(vim.fn.glob(pattern, false, true)) do\n        read_signature_file(file)\n    end\nend\n\n-- From address snippets\nlocal read_address_line = function(line)\n    if not line:match(\"^set from\") then return end\n    local from = line:match('^set from%s*=%s*\"(.*)\"')\n    if not from then return end\n    local domain = from:match(\"@(.*)>\")\n    if not domain then return end\n    snippets[\"from-\" .. domain] = { prefix = \"from-\" .. domain, body = from }\nend\n\nfor _, pattern in ipairs(config.muttrc_files) do\n    for _, file in ipairs(vim.fn.glob(pattern, false, true)) do\n        for _, line in ipairs(vim.fn.readfile(file)) do\n            read_address_line(line)\n        end\n    end\nend\n\nreturn snippets",
+            "createdAt": "2025-04-26T14:31:36Z",
+            "createdViaEmail": false,
+            "databaseId": 12955419,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Axa8b",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-26T14:31:36Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/3194436?u=9e321d33a6301038b6a68fcb3d2386612a287688&v=4",
+                        "login": "shuber2",
+                        "resourcePath": "/shuber2",
+                        "url": "https://github.com/shuber2"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks very much, I agree! Pushed a commit.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks very much, I agree! Pushed a commit.</p>",
+                    "bodyText": "Thanks very much, I agree! Pushed a commit.",
+                    "createdAt": "2025-04-26T18:23:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12956428,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxbMM",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-26T18:23:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12955419,
+                        "id": "DC_kwDOFoksYM4Axa8b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1763#discussioncomment-12955419"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1763#discussioncomment-12956428",
+                    "updatedAt": "2025-04-26T18:23:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1763#discussioncomment-12956428"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1763#discussioncomment-12955419",
+            "updatedAt": "2025-04-26T14:31:37Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1763#discussioncomment-12955419"
+        }
+    ],
+    "createdAt": "2025-04-26T14:19:11Z",
+    "createdViaEmail": false,
+    "databaseId": 8246479,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AfdTP",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1763,
+    "poll": null,
+    "publishedAt": "2025-04-26T14:19:11Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1763",
+    "stateReason": null,
+    "title": "Lua-based snippets from mutt configurations",
+    "updatedAt": "2025-04-26T18:23:59Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1763"
+}

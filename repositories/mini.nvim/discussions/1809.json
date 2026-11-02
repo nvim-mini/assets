@@ -1,0 +1,458 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13233336,
+        "id": "DC_kwDOFoksYM4Ayey4",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13233336"
+    },
+    "answerChosenAt": "2025-05-22T11:09:13Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/29566235?v=4",
+        "login": "FrancescoDeSimone",
+        "resourcePath": "/FrancescoDeSimone",
+        "url": "https://github.com/FrancescoDeSimone"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.clue\n\n### Question\n\nHi, I am trying to recreate the same behavior I got with folke/which-key of mapping Ctrl-r + Ctrl-w when I open a picker (Snacks.picker or Telescope). I want to be able to paste into the buffer whatever is under the cursor (which is the default behavior of n/vim in command mode). Which-key somehow configured this by default also in the picker input, but I can’t find any example configuration for clue.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.clue</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Hi, I am trying to recreate the same behavior I got with folke/which-key of mapping Ctrl-r + Ctrl-w when I open a picker (Snacks.picker or Telescope). I want to be able to paste into the buffer whatever is under the cursor (which is the default behavior of n/vim in command mode). Which-key somehow configured this by default also in the picker input, but I can’t find any example configuration for clue.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.clue\nQuestion\nHi, I am trying to recreate the same behavior I got with folke/which-key of mapping Ctrl-r + Ctrl-w when I open a picker (Snacks.picker or Telescope). I want to be able to paste into the buffer whatever is under the cursor (which is the default behavior of n/vim in command mode). Which-key somehow configured this by default also in the picker input, but I can’t find any example configuration for clue.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-05-22T11:09:11Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Unfortunately, currently in 'mini.pick' there is no way to use `<C-w>` as the register after `<C-r>`. The best approximation is to manually populate `w` register after every picker start. Something like this:\r\n\r\n```lua\r\nlocal populate_registers = function()\r\n  local win_id = MiniPick.get_picker_state().windows.target\r\n  vim.api.nvim_win_call(win_id, function() vim.fn.setreg('w', vim.fn.expand('<cword>')) end)\r\nend\r\nvim.api.nvim_create_autocmd('User', { pattern = 'MiniPickStart', callback = populate_registers })\r\n```\r\n\r\nThen typing `<C-r>w` will insert \"word under cursor\" from the target window.\r\n\r\nI think support of various `<C-r><C-xxx>` is an interesting idea to add to 'mini.pick'. I'll take a look.",
+            "bodyHTML": "<p dir=\"auto\">Unfortunately, currently in 'mini.pick' there is no way to use <code class=\"notranslate\">&lt;C-w&gt;</code> as the register after <code class=\"notranslate\">&lt;C-r&gt;</code>. The best approximation is to manually populate <code class=\"notranslate\">w</code> register after every picker start. Something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local populate_registers = function()\n  local win_id = MiniPick.get_picker_state().windows.target\n  vim.api.nvim_win_call(win_id, function() vim.fn.setreg('w', vim.fn.expand('&lt;cword&gt;')) end)\nend\nvim.api.nvim_create_autocmd('User', { pattern = 'MiniPickStart', callback = populate_registers })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">populate_registers</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">target</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_call</span>(<span class=\"pl-smi\">win_id</span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">setreg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>w<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;cword&gt;<span class=\"pl-pds\">'</span></span>)) <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniPickStart<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">populate_registers</span> })</pre></div>\n<p dir=\"auto\">Then typing <code class=\"notranslate\">&lt;C-r&gt;w</code> will insert \"word under cursor\" from the target window.</p>\n<p dir=\"auto\">I think support of various <code class=\"notranslate\">&lt;C-r&gt;&lt;C-xxx&gt;</code> is an interesting idea to add to 'mini.pick'. I'll take a look.</p>",
+            "bodyText": "Unfortunately, currently in 'mini.pick' there is no way to use <C-w> as the register after <C-r>. The best approximation is to manually populate w register after every picker start. Something like this:\nlocal populate_registers = function()\n  local win_id = MiniPick.get_picker_state().windows.target\n  vim.api.nvim_win_call(win_id, function() vim.fn.setreg('w', vim.fn.expand('<cword>')) end)\nend\nvim.api.nvim_create_autocmd('User', { pattern = 'MiniPickStart', callback = populate_registers })\nThen typing <C-r>w will insert \"word under cursor\" from the target window.\nI think support of various <C-r><C-xxx> is an interesting idea to add to 'mini.pick'. I'll take a look.",
+            "createdAt": "2025-05-20T08:13:30Z",
+            "createdViaEmail": false,
+            "databaseId": 13203661,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AyXjN",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-20T08:13:30Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13203661",
+            "updatedAt": "2025-05-20T08:13:31Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13203661"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/29566235?v=4",
+                "login": "FrancescoDeSimone",
+                "resourcePath": "/FrancescoDeSimone",
+                "url": "https://github.com/FrancescoDeSimone"
+            },
+            "authorAssociation": "NONE",
+            "body": "@echasnovski is it something that should be handled by the picker? \r\nI can have this behavior with which-key: https://asciinema.org/a/OiUm6C4xtFXxQ26eIJXqCh5zf",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> is it something that should be handled by the picker?<br>\nI can have this behavior with which-key: <a href=\"https://asciinema.org/a/OiUm6C4xtFXxQ26eIJXqCh5zf\" rel=\"nofollow\">https://asciinema.org/a/OiUm6C4xtFXxQ26eIJXqCh5zf</a></p>",
+            "bodyText": "@echasnovski is it something that should be handled by the picker?\nI can have this behavior with which-key: https://asciinema.org/a/OiUm6C4xtFXxQ26eIJXqCh5zf",
+            "createdAt": "2025-05-20T08:50:36Z",
+            "createdViaEmail": false,
+            "databaseId": 13204089,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/29566235?v=4",
+                "login": "FrancescoDeSimone",
+                "resourcePath": "/FrancescoDeSimone",
+                "url": "https://github.com/FrancescoDeSimone"
+            },
+            "id": "DC_kwDOFoksYM4AyXp5",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-05-20T08:52:17Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-05-20T08:50:36Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> @echasnovski is it something that should be handled by the picker?\r\n\r\nIn 'mini.pick' case - yes. I already have prototype and plan to add it soon-ish.\r\n\r\nI am not sure how/why 'which-key.nvim' affects the 'snacks.picker' in this way.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> is it something that should be handled by the picker?</p>\n</blockquote>\n<p dir=\"auto\">In 'mini.pick' case - yes. I already have prototype and plan to add it soon-ish.</p>\n<p dir=\"auto\">I am not sure how/why 'which-key.nvim' affects the 'snacks.picker' in this way.</p>",
+                    "bodyText": "@echasnovski is it something that should be handled by the picker?\n\nIn 'mini.pick' case - yes. I already have prototype and plan to add it soon-ish.\nI am not sure how/why 'which-key.nvim' affects the 'snacks.picker' in this way.",
+                    "createdAt": "2025-05-20T09:02:24Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13204218,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AyXr6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-20T09:02:24Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13204089,
+                        "id": "DC_kwDOFoksYM4AyXp5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13204089"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13204218",
+                    "updatedAt": "2025-05-20T09:02:25Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13204218"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13204089",
+            "updatedAt": "2025-05-20T08:52:18Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13204089"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Most special registers are now [supported out of the box](https://github.com/echasnovski/mini.nvim/blob/4357160712c8e2c80318d46a827bf972fca24d61/doc/mini-pick.txt#L550-L552). Thanks again for pointing out this feature!",
+            "bodyHTML": "<p dir=\"auto\">Most special registers are now <a href=\"https://github.com/echasnovski/mini.nvim/blob/4357160712c8e2c80318d46a827bf972fca24d61/doc/mini-pick.txt#L550-L552\">supported out of the box</a>. Thanks again for pointing out this feature!</p>",
+            "bodyText": "Most special registers are now supported out of the box. Thanks again for pointing out this feature!",
+            "createdAt": "2025-05-22T11:09:11Z",
+            "createdViaEmail": false,
+            "databaseId": 13233336,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Ayey4",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-22T11:09:11Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13233336",
+            "updatedAt": "2025-05-22T11:09:12Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809#discussioncomment-13233336"
+        }
+    ],
+    "createdAt": "2025-05-19T23:37:53Z",
+    "createdViaEmail": false,
+    "databaseId": 8347600,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Af1_Q",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1809,
+    "poll": null,
+    "publishedAt": "2025-05-19T23:37:53Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1809",
+    "stateReason": "RESOLVED",
+    "title": "Configure registry for picker with Ctrl-r + Ctrl-w",
+    "updatedAt": "2025-05-22T11:09:13Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1809"
+}

@@ -1,0 +1,447 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Compatibility layer to show CoC LSP progression with mini.notify.\r\n\r\n```lua\r\n---@module \"mini.notify\"\r\n\r\n---@class CocNotify\r\n---@field id number|nil The existing notification ID (if any).\r\n---@field indexing boolean The indexing process current state.\r\n---@field autocmd number|nil The existing autocommand ID (if any).\r\nlocal CocNotify = {} CocNotify.__index = CocNotify\r\n\r\n---@return CocNotify instance A new instance of CocNotify.\r\nfunction CocNotify:new()\r\n  return setmetatable({ id = nil, indexing = false, autocmd = nil }, CocNotify)\r\nend\r\n\r\n---Setup the autocommand to track CocStatusChange events.\r\nfunction CocNotify:setup()\r\n  self.autocmd = vim.api.nvim_create_autocmd(\"User\", {\r\n    pattern = { \"CocStatusChange\" },\r\n    callback = function()\r\n      self:callback()\r\n    end\r\n  })\r\nend\r\n\r\n---Parse CoC status to sanitize any unwanted inputs (e.g. ignored scopeUri).\r\n---@param status string The status string from CoC.\r\n---@return string status The sanitized status string.\r\nfunction CocNotify:parse(status)\r\n  local uniquify = function(input)\r\n    local duplicates = {}\r\n    local uniquifying = input:gsub(\"%S+\", function(word)\r\n      if duplicates[word] then\r\n        return \"\"\r\n      else\r\n        duplicates[word] = true\r\n        return word\r\n      end\r\n    end)\r\n\r\n    return uniquifying:match(\"^(.-%s%s)\")\r\n  end\r\n\r\n  -- TODO: Figure out how to retrieve the linter dynamically?\r\n  local known_linters = { \"stylua\", \"eslint\", \"prettier\", \"flake8\", \"rubocop\" }\r\n  local strip_linter_names = function(input)\r\n    for _, linter in ipairs(known_linters) do\r\n      input = input:gsub(linter, \"\")\r\n    end\r\n    return input\r\n  end\r\n\r\n  return strip_linter_names(uniquify(status))\r\nend\r\n\r\n---Updates or creates CocNotify status notification.\r\n---@param status string CoC status.\r\nfunction CocNotify:update(status)\r\n  local notification = self:parse(status)\r\n  \r\n  -- TODO: Interpolate the current progress towards the target progress?\r\n  if self.id == nil then\r\n    self.id = MiniNotify.add(notification)\r\n  else\r\n    MiniNotify.update(self.id, { msg = notification })\r\n  end\r\nend\r\n\r\n---Callback function triggered on the CocStatusChange event to handle notifications.\r\nfunction CocNotify:callback()\r\n  local coc_service_initialized = vim.g.coc_service_initialized\r\n  local coc_status = vim.g.coc_status\r\n  if not (coc_service_initialized or coc_status) then\r\n    return\r\n  end\r\n\r\n  -- CoC does not provide a built-in progress tracker for tracking ongoing\r\n  -- operations like LSP `workDoneProgress`. To handle this, we use a\r\n  -- workaround by monitoring changes in `vim.g.coc_status` which contains\r\n  -- status messages from Coc.\r\n  --\r\n  -- Specifically, we look for the string \"Loading\" in `vim.g.coc_status` to\r\n  -- determine if there is ongoing work. FYI, this approach relies on the\r\n  -- assumption that \"Loading\" in the status message reliably represents\r\n  -- progress, regardless of the server behind CoC.\r\n  --\r\n  if coc_status:find(\"Loading\") then\r\n    self.indexing = true\r\n    self:update(coc_status)\r\n  elseif self.indexing then\r\n    vim.api.nvim_del_autocmd(self.autocmd)\r\n    vim.schedule(MiniNotify.clear)\r\n  end\r\nend\r\n\r\n---@type LazyPluginSpec\r\nlocal Spec = {\r\n  \"echasnovski/mini.notify\", event = \"VeryLazy\",\r\n\r\n  opts = {\r\n    ERROR = {\r\n      duration = 10000,\r\n    },\r\n  },\r\n\r\n  config = function(_, opts)\r\n    local mini_notify = require(\"mini.notify\")\r\n    mini_notify.setup(opts)\r\n    local coc_notify = CocNotify:new()\r\n    coc_notify:setup()\r\n  end,\r\n}\r\n\r\nreturn Spec\r\n```\r\n\r\n![image](https://github.com/user-attachments/assets/b767441f-40ba-451e-8f47-68dbe41b8528)\r\n",
+    "bodyHTML": "<p dir=\"auto\">Compatibility layer to show CoC LSP progression with mini.notify.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@module &quot;mini.notify&quot;\n\n---@class CocNotify\n---@field id number|nil The existing notification ID (if any).\n---@field indexing boolean The indexing process current state.\n---@field autocmd number|nil The existing autocommand ID (if any).\nlocal CocNotify = {} CocNotify.__index = CocNotify\n\n---@return CocNotify instance A new instance of CocNotify.\nfunction CocNotify:new()\n  return setmetatable({ id = nil, indexing = false, autocmd = nil }, CocNotify)\nend\n\n---Setup the autocommand to track CocStatusChange events.\nfunction CocNotify:setup()\n  self.autocmd = vim.api.nvim_create_autocmd(&quot;User&quot;, {\n    pattern = { &quot;CocStatusChange&quot; },\n    callback = function()\n      self:callback()\n    end\n  })\nend\n\n---Parse CoC status to sanitize any unwanted inputs (e.g. ignored scopeUri).\n---@param status string The status string from CoC.\n---@return string status The sanitized status string.\nfunction CocNotify:parse(status)\n  local uniquify = function(input)\n    local duplicates = {}\n    local uniquifying = input:gsub(&quot;%S+&quot;, function(word)\n      if duplicates[word] then\n        return &quot;&quot;\n      else\n        duplicates[word] = true\n        return word\n      end\n    end)\n\n    return uniquifying:match(&quot;^(.-%s%s)&quot;)\n  end\n\n  -- TODO: Figure out how to retrieve the linter dynamically?\n  local known_linters = { &quot;stylua&quot;, &quot;eslint&quot;, &quot;prettier&quot;, &quot;flake8&quot;, &quot;rubocop&quot; }\n  local strip_linter_names = function(input)\n    for _, linter in ipairs(known_linters) do\n      input = input:gsub(linter, &quot;&quot;)\n    end\n    return input\n  end\n\n  return strip_linter_names(uniquify(status))\nend\n\n---Updates or creates CocNotify status notification.\n---@param status string CoC status.\nfunction CocNotify:update(status)\n  local notification = self:parse(status)\n  \n  -- TODO: Interpolate the current progress towards the target progress?\n  if self.id == nil then\n    self.id = MiniNotify.add(notification)\n  else\n    MiniNotify.update(self.id, { msg = notification })\n  end\nend\n\n---Callback function triggered on the CocStatusChange event to handle notifications.\nfunction CocNotify:callback()\n  local coc_service_initialized = vim.g.coc_service_initialized\n  local coc_status = vim.g.coc_status\n  if not (coc_service_initialized or coc_status) then\n    return\n  end\n\n  -- CoC does not provide a built-in progress tracker for tracking ongoing\n  -- operations like LSP `workDoneProgress`. To handle this, we use a\n  -- workaround by monitoring changes in `vim.g.coc_status` which contains\n  -- status messages from Coc.\n  --\n  -- Specifically, we look for the string &quot;Loading&quot; in `vim.g.coc_status` to\n  -- determine if there is ongoing work. FYI, this approach relies on the\n  -- assumption that &quot;Loading&quot; in the status message reliably represents\n  -- progress, regardless of the server behind CoC.\n  --\n  if coc_status:find(&quot;Loading&quot;) then\n    self.indexing = true\n    self:update(coc_status)\n  elseif self.indexing then\n    vim.api.nvim_del_autocmd(self.autocmd)\n    vim.schedule(MiniNotify.clear)\n  end\nend\n\n---@type LazyPluginSpec\nlocal Spec = {\n  &quot;echasnovski/mini.notify&quot;, event = &quot;VeryLazy&quot;,\n\n  opts = {\n    ERROR = {\n      duration = 10000,\n    },\n  },\n\n  config = function(_, opts)\n    local mini_notify = require(&quot;mini.notify&quot;)\n    mini_notify.setup(opts)\n    local coc_notify = CocNotify:new()\n    coc_notify:setup()\n  end,\n}\n\nreturn Spec\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@module</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.notify<span class=\"pl-pds\">\"</span></span></span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@class</span> <span class=\"pl-c1\">CocNotify</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">id</span> <span class=\"pl-c1\">number</span><span class=\"pl-k\">|</span><span class=\"pl-c1\">nil The existing notification ID </span>(<span class=\"pl-c1\">if any</span>)<span class=\"pl-c1\">.</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">indexing</span> <span class=\"pl-c1\">boolean The indexing process current state.</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@field</span> <span class=\"pl-en\">autocmd</span> <span class=\"pl-c1\">number</span><span class=\"pl-k\">|</span><span class=\"pl-c1\">nil The existing autocommand ID </span>(<span class=\"pl-c1\">if any</span>)<span class=\"pl-c1\">.</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">CocNotify</span> <span class=\"pl-k\">=</span> {} <span class=\"pl-smi\">CocNotify</span>.<span class=\"pl-e\">__index</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">CocNotify</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">CocNotify instance A new instance of CocNotify.</span></span>\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">CocNotify</span>:<span class=\"pl-en\">new</span>()\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">setmetatable</span>({ <span class=\"pl-smi\">id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">indexing</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">autocmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> }, <span class=\"pl-smi\">CocNotify</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>Setup the autocommand to track CocStatusChange events.</span>\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">CocNotify</span>:<span class=\"pl-en\">setup</span>()\n  <span class=\"pl-c1\">self</span>.<span class=\"pl-e\">autocmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>CocStatusChange<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">self</span>:<span class=\"pl-c1\">callback</span>()\n    <span class=\"pl-k\">end</span>\n  })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>Parse CoC status to sanitize any unwanted inputs (e.g. ignored scopeUri).</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">status</span> <span class=\"pl-c1\">string The status string from CoC.</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">string status The sanitized status string.</span></span>\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">CocNotify</span>:<span class=\"pl-en\">parse</span>(<span class=\"pl-smi\">status</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">uniquify</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">input</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">duplicates</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">uniquifying</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">input</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%S+<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">word</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">duplicates</span>[<span class=\"pl-smi\">word</span>] <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-k\">else</span>\n        <span class=\"pl-smi\">duplicates</span>[<span class=\"pl-smi\">word</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">word</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-k\">return</span> <span class=\"pl-en\">uniquifying</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^(.-%s%s)<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> TODO: Figure out how to retrieve the linter dynamically?</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">known_linters</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>stylua<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>eslint<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>prettier<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>flake8<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>rubocop<span class=\"pl-pds\">\" </span></span>}\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">strip_linter_names</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">input</span>)\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">linter</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">known_linters</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-smi\">input</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">input</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-smi\">linter</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">input</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">strip_linter_names</span>(<span class=\"pl-c1\">uniquify</span>(<span class=\"pl-smi\">status</span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>Updates or creates CocNotify status notification.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">status</span> <span class=\"pl-c1\">string CoC status.</span></span>\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">CocNotify</span>:<span class=\"pl-en\">update</span>(<span class=\"pl-smi\">status</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">notification</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">self</span>:<span class=\"pl-c1\">parse</span>(<span class=\"pl-smi\">status</span>)\n  \n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> TODO: Interpolate the current progress towards the target progress?</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-c1\">self</span>.<span class=\"pl-e\">id</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">self</span>.<span class=\"pl-e\">id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniNotify</span>.<span class=\"pl-c1\">add</span>(<span class=\"pl-smi\">notification</span>)\n  <span class=\"pl-k\">else</span>\n    <span class=\"pl-smi\">MiniNotify</span>.<span class=\"pl-c1\">update</span>(<span class=\"pl-c1\">self</span>.<span class=\"pl-e\">id</span>, { <span class=\"pl-smi\">msg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">notification</span> })\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>Callback function triggered on the CocStatusChange event to handle notifications.</span>\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">CocNotify</span>:<span class=\"pl-en\">callback</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">coc_service_initialized</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">coc_service_initialized</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">coc_status</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">coc_status</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> (<span class=\"pl-smi\">coc_service_initialized</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">coc_status</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> CoC does not provide a built-in progress tracker for tracking ongoing</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> operations like LSP `workDoneProgress`. To handle this, we use a</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> workaround by monitoring changes in `vim.g.coc_status` which contains</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> status messages from Coc.</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Specifically, we look for the string \"Loading\" in `vim.g.coc_status` to</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> determine if there is ongoing work. FYI, this approach relies on the</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> assumption that \"Loading\" in the status message reliably represents</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> progress, regardless of the server behind CoC.</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-en\">coc_status</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Loading<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">self</span>.<span class=\"pl-e\">indexing</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n    <span class=\"pl-c1\">self</span>:<span class=\"pl-c1\">update</span>(<span class=\"pl-smi\">coc_status</span>)\n  <span class=\"pl-k\">elseif</span> <span class=\"pl-c1\">self</span>.<span class=\"pl-e\">indexing</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_del_autocmd</span>(<span class=\"pl-c1\">self</span>.<span class=\"pl-e\">autocmd</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-smi\">MiniNotify</span>.<span class=\"pl-e\">clear</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@type</span> <span class=\"pl-c1\">LazyPluginSpec</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">Spec</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>echasnovski/mini.notify<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">event</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>VeryLazy<span class=\"pl-pds\">\"</span></span>,\n\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">ERROR</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">duration</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">10000</span>,\n    },\n  },\n\n  <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_notify</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.notify<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">mini_notify</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">coc_notify</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">CocNotify</span>:<span class=\"pl-c1\">new</span>()\n    <span class=\"pl-en\">coc_notify</span>:<span class=\"pl-c1\">setup</span>()\n  <span class=\"pl-k\">end</span>,\n}\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">Spec</span></pre></div>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/91024200/356901515-b767441f-40ba-451e-8f47-68dbe41b8528.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNTcsIm5iZiI6MTc5MzU1MzA1NywicGF0aCI6Ii85MTAyNDIwMC8zNTY5MDE1MTUtYjc2NzQ0MWYtNDBiYS00NTFlLThmNDctNjhkYmU0MWI4NTI4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTA1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWIxNjcyODNiNzFjODVkNGJlYWY4YTdkY2Q3MmQ4MjZiMTBjYjMzZDA3NzdkMThlODgzZjBhZDY0ZjE4Yjc5MGUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.6Cc4KoUEnz6poifQYrdRHVBE8K1V4H5Cryt5fjPPxik\"><img src=\"https://private-user-images.githubusercontent.com/91024200/356901515-b767441f-40ba-451e-8f47-68dbe41b8528.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNTcsIm5iZiI6MTc5MzU1MzA1NywicGF0aCI6Ii85MTAyNDIwMC8zNTY5MDE1MTUtYjc2NzQ0MWYtNDBiYS00NTFlLThmNDctNjhkYmU0MWI4NTI4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTA1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWIxNjcyODNiNzFjODVkNGJlYWY4YTdkY2Q3MmQ4MjZiMTBjYjMzZDA3NzdkMThlODgzZjBhZDY0ZjE4Yjc5MGUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.6Cc4KoUEnz6poifQYrdRHVBE8K1V4H5Cryt5fjPPxik\" alt=\"image\" style=\"max-width: 100%;\"></a></p>",
+    "bodyText": "Compatibility layer to show CoC LSP progression with mini.notify.\n---@module \"mini.notify\"\n\n---@class CocNotify\n---@field id number|nil The existing notification ID (if any).\n---@field indexing boolean The indexing process current state.\n---@field autocmd number|nil The existing autocommand ID (if any).\nlocal CocNotify = {} CocNotify.__index = CocNotify\n\n---@return CocNotify instance A new instance of CocNotify.\nfunction CocNotify:new()\n  return setmetatable({ id = nil, indexing = false, autocmd = nil }, CocNotify)\nend\n\n---Setup the autocommand to track CocStatusChange events.\nfunction CocNotify:setup()\n  self.autocmd = vim.api.nvim_create_autocmd(\"User\", {\n    pattern = { \"CocStatusChange\" },\n    callback = function()\n      self:callback()\n    end\n  })\nend\n\n---Parse CoC status to sanitize any unwanted inputs (e.g. ignored scopeUri).\n---@param status string The status string from CoC.\n---@return string status The sanitized status string.\nfunction CocNotify:parse(status)\n  local uniquify = function(input)\n    local duplicates = {}\n    local uniquifying = input:gsub(\"%S+\", function(word)\n      if duplicates[word] then\n        return \"\"\n      else\n        duplicates[word] = true\n        return word\n      end\n    end)\n\n    return uniquifying:match(\"^(.-%s%s)\")\n  end\n\n  -- TODO: Figure out how to retrieve the linter dynamically?\n  local known_linters = { \"stylua\", \"eslint\", \"prettier\", \"flake8\", \"rubocop\" }\n  local strip_linter_names = function(input)\n    for _, linter in ipairs(known_linters) do\n      input = input:gsub(linter, \"\")\n    end\n    return input\n  end\n\n  return strip_linter_names(uniquify(status))\nend\n\n---Updates or creates CocNotify status notification.\n---@param status string CoC status.\nfunction CocNotify:update(status)\n  local notification = self:parse(status)\n  \n  -- TODO: Interpolate the current progress towards the target progress?\n  if self.id == nil then\n    self.id = MiniNotify.add(notification)\n  else\n    MiniNotify.update(self.id, { msg = notification })\n  end\nend\n\n---Callback function triggered on the CocStatusChange event to handle notifications.\nfunction CocNotify:callback()\n  local coc_service_initialized = vim.g.coc_service_initialized\n  local coc_status = vim.g.coc_status\n  if not (coc_service_initialized or coc_status) then\n    return\n  end\n\n  -- CoC does not provide a built-in progress tracker for tracking ongoing\n  -- operations like LSP `workDoneProgress`. To handle this, we use a\n  -- workaround by monitoring changes in `vim.g.coc_status` which contains\n  -- status messages from Coc.\n  --\n  -- Specifically, we look for the string \"Loading\" in `vim.g.coc_status` to\n  -- determine if there is ongoing work. FYI, this approach relies on the\n  -- assumption that \"Loading\" in the status message reliably represents\n  -- progress, regardless of the server behind CoC.\n  --\n  if coc_status:find(\"Loading\") then\n    self.indexing = true\n    self:update(coc_status)\n  elseif self.indexing then\n    vim.api.nvim_del_autocmd(self.autocmd)\n    vim.schedule(MiniNotify.clear)\n  end\nend\n\n---@type LazyPluginSpec\nlocal Spec = {\n  \"echasnovski/mini.notify\", event = \"VeryLazy\",\n\n  opts = {\n    ERROR = {\n      duration = 10000,\n    },\n  },\n\n  config = function(_, opts)\n    local mini_notify = require(\"mini.notify\")\n    mini_notify.setup(opts)\n    local coc_notify = CocNotify:new()\n    coc_notify:setup()\n  end,\n}\n\nreturn Spec",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-01-19T03:09:57Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                "login": "wroyca",
+                "resourcePath": "/wroyca",
+                "url": "https://github.com/wroyca"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "Slowly working on a complete revamp for interpolation; it's a bit trickier than I initially expected (:\r\n\r\n![Screenshot from 2024-09-20 19-39-39](https://github.com/user-attachments/assets/c1cef315-8c2a-4509-9831-5b8af05db252)\r\n",
+            "bodyHTML": "<p dir=\"auto\">Slowly working on a complete revamp for interpolation; it's a bit trickier than I initially expected (:</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/91024200/369574954-c1cef315-8c2a-4509-9831-5b8af05db252.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNTcsIm5iZiI6MTc5MzU1MzA1NywicGF0aCI6Ii85MTAyNDIwMC8zNjk1NzQ5NTQtYzFjZWYzMTUtOGMyYS00NTA5LTk4MzEtNWI4YWYwNWRiMjUyLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTA1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTQyMjAyMGI0YzAxOGUwNGQ2MzhkYTFkYmQ1NDAzNjlkYWE4MWFhYWIyZjk5MTcxNmYwOWU2NjVjMTQwMDU0NzgmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.UPNzgl0AC3sqScpSaZ24k2Nyxwj6fzIX3Bv5Jstmxdw\"><img src=\"https://private-user-images.githubusercontent.com/91024200/369574954-c1cef315-8c2a-4509-9831-5b8af05db252.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNTcsIm5iZiI6MTc5MzU1MzA1NywicGF0aCI6Ii85MTAyNDIwMC8zNjk1NzQ5NTQtYzFjZWYzMTUtOGMyYS00NTA5LTk4MzEtNWI4YWYwNWRiMjUyLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTA1N1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTQyMjAyMGI0YzAxOGUwNGQ2MzhkYTFkYmQ1NDAzNjlkYWE4MWFhYWIyZjk5MTcxNmYwOWU2NjVjMTQwMDU0NzgmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.UPNzgl0AC3sqScpSaZ24k2Nyxwj6fzIX3Bv5Jstmxdw\" alt=\"Screenshot from 2024-09-20 19-39-39\" style=\"max-width: 100%;\"></a></p>",
+            "bodyText": "Slowly working on a complete revamp for interpolation; it's a bit trickier than I initially expected (:",
+            "createdAt": "2024-09-20T23:39:59Z",
+            "createdViaEmail": false,
+            "databaseId": 10710189,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Ao2yt",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-09-20T23:39:59Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I'd find that a bit too verbose/wide, but otherwise looking nice. Maybe also use a full height line between \"Progress\" and \"Indexing\"?",
+                    "bodyHTML": "<p dir=\"auto\">I'd find that a bit too verbose/wide, but otherwise looking nice. Maybe also use a full height line between \"Progress\" and \"Indexing\"?</p>",
+                    "bodyText": "I'd find that a bit too verbose/wide, but otherwise looking nice. Maybe also use a full height line between \"Progress\" and \"Indexing\"?",
+                    "createdAt": "2024-09-21T11:56:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10712461,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ao3WN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-21T11:56:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10710189,
+                        "id": "DC_kwDOFoksYM4Ao2yt",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10710189"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10712461",
+                    "updatedAt": "2024-09-21T11:56:13Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10712461"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "My (initial) concern was that using the same full-height line separator for Progress and Indexing would make it easy to mix them up with the clock. Opting for a shorter separator makes it easier to distinguish the clock as one group and the LSP Progress/Indexing as a second group\r\n\r\nLet me know what you think would suit as a shorter form! I don't personally have a knack for designing in general, so suggestions here are always welcome!",
+                    "bodyHTML": "<p dir=\"auto\">My (initial) concern was that using the same full-height line separator for Progress and Indexing would make it easy to mix them up with the clock. Opting for a shorter separator makes it easier to distinguish the clock as one group and the LSP Progress/Indexing as a second group</p>\n<p dir=\"auto\">Let me know what you think would suit as a shorter form! I don't personally have a knack for designing in general, so suggestions here are always welcome!</p>",
+                    "bodyText": "My (initial) concern was that using the same full-height line separator for Progress and Indexing would make it easy to mix them up with the clock. Opting for a shorter separator makes it easier to distinguish the clock as one group and the LSP Progress/Indexing as a second group\nLet me know what you think would suit as a shorter form! I don't personally have a knack for designing in general, so suggestions here are always welcome!",
+                    "createdAt": "2024-09-21T12:14:14Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10712549,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ao3Xl",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-21T12:14:14Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10710189,
+                        "id": "DC_kwDOFoksYM4Ao2yt",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10710189"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10712549",
+                    "updatedAt": "2024-09-21T12:14:16Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10712549"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> My (initial) concern was that using the same full-height line separator for Progress and Indexing would make it easy to mix them up with the clock.\r\n\r\nFair point. Whichever design works for you.\r\n\r\n> Let me know what you think would suit as a shorter form! I don't personally have a knack for designing in general, so suggestions here are always welcome!\r\n\r\nI'd personally remove either \"Progress\" or \"Indexing\" altogether. Probably the former one. I suspect that they indeed describe different actions, but for me having the \"Indexing\" with its own progress report would be enough.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">My (initial) concern was that using the same full-height line separator for Progress and Indexing would make it easy to mix them up with the clock.</p>\n</blockquote>\n<p dir=\"auto\">Fair point. Whichever design works for you.</p>\n<blockquote>\n<p dir=\"auto\">Let me know what you think would suit as a shorter form! I don't personally have a knack for designing in general, so suggestions here are always welcome!</p>\n</blockquote>\n<p dir=\"auto\">I'd personally remove either \"Progress\" or \"Indexing\" altogether. Probably the former one. I suspect that they indeed describe different actions, but for me having the \"Indexing\" with its own progress report would be enough.</p>",
+                    "bodyText": "My (initial) concern was that using the same full-height line separator for Progress and Indexing would make it easy to mix them up with the clock.\n\nFair point. Whichever design works for you.\n\nLet me know what you think would suit as a shorter form! I don't personally have a knack for designing in general, so suggestions here are always welcome!\n\nI'd personally remove either \"Progress\" or \"Indexing\" altogether. Probably the former one. I suspect that they indeed describe different actions, but for me having the \"Indexing\" with its own progress report would be enough.",
+                    "createdAt": "2024-09-21T12:52:24Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10712722,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ao3aS",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-21T12:52:24Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10710189,
+                        "id": "DC_kwDOFoksYM4Ao2yt",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10710189"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10712722",
+                    "updatedAt": "2024-09-21T12:52:25Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10712722"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10710189",
+            "updatedAt": "2024-09-20T23:40:00Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136#discussioncomment-10710189"
+        }
+    ],
+    "createdAt": "2024-08-11T19:31:42Z",
+    "createdViaEmail": false,
+    "databaseId": 7038536,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "id": "D_kwDOFoksYM4Aa2ZI",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABfPzADQ",
+                "name": "mini.notify"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-08-11T19:57:42Z",
+    "locked": false,
+    "number": 1136,
+    "poll": null,
+    "publishedAt": "2024-08-11T19:31:42Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1136",
+    "stateReason": "OUTDATED",
+    "title": "[mini.notify] CoC LSP progress",
+    "updatedAt": "2025-01-19T03:09:57Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1136"
+}

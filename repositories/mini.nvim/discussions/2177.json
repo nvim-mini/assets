@@ -1,0 +1,294 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "**Update**: see https://github.com/nvim-mini/mini.nvim/discussions/2177#discussioncomment-15289039 for the correct implementation.\r\n\r\nHave you ever forgotten which window you were in when you opened 'mini.files' and been unsure where your selected file will appear? If so, you might like this auto command. When there’s at least one split on-screen, it highlights the target window while you’re in the 'mini.files' explorer.\r\n\r\n```lua\r\n  -- Returns the number of splits (non-floating windows) on screen\r\n  local count_splits = function()\r\n    return vim\r\n      .iter(vim.api.nvim_tabpage_list_wins(0))\r\n      :filter(function(w) return vim.api.nvim_win_get_config(w).relative == \"\" end)\r\n      :fold(-1, function(acc, _) return acc + 1 end)\r\n  end\r\n\r\n  -- Sets an option and returns a function to restore the original value\r\n  local set_option = function(name, value, opts)\r\n    local original = vim.api.nvim_get_option_value(name, opts)\r\n    vim.api.nvim_set_option_value(name, value, opts)\r\n    return function() vim.api.nvim_set_option_value(name, original, opts) end\r\n  end\r\n\r\n  vim.api.nvim_create_autocmd(\"User\", {\r\n    desc = \"Highlight target window while 'mini.files' is open\",\r\n    pattern = \"MiniFilesExplorerOpen\",\r\n    callback = function()\r\n      -- Only highlight a window if there is more than one possible target\r\n      if count_splits() == 0 then return end\r\n      local target = MiniFiles.get_explorer_state().target_window\r\n      local restore = set_option(\"winhighlight\", \"Normal:Visual,SignColumn:Visual\", { win = target })\r\n      vim.api.nvim_create_autocmd(\"User\", { once = true, pattern = \"MiniFilesExplorerClose\", callback = restore })\r\n    end,\r\n  })\r\n```\r\n\r\nhttps://github.com/user-attachments/assets/9055a421-47e4-4452-8b77-500fc394740f\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\"><strong>Update</strong>: see <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"9253822\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/2177\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2177/hovercard?comment_id=15289039\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/2177#discussioncomment-15289039\">#2177 (comment)</a> for the correct implementation.</p>\n<p dir=\"auto\">Have you ever forgotten which window you were in when you opened 'mini.files' and been unsure where your selected file will appear? If so, you might like this auto command. When there’s at least one split on-screen, it highlights the target window while you’re in the 'mini.files' explorer.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  -- Returns the number of splits (non-floating windows) on screen\n  local count_splits = function()\n    return vim\n      .iter(vim.api.nvim_tabpage_list_wins(0))\n      :filter(function(w) return vim.api.nvim_win_get_config(w).relative == &quot;&quot; end)\n      :fold(-1, function(acc, _) return acc + 1 end)\n  end\n\n  -- Sets an option and returns a function to restore the original value\n  local set_option = function(name, value, opts)\n    local original = vim.api.nvim_get_option_value(name, opts)\n    vim.api.nvim_set_option_value(name, value, opts)\n    return function() vim.api.nvim_set_option_value(name, original, opts) end\n  end\n\n  vim.api.nvim_create_autocmd(&quot;User&quot;, {\n    desc = &quot;Highlight target window while 'mini.files' is open&quot;,\n    pattern = &quot;MiniFilesExplorerOpen&quot;,\n    callback = function()\n      -- Only highlight a window if there is more than one possible target\n      if count_splits() == 0 then return end\n      local target = MiniFiles.get_explorer_state().target_window\n      local restore = set_option(&quot;winhighlight&quot;, &quot;Normal:Visual,SignColumn:Visual&quot;, { win = target })\n      vim.api.nvim_create_autocmd(&quot;User&quot;, { once = true, pattern = &quot;MiniFilesExplorerClose&quot;, callback = restore })\n    end,\n  })\"><pre class=\"notranslate\">  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Returns the number of splits (non-floating windows) on screen</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">count_splits</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>\n      .<span class=\"pl-c1\">iter</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_tabpage_list_wins</span>(<span class=\"pl-c1\">0</span>))\n      :<span class=\"pl-c1\">filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">w</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">w</span>).<span class=\"pl-e\">relative</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">end</span>)\n      :<span class=\"pl-c1\">fold</span>(<span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">acc</span>, <span class=\"pl-smi\">_</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">acc</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Sets an option and returns a function to restore the original value</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">set_option</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">value</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">original</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_option_value</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_option_value</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">value</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_option_value</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">original</span>, <span class=\"pl-smi\">opts</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Highlight target window while 'mini.files' is open<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesExplorerOpen<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Only highlight a window if there is more than one possible target</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-c1\">count_splits</span>() <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">target</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>().<span class=\"pl-e\">target_window</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">restore</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">set_option</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>winhighlight<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Normal:Visual,SignColumn:Visual<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">win</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">target</span> })\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">once</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesExplorerClose<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">restore</span> })\n    <span class=\"pl-k\">end</span>,\n  })</pre></div>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">Screen.Recording.2025-12-16.at.12.17.36.PM.mov</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/747855/527194776-9055a421-47e4-4452-8b77-500fc394740f.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTYsIm5iZiI6MTc5MzU1MjUxNiwicGF0aCI6Ii83NDc4NTUvNTI3MTk0Nzc2LTkwNTVhNDIxLTQ3ZTQtNDQ1Mi04Yjc3LTUwMGZjMzk0NzQwZi5tb3Y_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0xMmI2NzA3MjY3OWE2ODE5NTIzNTUwM2I2ZWY5NWE2YTZiNzE4NGQ4OWE0N2M0MzFjODI1MmU4NWMwMGI3YjM1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZxdWlja3RpbWUifQ.IVB_lgRCVWLcgd4hGdnLqpxtHX9kR8TIK9ur55fd-qk\" data-canonical-src=\"https://private-user-images.githubusercontent.com/747855/527194776-9055a421-47e4-4452-8b77-500fc394740f.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MTYsIm5iZiI6MTc5MzU1MjUxNiwicGF0aCI6Ii83NDc4NTUvNTI3MTk0Nzc2LTkwNTVhNDIxLTQ3ZTQtNDQ1Mi04Yjc3LTUwMGZjMzk0NzQwZi5tb3Y_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNTZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0xMmI2NzA3MjY3OWE2ODE5NTIzNTUwM2I2ZWY5NWE2YTZiNzE4NGQ4OWE0N2M0MzFjODI1MmU4NWMwMGI3YjM1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZxdWlja3RpbWUifQ.IVB_lgRCVWLcgd4hGdnLqpxtHX9kR8TIK9ur55fd-qk\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+    "bodyText": "Update: see #2177 (comment) for the correct implementation.\nHave you ever forgotten which window you were in when you opened 'mini.files' and been unsure where your selected file will appear? If so, you might like this auto command. When there’s at least one split on-screen, it highlights the target window while you’re in the 'mini.files' explorer.\n  -- Returns the number of splits (non-floating windows) on screen\n  local count_splits = function()\n    return vim\n      .iter(vim.api.nvim_tabpage_list_wins(0))\n      :filter(function(w) return vim.api.nvim_win_get_config(w).relative == \"\" end)\n      :fold(-1, function(acc, _) return acc + 1 end)\n  end\n\n  -- Sets an option and returns a function to restore the original value\n  local set_option = function(name, value, opts)\n    local original = vim.api.nvim_get_option_value(name, opts)\n    vim.api.nvim_set_option_value(name, value, opts)\n    return function() vim.api.nvim_set_option_value(name, original, opts) end\n  end\n\n  vim.api.nvim_create_autocmd(\"User\", {\n    desc = \"Highlight target window while 'mini.files' is open\",\n    pattern = \"MiniFilesExplorerOpen\",\n    callback = function()\n      -- Only highlight a window if there is more than one possible target\n      if count_splits() == 0 then return end\n      local target = MiniFiles.get_explorer_state().target_window\n      local restore = set_option(\"winhighlight\", \"Normal:Visual,SignColumn:Visual\", { win = target })\n      vim.api.nvim_create_autocmd(\"User\", { once = true, pattern = \"MiniFilesExplorerClose\", callback = restore })\n    end,\n  })\n\n  \n    \n    \n\n    Screen.Recording.2025-12-16.at.12.17.36.PM.mov",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "This is an interesting idea! Thanks for sharing!\r\n\r\nI'd go with a bit more compact solution:\r\n\r\n```lua\r\nlocal hl_target_win = function()\r\n  -- Only highlight a window if there is more than one possible target\r\n  local n_win = 0\r\n  for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do\r\n    -- Treat only normal windows (not floating) as a target\r\n    local is_target = vim.api.nvim_win_get_config(win_id).relative == ''\r\n    n_win = n_win + (is_target and 1 or 0)\r\n  end\r\n  if n_win == 1 then return end\r\n\r\n  -- Temporarily set 'winhighlight' and setup restore after closing explorer\r\n  local target_win_id = MiniFiles.get_explorer_state().target_window\r\n  local winhl_orig = vim.wo[target_win_id].winhighlight\r\n  vim.wo[target_win_id].winhighlight = 'Normal:Visual,SignColumn:Visual'\r\n  local restore = function() vim.wo[target_win_id].winhighlight = winhl_orig end\r\n  vim.api.nvim_create_autocmd('User', { once = true, pattern = 'MiniFilesExplorerClose', callback = restore })\r\nend\r\n\r\nlocal au_opts = { pattern = 'MiniFilesExplorerOpen', callback = hl_target_win, desc = 'Highlight target window' }\r\nvim.api.nvim_create_autocmd('User', au_opts)\r\n```\r\n\r\nAlso note that this will not work well with [documented example of modifying target window](https://nvim-mini.org/mini.nvim/doc/mini-files.html#minifiles-examples-createmappingstomodifytargetwindowviasplit).\r\n\r\n**Edit**: do not use `vim.fn.winnr('$') == 1` as a condition for when to highlight since it treats explorer windows themselves as targets (since they are focusable).",
+            "bodyHTML": "<p dir=\"auto\">This is an interesting idea! Thanks for sharing!</p>\n<p dir=\"auto\">I'd go with a bit more compact solution:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local hl_target_win = function()\n  -- Only highlight a window if there is more than one possible target\n  local n_win = 0\n  for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do\n    -- Treat only normal windows (not floating) as a target\n    local is_target = vim.api.nvim_win_get_config(win_id).relative == ''\n    n_win = n_win + (is_target and 1 or 0)\n  end\n  if n_win == 1 then return end\n\n  -- Temporarily set 'winhighlight' and setup restore after closing explorer\n  local target_win_id = MiniFiles.get_explorer_state().target_window\n  local winhl_orig = vim.wo[target_win_id].winhighlight\n  vim.wo[target_win_id].winhighlight = 'Normal:Visual,SignColumn:Visual'\n  local restore = function() vim.wo[target_win_id].winhighlight = winhl_orig end\n  vim.api.nvim_create_autocmd('User', { once = true, pattern = 'MiniFilesExplorerClose', callback = restore })\nend\n\nlocal au_opts = { pattern = 'MiniFilesExplorerOpen', callback = hl_target_win, desc = 'Highlight target window' }\nvim.api.nvim_create_autocmd('User', au_opts)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">hl_target_win</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Only highlight a window if there is more than one possible target</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">n_win</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_tabpage_list_wins</span>(<span class=\"pl-c1\">0</span>)) <span class=\"pl-k\">do</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Treat only normal windows (not floating) as a target</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_target</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">win_id</span>).<span class=\"pl-e\">relative</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-smi\">n_win</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">n_win</span> <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">is_target</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">n_win</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Temporarily set 'winhighlight' and setup restore after closing explorer</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">target_win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>().<span class=\"pl-e\">target_window</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">winhl_orig</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">target_win_id</span>].<span class=\"pl-e\">winhighlight</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">target_win_id</span>].<span class=\"pl-e\">winhighlight</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Normal:Visual,SignColumn:Visual<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">restore</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">target_win_id</span>].<span class=\"pl-e\">winhighlight</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">winhl_orig</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">once</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniFilesExplorerClose<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">restore</span> })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">au_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniFilesExplorerOpen<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hl_target_win</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Highlight target window<span class=\"pl-pds\">' </span></span>}\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">au_opts</span>)</pre></div>\n<p dir=\"auto\">Also note that this will not work well with <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-files.html#minifiles-examples-createmappingstomodifytargetwindowviasplit\" rel=\"nofollow\">documented example of modifying target window</a>.</p>\n<p dir=\"auto\"><strong>Edit</strong>: do not use <code class=\"notranslate\">vim.fn.winnr('$') == 1</code> as a condition for when to highlight since it treats explorer windows themselves as targets (since they are focusable).</p>",
+            "bodyText": "This is an interesting idea! Thanks for sharing!\nI'd go with a bit more compact solution:\nlocal hl_target_win = function()\n  -- Only highlight a window if there is more than one possible target\n  local n_win = 0\n  for _, win_id in ipairs(vim.api.nvim_tabpage_list_wins(0)) do\n    -- Treat only normal windows (not floating) as a target\n    local is_target = vim.api.nvim_win_get_config(win_id).relative == ''\n    n_win = n_win + (is_target and 1 or 0)\n  end\n  if n_win == 1 then return end\n\n  -- Temporarily set 'winhighlight' and setup restore after closing explorer\n  local target_win_id = MiniFiles.get_explorer_state().target_window\n  local winhl_orig = vim.wo[target_win_id].winhighlight\n  vim.wo[target_win_id].winhighlight = 'Normal:Visual,SignColumn:Visual'\n  local restore = function() vim.wo[target_win_id].winhighlight = winhl_orig end\n  vim.api.nvim_create_autocmd('User', { once = true, pattern = 'MiniFilesExplorerClose', callback = restore })\nend\n\nlocal au_opts = { pattern = 'MiniFilesExplorerOpen', callback = hl_target_win, desc = 'Highlight target window' }\nvim.api.nvim_create_autocmd('User', au_opts)\nAlso note that this will not work well with documented example of modifying target window.\nEdit: do not use vim.fn.winnr('$') == 1 as a condition for when to highlight since it treats explorer windows themselves as targets (since they are focusable).",
+            "createdAt": "2025-12-16T18:04:44Z",
+            "createdViaEmail": false,
+            "databaseId": 15272006,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4A6QhG",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-16T18:33:25Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-16T18:04:44Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2177#discussioncomment-15272006",
+            "updatedAt": "2025-12-16T18:33:25Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2177#discussioncomment-15272006"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "My original post did not quite work as intended due to the way window local options behave.  The previous implementation used the `winhighlight` to customize the highlight groups in the target window. That option, however, is a window local option, which has the following consequence (from the docs: [local-options](https://neovim.io/doc/user/options.html#local-options)):\r\n\r\n> The options local to a window are remembered for each buffer.\r\n\r\nConsequently, when the user opened a file in the explorer, our restore function to remove the window local option was applied to the correct window, but it already contained the new file. So when the user switched back to the prior buffer _in the same window_, it remembered the window highlight options that were previously set and incorrectly highlighted the window.\r\n\r\nThis new implementation uses highlight namespaces to achieve the originally intended effect. A window can be assigned a highlight namespace, which can define hl groups that take priority over the global hl groups. Like the prior implementation, I save a copy of any previously applied highlight namespace so it can be restored upon exit of the explorer. This version works as expected because the hl namespace is applied to the window _regardless of what buffer is contained within_.\r\n\r\n```lua\r\n  -- Create hl namespace to highlight 'mini.files' target window\r\n  local highlight_ns = vim.api.nvim_create_namespace(\"highlight_minifiles_target\")\r\n  vim.api.nvim_set_hl(highlight_ns, \"Normal\", { link = \"Visual\" })\r\n  vim.api.nvim_set_hl(highlight_ns, \"SignColumn\", { link = \"Visual\" })\r\n\r\n  local hl_target_win = function()\r\n    -- Only highlight a window if there is more than one possible target\r\n    local possible_targets = vim\r\n      .iter(vim.api.nvim_tabpage_list_wins(0))\r\n      :filter(function(w) return vim.api.nvim_win_get_config(w).relative == \"\" end)\r\n      :fold(0, function(acc, _) return acc + 1 end)\r\n    if possible_targets == 1 then return end\r\n\r\n    -- Temporarily set a window hl namespace and setup restore after closing explorer\r\n    local target_win_id = MiniFiles.get_explorer_state().target_window\r\n    local orig_hl_ns = vim.api.nvim_get_hl_ns({ winid = target_win_id })\r\n    local restore = function() vim.api.nvim_win_set_hl_ns(target_win_id, orig_hl_ns ~= -1 and orig_hl_ns or 0) end\r\n    vim.api.nvim_win_set_hl_ns(target_win_id, highlight_ns)\r\n    vim.api.nvim_create_autocmd(\"User\", { once = true, pattern = \"MiniFilesExplorerClose\", callback = restore })\r\n  end\r\n\r\n  local au_opts = { pattern = \"MiniFilesExplorerOpen\", callback = hl_target_win, desc = \"Highlight target window\" }\r\n  vim.api.nvim_create_autocmd(\"User\", au_opts)\r\n```",
+            "bodyHTML": "<p dir=\"auto\">My original post did not quite work as intended due to the way window local options behave.  The previous implementation used the <code class=\"notranslate\">winhighlight</code> to customize the highlight groups in the target window. That option, however, is a window local option, which has the following consequence (from the docs: <a href=\"https://neovim.io/doc/user/options.html#local-options\" rel=\"nofollow\">local-options</a>):</p>\n<blockquote>\n<p dir=\"auto\">The options local to a window are remembered for each buffer.</p>\n</blockquote>\n<p dir=\"auto\">Consequently, when the user opened a file in the explorer, our restore function to remove the window local option was applied to the correct window, but it already contained the new file. So when the user switched back to the prior buffer <em>in the same window</em>, it remembered the window highlight options that were previously set and incorrectly highlighted the window.</p>\n<p dir=\"auto\">This new implementation uses highlight namespaces to achieve the originally intended effect. A window can be assigned a highlight namespace, which can define hl groups that take priority over the global hl groups. Like the prior implementation, I save a copy of any previously applied highlight namespace so it can be restored upon exit of the explorer. This version works as expected because the hl namespace is applied to the window <em>regardless of what buffer is contained within</em>.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  -- Create hl namespace to highlight 'mini.files' target window\n  local highlight_ns = vim.api.nvim_create_namespace(&quot;highlight_minifiles_target&quot;)\n  vim.api.nvim_set_hl(highlight_ns, &quot;Normal&quot;, { link = &quot;Visual&quot; })\n  vim.api.nvim_set_hl(highlight_ns, &quot;SignColumn&quot;, { link = &quot;Visual&quot; })\n\n  local hl_target_win = function()\n    -- Only highlight a window if there is more than one possible target\n    local possible_targets = vim\n      .iter(vim.api.nvim_tabpage_list_wins(0))\n      :filter(function(w) return vim.api.nvim_win_get_config(w).relative == &quot;&quot; end)\n      :fold(0, function(acc, _) return acc + 1 end)\n    if possible_targets == 1 then return end\n\n    -- Temporarily set a window hl namespace and setup restore after closing explorer\n    local target_win_id = MiniFiles.get_explorer_state().target_window\n    local orig_hl_ns = vim.api.nvim_get_hl_ns({ winid = target_win_id })\n    local restore = function() vim.api.nvim_win_set_hl_ns(target_win_id, orig_hl_ns ~= -1 and orig_hl_ns or 0) end\n    vim.api.nvim_win_set_hl_ns(target_win_id, highlight_ns)\n    vim.api.nvim_create_autocmd(&quot;User&quot;, { once = true, pattern = &quot;MiniFilesExplorerClose&quot;, callback = restore })\n  end\n\n  local au_opts = { pattern = &quot;MiniFilesExplorerOpen&quot;, callback = hl_target_win, desc = &quot;Highlight target window&quot; }\n  vim.api.nvim_create_autocmd(&quot;User&quot;, au_opts)\"><pre class=\"notranslate\">  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Create hl namespace to highlight 'mini.files' target window</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlight_ns</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>highlight_minifiles_target<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_hl</span>(<span class=\"pl-smi\">highlight_ns</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Normal<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">link</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visual<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_hl</span>(<span class=\"pl-smi\">highlight_ns</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>SignColumn<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">link</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visual<span class=\"pl-pds\">\" </span></span>})\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">hl_target_win</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Only highlight a window if there is more than one possible target</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">possible_targets</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>\n      .<span class=\"pl-c1\">iter</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_tabpage_list_wins</span>(<span class=\"pl-c1\">0</span>))\n      :<span class=\"pl-c1\">filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">w</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">w</span>).<span class=\"pl-e\">relative</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">end</span>)\n      :<span class=\"pl-c1\">fold</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">acc</span>, <span class=\"pl-smi\">_</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">acc</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">possible_targets</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Temporarily set a window hl namespace and setup restore after closing explorer</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">target_win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>().<span class=\"pl-e\">target_window</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">orig_hl_ns</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_hl_ns</span>({ <span class=\"pl-smi\">winid</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">target_win_id</span> })\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">restore</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_hl_ns</span>(<span class=\"pl-smi\">target_win_id</span>, <span class=\"pl-smi\">orig_hl_ns</span> <span class=\"pl-k\">~=</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">orig_hl_ns</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_hl_ns</span>(<span class=\"pl-smi\">target_win_id</span>, <span class=\"pl-smi\">highlight_ns</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">once</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesExplorerClose<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">restore</span> })\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">au_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesExplorerOpen<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hl_target_win</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Highlight target window<span class=\"pl-pds\">\" </span></span>}\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">au_opts</span>)</pre></div>",
+            "bodyText": "My original post did not quite work as intended due to the way window local options behave.  The previous implementation used the winhighlight to customize the highlight groups in the target window. That option, however, is a window local option, which has the following consequence (from the docs: local-options):\n\nThe options local to a window are remembered for each buffer.\n\nConsequently, when the user opened a file in the explorer, our restore function to remove the window local option was applied to the correct window, but it already contained the new file. So when the user switched back to the prior buffer in the same window, it remembered the window highlight options that were previously set and incorrectly highlighted the window.\nThis new implementation uses highlight namespaces to achieve the originally intended effect. A window can be assigned a highlight namespace, which can define hl groups that take priority over the global hl groups. Like the prior implementation, I save a copy of any previously applied highlight namespace so it can be restored upon exit of the explorer. This version works as expected because the hl namespace is applied to the window regardless of what buffer is contained within.\n  -- Create hl namespace to highlight 'mini.files' target window\n  local highlight_ns = vim.api.nvim_create_namespace(\"highlight_minifiles_target\")\n  vim.api.nvim_set_hl(highlight_ns, \"Normal\", { link = \"Visual\" })\n  vim.api.nvim_set_hl(highlight_ns, \"SignColumn\", { link = \"Visual\" })\n\n  local hl_target_win = function()\n    -- Only highlight a window if there is more than one possible target\n    local possible_targets = vim\n      .iter(vim.api.nvim_tabpage_list_wins(0))\n      :filter(function(w) return vim.api.nvim_win_get_config(w).relative == \"\" end)\n      :fold(0, function(acc, _) return acc + 1 end)\n    if possible_targets == 1 then return end\n\n    -- Temporarily set a window hl namespace and setup restore after closing explorer\n    local target_win_id = MiniFiles.get_explorer_state().target_window\n    local orig_hl_ns = vim.api.nvim_get_hl_ns({ winid = target_win_id })\n    local restore = function() vim.api.nvim_win_set_hl_ns(target_win_id, orig_hl_ns ~= -1 and orig_hl_ns or 0) end\n    vim.api.nvim_win_set_hl_ns(target_win_id, highlight_ns)\n    vim.api.nvim_create_autocmd(\"User\", { once = true, pattern = \"MiniFilesExplorerClose\", callback = restore })\n  end\n\n  local au_opts = { pattern = \"MiniFilesExplorerOpen\", callback = hl_target_win, desc = \"Highlight target window\" }\n  vim.api.nvim_create_autocmd(\"User\", au_opts)",
+            "createdAt": "2025-12-18T12:15:27Z",
+            "createdViaEmail": false,
+            "databaseId": 15289039,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "id": "DC_kwDOFoksYM4A6UrP",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-18T12:29:56Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-18T12:15:27Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2177#discussioncomment-15289039",
+            "updatedAt": "2025-12-18T12:29:56Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2177#discussioncomment-15289039"
+        }
+    ],
+    "createdAt": "2025-12-16T17:44:47Z",
+    "createdViaEmail": false,
+    "databaseId": 9253822,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "id": "D_kwDOFoksYM4AjTO-",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-12-18T12:33:50Z",
+    "locked": false,
+    "number": 2177,
+    "poll": null,
+    "publishedAt": "2025-12-16T17:44:47Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2177",
+    "stateReason": null,
+    "title": "[mini.files] Highlight target window",
+    "updatedAt": "2025-12-18T12:33:50Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2177"
+}

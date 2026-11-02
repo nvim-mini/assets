@@ -1,0 +1,282 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/47817529?u=f476464f1e5f9eb3be5c8ce5f0dcde74ef09363d&v=4",
+        "login": "sebastianstudniczek",
+        "resourcePath": "/sebastianstudniczek",
+        "url": "https://github.com/sebastianstudniczek"
+    },
+    "authorAssociation": "NONE",
+    "body": "I was wondering whether it's possible to implement `Allman` style for brackets.\r\n\r\nI am writing C# where the default convention is putting brackets on separate lines. \r\n\r\nLet's say I have such method signature:\r\n\r\n```csharp\r\n    public void TestMethod() {}\r\n```\r\n\r\nIs it possible to put both brackets on separate lines, either directly when inserting the open bracket or hitting enter when inside brackets?\r\n\r\nDesired result:\r\n```csharp\r\n    public void TestMethod() \r\n    {\r\n\r\n    }\r\n```",
+    "bodyHTML": "<p dir=\"auto\">I was wondering whether it's possible to implement <code class=\"notranslate\">Allman</code> style for brackets.</p>\n<p dir=\"auto\">I am writing C# where the default convention is putting brackets on separate lines.</p>\n<p dir=\"auto\">Let's say I have such method signature:</p>\n<div class=\"highlight highlight-source-cs notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"    public void TestMethod() {}\"><pre class=\"notranslate\">    <span class=\"pl-k\">public</span> <span class=\"pl-smi\">void</span> <span class=\"pl-en\">TestMethod</span><span class=\"pl-kos\">(</span><span class=\"pl-kos\">)</span> <span class=\"pl-kos\">{</span><span class=\"pl-kos\">}</span></pre></div>\n<p dir=\"auto\">Is it possible to put both brackets on separate lines, either directly when inserting the open bracket or hitting enter when inside brackets?</p>\n<p dir=\"auto\">Desired result:</p>\n<div class=\"highlight highlight-source-cs notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"    public void TestMethod() \n    {\n\n    }\"><pre class=\"notranslate\">    <span class=\"pl-k\">public</span> <span class=\"pl-smi\">void</span> <span class=\"pl-en\">TestMethod</span><span class=\"pl-kos\">(</span><span class=\"pl-kos\">)</span> \n    <span class=\"pl-kos\">{</span>\n\n    <span class=\"pl-kos\">}</span></pre></div>",
+    "bodyText": "I was wondering whether it's possible to implement Allman style for brackets.\nI am writing C# where the default convention is putting brackets on separate lines.\nLet's say I have such method signature:\n    public void TestMethod() {}\nIs it possible to put both brackets on separate lines, either directly when inserting the open bracket or hitting enter when inside brackets?\nDesired result:\n    public void TestMethod() \n    {\n\n    }",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-03-31T11:13:51Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "With 'mini.pairs' - I am afraid the answer is a no. It deliberately [acts as an equivalent of `<CR><C-o>O`](https://nvim-mini.org/mini.nvim/doc/mini-pairs.html#minipairs.cr), i.e. does not affect the left character.\r\n\r\nA possible solution here might be to use [`MiniKeymap.map_multistep()`](https://nvim-mini.org/mini.nvim/doc/mini-keymap.html#minikeymap.map_multistep) with a custom step. To do that only inside C# files, create a `~/.config/nvim/after/ftplugin/csharp.lua` filetype plugin with the following content:\r\n\r\n```lua\r\nif _G.MiniKeymap then\r\n  -- Act only when cursor is between `{}`\r\n  local is_inside_braces = function()\r\n    local line = vim.api.nvim_get_current_line()\r\n    local col = vim.api.nvim_win_get_cursor(0)[2]\r\n    return line:sub(col, col + 1) == '{}'\r\n  end\r\n  -- Mock a sequence of keys that produce an Allman style\r\n  -- NOTE: It is not perfect, as there might be issues with indentation and\r\n  -- trailing whitespace. Adjust it to fit the use case better\r\n  local allman_action = function() return '<Left><CR><Right><CR><CR><Up><Tab>' end\r\n  local allman_step = { condition = is_inside_braces, action = allman_action }\r\n\r\n  -- Create a buffer-local mapping that doesn't remap (to be able to use `<CR>` in the output\r\n  -- without infinite recursion\r\n  local opts = { remap = false, buf = 0 }\r\n  MiniKeymap.map_multistep('i', '<CR>', { 'pmenu_accept', allman_step, 'minipairs_cr' }, opts)\r\nend\r\n```",
+            "bodyHTML": "<p dir=\"auto\">With 'mini.pairs' - I am afraid the answer is a no. It deliberately <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-pairs.html#minipairs.cr\" rel=\"nofollow\">acts as an equivalent of <code class=\"notranslate\">&lt;CR&gt;&lt;C-o&gt;O</code></a>, i.e. does not affect the left character.</p>\n<p dir=\"auto\">A possible solution here might be to use <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-keymap.html#minikeymap.map_multistep\" rel=\"nofollow\"><code class=\"notranslate\">MiniKeymap.map_multistep()</code></a> with a custom step. To do that only inside C# files, create a <code class=\"notranslate\">~/.config/nvim/after/ftplugin/csharp.lua</code> filetype plugin with the following content:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"if _G.MiniKeymap then\n  -- Act only when cursor is between `{}`\n  local is_inside_braces = function()\n    local line = vim.api.nvim_get_current_line()\n    local col = vim.api.nvim_win_get_cursor(0)[2]\n    return line:sub(col, col + 1) == '{}'\n  end\n  -- Mock a sequence of keys that produce an Allman style\n  -- NOTE: It is not perfect, as there might be issues with indentation and\n  -- trailing whitespace. Adjust it to fit the use case better\n  local allman_action = function() return '&lt;Left&gt;&lt;CR&gt;&lt;Right&gt;&lt;CR&gt;&lt;CR&gt;&lt;Up&gt;&lt;Tab&gt;' end\n  local allman_step = { condition = is_inside_braces, action = allman_action }\n\n  -- Create a buffer-local mapping that doesn't remap (to be able to use `&lt;CR&gt;` in the output\n  -- without infinite recursion\n  local opts = { remap = false, buf = 0 }\n  MiniKeymap.map_multistep('i', '&lt;CR&gt;', { 'pmenu_accept', allman_step, 'minipairs_cr' }, opts)\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">if</span> <span class=\"pl-c1\">_G</span>.<span class=\"pl-e\">MiniKeymap</span> <span class=\"pl-k\">then</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Act only when cursor is between `{}`</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">is_inside_braces</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_line</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-c1\">0</span>)[<span class=\"pl-c1\">2</span>]\n    <span class=\"pl-k\">return</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-smi\">col</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>{}<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Mock a sequence of keys that produce an Allman style</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: It is not perfect, as there might be issues with indentation and</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> trailing whitespace. Adjust it to fit the use case better</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">allman_action</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Left&gt;&lt;CR&gt;&lt;Right&gt;&lt;CR&gt;&lt;CR&gt;&lt;Up&gt;&lt;Tab&gt;<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">allman_step</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">condition</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">is_inside_braces</span>, <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">allman_action</span> }\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Create a buffer-local mapping that doesn't remap (to be able to use `&lt;CR&gt;` in the output</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> without infinite recursion</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span> }\n  <span class=\"pl-smi\">MiniKeymap</span>.<span class=\"pl-c1\">map_multistep</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;CR&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>pmenu_accept<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">allman_step</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>minipairs_cr<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "With 'mini.pairs' - I am afraid the answer is a no. It deliberately acts as an equivalent of <CR><C-o>O, i.e. does not affect the left character.\nA possible solution here might be to use MiniKeymap.map_multistep() with a custom step. To do that only inside C# files, create a ~/.config/nvim/after/ftplugin/csharp.lua filetype plugin with the following content:\nif _G.MiniKeymap then\n  -- Act only when cursor is between `{}`\n  local is_inside_braces = function()\n    local line = vim.api.nvim_get_current_line()\n    local col = vim.api.nvim_win_get_cursor(0)[2]\n    return line:sub(col, col + 1) == '{}'\n  end\n  -- Mock a sequence of keys that produce an Allman style\n  -- NOTE: It is not perfect, as there might be issues with indentation and\n  -- trailing whitespace. Adjust it to fit the use case better\n  local allman_action = function() return '<Left><CR><Right><CR><CR><Up><Tab>' end\n  local allman_step = { condition = is_inside_braces, action = allman_action }\n\n  -- Create a buffer-local mapping that doesn't remap (to be able to use `<CR>` in the output\n  -- without infinite recursion\n  local opts = { remap = false, buf = 0 }\n  MiniKeymap.map_multistep('i', '<CR>', { 'pmenu_accept', allman_step, 'minipairs_cr' }, opts)\nend",
+            "createdAt": "2026-03-31T11:13:50Z",
+            "createdViaEmail": false,
+            "databaseId": 16393718,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A-iX2",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-31T11:13:50Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/47817529?u=f476464f1e5f9eb3be5c8ce5f0dcde74ef09363d&v=4",
+                        "login": "sebastianstudniczek",
+                        "resourcePath": "/sebastianstudniczek",
+                        "url": "https://github.com/sebastianstudniczek"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Great, will check that out, thanks for help!",
+                    "bodyHTML": "<p dir=\"auto\">Great, will check that out, thanks for help!</p>",
+                    "bodyText": "Great, will check that out, thanks for help!",
+                    "createdAt": "2026-03-31T11:25:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16393847,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-iZ3",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-31T11:25:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16393718,
+                        "id": "DC_kwDOFoksYM4A-iX2",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2336#discussioncomment-16393718"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2336#discussioncomment-16393847",
+                    "updatedAt": "2026-03-31T11:25:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2336#discussioncomment-16393847"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2336#discussioncomment-16393718",
+            "updatedAt": "2026-03-31T11:13:50Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2336#discussioncomment-16393718"
+        }
+    ],
+    "createdAt": "2026-03-30T20:23:47Z",
+    "createdViaEmail": false,
+    "databaseId": 9791972,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AlWnk",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vci",
+                "name": "mini.pairs"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB_eLzvQ",
+                "name": "mini.keymap"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2336,
+    "poll": null,
+    "publishedAt": "2026-03-30T20:23:47Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2336",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pairs] Putting opening bracket on new line",
+    "updatedAt": "2026-03-31T11:25:42Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2336"
+}

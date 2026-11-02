@@ -1,0 +1,555 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 14032617,
+        "id": "DC_kwDOFoksYM4A1h7p",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032617"
+    },
+    "answerChosenAt": "2025-08-07T09:21:49Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/20299245?v=4",
+        "login": "eb0687",
+        "resourcePath": "/eb0687",
+        "url": "https://github.com/eb0687"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.pick\n\n### Question\n\nIn telescope there is a default keybind to edit a command from the command history list <C-e>.\r\n\r\nBelow is an excerpt from the telescope docs:\r\n\r\n```\r\nbuiltin.command_history({opts})          *telescope.builtin.command_history()*\r\n    Lists commands that were executed recently, and reruns them on `<cr>`\r\n    - Default keymaps:\r\n      - `<C-e>`: open the command line with the text of the currently selected\r\n        result populated in it\r\n```\r\n\r\nIs there a way to emulate this behavior when using mini pick's history command?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.pick</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">In telescope there is a default keybind to edit a command from the command history list .</p>\n<p dir=\"auto\">Below is an excerpt from the telescope docs:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"builtin.command_history({opts})          *telescope.builtin.command_history()*\n    Lists commands that were executed recently, and reruns them on `&lt;cr&gt;`\n    - Default keymaps:\n      - `&lt;C-e&gt;`: open the command line with the text of the currently selected\n        result populated in it\"><pre class=\"notranslate\"><code class=\"notranslate\">builtin.command_history({opts})          *telescope.builtin.command_history()*\n    Lists commands that were executed recently, and reruns them on `&lt;cr&gt;`\n    - Default keymaps:\n      - `&lt;C-e&gt;`: open the command line with the text of the currently selected\n        result populated in it\n</code></pre></div>\n<p dir=\"auto\">Is there a way to emulate this behavior when using mini pick's history command?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.pick\nQuestion\nIn telescope there is a default keybind to edit a command from the command history list .\nBelow is an excerpt from the telescope docs:\nbuiltin.command_history({opts})          *telescope.builtin.command_history()*\n    Lists commands that were executed recently, and reruns them on `<cr>`\n    - Default keymaps:\n      - `<C-e>`: open the command line with the text of the currently selected\n        result populated in it\n\nIs there a way to emulate this behavior when using mini pick's history command?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-08-07T09:21:46Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There is no such action/mapping built-in, but it is possible to write custom picker that has one. Something like this:\r\n\r\n```lua\r\nrequire('mini.pick').setup()\r\nrequire('mini.extra').setup()\r\n\r\nMiniPick.registry.command_history = function()\r\n  local edit_command = function()\r\n    local cur_match = MiniPick.get_picker_matches().current\r\n    cur_match = cur_match:gsub('^: ', ':')\r\n    vim.schedule(function() vim.api.nvim_input(cur_match) end)\r\n    return true\r\n  end\r\n  local opts = { mappings = { edit_command = { char = '<C-e>', func = edit_command } } }\r\n  MiniExtra.pickers.history({ scope = ':' }, opts)\r\nend\r\n```\r\n\r\nNow executing `:Pick command_history` will open picker with command history and custom `<C-e>` mapping (it is visible after pressing `<S-Tab>`). Pressing `<C-e>` stops a picker and puts command in command line to edit.\r\n\r\nThe reason it is not present by default is because it makes sense only for command and search history (while there are other history types present). But I've needed something like this myself several times, so maybe it is indeed useful to have built-in at least for those history types. I'll think about it.",
+            "bodyHTML": "<p dir=\"auto\">There is no such action/mapping built-in, but it is possible to write custom picker that has one. Something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.pick').setup()\nrequire('mini.extra').setup()\n\nMiniPick.registry.command_history = function()\n  local edit_command = function()\n    local cur_match = MiniPick.get_picker_matches().current\n    cur_match = cur_match:gsub('^: ', ':')\n    vim.schedule(function() vim.api.nvim_input(cur_match) end)\n    return true\n  end\n  local opts = { mappings = { edit_command = { char = '&lt;C-e&gt;', func = edit_command } } }\n  MiniExtra.pickers.history({ scope = ':' }, opts)\nend\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.extra<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>()\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">command_history</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">edit_command</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cur_match</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>().<span class=\"pl-e\">current</span>\n    <span class=\"pl-smi\">cur_match</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">cur_match</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^: <span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>:<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_input</span>(<span class=\"pl-smi\">cur_match</span>) <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">edit_command</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-e&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">edit_command</span> } } }\n  <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">history</span>({ <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>:<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Now executing <code class=\"notranslate\">:Pick command_history</code> will open picker with command history and custom <code class=\"notranslate\">&lt;C-e&gt;</code> mapping (it is visible after pressing <code class=\"notranslate\">&lt;S-Tab&gt;</code>). Pressing <code class=\"notranslate\">&lt;C-e&gt;</code> stops a picker and puts command in command line to edit.</p>\n<p dir=\"auto\">The reason it is not present by default is because it makes sense only for command and search history (while there are other history types present). But I've needed something like this myself several times, so maybe it is indeed useful to have built-in at least for those history types. I'll think about it.</p>",
+            "bodyText": "There is no such action/mapping built-in, but it is possible to write custom picker that has one. Something like this:\nrequire('mini.pick').setup()\nrequire('mini.extra').setup()\n\nMiniPick.registry.command_history = function()\n  local edit_command = function()\n    local cur_match = MiniPick.get_picker_matches().current\n    cur_match = cur_match:gsub('^: ', ':')\n    vim.schedule(function() vim.api.nvim_input(cur_match) end)\n    return true\n  end\n  local opts = { mappings = { edit_command = { char = '<C-e>', func = edit_command } } }\n  MiniExtra.pickers.history({ scope = ':' }, opts)\nend\nNow executing :Pick command_history will open picker with command history and custom <C-e> mapping (it is visible after pressing <S-Tab>). Pressing <C-e> stops a picker and puts command in command line to edit.\nThe reason it is not present by default is because it makes sense only for command and search history (while there are other history types present). But I've needed something like this myself several times, so maybe it is indeed useful to have built-in at least for those history types. I'll think about it.",
+            "createdAt": "2025-08-07T09:21:45Z",
+            "createdViaEmail": false,
+            "databaseId": 14032617,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4A1h7p",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2025-08-07T09:23:35Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-08-07T09:21:45Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "@eb0687, thanks to @TheLeoP, after #1960 the `<C-e>` mapping is now [built-in for `history` picker](https://github.com/echasnovski/mini.nvim/blob/e38547768b2e12bdd48b16b8cfdca2e3b7543e22/doc/mini-extra.txt#L515-L516), works only for command and search history. Thanks for mentioning it!",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/eb0687/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/eb0687\">@eb0687</a>, thanks to <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/TheLeoP/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/TheLeoP\">@TheLeoP</a>, after <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3335162670\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1960\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1960/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/1960\">#1960</a> the <code class=\"notranslate\">&lt;C-e&gt;</code> mapping is now <a href=\"https://github.com/echasnovski/mini.nvim/blob/e38547768b2e12bdd48b16b8cfdca2e3b7543e22/doc/mini-extra.txt#L515-L516\">built-in for <code class=\"notranslate\">history</code> picker</a>, works only for command and search history. Thanks for mentioning it!</p>",
+                    "bodyText": "@eb0687, thanks to @TheLeoP, after #1960 the <C-e> mapping is now built-in for history picker, works only for command and search history. Thanks for mentioning it!",
+                    "createdAt": "2025-08-21T16:49:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14181132,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4A2GMM",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-08-21T16:50:31Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-21T16:49:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14032617,
+                        "id": "DC_kwDOFoksYM4A1h7p",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032617"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14181132",
+                    "updatedAt": "2025-08-21T16:50:31Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14181132"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/20299245?v=4",
+                        "login": "eb0687",
+                        "resourcePath": "/eb0687",
+                        "url": "https://github.com/eb0687"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "glad to have helped in someway even if indirectly",
+                    "bodyHTML": "<p dir=\"auto\">glad to have helped in someway even if indirectly</p>",
+                    "bodyText": "glad to have helped in someway even if indirectly",
+                    "createdAt": "2025-08-21T20:25:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14182834,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2Gmy",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-21T20:25:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14032617,
+                        "id": "DC_kwDOFoksYM4A1h7p",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032617"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14182834",
+                    "updatedAt": "2025-08-21T20:25:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14182834"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032617",
+            "updatedAt": "2025-08-07T09:23:35Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032617"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/20299245?v=4",
+                "login": "eb0687",
+                "resourcePath": "/eb0687",
+                "url": "https://github.com/eb0687"
+            },
+            "authorAssociation": "NONE",
+            "body": "thanks for your response, I just figured it out as well, this is my attempt:\r\n\r\n```lua\r\n local history_mappings = {\r\n            execute = {\r\n                char = \"<C-e>\",\r\n                func = function()\r\n                    local MiniPick = require(\"mini.pick\")\r\n                    local match = MiniPick.get_picker_matches()\r\n                    if not match then\r\n                        return\r\n                    end\r\n\r\n                    local value = type(match.current) == \"table\" and match.current.value or tostring(match.current)\r\n                    value = value:gsub(\"^:+\", \"\")\r\n                    MiniPick.stop()\r\n                    vim.schedule(function()\r\n                        local cmd = \":\" .. value\r\n                        local keys = vim.api.nvim_replace_termcodes(cmd, true, false, true)\r\n                        vim.api.nvim_feedkeys(keys, \"n\", false)\r\n                    end)\r\n                end,\r\n            },\r\n        }\r\n        \r\nkeymap(\"<leader>fch\", function()\r\n    MiniExtra.pickers.history({ scope = \":\" }, { mappings = history_mappings })\r\nend, \"Find command history\")\r\n ```\r\n \r\n did not know about this registry thing, looks cleaner, i think il adapt mine to your style. thanks!",
+            "bodyHTML": "<p dir=\"auto\">thanks for your response, I just figured it out as well, this is my attempt:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\" local history_mappings = {\n            execute = {\n                char = &quot;&lt;C-e&gt;&quot;,\n                func = function()\n                    local MiniPick = require(&quot;mini.pick&quot;)\n                    local match = MiniPick.get_picker_matches()\n                    if not match then\n                        return\n                    end\n\n                    local value = type(match.current) == &quot;table&quot; and match.current.value or tostring(match.current)\n                    value = value:gsub(&quot;^:+&quot;, &quot;&quot;)\n                    MiniPick.stop()\n                    vim.schedule(function()\n                        local cmd = &quot;:&quot; .. value\n                        local keys = vim.api.nvim_replace_termcodes(cmd, true, false, true)\n                        vim.api.nvim_feedkeys(keys, &quot;n&quot;, false)\n                    end)\n                end,\n            },\n        }\n        \nkeymap(&quot;&lt;leader&gt;fch&quot;, function()\n    MiniExtra.pickers.history({ scope = &quot;:&quot; }, { mappings = history_mappings })\nend, &quot;Find command history&quot;)\"><pre class=\"notranslate\"> <span class=\"pl-k\">local</span> <span class=\"pl-smi\">history_mappings</span> <span class=\"pl-k\">=</span> {\n            <span class=\"pl-smi\">execute</span> <span class=\"pl-k\">=</span> {\n                <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-e&gt;<span class=\"pl-pds\">\"</span></span>,\n                <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n                    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniPick</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>)\n                    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>()\n                    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">match</span> <span class=\"pl-k\">then</span>\n                        <span class=\"pl-k\">return</span>\n                    <span class=\"pl-k\">end</span>\n\n                    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">value</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">match</span>.<span class=\"pl-e\">current</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>table<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">match</span>.<span class=\"pl-e\">current</span>.<span class=\"pl-e\">value</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">match</span>.<span class=\"pl-e\">current</span>)\n                    <span class=\"pl-smi\">value</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">value</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^:+<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n                    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">stop</span>()\n                    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n                        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">value</span>\n                        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-smi\">cmd</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n                        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_feedkeys</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>)\n                    <span class=\"pl-k\">end</span>)\n                <span class=\"pl-k\">end</span>,\n            },\n        }\n        \n<span class=\"pl-c1\">keymap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;fch<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">history</span>({ <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:<span class=\"pl-pds\">\" </span></span>}, { <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">history_mappings</span> })\n<span class=\"pl-k\">end</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Find command history<span class=\"pl-pds\">\"</span></span>)</pre></div>\n<p dir=\"auto\">did not know about this registry thing, looks cleaner, i think il adapt mine to your style. thanks!</p>",
+            "bodyText": "thanks for your response, I just figured it out as well, this is my attempt:\n local history_mappings = {\n            execute = {\n                char = \"<C-e>\",\n                func = function()\n                    local MiniPick = require(\"mini.pick\")\n                    local match = MiniPick.get_picker_matches()\n                    if not match then\n                        return\n                    end\n\n                    local value = type(match.current) == \"table\" and match.current.value or tostring(match.current)\n                    value = value:gsub(\"^:+\", \"\")\n                    MiniPick.stop()\n                    vim.schedule(function()\n                        local cmd = \":\" .. value\n                        local keys = vim.api.nvim_replace_termcodes(cmd, true, false, true)\n                        vim.api.nvim_feedkeys(keys, \"n\", false)\n                    end)\n                end,\n            },\n        }\n        \nkeymap(\"<leader>fch\", function()\n    MiniExtra.pickers.history({ scope = \":\" }, { mappings = history_mappings })\nend, \"Find command history\")\ndid not know about this registry thing, looks cleaner, i think il adapt mine to your style. thanks!",
+            "createdAt": "2025-08-07T09:36:14Z",
+            "createdViaEmail": false,
+            "databaseId": 14032839,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A1h_H",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-08-07T09:36:14Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Nice!\r\n\r\n> did not know about this registry thing, looks cleaner ...\r\n\r\nIt is documented [here](https://github.com/echasnovski/mini.nvim/blob/4035ef97407a6661ae9ff913ff980e271a658502/doc/mini-pick.txt#L1219).",
+                    "bodyHTML": "<p dir=\"auto\">Nice!</p>\n<blockquote>\n<p dir=\"auto\">did not know about this registry thing, looks cleaner ...</p>\n</blockquote>\n<p dir=\"auto\">It is documented <a href=\"https://github.com/echasnovski/mini.nvim/blob/4035ef97407a6661ae9ff913ff980e271a658502/doc/mini-pick.txt#L1219\">here</a>.</p>",
+                    "bodyText": "Nice!\n\ndid not know about this registry thing, looks cleaner ...\n\nIt is documented here.",
+                    "createdAt": "2025-08-07T09:38:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14032880,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A1h_w",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-07T09:38:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14032839,
+                        "id": "DC_kwDOFoksYM4A1h_H",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032839"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032880",
+                    "updatedAt": "2025-08-07T09:38:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032880"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032839",
+            "updatedAt": "2025-08-07T09:36:14Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926#discussioncomment-14032839"
+        }
+    ],
+    "createdAt": "2025-08-06T19:32:07Z",
+    "createdViaEmail": false,
+    "databaseId": 8694414,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AhKqO",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1926,
+    "poll": null,
+    "publishedAt": "2025-08-06T19:32:07Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1926",
+    "stateReason": "RESOLVED",
+    "title": "Mini pick - edit command history?",
+    "updatedAt": "2025-08-21T20:25:37Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1926"
+}

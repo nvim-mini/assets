@@ -1,0 +1,192 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/52180870?u=850e2c4322f391a0724f784137457c3599f77892&v=4",
+        "login": "diego-velez",
+        "resourcePath": "/diego-velez",
+        "url": "https://github.com/diego-velez"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Hey all!\r\n\r\nI've been replacing telescope for mini.pick recently, and I made a picker to show all todo comments. This is for folke's todo-comments plugin, since it has an extension for telescope and fzf-lua, but not for mini.pick, so I wrote one for it.\r\n\r\nCheck it out:\r\n```\r\n    MiniPick.registry.todo = function()\r\n      local show_todo = function(buf_id, entries, query, opts)\r\n        MiniPick.default_show(buf_id, entries, query, opts)\r\n\r\n        -- Add highlighting to every line in the buffer\r\n        for line, entry in ipairs(entries) do\r\n          for _, hl in ipairs(entry.hl) do\r\n            vim.api.nvim_buf_add_highlight(\r\n              buf_id,\r\n              ns_digit_prefix,\r\n              hl[2],\r\n              line - 1,\r\n              hl[1][1],\r\n              hl[1][2]\r\n            )\r\n          end\r\n        end\r\n      end\r\n      require('todo-comments.search').search(function(results)\r\n        local Config = require 'todo-comments.config'\r\n        local Highlight = require 'todo-comments.highlight'\r\n\r\n        for i, entry in ipairs(results) do\r\n          -- By default, mini.pick uses the path item when an item is choosen to open it\r\n          entry.path = entry.filename\r\n          entry.filename = nil\r\n\r\n          local relative_path = string.gsub(entry.path, vim.fn.getcwd() .. '/', '')\r\n          local display = string.format('%s:%s:%s ', relative_path, entry.lnum, entry.col)\r\n          local text = entry.text\r\n          local start, finish, kw = Highlight.match(text)\r\n\r\n          entry.hl = {}\r\n\r\n          if start then\r\n            kw = Config.keywords[kw] or kw\r\n            local icon = Config.options.keywords[kw].icon or ' '\r\n            display = icon .. ' ' .. display\r\n            table.insert(entry.hl, { { 0, #icon + 1 }, 'TodoFg' .. kw })\r\n            text = vim.trim(text:sub(start))\r\n\r\n            table.insert(entry.hl, {\r\n              { #display, #display + finish - start + 2 },\r\n              'TodoBg' .. kw,\r\n            })\r\n            table.insert(entry.hl, {\r\n              { #display + finish - start + 1, #display + finish + 1 + #text },\r\n              'TodoFg' .. kw,\r\n            })\r\n            entry.text = display .. ' ' .. text\r\n          end\r\n\r\n          results[i] = entry\r\n        end\r\n\r\n        MiniPick.start { source = { name = 'Find Todo', show = show_todo, items = results } }\r\n      end, nil)\r\n\r\n   end\r\n```\r\n\r\nThis is how it looks:\r\n![Screenshot from 2024-12-22 18-41-35](https://github.com/user-attachments/assets/f4efe87d-41e8-4adb-89fa-2c31ff148cb6)\r\n\r\n\r\nI basically took the code that folke had made for the telescope extension and made it work for mini.pick.\r\n\r\nAny feedback is appreciated!! Enjoy!!",
+    "bodyHTML": "<p dir=\"auto\">Hey all!</p>\n<p dir=\"auto\">I've been replacing telescope for mini.pick recently, and I made a picker to show all todo comments. This is for folke's todo-comments plugin, since it has an extension for telescope and fzf-lua, but not for mini.pick, so I wrote one for it.</p>\n<p dir=\"auto\">Check it out:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"    MiniPick.registry.todo = function()\n      local show_todo = function(buf_id, entries, query, opts)\n        MiniPick.default_show(buf_id, entries, query, opts)\n\n        -- Add highlighting to every line in the buffer\n        for line, entry in ipairs(entries) do\n          for _, hl in ipairs(entry.hl) do\n            vim.api.nvim_buf_add_highlight(\n              buf_id,\n              ns_digit_prefix,\n              hl[2],\n              line - 1,\n              hl[1][1],\n              hl[1][2]\n            )\n          end\n        end\n      end\n      require('todo-comments.search').search(function(results)\n        local Config = require 'todo-comments.config'\n        local Highlight = require 'todo-comments.highlight'\n\n        for i, entry in ipairs(results) do\n          -- By default, mini.pick uses the path item when an item is choosen to open it\n          entry.path = entry.filename\n          entry.filename = nil\n\n          local relative_path = string.gsub(entry.path, vim.fn.getcwd() .. '/', '')\n          local display = string.format('%s:%s:%s ', relative_path, entry.lnum, entry.col)\n          local text = entry.text\n          local start, finish, kw = Highlight.match(text)\n\n          entry.hl = {}\n\n          if start then\n            kw = Config.keywords[kw] or kw\n            local icon = Config.options.keywords[kw].icon or ' '\n            display = icon .. ' ' .. display\n            table.insert(entry.hl, { { 0, #icon + 1 }, 'TodoFg' .. kw })\n            text = vim.trim(text:sub(start))\n\n            table.insert(entry.hl, {\n              { #display, #display + finish - start + 2 },\n              'TodoBg' .. kw,\n            })\n            table.insert(entry.hl, {\n              { #display + finish - start + 1, #display + finish + 1 + #text },\n              'TodoFg' .. kw,\n            })\n            entry.text = display .. ' ' .. text\n          end\n\n          results[i] = entry\n        end\n\n        MiniPick.start { source = { name = 'Find Todo', show = show_todo, items = results } }\n      end, nil)\n\n   end\"><pre class=\"notranslate\"><code class=\"notranslate\">    MiniPick.registry.todo = function()\n      local show_todo = function(buf_id, entries, query, opts)\n        MiniPick.default_show(buf_id, entries, query, opts)\n\n        -- Add highlighting to every line in the buffer\n        for line, entry in ipairs(entries) do\n          for _, hl in ipairs(entry.hl) do\n            vim.api.nvim_buf_add_highlight(\n              buf_id,\n              ns_digit_prefix,\n              hl[2],\n              line - 1,\n              hl[1][1],\n              hl[1][2]\n            )\n          end\n        end\n      end\n      require('todo-comments.search').search(function(results)\n        local Config = require 'todo-comments.config'\n        local Highlight = require 'todo-comments.highlight'\n\n        for i, entry in ipairs(results) do\n          -- By default, mini.pick uses the path item when an item is choosen to open it\n          entry.path = entry.filename\n          entry.filename = nil\n\n          local relative_path = string.gsub(entry.path, vim.fn.getcwd() .. '/', '')\n          local display = string.format('%s:%s:%s ', relative_path, entry.lnum, entry.col)\n          local text = entry.text\n          local start, finish, kw = Highlight.match(text)\n\n          entry.hl = {}\n\n          if start then\n            kw = Config.keywords[kw] or kw\n            local icon = Config.options.keywords[kw].icon or ' '\n            display = icon .. ' ' .. display\n            table.insert(entry.hl, { { 0, #icon + 1 }, 'TodoFg' .. kw })\n            text = vim.trim(text:sub(start))\n\n            table.insert(entry.hl, {\n              { #display, #display + finish - start + 2 },\n              'TodoBg' .. kw,\n            })\n            table.insert(entry.hl, {\n              { #display + finish - start + 1, #display + finish + 1 + #text },\n              'TodoFg' .. kw,\n            })\n            entry.text = display .. ' ' .. text\n          end\n\n          results[i] = entry\n        end\n\n        MiniPick.start { source = { name = 'Find Todo', show = show_todo, items = results } }\n      end, nil)\n\n   end\n</code></pre></div>\n<p dir=\"auto\">This is how it looks:<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/52180870/398016931-f4efe87d-41e8-4adb-89fa-2c31ff148cb6.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMyOTUsIm5iZiI6MTc5MzU1Mjk5NSwicGF0aCI6Ii81MjE4MDg3MC8zOTgwMTY5MzEtZjRlZmU4N2QtNDFlOC00YWRiLTg5ZmEtMmMzMWZmMTQ4Y2I2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDk1NVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWNkM2JmYTdkZWFkYzJmYjEzYzJkY2JhZTZiZTYzYmQ4MGMwMWRkMDA1YWFjNjk4ZGJhNTcwMjVlYTY0OGE3MzAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.HlxLImQP7_Rwg5t7gmLQtJr6j1ke1TYRnvBnAW9BcGU\"><img src=\"https://private-user-images.githubusercontent.com/52180870/398016931-f4efe87d-41e8-4adb-89fa-2c31ff148cb6.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMyOTUsIm5iZiI6MTc5MzU1Mjk5NSwicGF0aCI6Ii81MjE4MDg3MC8zOTgwMTY5MzEtZjRlZmU4N2QtNDFlOC00YWRiLTg5ZmEtMmMzMWZmMTQ4Y2I2LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDk1NVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWNkM2JmYTdkZWFkYzJmYjEzYzJkY2JhZTZiZTYzYmQ4MGMwMWRkMDA1YWFjNjk4ZGJhNTcwMjVlYTY0OGE3MzAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.HlxLImQP7_Rwg5t7gmLQtJr6j1ke1TYRnvBnAW9BcGU\" alt=\"Screenshot from 2024-12-22 18-41-35\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">I basically took the code that folke had made for the telescope extension and made it work for mini.pick.</p>\n<p dir=\"auto\">Any feedback is appreciated!! Enjoy!!</p>",
+    "bodyText": "Hey all!\nI've been replacing telescope for mini.pick recently, and I made a picker to show all todo comments. This is for folke's todo-comments plugin, since it has an extension for telescope and fzf-lua, but not for mini.pick, so I wrote one for it.\nCheck it out:\n    MiniPick.registry.todo = function()\n      local show_todo = function(buf_id, entries, query, opts)\n        MiniPick.default_show(buf_id, entries, query, opts)\n\n        -- Add highlighting to every line in the buffer\n        for line, entry in ipairs(entries) do\n          for _, hl in ipairs(entry.hl) do\n            vim.api.nvim_buf_add_highlight(\n              buf_id,\n              ns_digit_prefix,\n              hl[2],\n              line - 1,\n              hl[1][1],\n              hl[1][2]\n            )\n          end\n        end\n      end\n      require('todo-comments.search').search(function(results)\n        local Config = require 'todo-comments.config'\n        local Highlight = require 'todo-comments.highlight'\n\n        for i, entry in ipairs(results) do\n          -- By default, mini.pick uses the path item when an item is choosen to open it\n          entry.path = entry.filename\n          entry.filename = nil\n\n          local relative_path = string.gsub(entry.path, vim.fn.getcwd() .. '/', '')\n          local display = string.format('%s:%s:%s ', relative_path, entry.lnum, entry.col)\n          local text = entry.text\n          local start, finish, kw = Highlight.match(text)\n\n          entry.hl = {}\n\n          if start then\n            kw = Config.keywords[kw] or kw\n            local icon = Config.options.keywords[kw].icon or ' '\n            display = icon .. ' ' .. display\n            table.insert(entry.hl, { { 0, #icon + 1 }, 'TodoFg' .. kw })\n            text = vim.trim(text:sub(start))\n\n            table.insert(entry.hl, {\n              { #display, #display + finish - start + 2 },\n              'TodoBg' .. kw,\n            })\n            table.insert(entry.hl, {\n              { #display + finish - start + 1, #display + finish + 1 + #text },\n              'TodoFg' .. kw,\n            })\n            entry.text = display .. ' ' .. text\n          end\n\n          results[i] = entry\n        end\n\n        MiniPick.start { source = { name = 'Find Todo', show = show_todo, items = results } }\n      end, nil)\n\n   end\n\nThis is how it looks:\n\nI basically took the code that folke had made for the telescope extension and made it work for mini.pick.\nAny feedback is appreciated!! Enjoy!!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing! Adding extra highlighting is a nice touch!\r\n\r\nI'd personally recommend moving two function definitions outside of  an actual `MiniPick.registry` entry. There is no need for them to be created every time the picker is used.\r\n\r\nAlso, adding `nil` as last argument in function call is redundant. But I'd say it is a matter of taste.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing! Adding extra highlighting is a nice touch!</p>\n<p dir=\"auto\">I'd personally recommend moving two function definitions outside of  an actual <code class=\"notranslate\">MiniPick.registry</code> entry. There is no need for them to be created every time the picker is used.</p>\n<p dir=\"auto\">Also, adding <code class=\"notranslate\">nil</code> as last argument in function call is redundant. But I'd say it is a matter of taste.</p>",
+            "bodyText": "Thanks for sharing! Adding extra highlighting is a nice touch!\nI'd personally recommend moving two function definitions outside of  an actual MiniPick.registry entry. There is no need for them to be created every time the picker is used.\nAlso, adding nil as last argument in function call is redundant. But I'd say it is a matter of taste.",
+            "createdAt": "2024-12-23T10:13:28Z",
+            "createdViaEmail": false,
+            "databaseId": 11648845,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Asb9N",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-12-23T10:13:28Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1427#discussioncomment-11648845",
+            "updatedAt": "2024-12-23T10:13:28Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1427#discussioncomment-11648845"
+        }
+    ],
+    "createdAt": "2024-12-22T22:49:48Z",
+    "createdViaEmail": false,
+    "databaseId": 7731416,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AdfjY",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1427,
+    "poll": null,
+    "publishedAt": "2024-12-22T22:49:48Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1427",
+    "stateReason": null,
+    "title": "Show todo-comments in mini.pick",
+    "updatedAt": "2024-12-23T10:13:28Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1427"
+}

@@ -1,0 +1,368 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 9110682,
+        "id": "DC_kwDOFoksYM4AiwSa",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/811#discussioncomment-9110682"
+    },
+    "answerChosenAt": "2024-04-14T18:00:16Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "Embarrassingly, I've spent the last 3 hours trying to figure out why completion behaves differently when the `source_func` is `\"completefunc\"` vs `\"omnifunc\"`.  For example, if my buffer contains:\r\n\r\n```lua\r\nlocal H ={}\r\nH.test1 = function() end\r\nH.test2 = function() end\r\nH.test3 = function() end\r\n```\r\n\r\nWhen `source_func = \"completefunc\"`:\r\n\r\n1. `Go`, end of file, open line\r\n2. `H`, popup opens with \"H variable\" (expected)\r\n3. `.`, popup opens with \"test1() Function\", \"test2() Function\", and \"test3() Function\" (expected)\r\n\r\nWhen `source_func = \"omnifunc\"`:\r\n\r\n1. `Go`, end of file, open line\r\n2. `H`, popup opens with \"H variable\" (expected)\r\n3. `.`, popup dismissed (not expected)\r\n\r\nI've added print statements all over `mini.completion` and it appears that the event `CompleteDonePre` is fired when I press `.` with `\"completefunc\"`, but it is not fired with `\"omnifunc\"`. When `CompleteDonePre` is fired, it results in `H.stop_completion` being passed `nil`, which resets the source.\r\n\r\nAnd to continue the `\"omnifunc\"` above:\r\n\r\n4. `t`, popup opens showing \"test1\", \"test2\", \"test3\". These come from the fallback, not LSP, because the source was not reset.\r\n\r\nI suppose my expectation of how it should work is probably due to some fundamental misunderstanding about vim's completion function vs omni function. I tried reading help pages, but have not found the answer. It's not for the lack of trying. Can you help elaborate for me?\r\n\r\nI prefer the behavior when the source in `\"completefunc\"`, but I only swapped it because of the note in `mini.completion` about the better way of hooking this up is to do so in the LSP `on_attach` function. I wish I never read that paragraph now as I could have saved my entire morning 😄",
+    "bodyHTML": "<p dir=\"auto\">Embarrassingly, I've spent the last 3 hours trying to figure out why completion behaves differently when the <code class=\"notranslate\">source_func</code> is <code class=\"notranslate\">\"completefunc\"</code> vs <code class=\"notranslate\">\"omnifunc\"</code>.  For example, if my buffer contains:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local H ={}\nH.test1 = function() end\nH.test2 = function() end\nH.test3 = function() end\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span>{}\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">test1</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">test2</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">test3</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">When <code class=\"notranslate\">source_func = \"completefunc\"</code>:</p>\n<ol dir=\"auto\">\n<li><code class=\"notranslate\">Go</code>, end of file, open line</li>\n<li><code class=\"notranslate\">H</code>, popup opens with \"H variable\" (expected)</li>\n<li><code class=\"notranslate\">.</code>, popup opens with \"test1() Function\", \"test2() Function\", and \"test3() Function\" (expected)</li>\n</ol>\n<p dir=\"auto\">When <code class=\"notranslate\">source_func = \"omnifunc\"</code>:</p>\n<ol dir=\"auto\">\n<li><code class=\"notranslate\">Go</code>, end of file, open line</li>\n<li><code class=\"notranslate\">H</code>, popup opens with \"H variable\" (expected)</li>\n<li><code class=\"notranslate\">.</code>, popup dismissed (not expected)</li>\n</ol>\n<p dir=\"auto\">I've added print statements all over <code class=\"notranslate\">mini.completion</code> and it appears that the event <code class=\"notranslate\">CompleteDonePre</code> is fired when I press <code class=\"notranslate\">.</code> with <code class=\"notranslate\">\"completefunc\"</code>, but it is not fired with <code class=\"notranslate\">\"omnifunc\"</code>. When <code class=\"notranslate\">CompleteDonePre</code> is fired, it results in <code class=\"notranslate\">H.stop_completion</code> being passed <code class=\"notranslate\">nil</code>, which resets the source.</p>\n<p dir=\"auto\">And to continue the <code class=\"notranslate\">\"omnifunc\"</code> above:</p>\n<ol start=\"4\" dir=\"auto\">\n<li><code class=\"notranslate\">t</code>, popup opens showing \"test1\", \"test2\", \"test3\". These come from the fallback, not LSP, because the source was not reset.</li>\n</ol>\n<p dir=\"auto\">I suppose my expectation of how it should work is probably due to some fundamental misunderstanding about vim's completion function vs omni function. I tried reading help pages, but have not found the answer. It's not for the lack of trying. Can you help elaborate for me?</p>\n<p dir=\"auto\">I prefer the behavior when the source in <code class=\"notranslate\">\"completefunc\"</code>, but I only swapped it because of the note in <code class=\"notranslate\">mini.completion</code> about the better way of hooking this up is to do so in the LSP <code class=\"notranslate\">on_attach</code> function. I wish I never read that paragraph now as I could have saved my entire morning 😄</p>",
+    "bodyText": "Embarrassingly, I've spent the last 3 hours trying to figure out why completion behaves differently when the source_func is \"completefunc\" vs \"omnifunc\".  For example, if my buffer contains:\nlocal H ={}\nH.test1 = function() end\nH.test2 = function() end\nH.test3 = function() end\nWhen source_func = \"completefunc\":\n\nGo, end of file, open line\nH, popup opens with \"H variable\" (expected)\n., popup opens with \"test1() Function\", \"test2() Function\", and \"test3() Function\" (expected)\n\nWhen source_func = \"omnifunc\":\n\nGo, end of file, open line\nH, popup opens with \"H variable\" (expected)\n., popup dismissed (not expected)\n\nI've added print statements all over mini.completion and it appears that the event CompleteDonePre is fired when I press . with \"completefunc\", but it is not fired with \"omnifunc\". When CompleteDonePre is fired, it results in H.stop_completion being passed nil, which resets the source.\nAnd to continue the \"omnifunc\" above:\n\nt, popup opens showing \"test1\", \"test2\", \"test3\". These come from the fallback, not LSP, because the source was not reset.\n\nI suppose my expectation of how it should work is probably due to some fundamental misunderstanding about vim's completion function vs omni function. I tried reading help pages, but have not found the answer. It's not for the lack of trying. Can you help elaborate for me?\nI prefer the behavior when the source in \"completefunc\", but I only swapped it because of the note in mini.completion about the better way of hooking this up is to do so in the LSP on_attach function. I wish I never read that paragraph now as I could have saved my entire morning 😄",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-04-14T17:59:45Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Here is a minimal configuration one can test with:\r\n\r\n```lua\r\n-- Clone 'mini.nvim' manually in a way that it gets managed by 'mini.deps'\r\nlocal path_package = vim.fn.stdpath(\"data\") .. \"/site/\"\r\nlocal mini_path = path_package .. \"pack/deps/start/mini.nvim\"\r\nif not vim.loop.fs_stat(mini_path) then\r\n  vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\r\n  local clone_cmd = {\r\n    \"git\",\r\n    \"clone\",\r\n    \"--filter=blob:none\",\r\n    \"https://github.com/echasnovski/mini.nvim\",\r\n    mini_path,\r\n  }\r\n  vim.fn.system(clone_cmd)\r\n  vim.cmd(\"packadd mini.nvim | helptags ALL\")\r\n  vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\r\nend\r\n\r\n-- Set up 'mini.deps' (customize to your liking)\r\nrequire(\"mini.deps\").setup({ path = { package = path_package } })\r\nMiniDeps.add(\"williamboman/mason.nvim\")\r\nMiniDeps.add(\"williamboman/mason-lspconfig.nvim\")\r\nMiniDeps.add(\"neovim/nvim-lspconfig\")\r\n\r\nrequire(\"mini.completion\").setup({\r\n  lsp_completion = {\r\n    source_func = \"omnifunc\",\r\n    auto_setup = true,\r\n  },\r\n})\r\nrequire(\"mason\").setup()\r\nrequire(\"mason-lspconfig\").setup({\r\n        ensure_installed = { \"lua_ls\" }\r\n})\r\nrequire(\"lspconfig\").lua_ls.setup({\r\n  on_attach = function(client, bufnr)\r\n    -- vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\"\r\n  end,\r\n})\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Here is a minimal configuration one can test with:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Clone 'mini.nvim' manually in a way that it gets managed by 'mini.deps'\nlocal path_package = vim.fn.stdpath(&quot;data&quot;) .. &quot;/site/&quot;\nlocal mini_path = path_package .. &quot;pack/deps/start/mini.nvim&quot;\nif not vim.loop.fs_stat(mini_path) then\n  vim.cmd('echo &quot;Installing `mini.nvim`&quot; | redraw')\n  local clone_cmd = {\n    &quot;git&quot;,\n    &quot;clone&quot;,\n    &quot;--filter=blob:none&quot;,\n    &quot;https://github.com/echasnovski/mini.nvim&quot;,\n    mini_path,\n  }\n  vim.fn.system(clone_cmd)\n  vim.cmd(&quot;packadd mini.nvim | helptags ALL&quot;)\n  vim.cmd('echo &quot;Installed `mini.nvim`&quot; | redraw')\nend\n\n-- Set up 'mini.deps' (customize to your liking)\nrequire(&quot;mini.deps&quot;).setup({ path = { package = path_package } })\nMiniDeps.add(&quot;williamboman/mason.nvim&quot;)\nMiniDeps.add(&quot;williamboman/mason-lspconfig.nvim&quot;)\nMiniDeps.add(&quot;neovim/nvim-lspconfig&quot;)\n\nrequire(&quot;mini.completion&quot;).setup({\n  lsp_completion = {\n    source_func = &quot;omnifunc&quot;,\n    auto_setup = true,\n  },\n})\nrequire(&quot;mason&quot;).setup()\nrequire(&quot;mason-lspconfig&quot;).setup({\n        ensure_installed = { &quot;lua_ls&quot; }\n})\nrequire(&quot;lspconfig&quot;).lua_ls.setup({\n  on_attach = function(client, bufnr)\n    -- vim.bo[bufnr].omnifunc = &quot;v:lua.MiniCompletion.completefunc_lsp&quot;\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Clone 'mini.nvim' manually in a way that it gets managed by 'mini.deps'</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">path_package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/site/<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_package</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pack/deps/start/mini.nvim<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">mini_path</span>) <span class=\"pl-k\">then</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installing `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">clone_cmd</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>clone<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--filter=blob:none<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/echasnovski/mini.nvim<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">mini_path</span>,\n  }\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-smi\">clone_cmd</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>packadd mini.nvim | helptags ALL<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installed `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Set up 'mini.deps' (customize to your liking)</span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.deps<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_package</span> } })\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">add</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>williamboman/mason.nvim<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">add</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>williamboman/mason-lspconfig.nvim<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">add</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>neovim/nvim-lspconfig<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.completion<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">lsp_completion</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">source_func</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>omnifunc<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">auto_setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n  },\n})\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mason<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mason-lspconfig<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n        <span class=\"pl-smi\">ensure_installed</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua_ls<span class=\"pl-pds\">\" </span></span>}\n})\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lspconfig<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">lua_ls</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-en\">on_attach</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">client</span>, <span class=\"pl-smi\">bufnr</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\"</span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>",
+            "bodyText": "Here is a minimal configuration one can test with:\n-- Clone 'mini.nvim' manually in a way that it gets managed by 'mini.deps'\nlocal path_package = vim.fn.stdpath(\"data\") .. \"/site/\"\nlocal mini_path = path_package .. \"pack/deps/start/mini.nvim\"\nif not vim.loop.fs_stat(mini_path) then\n  vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n  local clone_cmd = {\n    \"git\",\n    \"clone\",\n    \"--filter=blob:none\",\n    \"https://github.com/echasnovski/mini.nvim\",\n    mini_path,\n  }\n  vim.fn.system(clone_cmd)\n  vim.cmd(\"packadd mini.nvim | helptags ALL\")\n  vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\nend\n\n-- Set up 'mini.deps' (customize to your liking)\nrequire(\"mini.deps\").setup({ path = { package = path_package } })\nMiniDeps.add(\"williamboman/mason.nvim\")\nMiniDeps.add(\"williamboman/mason-lspconfig.nvim\")\nMiniDeps.add(\"neovim/nvim-lspconfig\")\n\nrequire(\"mini.completion\").setup({\n  lsp_completion = {\n    source_func = \"omnifunc\",\n    auto_setup = true,\n  },\n})\nrequire(\"mason\").setup()\nrequire(\"mason-lspconfig\").setup({\n        ensure_installed = { \"lua_ls\" }\n})\nrequire(\"lspconfig\").lua_ls.setup({\n  on_attach = function(client, bufnr)\n    -- vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\"\n  end,\n})",
+            "createdAt": "2024-04-13T18:38:30Z",
+            "createdViaEmail": false,
+            "databaseId": 9105551,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AivCP",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-04-13T18:38:30Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/811#discussioncomment-9105551",
+            "updatedAt": "2024-04-13T18:38:31Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/811#discussioncomment-9105551"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the detailed description with explicit steps and setup!\r\n\r\n> Embarrassingly, I've spent the last 3 hours trying to figure out why completion behaves differently when the `source_func` is `\"completefunc\"` vs `\"omnifunc\"`.\r\n\r\nI can reproduce even with by slightly tweaking my own setup. Plan to take a look closer in the near future.\r\n\r\n> I suppose my expectation of how it should work is probably due to some fundamental misunderstanding about vim's completion function vs omni function. I tried reading help pages, but have not found the answer. It's not for the lack of trying. Can you help elaborate for me?\r\n\r\nIt is surely can be an issue in 'mini.completion'. That said, I also am not aware of the obvious difference between how 'completefunc' and 'omnifunc' operates.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the detailed description with explicit steps and setup!</p>\n<blockquote>\n<p dir=\"auto\">Embarrassingly, I've spent the last 3 hours trying to figure out why completion behaves differently when the <code class=\"notranslate\">source_func</code> is <code class=\"notranslate\">\"completefunc\"</code> vs <code class=\"notranslate\">\"omnifunc\"</code>.</p>\n</blockquote>\n<p dir=\"auto\">I can reproduce even with by slightly tweaking my own setup. Plan to take a look closer in the near future.</p>\n<blockquote>\n<p dir=\"auto\">I suppose my expectation of how it should work is probably due to some fundamental misunderstanding about vim's completion function vs omni function. I tried reading help pages, but have not found the answer. It's not for the lack of trying. Can you help elaborate for me?</p>\n</blockquote>\n<p dir=\"auto\">It is surely can be an issue in 'mini.completion'. That said, I also am not aware of the obvious difference between how 'completefunc' and 'omnifunc' operates.</p>",
+            "bodyText": "Thanks for the detailed description with explicit steps and setup!\n\nEmbarrassingly, I've spent the last 3 hours trying to figure out why completion behaves differently when the source_func is \"completefunc\" vs \"omnifunc\".\n\nI can reproduce even with by slightly tweaking my own setup. Plan to take a look closer in the near future.\n\nI suppose my expectation of how it should work is probably due to some fundamental misunderstanding about vim's completion function vs omni function. I tried reading help pages, but have not found the answer. It's not for the lack of trying. Can you help elaborate for me?\n\nIt is surely can be an issue in 'mini.completion'. That said, I also am not aware of the obvious difference between how 'completefunc' and 'omnifunc' operates.",
+            "createdAt": "2024-04-13T18:59:47Z",
+            "createdViaEmail": false,
+            "databaseId": 9105640,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AivDo",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-04-13T18:59:47Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/811#discussioncomment-9105640",
+            "updatedAt": "2024-04-13T18:59:48Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/811#discussioncomment-9105640"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "This should be solved on latest `main`.",
+            "bodyHTML": "<p dir=\"auto\">This should be solved on latest <code class=\"notranslate\">main</code>.</p>",
+            "bodyText": "This should be solved on latest main.",
+            "createdAt": "2024-04-14T18:00:13Z",
+            "createdViaEmail": false,
+            "databaseId": 9110682,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AiwSa",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-04-14T18:00:13Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/811#discussioncomment-9110682",
+            "updatedAt": "2024-04-14T18:00:14Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/811#discussioncomment-9110682"
+        }
+    ],
+    "createdAt": "2024-04-13T18:23:01Z",
+    "createdViaEmail": false,
+    "databaseId": 6499843,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "id": "D_kwDOFoksYM4AYy4D",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-04-14T10:43:02Z",
+    "locked": false,
+    "number": 811,
+    "poll": null,
+    "publishedAt": "2024-04-13T18:23:01Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/811",
+    "stateReason": "RESOLVED",
+    "title": "[mini.completion] Confusion between `completefunc` and `omnifunc`",
+    "updatedAt": "2024-04-14T18:00:16Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/811"
+}

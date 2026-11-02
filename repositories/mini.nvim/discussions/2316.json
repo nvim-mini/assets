@@ -1,0 +1,895 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 16178370,
+        "id": "DC_kwDOFoksYM4A9tzC",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178370"
+    },
+    "answerChosenAt": "2026-03-17T13:41:12Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.ai\r\n\r\n### Question\r\n\r\nThe goal is to press `<motion>iF` to select an *empty function body* in lua on top of `nvim-treesitter-textobjects` queries.\r\n\r\n```lua\r\nfunction fn1() end\r\n--            ^ @function.inner\r\n\r\nfunction fn2()\r\n  -- Comments are not part of the body\r\nend\r\n```\r\n\r\n```lua\r\nlocal MiniAi = require(\"mini.ai\")\r\nMiniAi.setup({\r\n  custom_textobjects = {\r\n    F = MiniAi.gen_spec.treesitter({ a = \"@function.outer\", i = \"@function.inner\" }),\r\n  },\r\n})\r\n```\r\n\r\nBasically:\r\n\r\n```lua\r\n|function fn()\r\n  -- Comment\r\nend\r\n```\r\n\r\n```\r\n+ ciF =\r\n```\r\n\r\n```lua\r\nfunction fn()|end\r\n```\r\n\r\n\r\nThe problem is that in the lua treesitter grammar there is no `body` node until there is at least one non comment node. An empty function does not even have nodes to select. `#offset` can cut `end`, but there is no way to match the position right after `function(args)`. ¿ So it looks like this can not be solved with a treesitter query alone ?\r\n\r\nOne possible approach is to refine the region:\r\n\r\n1. Get `@function.outer`.\r\n2. Narrow the region.\r\n\r\n    2.1. By using patterns:\r\n    \r\n    ```lua\r\n    F = ts_pattern(\"@function.outer\", {\r\n      \"^.-function%s*%w+%s*%b()().-()end$\",\r\n      --                   ^ relies on %b :(\r\n    })\r\n    ```\r\n\r\n    There is no simple way to run `find_textobject` only inside the covered range. `reference_region` seems to work more like exclusion when it is fully defined. So pattern logic would have to be re implemented.\r\n\r\n    2.2. Or by selecting between treesitter nodes: `)` and `end`.\r\n\r\nIs there a way to solve this with treesitter queries? Or is there a simpler way to approach this problem? I want to find the right direction to take.\r\n\r\n🥺 Thanks.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">The goal is to press <code class=\"notranslate\">&lt;motion&gt;iF</code> to select an <em>empty function body</em> in lua on top of <code class=\"notranslate\">nvim-treesitter-textobjects</code> queries.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"function fn1() end\n--            ^ @function.inner\n\nfunction fn2()\n  -- Comments are not part of the body\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">function</span> <span class=\"pl-en\">fn1</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>            ^ @function.inner</span>\n\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">fn2</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Comments are not part of the body</span>\n<span class=\"pl-k\">end</span></pre></div>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local MiniAi = require(&quot;mini.ai&quot;)\nMiniAi.setup({\n  custom_textobjects = {\n    F = MiniAi.gen_spec.treesitter({ a = &quot;@function.outer&quot;, i = &quot;@function.inner&quot; }),\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniAi</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.ai<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">F</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">treesitter</span>({ <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@function.outer<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@function.inner<span class=\"pl-pds\">\" </span></span>}),\n  },\n})</pre></div>\n<p dir=\"auto\">Basically:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"|function fn()\n  -- Comment\nend\"><pre class=\"notranslate\">|<span class=\"pl-k\">function</span> <span class=\"pl-en\">fn</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Comment</span>\n<span class=\"pl-k\">end</span></pre></div>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"+ ciF =\"><pre class=\"notranslate\"><code class=\"notranslate\">+ ciF =\n</code></pre></div>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"function fn()|end\"><pre class=\"notranslate\"><span class=\"pl-k\">function</span> <span class=\"pl-en\">fn</span>()|<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">The problem is that in the lua treesitter grammar there is no <code class=\"notranslate\">body</code> node until there is at least one non comment node. An empty function does not even have nodes to select. <code class=\"notranslate\">#offset</code> can cut <code class=\"notranslate\">end</code>, but there is no way to match the position right after <code class=\"notranslate\">function(args)</code>. ¿ So it looks like this can not be solved with a treesitter query alone ?</p>\n<p dir=\"auto\">One possible approach is to refine the region:</p>\n<ol dir=\"auto\">\n<li>\n<p dir=\"auto\">Get <code class=\"notranslate\">@function.outer</code>.</p>\n</li>\n<li>\n<p dir=\"auto\">Narrow the region.</p>\n<p dir=\"auto\">2.1. By using patterns:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"F = ts_pattern(&quot;@function.outer&quot;, {\n  &quot;^.-function%s*%w+%s*%b()().-()end$&quot;,\n  --                   ^ relies on %b :(\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">F</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">ts_pattern</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@function.outer<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.-function%s*%w+%s*%b()().-()end$<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span>                   ^ relies on %b :(</span>\n})</pre></div>\n<p dir=\"auto\">There is no simple way to run <code class=\"notranslate\">find_textobject</code> only inside the covered range. <code class=\"notranslate\">reference_region</code> seems to work more like exclusion when it is fully defined. So pattern logic would have to be re implemented.</p>\n<p dir=\"auto\">2.2. Or by selecting between treesitter nodes: <code class=\"notranslate\">)</code> and <code class=\"notranslate\">end</code>.</p>\n</li>\n</ol>\n<p dir=\"auto\">Is there a way to solve this with treesitter queries? Or is there a simpler way to approach this problem? I want to find the right direction to take.</p>\n<p dir=\"auto\">🥺 Thanks.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai\nQuestion\nThe goal is to press <motion>iF to select an empty function body in lua on top of nvim-treesitter-textobjects queries.\nfunction fn1() end\n--            ^ @function.inner\n\nfunction fn2()\n  -- Comments are not part of the body\nend\nlocal MiniAi = require(\"mini.ai\")\nMiniAi.setup({\n  custom_textobjects = {\n    F = MiniAi.gen_spec.treesitter({ a = \"@function.outer\", i = \"@function.inner\" }),\n  },\n})\nBasically:\n|function fn()\n  -- Comment\nend\n+ ciF =\n\nfunction fn()|end\nThe problem is that in the lua treesitter grammar there is no body node until there is at least one non comment node. An empty function does not even have nodes to select. #offset can cut end, but there is no way to match the position right after function(args). ¿ So it looks like this can not be solved with a treesitter query alone ?\nOne possible approach is to refine the region:\n\n\nGet @function.outer.\n\n\nNarrow the region.\n2.1. By using patterns:\nF = ts_pattern(\"@function.outer\", {\n  \"^.-function%s*%w+%s*%b()().-()end$\",\n  --                   ^ relies on %b :(\n})\nThere is no simple way to run find_textobject only inside the covered range. reference_region seems to work more like exclusion when it is fully defined. So pattern logic would have to be re implemented.\n2.2. Or by selecting between treesitter nodes: ) and end.\n\n\nIs there a way to solve this with treesitter queries? Or is there a simpler way to approach this problem? I want to find the right direction to take.\n🥺 Thanks.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-03-17T13:41:10Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> The goal is to press `<motion>iF` to select an _empty function body_ in lua on top of `nvim-treesitter-textobjects` queries.\r\n\r\nI am afraid this task is already doomed if taken at face value. The problem is that Neovim has no way to \"select nothing\", meaning Visual mode selection should always be at least one cell.\r\n\r\nThere is a [hack for selected cases](https://github.com/nvim-mini/mini.nvim/blob/9990c41f10f54f29a888d13024c9f765037bde23/lua/mini/ai.lua#L1102-L1109) that makes \"empty selection\" work by [adding single space and acting on it](https://github.com/nvim-mini/mini.nvim/blob/9990c41f10f54f29a888d13024c9f765037bde23/lua/mini/ai.lua#L1136-L1142). This is the only way I know that makes it work. I am pretty sure @TheLeoP and I looked into reasonable ways of making it work with tree-sitter, but I can't remember details (the conclusion was \"can't do\").\r\n\r\nI am going to close this for now, but maybe @TheLeoP can help you more here.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">The goal is to press <code class=\"notranslate\">&lt;motion&gt;iF</code> to select an <em>empty function body</em> in lua on top of <code class=\"notranslate\">nvim-treesitter-textobjects</code> queries.</p>\n</blockquote>\n<p dir=\"auto\">I am afraid this task is already doomed if taken at face value. The problem is that Neovim has no way to \"select nothing\", meaning Visual mode selection should always be at least one cell.</p>\n<p dir=\"auto\">There is a <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9990c41f10f54f29a888d13024c9f765037bde23/lua/mini/ai.lua#L1102-L1109\">hack for selected cases</a> that makes \"empty selection\" work by <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9990c41f10f54f29a888d13024c9f765037bde23/lua/mini/ai.lua#L1136-L1142\">adding single space and acting on it</a>. This is the only way I know that makes it work. I am pretty sure <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/TheLeoP/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/TheLeoP\">@TheLeoP</a> and I looked into reasonable ways of making it work with tree-sitter, but I can't remember details (the conclusion was \"can't do\").</p>\n<p dir=\"auto\">I am going to close this for now, but maybe <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/TheLeoP/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/TheLeoP\">@TheLeoP</a> can help you more here.</p>",
+            "bodyText": "The goal is to press <motion>iF to select an empty function body in lua on top of nvim-treesitter-textobjects queries.\n\nI am afraid this task is already doomed if taken at face value. The problem is that Neovim has no way to \"select nothing\", meaning Visual mode selection should always be at least one cell.\nThere is a hack for selected cases that makes \"empty selection\" work by adding single space and acting on it. This is the only way I know that makes it work. I am pretty sure @TheLeoP and I looked into reasonable ways of making it work with tree-sitter, but I can't remember details (the conclusion was \"can't do\").\nI am going to close this for now, but maybe @TheLeoP can help you more here.",
+            "createdAt": "2026-03-17T13:41:09Z",
+            "createdViaEmail": false,
+            "databaseId": 16178370,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A9tzC",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-17T13:41:09Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Aside from selecting a completely empty region, is there currently a way using a query to match between treesitter nodes that enables selecting a function containing at least one space or only comment node?\r\n\r\n```lua\r\nfunction name() end\r\n--             ^ at least 1 space\r\n\r\nfunction name()\r\n  -- Comments are not part of a function's body, so @function.inner does not select them.\r\n  -- ciF will be ignored\r\nend\r\n```\r\n\r\nSorry, the whole question was more of an off-topic question about treesitter (not very nice behavior).",
+                    "bodyHTML": "<p dir=\"auto\">Aside from selecting a completely empty region, is there currently a way using a query to match between treesitter nodes that enables selecting a function containing at least one space or only comment node?</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"function name() end\n--             ^ at least 1 space\n\nfunction name()\n  -- Comments are not part of a function's body, so @function.inner does not select them.\n  -- ciF will be ignored\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">function</span> <span class=\"pl-en\">name</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>             ^ at least 1 space</span>\n\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">name</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Comments are not part of a function's body, so @function.inner does not select them.</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> ciF will be ignored</span>\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Sorry, the whole question was more of an off-topic question about treesitter (not very nice behavior).</p>",
+                    "bodyText": "Aside from selecting a completely empty region, is there currently a way using a query to match between treesitter nodes that enables selecting a function containing at least one space or only comment node?\nfunction name() end\n--             ^ at least 1 space\n\nfunction name()\n  -- Comments are not part of a function's body, so @function.inner does not select them.\n  -- ciF will be ignored\nend\nSorry, the whole question was more of an off-topic question about treesitter (not very nice behavior).",
+                    "createdAt": "2026-03-17T13:57:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16178642,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9t3S",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-17T14:06:26Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-17T13:57:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16178370,
+                        "id": "DC_kwDOFoksYM4A9tzC",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178370"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178642",
+                    "updatedAt": "2026-03-17T14:06:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178642"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I am no tree-sitter expert, sorry. Luis is :)",
+                    "bodyHTML": "<p dir=\"auto\">I am no tree-sitter expert, sorry. Luis is :)</p>",
+                    "bodyText": "I am no tree-sitter expert, sorry. Luis is :)",
+                    "createdAt": "2026-03-17T14:01:18Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16178685,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9t39",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-17T14:01:18Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16178370,
+                        "id": "DC_kwDOFoksYM4A9tzC",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178370"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178685",
+                    "updatedAt": "2026-03-17T14:01:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178685"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178370",
+            "updatedAt": "2026-03-17T13:41:09Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16178370"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/53507599?u=4f74ef3047fdf1cd9baf59ec2d4ffe5c9ebe6b3a&v=4",
+                "login": "TheLeoP",
+                "resourcePath": "/TheLeoP",
+                "url": "https://github.com/TheLeoP"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There is no way to do this while only relying on `nvim-treesitter-textobjects` queries. For example, their query for `@function.outer` in Lua is\r\n\r\n```lisp\r\n[\r\n  (function_declaration)\r\n  (function_definition)\r\n] @function.outer\r\n```\r\n\r\nwhich, used in the following code\r\n\r\n```lua\r\nfunction some_function() end\r\n```\r\n\r\ncaptures the following text\r\n\r\n<img width=\"494\" height=\"72\" alt=\"image\" src=\"https://github.com/user-attachments/assets/8ddba33e-5b6e-487b-9c08-5c1da058b59a\" />\r\n\r\ndefined by the treesitter node \r\n\r\n```lisp\r\n(function_declaration ; [0, 0] - [0, 28]\r\n    name: (identifier) ; [0, 9] - [0, 22]\r\n    parameters: (parameters))\r\n```\r\n\r\nSo, we know where the range that defines the `@function.outer` capture starts and ends, but we don't know anything about `@function.inner`.\r\n\r\n---\r\n\r\n`nvim-treesitter-textobjects` queries for `@function.inner` are\r\n\r\n```lisp\r\n(function_declaration\r\n  body: (_) @function.inner)\r\n\r\n(function_definition\r\n  body: (_) @function.inner)\r\n```\r\n\r\nand the following code\r\n\r\n```lua\r\nfunction some_function()\r\n    -- some comment\r\nend\r\n```\r\n\r\nis parsed as\r\n\r\n```lisp\r\n(chunk ; [0, 0] - [3, 0]\r\n  (function_declaration ; [0, 0] - [2, 3]\r\n    name: (identifier) ; [0, 9] - [0, 22]\r\n    parameters: (parameters) ; [0, 22] - [0, 24]\r\n    (comment ; [1, 4] - [1, 19]\r\n      content: (comment_content)))) ; [1, 6] - [1, 19]\r\n```\r\n\r\nwhich does not have a `body:` field inside of the `function_declaration` node. So, nothing matches. If you simply want to match functions that have any node (including a comment) inside them, you can create the file `~/.config/nvim/queries/lua/textobjects.scm` with the following content (don't forget the `; extends` on the first line, you can read `:h treesitter-query-modeline-extends` to learn what it does, but it is required)\r\n\r\n```lisp\r\n; extends\r\n\r\n(function_declaration\r\n  (_)+ @function.inner)\r\n\r\n(function_definition\r\n  (_)+ @function.inner)\r\n```\r\n\r\nThis would match a lua function with only a comment inside of it, but won't match an empty Lua function.\r\n\r\n---\r\n\r\nCurrently, Neovim core, `nvim-treesitter` and `mini.nvim` follow a convention where you can define ranges that span multiple treesitter nodes by using the same capture (e.g. `@function.outer`) on multiple nodes and the resulting range would span the region defined by the start of the first node and the end of the last node. This is what I used in the previous query to define a range using multiple nodes instead of just one (`(_)+ @function.inner`).\r\n\r\nMatching an empty function (in this case, a Lua function, but this would work for any language) would require a new convention for defining ranges between multiple nodes that starts with the **end** of the first node and ends with the **start** of the last node. This would mean adding new code to `mini.ai`  (and `mini.surround`) to create these ranges, requiring new queries and being the only plugin that uses this new convention. You can use your own `MiniAi.gen_spec.treesitter()` in your config that behaves just like the builtin one, but also takes into account this new behavior (you would also need to create your own treesitter queries).\r\n\r\nAn example query would be something like\r\n\r\n```lisp\r\n(function_declaration\r\n  (parameters) @function.inner_special\r\n  \"end\" @function.inner_special)\r\n```\r\n\r\nwhich, for the following Lua code\r\n\r\n```lua\r\nfunction some_function() end\r\n```\r\n\r\nwill capture the ranges \r\n\r\n<img width=\"450\" height=\"71\" alt=\"image\" src=\"https://github.com/user-attachments/assets/392d3d30-5222-42a1-b842-734ab89a85d9\" />\r\n\r\ndefined by the nodes\r\n\r\n```lisp\r\n(chunk ; [0, 0] - [1, 0]\r\n  (function_declaration ; [0, 0] - [0, 28]\r\n    \"function\" ; [0, 0] - [0, 8]\r\n    name: (identifier) ; [0, 9] - [0, 22]\r\n    parameters: (parameters ; [0, 22] - [0, 24]\r\n      \"(\" ; [0, 22] - [0, 23]\r\n      \")\") ; [0, 23] - [0, 24]\r\n    \"end\")) ; [0, 25] - [0, 28]\r\n```\r\n\r\nand then you can use the end of the `parameter` node (`[0, 24]`) and the start of the `\"end\"` node (`[0, 25]`) to define the range for the `inner function` textobject for an empty function",
+            "bodyHTML": "<p dir=\"auto\">There is no way to do this while only relying on <code class=\"notranslate\">nvim-treesitter-textobjects</code> queries. For example, their query for <code class=\"notranslate\">@function.outer</code> in Lua is</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"[\n  (function_declaration)\n  (function_definition)\n] @function.outer\"><pre class=\"notranslate\">[\n  (function_declaration)\n  (function_definition)\n] @function.outer</pre></div>\n<p dir=\"auto\">which, used in the following code</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"function some_function() end\"><pre class=\"notranslate\"><span class=\"pl-k\">function</span> <span class=\"pl-en\">some_function</span>() <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">captures the following text</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/53507599/564836094-8ddba33e-5b6e-487b-9c08-5c1da058b59a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MjgsIm5iZiI6MTc5MzU1MjQyOCwicGF0aCI6Ii81MzUwNzU5OS81NjQ4MzYwOTQtOGRkYmEzM2UtNWI2ZS00ODdiLTljMDgtNWMxZGEwNThiNTlhLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDAyOFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWI4MWU5NTgwODUxY2ZkNDk2NzJjMjgxOTg5NTYyY2JiZTgzYmRkMzVhMzY5MTRhNTY5Y2ZkZGY2YWQwNDYzN2ImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.GTipn-Cdq7yAuVm3EebMk56gwrzfGdKVcftxDr3MDm4\"><img width=\"494\" height=\"72\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/53507599/564836094-8ddba33e-5b6e-487b-9c08-5c1da058b59a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MjgsIm5iZiI6MTc5MzU1MjQyOCwicGF0aCI6Ii81MzUwNzU5OS81NjQ4MzYwOTQtOGRkYmEzM2UtNWI2ZS00ODdiLTljMDgtNWMxZGEwNThiNTlhLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDAyOFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWI4MWU5NTgwODUxY2ZkNDk2NzJjMjgxOTg5NTYyY2JiZTgzYmRkMzVhMzY5MTRhNTY5Y2ZkZGY2YWQwNDYzN2ImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.GTipn-Cdq7yAuVm3EebMk56gwrzfGdKVcftxDr3MDm4\" style=\"max-width: 100%; height: auto; max-height: 72px;; aspect-ratio: 494 / 72; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<p dir=\"auto\">defined by the treesitter node</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"(function_declaration ; [0, 0] - [0, 28]\n    name: (identifier) ; [0, 9] - [0, 22]\n    parameters: (parameters))\"><pre class=\"notranslate\">(function_declaration <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 0] - [0, 28]</span>\n    <span class=\"pl-c1\">name</span>: (identifier) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 9] - [0, 22]</span>\n    <span class=\"pl-c1\">parameters</span>: (parameters))</pre></div>\n<p dir=\"auto\">So, we know where the range that defines the <code class=\"notranslate\">@function.outer</code> capture starts and ends, but we don't know anything about <code class=\"notranslate\">@function.inner</code>.</p>\n<hr>\n<p dir=\"auto\"><code class=\"notranslate\">nvim-treesitter-textobjects</code> queries for <code class=\"notranslate\">@function.inner</code> are</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"(function_declaration\n  body: (_) @function.inner)\n\n(function_definition\n  body: (_) @function.inner)\"><pre class=\"notranslate\">(function_declaration\n  <span class=\"pl-c1\">body</span>: (_) @function.inner)\n\n(function_definition\n  <span class=\"pl-c1\">body</span>: (_) @function.inner)</pre></div>\n<p dir=\"auto\">and the following code</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"function some_function()\n    -- some comment\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">function</span> <span class=\"pl-en\">some_function</span>()\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> some comment</span>\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">is parsed as</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"(chunk ; [0, 0] - [3, 0]\n  (function_declaration ; [0, 0] - [2, 3]\n    name: (identifier) ; [0, 9] - [0, 22]\n    parameters: (parameters) ; [0, 22] - [0, 24]\n    (comment ; [1, 4] - [1, 19]\n      content: (comment_content)))) ; [1, 6] - [1, 19]\"><pre class=\"notranslate\">(chunk <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 0] - [3, 0]</span>\n  (function_declaration <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 0] - [2, 3]</span>\n    <span class=\"pl-c1\">name</span>: (identifier) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 9] - [0, 22]</span>\n    <span class=\"pl-c1\">parameters</span>: (parameters) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 22] - [0, 24]</span>\n    (comment <span class=\"pl-c\"><span class=\"pl-c\">;</span> [1, 4] - [1, 19]</span>\n      <span class=\"pl-c1\">content</span>: (comment_content)))) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [1, 6] - [1, 19]</span></pre></div>\n<p dir=\"auto\">which does not have a <code class=\"notranslate\">body:</code> field inside of the <code class=\"notranslate\">function_declaration</code> node. So, nothing matches. If you simply want to match functions that have any node (including a comment) inside them, you can create the file <code class=\"notranslate\">~/.config/nvim/queries/lua/textobjects.scm</code> with the following content (don't forget the <code class=\"notranslate\">; extends</code> on the first line, you can read <code class=\"notranslate\">:h treesitter-query-modeline-extends</code> to learn what it does, but it is required)</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"; extends\n\n(function_declaration\n  (_)+ @function.inner)\n\n(function_definition\n  (_)+ @function.inner)\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">;</span> extends</span>\n\n(function_declaration\n  (_)+ @function.inner)\n\n(function_definition\n  (_)+ @function.inner)</pre></div>\n<p dir=\"auto\">This would match a lua function with only a comment inside of it, but won't match an empty Lua function.</p>\n<hr>\n<p dir=\"auto\">Currently, Neovim core, <code class=\"notranslate\">nvim-treesitter</code> and <code class=\"notranslate\">mini.nvim</code> follow a convention where you can define ranges that span multiple treesitter nodes by using the same capture (e.g. <code class=\"notranslate\">@function.outer</code>) on multiple nodes and the resulting range would span the region defined by the start of the first node and the end of the last node. This is what I used in the previous query to define a range using multiple nodes instead of just one (<code class=\"notranslate\">(_)+ @function.inner</code>).</p>\n<p dir=\"auto\">Matching an empty function (in this case, a Lua function, but this would work for any language) would require a new convention for defining ranges between multiple nodes that starts with the <strong>end</strong> of the first node and ends with the <strong>start</strong> of the last node. This would mean adding new code to <code class=\"notranslate\">mini.ai</code>  (and <code class=\"notranslate\">mini.surround</code>) to create these ranges, requiring new queries and being the only plugin that uses this new convention. You can use your own <code class=\"notranslate\">MiniAi.gen_spec.treesitter()</code> in your config that behaves just like the builtin one, but also takes into account this new behavior (you would also need to create your own treesitter queries).</p>\n<p dir=\"auto\">An example query would be something like</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"(function_declaration\n  (parameters) @function.inner_special\n  &quot;end&quot; @function.inner_special)\"><pre class=\"notranslate\">(function_declaration\n  (parameters) @function.inner_special\n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>end<span class=\"pl-pds\">\"</span></span> @function.inner_special)</pre></div>\n<p dir=\"auto\">which, for the following Lua code</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"function some_function() end\"><pre class=\"notranslate\"><span class=\"pl-k\">function</span> <span class=\"pl-en\">some_function</span>() <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">will capture the ranges</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/53507599/564857897-392d3d30-5222-42a1-b842-734ab89a85d9.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MjgsIm5iZiI6MTc5MzU1MjQyOCwicGF0aCI6Ii81MzUwNzU5OS81NjQ4NTc4OTctMzkyZDNkMzAtNTIyMi00MmExLWI4NDItNzM0YWI4OWE4NWQ5LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDAyOFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWMwYjFmYTY4OWEwMDFmMWYwYzg0MzZmYmJiZjY4NTRiYTFlYTIyNWYwNjdjN2MzZTZkN2FiMmM5OWQzM2Y2ZDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.zY-ZnE9xl6o9D3ChbGhIgtD6_q_-TW61otSTxu8HIW4\"><img width=\"450\" height=\"71\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/53507599/564857897-392d3d30-5222-42a1-b842-734ab89a85d9.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MjgsIm5iZiI6MTc5MzU1MjQyOCwicGF0aCI6Ii81MzUwNzU5OS81NjQ4NTc4OTctMzkyZDNkMzAtNTIyMi00MmExLWI4NDItNzM0YWI4OWE4NWQ5LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDAyOFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWMwYjFmYTY4OWEwMDFmMWYwYzg0MzZmYmJiZjY4NTRiYTFlYTIyNWYwNjdjN2MzZTZkN2FiMmM5OWQzM2Y2ZDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.zY-ZnE9xl6o9D3ChbGhIgtD6_q_-TW61otSTxu8HIW4\" style=\"max-width: 100%; height: auto; max-height: 71px;; aspect-ratio: 450 / 71; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<p dir=\"auto\">defined by the nodes</p>\n<div class=\"highlight highlight-source-commonlisp notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"(chunk ; [0, 0] - [1, 0]\n  (function_declaration ; [0, 0] - [0, 28]\n    &quot;function&quot; ; [0, 0] - [0, 8]\n    name: (identifier) ; [0, 9] - [0, 22]\n    parameters: (parameters ; [0, 22] - [0, 24]\n      &quot;(&quot; ; [0, 22] - [0, 23]\n      &quot;)&quot;) ; [0, 23] - [0, 24]\n    &quot;end&quot;)) ; [0, 25] - [0, 28]\"><pre class=\"notranslate\">(chunk <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 0] - [1, 0]</span>\n  (function_declaration <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 0] - [0, 28]</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>function<span class=\"pl-pds\">\"</span></span> <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 0] - [0, 8]</span>\n    <span class=\"pl-c1\">name</span>: (identifier) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 9] - [0, 22]</span>\n    <span class=\"pl-c1\">parameters</span>: (parameters <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 22] - [0, 24]</span>\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>(<span class=\"pl-pds\">\"</span></span> <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 22] - [0, 23]</span>\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>)<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 23] - [0, 24]</span>\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>end<span class=\"pl-pds\">\"</span></span>)) <span class=\"pl-c\"><span class=\"pl-c\">;</span> [0, 25] - [0, 28]</span></pre></div>\n<p dir=\"auto\">and then you can use the end of the <code class=\"notranslate\">parameter</code> node (<code class=\"notranslate\">[0, 24]</code>) and the start of the <code class=\"notranslate\">\"end\"</code> node (<code class=\"notranslate\">[0, 25]</code>) to define the range for the <code class=\"notranslate\">inner function</code> textobject for an empty function</p>",
+            "bodyText": "There is no way to do this while only relying on nvim-treesitter-textobjects queries. For example, their query for @function.outer in Lua is\n[\n  (function_declaration)\n  (function_definition)\n] @function.outer\nwhich, used in the following code\nfunction some_function() end\ncaptures the following text\n\ndefined by the treesitter node\n(function_declaration ; [0, 0] - [0, 28]\n    name: (identifier) ; [0, 9] - [0, 22]\n    parameters: (parameters))\nSo, we know where the range that defines the @function.outer capture starts and ends, but we don't know anything about @function.inner.\n\nnvim-treesitter-textobjects queries for @function.inner are\n(function_declaration\n  body: (_) @function.inner)\n\n(function_definition\n  body: (_) @function.inner)\nand the following code\nfunction some_function()\n    -- some comment\nend\nis parsed as\n(chunk ; [0, 0] - [3, 0]\n  (function_declaration ; [0, 0] - [2, 3]\n    name: (identifier) ; [0, 9] - [0, 22]\n    parameters: (parameters) ; [0, 22] - [0, 24]\n    (comment ; [1, 4] - [1, 19]\n      content: (comment_content)))) ; [1, 6] - [1, 19]\nwhich does not have a body: field inside of the function_declaration node. So, nothing matches. If you simply want to match functions that have any node (including a comment) inside them, you can create the file ~/.config/nvim/queries/lua/textobjects.scm with the following content (don't forget the ; extends on the first line, you can read :h treesitter-query-modeline-extends to learn what it does, but it is required)\n; extends\n\n(function_declaration\n  (_)+ @function.inner)\n\n(function_definition\n  (_)+ @function.inner)\nThis would match a lua function with only a comment inside of it, but won't match an empty Lua function.\n\nCurrently, Neovim core, nvim-treesitter and mini.nvim follow a convention where you can define ranges that span multiple treesitter nodes by using the same capture (e.g. @function.outer) on multiple nodes and the resulting range would span the region defined by the start of the first node and the end of the last node. This is what I used in the previous query to define a range using multiple nodes instead of just one ((_)+ @function.inner).\nMatching an empty function (in this case, a Lua function, but this would work for any language) would require a new convention for defining ranges between multiple nodes that starts with the end of the first node and ends with the start of the last node. This would mean adding new code to mini.ai  (and mini.surround) to create these ranges, requiring new queries and being the only plugin that uses this new convention. You can use your own MiniAi.gen_spec.treesitter() in your config that behaves just like the builtin one, but also takes into account this new behavior (you would also need to create your own treesitter queries).\nAn example query would be something like\n(function_declaration\n  (parameters) @function.inner_special\n  \"end\" @function.inner_special)\nwhich, for the following Lua code\nfunction some_function() end\nwill capture the ranges\n\ndefined by the nodes\n(chunk ; [0, 0] - [1, 0]\n  (function_declaration ; [0, 0] - [0, 28]\n    \"function\" ; [0, 0] - [0, 8]\n    name: (identifier) ; [0, 9] - [0, 22]\n    parameters: (parameters ; [0, 22] - [0, 24]\n      \"(\" ; [0, 22] - [0, 23]\n      \")\") ; [0, 23] - [0, 24]\n    \"end\")) ; [0, 25] - [0, 28]\nand then you can use the end of the parameter node ([0, 24]) and the start of the \"end\" node ([0, 25]) to define the range for the inner function textobject for an empty function",
+            "createdAt": "2026-03-17T14:45:48Z",
+            "createdViaEmail": false,
+            "databaseId": 16179285,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/53507599?u=4f74ef3047fdf1cd9baf59ec2d4ffe5c9ebe6b3a&v=4",
+                "login": "TheLeoP",
+                "resourcePath": "/TheLeoP",
+                "url": "https://github.com/TheLeoP"
+            },
+            "id": "DC_kwDOFoksYM4A9uBV",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-17T15:54:07Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-03-17T14:45:48Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thank you for the explanation 😍.\r\n\r\nTo be honest, I thought there might be something like a `#make-range!` directive, or something provided by `nvim-treesitter-textobjects` itself. As far as I know, it’s possible to define custom directives, so that could be one solution worth exploring.\r\n\r\nI'll try the `ts_pattern` approach first to refine `@function.outer` using Lua patterns.",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for the explanation 😍.</p>\n<p dir=\"auto\">To be honest, I thought there might be something like a <code class=\"notranslate\">#make-range!</code> directive, or something provided by <code class=\"notranslate\">nvim-treesitter-textobjects</code> itself. As far as I know, it’s possible to define custom directives, so that could be one solution worth exploring.</p>\n<p dir=\"auto\">I'll try the <code class=\"notranslate\">ts_pattern</code> approach first to refine <code class=\"notranslate\">@function.outer</code> using Lua patterns.</p>",
+                    "bodyText": "Thank you for the explanation 😍.\nTo be honest, I thought there might be something like a #make-range! directive, or something provided by nvim-treesitter-textobjects itself. As far as I know, it’s possible to define custom directives, so that could be one solution worth exploring.\nI'll try the ts_pattern approach first to refine @function.outer using Lua patterns.",
+                    "createdAt": "2026-03-17T15:08:08Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16179681,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A9uHh",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-03-17T17:13:48Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-17T15:08:08Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16179285,
+                        "id": "DC_kwDOFoksYM4A9uBV",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179285"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179681",
+                    "updatedAt": "2026-03-17T17:13:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179681"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/53507599?u=4f74ef3047fdf1cd9baf59ec2d4ffe5c9ebe6b3a&v=4",
+                        "login": "TheLeoP",
+                        "resourcePath": "/TheLeoP",
+                        "url": "https://github.com/TheLeoP"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "`#make-range!` used to be a directive provided by `nvim-treesitter` that is no longer supported. It worked by mocking treesitter nodes with the provided range (which was possible because they owned the code that parsed each node's metadata), but it was really frail and error prone.\r\n\r\nYou can create a custom directive that modifies the range of a captured treesitter node, but you can't create your own fake nodes. So, you may be able to get something working, but then you'll be back to having to maintain your own set of special queries that make use of your custom directive.",
+                    "bodyHTML": "<p dir=\"auto\"><code class=\"notranslate\">#make-range!</code> used to be a directive provided by <code class=\"notranslate\">nvim-treesitter</code> that is no longer supported. It worked by mocking treesitter nodes with the provided range (which was possible because they owned the code that parsed each node's metadata), but it was really frail and error prone.</p>\n<p dir=\"auto\">You can create a custom directive that modifies the range of a captured treesitter node, but you can't create your own fake nodes. So, you may be able to get something working, but then you'll be back to having to maintain your own set of special queries that make use of your custom directive.</p>",
+                    "bodyText": "#make-range! used to be a directive provided by nvim-treesitter that is no longer supported. It worked by mocking treesitter nodes with the provided range (which was possible because they owned the code that parsed each node's metadata), but it was really frail and error prone.\nYou can create a custom directive that modifies the range of a captured treesitter node, but you can't create your own fake nodes. So, you may be able to get something working, but then you'll be back to having to maintain your own set of special queries that make use of your custom directive.",
+                    "createdAt": "2026-03-17T16:04:00Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16180487,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9uUH",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-17T16:04:00Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16179285,
+                        "id": "DC_kwDOFoksYM4A9uBV",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179285"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16180487",
+                    "updatedAt": "2026-03-17T16:04:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16180487"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thanks again for the help :)",
+                    "bodyHTML": "<p dir=\"auto\">Thanks again for the help :)</p>",
+                    "bodyText": "Thanks again for the help :)",
+                    "createdAt": "2026-03-17T16:07:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16180528,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9uUw",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-17T16:07:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16179285,
+                        "id": "DC_kwDOFoksYM4A9uBV",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179285"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16180528",
+                    "updatedAt": "2026-03-17T16:07:46Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16180528"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179285",
+            "updatedAt": "2026-03-17T15:54:07Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16179285"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "### Pattern within treesitter match\r\n\r\nA simple approach is to apply a pattern on top of the `@function.outer` capture.\r\n\r\nThe current implementation is so low-key sus (bad) that I won't \"Show and Tell\" it in a separate discussion.\r\n\r\nThe `local find_textobject` function overrides `MiniAi.gen_spec.custom_textobjects` so the specification can be used directly instead of an id.\r\n\r\nTo reuse `mini.ai` pattern system while treating `^` and `$` as boundaries of the treesitter match region rather than line boundaries, a temporary scratch buffer is used.\r\n\r\nSince `mini.ai` appends a newline `\\n` after every string, end-of-match patterns need to use `\\n$` to work correctly.\r\n\r\nAs a side note, for this particular implementation, an API like `MiniAi.find_string_textobject(str, ai_type, id|spec, opts)` would be helpful.\r\n\r\n### Code\r\n\r\n```lua\r\n-- after/ftplugin/lua.lua\r\n\r\nvim.b.miniai_config = {\r\n  custom_textobjects = {\r\n    F = vim.g.miniai_ts_pattern({\r\n      a = { cap = \"@function.outer\" },\r\n      i = {\r\n        cap = \"@function.outer\",\r\n        pat = {\r\n          { \"^.-%b()%s*()%S.-()%s*end\\n$\", \"^.-%b()()%s+()end\\n$\" },\r\n        },\r\n      },\r\n    }, { n_lines = 500 }),\r\n  },\r\n}\r\n```\r\n\r\n<details open><summary>Click me</summary>\r\n\r\n```lua\r\nvim.g.miniai_ts_pattern = function(ai_specs, opts_override)\r\n  local MiniAi = require(\"mini.ai\")\r\n  ai_specs = vim.tbl_deep_extend(\"keep\", ai_specs, {\r\n    a = { cap = \"@\", pat = nil },\r\n    i = { cap = \"@\", pat = nil },\r\n  })\r\n\r\n  local find_textobject = function(spec, ai_type, opts)\r\n    local tmp_id = \"_\"\r\n    local tmp_restore = MiniAi.config.custom_textobjects[tmp_id]\r\n    MiniAi.config.custom_textobjects[tmp_id] = spec\r\n    local reg = MiniAi.find_textobject(ai_type, tmp_id, opts)\r\n    MiniAi.config.custom_textobjects[tmp_id] = tmp_restore\r\n    return reg\r\n  end\r\n\r\n  local joinpos = function(abs_pos, rel_pos)\r\n    return {\r\n      line = abs_pos.line + rel_pos.line - 1,\r\n      col = rel_pos.line == 1 and abs_pos.col + rel_pos.col - 1 or rel_pos.col,\r\n    }\r\n  end\r\n  local match_buf = -1 -- Lazily created\r\n  local match_pattern = function(ref_reg, ai_type, pattern)\r\n    local from, to = ref_reg.from, ref_reg.to\r\n    local buf_text = vim.api.nvim_buf_get_text(0, from.line - 1, from.col - 1, to.line - 1, to.col, {})\r\n    if not vim.api.nvim_buf_is_valid(match_buf) then\r\n      match_buf = vim.api.nvim_create_buf(false, true)\r\n    end\r\n    vim.api.nvim_buf_set_lines(match_buf, 0, -1, true, buf_text)\r\n    local reg = vim.api.nvim_buf_call(match_buf, function()\r\n      return find_textobject(pattern, ai_type, {\r\n        reference_region = { from = { line = 1, col = 1 } },\r\n        n_lines = #buf_text,\r\n        n_times = 1,\r\n        search_method = \"cover_or_next\",\r\n      })\r\n    end)\r\n    if reg and reg.from and reg.to then\r\n      return { from = joinpos(from, reg.from), to = joinpos(from, reg.to) }\r\n    end\r\n    return nil\r\n  end\r\n\r\n  local ts_spec = MiniAi.gen_spec.treesitter({ a = ai_specs.a.cap, i = ai_specs.i.cap })\r\n  return function(ai_type, id, opts)\r\n    opts = vim.tbl_extend(\"force\", opts or {}, opts_override or {})\r\n    local cap_reg = find_textobject(ts_spec, ai_type, opts)\r\n    if not cap_reg then\r\n      return\r\n    end\r\n    local pat = ai_specs[ai_type].pat\r\n    if not pat or vim.tbl_isempty(pat) then\r\n      return cap_reg\r\n    end\r\n    local pat_reg = match_pattern(cap_reg, ai_type, pat)\r\n    if pat_reg then\r\n      return pat_reg\r\n    end\r\n    opts.n_times = opts.n_times + 1\r\n    return MiniAi.find_textobject(ai_type, id, opts)\r\n  end\r\nend\r\n```\r\n\r\n</details>",
+            "bodyHTML": "<h3 dir=\"auto\">Pattern within treesitter match</h3>\n<p dir=\"auto\">A simple approach is to apply a pattern on top of the <code class=\"notranslate\">@function.outer</code> capture.</p>\n<p dir=\"auto\">The current implementation is so low-key sus (bad) that I won't \"Show and Tell\" it in a separate discussion.</p>\n<p dir=\"auto\">The <code class=\"notranslate\">local find_textobject</code> function overrides <code class=\"notranslate\">MiniAi.gen_spec.custom_textobjects</code> so the specification can be used directly instead of an id.</p>\n<p dir=\"auto\">To reuse <code class=\"notranslate\">mini.ai</code> pattern system while treating <code class=\"notranslate\">^</code> and <code class=\"notranslate\">$</code> as boundaries of the treesitter match region rather than line boundaries, a temporary scratch buffer is used.</p>\n<p dir=\"auto\">Since <code class=\"notranslate\">mini.ai</code> appends a newline <code class=\"notranslate\">\\n</code> after every string, end-of-match patterns need to use <code class=\"notranslate\">\\n$</code> to work correctly.</p>\n<p dir=\"auto\">As a side note, for this particular implementation, an API like <code class=\"notranslate\">MiniAi.find_string_textobject(str, ai_type, id|spec, opts)</code> would be helpful.</p>\n<h3 dir=\"auto\">Code</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- after/ftplugin/lua.lua\n\nvim.b.miniai_config = {\n  custom_textobjects = {\n    F = vim.g.miniai_ts_pattern({\n      a = { cap = &quot;@function.outer&quot; },\n      i = {\n        cap = &quot;@function.outer&quot;,\n        pat = {\n          { &quot;^.-%b()%s*()%S.-()%s*end\\n$&quot;, &quot;^.-%b()()%s+()end\\n$&quot; },\n        },\n      },\n    }, { n_lines = 500 }),\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> after/ftplugin/lua.lua</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">F</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-c1\">miniai_ts_pattern</span>({\n      <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cap</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@function.outer<span class=\"pl-pds\">\" </span></span>},\n      <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">cap</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@function.outer<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">pat</span> <span class=\"pl-k\">=</span> {\n          { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.-%b()%s*()%S.-()%s*end<span class=\"pl-cce\">\\n</span>$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.-%b()()%s+()end<span class=\"pl-cce\">\\n</span>$<span class=\"pl-pds\">\" </span></span>},\n        },\n      },\n    }, { <span class=\"pl-smi\">n_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">500</span> }),\n  },\n}</pre></div>\n<details open=\"\"><summary>Click me</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.g.miniai_ts_pattern = function(ai_specs, opts_override)\n  local MiniAi = require(&quot;mini.ai&quot;)\n  ai_specs = vim.tbl_deep_extend(&quot;keep&quot;, ai_specs, {\n    a = { cap = &quot;@&quot;, pat = nil },\n    i = { cap = &quot;@&quot;, pat = nil },\n  })\n\n  local find_textobject = function(spec, ai_type, opts)\n    local tmp_id = &quot;_&quot;\n    local tmp_restore = MiniAi.config.custom_textobjects[tmp_id]\n    MiniAi.config.custom_textobjects[tmp_id] = spec\n    local reg = MiniAi.find_textobject(ai_type, tmp_id, opts)\n    MiniAi.config.custom_textobjects[tmp_id] = tmp_restore\n    return reg\n  end\n\n  local joinpos = function(abs_pos, rel_pos)\n    return {\n      line = abs_pos.line + rel_pos.line - 1,\n      col = rel_pos.line == 1 and abs_pos.col + rel_pos.col - 1 or rel_pos.col,\n    }\n  end\n  local match_buf = -1 -- Lazily created\n  local match_pattern = function(ref_reg, ai_type, pattern)\n    local from, to = ref_reg.from, ref_reg.to\n    local buf_text = vim.api.nvim_buf_get_text(0, from.line - 1, from.col - 1, to.line - 1, to.col, {})\n    if not vim.api.nvim_buf_is_valid(match_buf) then\n      match_buf = vim.api.nvim_create_buf(false, true)\n    end\n    vim.api.nvim_buf_set_lines(match_buf, 0, -1, true, buf_text)\n    local reg = vim.api.nvim_buf_call(match_buf, function()\n      return find_textobject(pattern, ai_type, {\n        reference_region = { from = { line = 1, col = 1 } },\n        n_lines = #buf_text,\n        n_times = 1,\n        search_method = &quot;cover_or_next&quot;,\n      })\n    end)\n    if reg and reg.from and reg.to then\n      return { from = joinpos(from, reg.from), to = joinpos(from, reg.to) }\n    end\n    return nil\n  end\n\n  local ts_spec = MiniAi.gen_spec.treesitter({ a = ai_specs.a.cap, i = ai_specs.i.cap })\n  return function(ai_type, id, opts)\n    opts = vim.tbl_extend(&quot;force&quot;, opts or {}, opts_override or {})\n    local cap_reg = find_textobject(ts_spec, ai_type, opts)\n    if not cap_reg then\n      return\n    end\n    local pat = ai_specs[ai_type].pat\n    if not pat or vim.tbl_isempty(pat) then\n      return cap_reg\n    end\n    local pat_reg = match_pattern(cap_reg, ai_type, pat)\n    if pat_reg then\n      return pat_reg\n    end\n    opts.n_times = opts.n_times + 1\n    return MiniAi.find_textobject(ai_type, id, opts)\n  end\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-en\">miniai_ts_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_specs</span>, <span class=\"pl-smi\">opts_override</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniAi</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.ai<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">ai_specs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">ai_specs</span>, {\n    <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cap</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">pat</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> },\n    <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cap</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">pat</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> },\n  })\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">find_textobject</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">spec</span>, <span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">tmp_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>_<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">tmp_restore</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">custom_textobjects</span>[<span class=\"pl-smi\">tmp_id</span>]\n    <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">custom_textobjects</span>[<span class=\"pl-smi\">tmp_id</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">spec</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">tmp_id</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">custom_textobjects</span>[<span class=\"pl-smi\">tmp_id</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">tmp_restore</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">reg</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">joinpos</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">abs_pos</span>, <span class=\"pl-smi\">rel_pos</span>)\n    <span class=\"pl-k\">return</span> {\n      <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">abs_pos</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">rel_pos</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n      <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">rel_pos</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">abs_pos</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">rel_pos</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">rel_pos</span>.<span class=\"pl-e\">col</span>,\n    }\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">match_buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> Lazily created</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">match_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ref_reg</span>, <span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">pattern</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ref_reg</span>.<span class=\"pl-e\">from</span>, <span class=\"pl-smi\">ref_reg</span>.<span class=\"pl-e\">to</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_text</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">from</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">from</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span>.<span class=\"pl-e\">col</span>, {})\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_is_valid</span>(<span class=\"pl-smi\">match_buf</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">match_buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_buf</span>(<span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">match_buf</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">buf_text</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_call</span>(<span class=\"pl-smi\">match_buf</span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-k\">return</span> <span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">ai_type</span>, {\n        <span class=\"pl-smi\">reference_region</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> } },\n        <span class=\"pl-smi\">n_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">buf_text</span>,\n        <span class=\"pl-smi\">n_times</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>,\n        <span class=\"pl-smi\">search_method</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>cover_or_next<span class=\"pl-pds\">\"</span></span>,\n      })\n    <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">reg</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">joinpos</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">from</span>), <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">joinpos</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">reg</span>.<span class=\"pl-e\">to</span>) }\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ts_spec</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">treesitter</span>({ <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai_specs</span>.<span class=\"pl-e\">a</span>.<span class=\"pl-e\">cap</span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai_specs</span>.<span class=\"pl-e\">i</span>.<span class=\"pl-e\">cap</span> })\n  <span class=\"pl-k\">return</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, <span class=\"pl-smi\">opts_override</span> <span class=\"pl-k\">or</span> {})\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cap_reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-smi\">ts_spec</span>, <span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">cap_reg</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pat</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai_specs</span>[<span class=\"pl-smi\">ai_type</span>].<span class=\"pl-e\">pat</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">pat</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_isempty</span>(<span class=\"pl-smi\">pat</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">cap_reg</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pat_reg</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">match_pattern</span>(<span class=\"pl-smi\">cap_reg</span>, <span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">pat</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">pat_reg</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">pat_reg</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">n_times</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">n_times</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span></pre></div>\n</details>",
+            "bodyText": "Pattern within treesitter match\nA simple approach is to apply a pattern on top of the @function.outer capture.\nThe current implementation is so low-key sus (bad) that I won't \"Show and Tell\" it in a separate discussion.\nThe local find_textobject function overrides MiniAi.gen_spec.custom_textobjects so the specification can be used directly instead of an id.\nTo reuse mini.ai pattern system while treating ^ and $ as boundaries of the treesitter match region rather than line boundaries, a temporary scratch buffer is used.\nSince mini.ai appends a newline \\n after every string, end-of-match patterns need to use \\n$ to work correctly.\nAs a side note, for this particular implementation, an API like MiniAi.find_string_textobject(str, ai_type, id|spec, opts) would be helpful.\nCode\n-- after/ftplugin/lua.lua\n\nvim.b.miniai_config = {\n  custom_textobjects = {\n    F = vim.g.miniai_ts_pattern({\n      a = { cap = \"@function.outer\" },\n      i = {\n        cap = \"@function.outer\",\n        pat = {\n          { \"^.-%b()%s*()%S.-()%s*end\\n$\", \"^.-%b()()%s+()end\\n$\" },\n        },\n      },\n    }, { n_lines = 500 }),\n  },\n}\nClick me\nvim.g.miniai_ts_pattern = function(ai_specs, opts_override)\n  local MiniAi = require(\"mini.ai\")\n  ai_specs = vim.tbl_deep_extend(\"keep\", ai_specs, {\n    a = { cap = \"@\", pat = nil },\n    i = { cap = \"@\", pat = nil },\n  })\n\n  local find_textobject = function(spec, ai_type, opts)\n    local tmp_id = \"_\"\n    local tmp_restore = MiniAi.config.custom_textobjects[tmp_id]\n    MiniAi.config.custom_textobjects[tmp_id] = spec\n    local reg = MiniAi.find_textobject(ai_type, tmp_id, opts)\n    MiniAi.config.custom_textobjects[tmp_id] = tmp_restore\n    return reg\n  end\n\n  local joinpos = function(abs_pos, rel_pos)\n    return {\n      line = abs_pos.line + rel_pos.line - 1,\n      col = rel_pos.line == 1 and abs_pos.col + rel_pos.col - 1 or rel_pos.col,\n    }\n  end\n  local match_buf = -1 -- Lazily created\n  local match_pattern = function(ref_reg, ai_type, pattern)\n    local from, to = ref_reg.from, ref_reg.to\n    local buf_text = vim.api.nvim_buf_get_text(0, from.line - 1, from.col - 1, to.line - 1, to.col, {})\n    if not vim.api.nvim_buf_is_valid(match_buf) then\n      match_buf = vim.api.nvim_create_buf(false, true)\n    end\n    vim.api.nvim_buf_set_lines(match_buf, 0, -1, true, buf_text)\n    local reg = vim.api.nvim_buf_call(match_buf, function()\n      return find_textobject(pattern, ai_type, {\n        reference_region = { from = { line = 1, col = 1 } },\n        n_lines = #buf_text,\n        n_times = 1,\n        search_method = \"cover_or_next\",\n      })\n    end)\n    if reg and reg.from and reg.to then\n      return { from = joinpos(from, reg.from), to = joinpos(from, reg.to) }\n    end\n    return nil\n  end\n\n  local ts_spec = MiniAi.gen_spec.treesitter({ a = ai_specs.a.cap, i = ai_specs.i.cap })\n  return function(ai_type, id, opts)\n    opts = vim.tbl_extend(\"force\", opts or {}, opts_override or {})\n    local cap_reg = find_textobject(ts_spec, ai_type, opts)\n    if not cap_reg then\n      return\n    end\n    local pat = ai_specs[ai_type].pat\n    if not pat or vim.tbl_isempty(pat) then\n      return cap_reg\n    end\n    local pat_reg = match_pattern(cap_reg, ai_type, pat)\n    if pat_reg then\n      return pat_reg\n    end\n    opts.n_times = opts.n_times + 1\n    return MiniAi.find_textobject(ai_type, id, opts)\n  end\nend",
+            "createdAt": "2026-03-19T17:18:04Z",
+            "createdViaEmail": false,
+            "databaseId": 16212030,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A92A-",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-19T18:04:06Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-03-19T17:18:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> As a side note, for this particular implementation, an API like `MiniAi.find_string_textobject(str, ai_type, id|spec, opts)` would be helpful.\r\n\r\nI've thought about that, but feels a bit too much.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">As a side note, for this particular implementation, an API like <code class=\"notranslate\">MiniAi.find_string_textobject(str, ai_type, id|spec, opts)</code> would be helpful.</p>\n</blockquote>\n<p dir=\"auto\">I've thought about that, but feels a bit too much.</p>",
+                    "bodyText": "As a side note, for this particular implementation, an API like MiniAi.find_string_textobject(str, ai_type, id|spec, opts) would be helpful.\n\nI've thought about that, but feels a bit too much.",
+                    "createdAt": "2026-03-19T17:59:45Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16212484,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A92IE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-19T17:59:45Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16212030,
+                        "id": "DC_kwDOFoksYM4A92A-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16212030"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16212484",
+                    "updatedAt": "2026-03-19T17:59:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16212484"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16212030",
+            "updatedAt": "2026-03-19T18:04:06Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316#discussioncomment-16212030"
+        }
+    ],
+    "createdAt": "2026-03-15T22:23:57Z",
+    "createdViaEmail": false,
+    "databaseId": 9654503,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4Ak1Dn",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-03-17T15:16:19Z",
+    "locked": false,
+    "number": 2316,
+    "poll": null,
+    "publishedAt": "2026-03-15T22:23:57Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2316",
+    "stateReason": "RESOLVED",
+    "title": "[mini.ai] Match \"empty\" @function.inner in lua",
+    "updatedAt": "2026-03-21T07:48:36Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2316"
+}

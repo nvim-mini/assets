@@ -1,0 +1,703 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/345808?u=4be50cbf17ebea3112bf0bef2d5e47eeb2e4bf19&v=4",
+        "login": "farnoy",
+        "resourcePath": "/farnoy",
+        "url": "https://github.com/farnoy"
+    },
+    "authorAssociation": "NONE",
+    "body": "Sharing in case someone finds it useful. Should work with multiple repos/workspaces. Doesn't have hunks since those don't make sense with jj. Uses `--ignore-working-copy` so it should pollute your oplog.\r\n\r\n```lua\r\nlocal cache = {}\r\n\r\nlocal function get_buf_realpath(buf_id)\r\n  return vim.loop.fs_realpath(vim.api.nvim_buf_get_name(buf_id)) or ''\r\nend\r\n\r\nlocal function repo_dir(path)\r\n  local result = vim.system({ 'jj', '--ignore-working-copy', 'root' }, { cwd = vim.fs.dirname(path) }):wait()\r\n  if result.code == 0 then\r\n    return vim.trim(result.stdout)\r\n  else\r\n    return nil\r\n  end\r\nend\r\n\r\nlocal function invalidate_cache(buf_id)\r\n  local cache = cache[buf_id]\r\n  if cache == nil then return false end\r\n  pcall(function()\r\n    cache.fs_event:stop()\r\n    cache.timer:stop()\r\n  end)\r\n  cache[buf_id] = nil\r\nend\r\n\r\nlocal function start_watching(buf_id, path)\r\n  local repo = repo_dir(path)\r\n  if repo == nil then return false end\r\n  local watchfile = vim.fs.joinpath(repo, \".jj/working_copy\")\r\n\r\n  local buf_fs_event, timer = vim.loop.new_fs_event(), vim.loop.new_timer()\r\n  local set_ref_text = function()\r\n    vim.system(\r\n      { \"jj\", \"--ignore-working-copy\", \"file\", \"show\", \"-r\", \"@-\", \"\\\"\" .. path .. \"\\\"\" },\r\n      { cwd = vim.fs.dirname(path), text = true },\r\n      vim.schedule_wrap(function(res)\r\n        local MiniDiff = require('mini.diff')\r\n        MiniDiff.set_ref_text(buf_id, res.stdout)\r\n      end)\r\n    )\r\n  end\r\n\r\n  local watch_index = function(_, filename, _)\r\n    if filename ~= \"checkout\" then return end\r\n    timer:stop()\r\n    timer:start(50, 0, set_ref_text)\r\n  end\r\n  buf_fs_event:start(watchfile, { recursive = true }, watch_index)\r\n\r\n  invalidate_cache(buf_id)\r\n  cache[buf_id] = { fs_event = buf_fs_event, timer = timer }\r\n\r\n  set_ref_text()\r\nend\r\n\r\nreturn {\r\n  {\r\n    \"echasnovski/mini.diff\",\r\n    opts = {\r\n      source = {\r\n        name = \"jj\",\r\n        attach = function(buf_id)\r\n          if cache[buf_id] ~= nil then return false end\r\n\r\n          local path = get_buf_realpath(buf_id)\r\n          if path == '' then return false end\r\n\r\n          return start_watching(buf_id, path)\r\n        end,\r\n        detach = function(buf_id)\r\n          invalidate_cache(buf_id)\r\n        end,\r\n      }\r\n    }\r\n  }\r\n}\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Sharing in case someone finds it useful. Should work with multiple repos/workspaces. Doesn't have hunks since those don't make sense with jj. Uses <code class=\"notranslate\">--ignore-working-copy</code> so it should pollute your oplog.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local cache = {}\n\nlocal function get_buf_realpath(buf_id)\n  return vim.loop.fs_realpath(vim.api.nvim_buf_get_name(buf_id)) or ''\nend\n\nlocal function repo_dir(path)\n  local result = vim.system({ 'jj', '--ignore-working-copy', 'root' }, { cwd = vim.fs.dirname(path) }):wait()\n  if result.code == 0 then\n    return vim.trim(result.stdout)\n  else\n    return nil\n  end\nend\n\nlocal function invalidate_cache(buf_id)\n  local cache = cache[buf_id]\n  if cache == nil then return false end\n  pcall(function()\n    cache.fs_event:stop()\n    cache.timer:stop()\n  end)\n  cache[buf_id] = nil\nend\n\nlocal function start_watching(buf_id, path)\n  local repo = repo_dir(path)\n  if repo == nil then return false end\n  local watchfile = vim.fs.joinpath(repo, &quot;.jj/working_copy&quot;)\n\n  local buf_fs_event, timer = vim.loop.new_fs_event(), vim.loop.new_timer()\n  local set_ref_text = function()\n    vim.system(\n      { &quot;jj&quot;, &quot;--ignore-working-copy&quot;, &quot;file&quot;, &quot;show&quot;, &quot;-r&quot;, &quot;@-&quot;, &quot;\\&quot;&quot; .. path .. &quot;\\&quot;&quot; },\n      { cwd = vim.fs.dirname(path), text = true },\n      vim.schedule_wrap(function(res)\n        local MiniDiff = require('mini.diff')\n        MiniDiff.set_ref_text(buf_id, res.stdout)\n      end)\n    )\n  end\n\n  local watch_index = function(_, filename, _)\n    if filename ~= &quot;checkout&quot; then return end\n    timer:stop()\n    timer:start(50, 0, set_ref_text)\n  end\n  buf_fs_event:start(watchfile, { recursive = true }, watch_index)\n\n  invalidate_cache(buf_id)\n  cache[buf_id] = { fs_event = buf_fs_event, timer = timer }\n\n  set_ref_text()\nend\n\nreturn {\n  {\n    &quot;echasnovski/mini.diff&quot;,\n    opts = {\n      source = {\n        name = &quot;jj&quot;,\n        attach = function(buf_id)\n          if cache[buf_id] ~= nil then return false end\n\n          local path = get_buf_realpath(buf_id)\n          if path == '' then return false end\n\n          return start_watching(buf_id, path)\n        end,\n        detach = function(buf_id)\n          invalidate_cache(buf_id)\n        end,\n      }\n    }\n  }\n}\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">cache</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">get_buf_realpath</span>(<span class=\"pl-smi\">buf_id</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">fs_realpath</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">buf_id</span>)) <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">repo_dir</span>(<span class=\"pl-smi\">path</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>jj<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>--ignore-working-copy<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>root<span class=\"pl-pds\">' </span></span>}, { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">dirname</span>(<span class=\"pl-smi\">path</span>) }):<span class=\"pl-c1\">wait</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">result</span>.<span class=\"pl-e\">code</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">trim</span>(<span class=\"pl-smi\">result</span>.<span class=\"pl-e\">stdout</span>)\n  <span class=\"pl-k\">else</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">invalidate_cache</span>(<span class=\"pl-smi\">buf_id</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cache</span>[<span class=\"pl-smi\">buf_id</span>]\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cache</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">pcall</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">cache</span>.<span class=\"pl-en\">fs_event</span>:<span class=\"pl-c1\">stop</span>()\n    <span class=\"pl-smi\">cache</span>.<span class=\"pl-en\">timer</span>:<span class=\"pl-c1\">stop</span>()\n  <span class=\"pl-k\">end</span>)\n  <span class=\"pl-smi\">cache</span>[<span class=\"pl-smi\">buf_id</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">start_watching</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">path</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">repo</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">repo_dir</span>(<span class=\"pl-smi\">path</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">repo</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">watchfile</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">joinpath</span>(<span class=\"pl-smi\">repo</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.jj/working_copy<span class=\"pl-pds\">\"</span></span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_fs_event</span>, <span class=\"pl-smi\">timer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">new_fs_event</span>(), <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">new_timer</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">set_ref_text</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>(\n      { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>jj<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--ignore-working-copy<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>file<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>show<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-r<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@-<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\"</span><span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">dirname</span>(<span class=\"pl-smi\">path</span>), <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> },\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">res</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniDiff</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.diff<span class=\"pl-pds\">'</span></span>)\n        <span class=\"pl-smi\">MiniDiff</span>.<span class=\"pl-c1\">set_ref_text</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">res</span>.<span class=\"pl-e\">stdout</span>)\n      <span class=\"pl-k\">end</span>)\n    )\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">watch_index</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">filename</span>, <span class=\"pl-smi\">_</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">filename</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>checkout<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-en\">timer</span>:<span class=\"pl-c1\">stop</span>()\n    <span class=\"pl-en\">timer</span>:<span class=\"pl-c1\">start</span>(<span class=\"pl-c1\">50</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">set_ref_text</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-en\">buf_fs_event</span>:<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">watchfile</span>, { <span class=\"pl-smi\">recursive</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }, <span class=\"pl-smi\">watch_index</span>)\n\n  <span class=\"pl-c1\">invalidate_cache</span>(<span class=\"pl-smi\">buf_id</span>)\n  <span class=\"pl-smi\">cache</span>[<span class=\"pl-smi\">buf_id</span>] <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">fs_event</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_fs_event</span>, <span class=\"pl-smi\">timer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">timer</span> }\n\n  <span class=\"pl-c1\">set_ref_text</span>()\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> {\n  {\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>echasnovski/mini.diff<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>jj<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-en\">attach</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>)\n          <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cache</span>[<span class=\"pl-smi\">buf_id</span>] <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">get_buf_realpath</span>(<span class=\"pl-smi\">buf_id</span>)\n          <span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n\n          <span class=\"pl-k\">return</span> <span class=\"pl-c1\">start_watching</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">path</span>)\n        <span class=\"pl-k\">end</span>,\n        <span class=\"pl-en\">detach</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>)\n          <span class=\"pl-c1\">invalidate_cache</span>(<span class=\"pl-smi\">buf_id</span>)\n        <span class=\"pl-k\">end</span>,\n      }\n    }\n  }\n}</pre></div>",
+    "bodyText": "Sharing in case someone finds it useful. Should work with multiple repos/workspaces. Doesn't have hunks since those don't make sense with jj. Uses --ignore-working-copy so it should pollute your oplog.\nlocal cache = {}\n\nlocal function get_buf_realpath(buf_id)\n  return vim.loop.fs_realpath(vim.api.nvim_buf_get_name(buf_id)) or ''\nend\n\nlocal function repo_dir(path)\n  local result = vim.system({ 'jj', '--ignore-working-copy', 'root' }, { cwd = vim.fs.dirname(path) }):wait()\n  if result.code == 0 then\n    return vim.trim(result.stdout)\n  else\n    return nil\n  end\nend\n\nlocal function invalidate_cache(buf_id)\n  local cache = cache[buf_id]\n  if cache == nil then return false end\n  pcall(function()\n    cache.fs_event:stop()\n    cache.timer:stop()\n  end)\n  cache[buf_id] = nil\nend\n\nlocal function start_watching(buf_id, path)\n  local repo = repo_dir(path)\n  if repo == nil then return false end\n  local watchfile = vim.fs.joinpath(repo, \".jj/working_copy\")\n\n  local buf_fs_event, timer = vim.loop.new_fs_event(), vim.loop.new_timer()\n  local set_ref_text = function()\n    vim.system(\n      { \"jj\", \"--ignore-working-copy\", \"file\", \"show\", \"-r\", \"@-\", \"\\\"\" .. path .. \"\\\"\" },\n      { cwd = vim.fs.dirname(path), text = true },\n      vim.schedule_wrap(function(res)\n        local MiniDiff = require('mini.diff')\n        MiniDiff.set_ref_text(buf_id, res.stdout)\n      end)\n    )\n  end\n\n  local watch_index = function(_, filename, _)\n    if filename ~= \"checkout\" then return end\n    timer:stop()\n    timer:start(50, 0, set_ref_text)\n  end\n  buf_fs_event:start(watchfile, { recursive = true }, watch_index)\n\n  invalidate_cache(buf_id)\n  cache[buf_id] = { fs_event = buf_fs_event, timer = timer }\n\n  set_ref_text()\nend\n\nreturn {\n  {\n    \"echasnovski/mini.diff\",\n    opts = {\n      source = {\n        name = \"jj\",\n        attach = function(buf_id)\n          if cache[buf_id] ~= nil then return false end\n\n          local path = get_buf_realpath(buf_id)\n          if path == '' then return false end\n\n          return start_watching(buf_id, path)\n        end,\n        detach = function(buf_id)\n          invalidate_cache(buf_id)\n        end,\n      }\n    }\n  }\n}",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 4,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "That's *very* nice! Thanks for sharing!\r\n\r\nThe only issue I spotted is quite minor: I don't think `local set_ref_text` needs `vim.schedule_wrap`, as `vim.system` callback already has `vim.schedule_wrap`. But I might be wrong here.\r\n\r\n---\r\n\r\nI do have aspirations to look one day into adding built-in sources for alternative VCS (jujutsu, mercurial, fossil). If 'mini.diff' design is extensible, might as well make it easier to leverage. Just at the moment I don't think the payoff is worth the work (code+tests+docs) and increasing 'mini.diff' size. Some day.",
+            "bodyHTML": "<p dir=\"auto\">That's <em>very</em> nice! Thanks for sharing!</p>\n<p dir=\"auto\">The only issue I spotted is quite minor: I don't think <code class=\"notranslate\">local set_ref_text</code> needs <code class=\"notranslate\">vim.schedule_wrap</code>, as <code class=\"notranslate\">vim.system</code> callback already has <code class=\"notranslate\">vim.schedule_wrap</code>. But I might be wrong here.</p>\n<hr>\n<p dir=\"auto\">I do have aspirations to look one day into adding built-in sources for alternative VCS (jujutsu, mercurial, fossil). If 'mini.diff' design is extensible, might as well make it easier to leverage. Just at the moment I don't think the payoff is worth the work (code+tests+docs) and increasing 'mini.diff' size. Some day.</p>",
+            "bodyText": "That's very nice! Thanks for sharing!\nThe only issue I spotted is quite minor: I don't think local set_ref_text needs vim.schedule_wrap, as vim.system callback already has vim.schedule_wrap. But I might be wrong here.\n\nI do have aspirations to look one day into adding built-in sources for alternative VCS (jujutsu, mercurial, fossil). If 'mini.diff' design is extensible, might as well make it easier to leverage. Just at the moment I don't think the payoff is worth the work (code+tests+docs) and increasing 'mini.diff' size. Some day.",
+            "createdAt": "2025-05-04T12:49:52Z",
+            "createdViaEmail": false,
+            "databaseId": 13030090,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AxtLK",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-04T12:49:52Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/345808?u=4be50cbf17ebea3112bf0bef2d5e47eeb2e4bf19&v=4",
+                        "login": "farnoy",
+                        "resourcePath": "/farnoy",
+                        "url": "https://github.com/farnoy"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for pointing that out. You're right, the double wrap is unnecessary, it was a leftover from when I had logging there. Updated the post",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for pointing that out. You're right, the double wrap is unnecessary, it was a leftover from when I had logging there. Updated the post</p>",
+                    "bodyText": "Thanks for pointing that out. You're right, the double wrap is unnecessary, it was a leftover from when I had logging there. Updated the post",
+                    "createdAt": "2025-05-04T12:55:00Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13030111,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxtLf",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-04T12:55:00Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13030090,
+                        "id": "DC_kwDOFoksYM4AxtLK",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-13030090"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-13030111",
+                    "updatedAt": "2025-05-04T12:55:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-13030111"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-13030090",
+            "updatedAt": "2025-05-04T12:49:53Z",
+            "upvoteCount": 4,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-13030090"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/76725678?u=dd9c6735887c76b183eb4b178bcf90fc12a8ae8b&v=4",
+                "login": "sivansh11",
+                "resourcePath": "/sivansh11",
+                "url": "https://github.com/sivansh11"
+            },
+            "authorAssociation": "NONE",
+            "body": "@farnoy, do you have any idea how someone would use mini.diff for jj split/resolve ?\r\nBoth are quite involved actions",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/farnoy/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/farnoy\">@farnoy</a>, do you have any idea how someone would use mini.diff for jj split/resolve ?<br>\nBoth are quite involved actions</p>",
+            "bodyText": "@farnoy, do you have any idea how someone would use mini.diff for jj split/resolve ?\nBoth are quite involved actions",
+            "createdAt": "2025-11-23T21:46:01Z",
+            "createdViaEmail": false,
+            "databaseId": 15055110,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/76725678?u=dd9c6735887c76b183eb4b178bcf90fc12a8ae8b&v=4",
+                "login": "sivansh11",
+                "resourcePath": "/sivansh11",
+                "url": "https://github.com/sivansh11"
+            },
+            "id": "DC_kwDOFoksYM4A5bkG",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-11-23T21:46:42Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-11-23T21:46:01Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/345808?u=4be50cbf17ebea3112bf0bef2d5e47eeb2e4bf19&v=4",
+                        "login": "farnoy",
+                        "resourcePath": "/farnoy",
+                        "url": "https://github.com/farnoy"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I used [this](https://github.com/julienvincent/hunk.nvim) for a while, but there were some blockers and I went back to `:builtin`",
+                    "bodyHTML": "<p dir=\"auto\">I used <a href=\"https://github.com/julienvincent/hunk.nvim\">this</a> for a while, but there were some blockers and I went back to <code class=\"notranslate\">:builtin</code></p>",
+                    "bodyText": "I used this for a while, but there were some blockers and I went back to :builtin",
+                    "createdAt": "2025-11-24T09:39:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15059838,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5ct-",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-24T09:39:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15055110,
+                        "id": "DC_kwDOFoksYM4A5bkG",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-15055110"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-15059838",
+                    "updatedAt": "2025-11-24T09:39:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-15059838"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-15055110",
+            "updatedAt": "2025-11-23T21:46:42Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-15055110"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/62209?u=16abb81916ccbbfecbde0fbbea0e99120404e099&v=4",
+                "login": "evantravers",
+                "resourcePath": "/evantravers",
+                "url": "https://github.com/evantravers"
+            },
+            "authorAssociation": "NONE",
+            "body": "What do you mean\r\n\r\n> should pollute your oplog\r\n\r\nDid you mean should _not_?",
+            "bodyHTML": "<p dir=\"auto\">What do you mean</p>\n<blockquote>\n<p dir=\"auto\">should pollute your oplog</p>\n</blockquote>\n<p dir=\"auto\">Did you mean should <em>not</em>?</p>",
+            "bodyText": "What do you mean\n\nshould pollute your oplog\n\nDid you mean should not?",
+            "createdAt": "2026-03-06T15:28:58Z",
+            "createdViaEmail": false,
+            "databaseId": 16024709,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A9ISF",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-06T15:28:58Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/345808?u=4be50cbf17ebea3112bf0bef2d5e47eeb2e4bf19&v=4",
+                        "login": "farnoy",
+                        "resourcePath": "/farnoy",
+                        "url": "https://github.com/farnoy"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "yep 😄 ",
+                    "bodyHTML": "<p dir=\"auto\">yep 😄</p>",
+                    "bodyText": "yep 😄",
+                    "createdAt": "2026-03-06T20:23:43Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16027531,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9I-L",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-06T20:23:43Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16024709,
+                        "id": "DC_kwDOFoksYM4A9ISF",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-16024709"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-16027531",
+                    "updatedAt": "2026-03-06T20:23:43Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-16027531"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-16024709",
+            "updatedAt": "2026-03-06T15:28:58Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-16024709"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24879112?u=4e0043ae479d680cbb58a05de07793a635252751&v=4",
+                "login": "PhilShaughnes",
+                "resourcePath": "/PhilShaughnes",
+                "url": "https://github.com/PhilShaughnes"
+            },
+            "authorAssociation": "NONE",
+            "body": "This is great! One thing I like to do is enable adjusting the rev it checks against. This is kinda hacky, but is what I've used with a usercmd to adjust diff_rev.\r\n```lua\r\nlocal diff_rev = '@-'\r\nlocal function jj_source(d)\r\n\treturn {\r\n\t\tname = 'jj',\r\n\t\tattach = function(buf_id)\r\n\t\t\tlocal path = vim.api.nvim_buf_get_name(buf_id)\r\n\t\t\tif path == '' then return false end\r\n\t\t\tvim.system({ 'jj', 'file', 'show', path, '-r', diff_rev }, { text = true },\r\n\t\t\t\tvim.schedule_wrap(function(result)\r\n\t\t\t\t\tif result.code == 0 then d.set_ref_text(buf_id, result.stdout) else d.fail_attach(buf_id) end\r\n\t\t\t\tend))\r\n\t\tend,\r\n\t}\r\nend\r\n```",
+            "bodyHTML": "<p dir=\"auto\">This is great! One thing I like to do is enable adjusting the rev it checks against. This is kinda hacky, but is what I've used with a usercmd to adjust diff_rev.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local diff_rev = '@-'\nlocal function jj_source(d)\n\treturn {\n\t\tname = 'jj',\n\t\tattach = function(buf_id)\n\t\t\tlocal path = vim.api.nvim_buf_get_name(buf_id)\n\t\t\tif path == '' then return false end\n\t\t\tvim.system({ 'jj', 'file', 'show', path, '-r', diff_rev }, { text = true },\n\t\t\t\tvim.schedule_wrap(function(result)\n\t\t\t\t\tif result.code == 0 then d.set_ref_text(buf_id, result.stdout) else d.fail_attach(buf_id) end\n\t\t\t\tend))\n\t\tend,\n\t}\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">diff_rev</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>@-<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">jj_source</span>(<span class=\"pl-smi\">d</span>)\n\t<span class=\"pl-k\">return</span> {\n\t\t<span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>jj<span class=\"pl-pds\">'</span></span>,\n\t\t<span class=\"pl-en\">attach</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>)\n\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">buf_id</span>)\n\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>jj<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>file<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>show<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>-r<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">diff_rev</span> }, { <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> },\n\t\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">result</span>)\n\t\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">result</span>.<span class=\"pl-e\">code</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">d</span>.<span class=\"pl-c1\">set_ref_text</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">result</span>.<span class=\"pl-e\">stdout</span>) <span class=\"pl-k\">else</span> <span class=\"pl-smi\">d</span>.<span class=\"pl-c1\">fail_attach</span>(<span class=\"pl-smi\">buf_id</span>) <span class=\"pl-k\">end</span>\n\t\t\t\t<span class=\"pl-k\">end</span>))\n\t\t<span class=\"pl-k\">end</span>,\n\t}\n<span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "This is great! One thing I like to do is enable adjusting the rev it checks against. This is kinda hacky, but is what I've used with a usercmd to adjust diff_rev.\nlocal diff_rev = '@-'\nlocal function jj_source(d)\n\treturn {\n\t\tname = 'jj',\n\t\tattach = function(buf_id)\n\t\t\tlocal path = vim.api.nvim_buf_get_name(buf_id)\n\t\t\tif path == '' then return false end\n\t\t\tvim.system({ 'jj', 'file', 'show', path, '-r', diff_rev }, { text = true },\n\t\t\t\tvim.schedule_wrap(function(result)\n\t\t\t\t\tif result.code == 0 then d.set_ref_text(buf_id, result.stdout) else d.fail_attach(buf_id) end\n\t\t\t\tend))\n\t\tend,\n\t}\nend",
+            "createdAt": "2026-05-27T18:20:32Z",
+            "createdViaEmail": false,
+            "databaseId": 17078998,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BBJrW",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-05-27T18:20:32Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1783#discussioncomment-17078998",
+            "updatedAt": "2026-05-27T18:20:32Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783#discussioncomment-17078998"
+        }
+    ],
+    "createdAt": "2025-05-04T12:14:43Z",
+    "createdViaEmail": false,
+    "databaseId": 8278377,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/345808?u=4be50cbf17ebea3112bf0bef2d5e47eeb2e4bf19&v=4",
+        "login": "farnoy",
+        "resourcePath": "/farnoy",
+        "url": "https://github.com/farnoy"
+    },
+    "id": "D_kwDOFoksYM4AflFp",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABkoiHZQ",
+                "name": "mini.diff"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-05-05T11:05:53Z",
+    "locked": false,
+    "number": 1783,
+    "poll": null,
+    "publishedAt": "2025-05-04T12:14:43Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 8
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1783",
+    "stateReason": null,
+    "title": "mini.diff config for jujutsu",
+    "updatedAt": "2026-05-27T18:20:32Z",
+    "upvoteCount": 8,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1783"
+}

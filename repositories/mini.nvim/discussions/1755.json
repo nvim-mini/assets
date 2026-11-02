@@ -1,0 +1,613 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/77889270?u=3a07fe5396d7374e376988d0bb8386cde3bbcdc9&v=4",
+        "login": "leath-dub",
+        "resourcePath": "/leath-dub",
+        "url": "https://github.com/leath-dub"
+    },
+    "authorAssociation": "NONE",
+    "body": "This is a feature from flash.nvim that is really useful. Essentially you can start a operator, for example \"y\", and type \"r\" (for remote), this will open mini jump2d. Once you make are brought to the desired location, you will be still in operator pending mode and you can type any motion, like for example \"w\". Once this motion has been typed, you will be returned back to where you were before you started jumping and in this example you would have yanked the word starting at where you jumped to.\r\n\r\nThis is a bit hacky, but it can be done by saving the pending operator, jumping, and re applying the pending operator on the range applied to the custom \"g@\" operator.\r\n\r\nFirst we need a global operator function to assign each time we want to do a remote jump:\r\n\r\n```lua\r\nlocal operator\r\nfunction _G.remote_jump_operator(foo)\r\n  local start_pos = vim.api.nvim_buf_get_mark(0, \"[\")\r\n  local end_pos = vim.api.nvim_buf_get_mark(0, \"]\")\r\n  vim.cmd \"normal! m'\"\r\n  vim.api.nvim_win_set_cursor(0, start_pos)\r\n  vim.cmd('normal! v')\r\n  vim.api.nvim_win_set_cursor(0, end_pos)\r\n  vim.api.nvim_input(vim.api.nvim_replace_termcodes(operator .. '<C-o>', true, false, true))\r\nend\r\n```\r\n\r\nThen just set a operator pending key to trigger the jumping when there is a pending operator (in this case the \"r\" key):\r\n\r\n```lua\r\nvim.keymap.set(\"o\", \"r\", function()\r\n  vim.o.operatorfunc = \"v:lua.remote_jump_operator\"\r\n  operator = vim.v.operator -- Save the operator\r\n  vim.api.nvim_input(vim.api.nvim_replace_termcodes('<esc>', true, false, true))\r\n  vim.schedule(function()\r\n    MiniJump2d.start(MiniJump2d.builtin_opts.single_character)\r\n    vim.api.nvim_input(\"g@\") -- play custom operator so we can handle when finished\r\n  end)\r\nend, { desc = \"Goto to remote word\" })\r\n```",
+    "bodyHTML": "<p dir=\"auto\">This is a feature from flash.nvim that is really useful. Essentially you can start a operator, for example \"y\", and type \"r\" (for remote), this will open mini jump2d. Once you make are brought to the desired location, you will be still in operator pending mode and you can type any motion, like for example \"w\". Once this motion has been typed, you will be returned back to where you were before you started jumping and in this example you would have yanked the word starting at where you jumped to.</p>\n<p dir=\"auto\">This is a bit hacky, but it can be done by saving the pending operator, jumping, and re applying the pending operator on the range applied to the custom \"g@\" operator.</p>\n<p dir=\"auto\">First we need a global operator function to assign each time we want to do a remote jump:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local operator\nfunction _G.remote_jump_operator(foo)\n  local start_pos = vim.api.nvim_buf_get_mark(0, &quot;[&quot;)\n  local end_pos = vim.api.nvim_buf_get_mark(0, &quot;]&quot;)\n  vim.cmd &quot;normal! m'&quot;\n  vim.api.nvim_win_set_cursor(0, start_pos)\n  vim.cmd('normal! v')\n  vim.api.nvim_win_set_cursor(0, end_pos)\n  vim.api.nvim_input(vim.api.nvim_replace_termcodes(operator .. '&lt;C-o&gt;', true, false, true))\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">operator</span>\n<span class=\"pl-k\">function</span> <span class=\"pl-en\">_G</span>.<span class=\"pl-en\">remote_jump_operator</span>(<span class=\"pl-smi\">foo</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">start_pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_mark</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">end_pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_mark</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>normal! m'<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">start_pos</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! v<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">end_pos</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_input</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-smi\">operator</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-o&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>))\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Then just set a operator pending key to trigger the jumping when there is a pending operator (in this case the \"r\" key):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;o&quot;, &quot;r&quot;, function()\n  vim.o.operatorfunc = &quot;v:lua.remote_jump_operator&quot;\n  operator = vim.v.operator -- Save the operator\n  vim.api.nvim_input(vim.api.nvim_replace_termcodes('&lt;esc&gt;', true, false, true))\n  vim.schedule(function()\n    MiniJump2d.start(MiniJump2d.builtin_opts.single_character)\n    vim.api.nvim_input(&quot;g@&quot;) -- play custom operator so we can handle when finished\n  end)\nend, { desc = &quot;Goto to remote word&quot; })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>r<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">operatorfunc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>v:lua.remote_jump_operator<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-smi\">operator</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> Save the operator</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_input</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;esc&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>))\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">single_character</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_input</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g@<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> play custom operator so we can handle when finished</span>\n  <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Goto to remote word<span class=\"pl-pds\">\" </span></span>})</pre></div>",
+    "bodyText": "This is a feature from flash.nvim that is really useful. Essentially you can start a operator, for example \"y\", and type \"r\" (for remote), this will open mini jump2d. Once you make are brought to the desired location, you will be still in operator pending mode and you can type any motion, like for example \"w\". Once this motion has been typed, you will be returned back to where you were before you started jumping and in this example you would have yanked the word starting at where you jumped to.\nThis is a bit hacky, but it can be done by saving the pending operator, jumping, and re applying the pending operator on the range applied to the custom \"g@\" operator.\nFirst we need a global operator function to assign each time we want to do a remote jump:\nlocal operator\nfunction _G.remote_jump_operator(foo)\n  local start_pos = vim.api.nvim_buf_get_mark(0, \"[\")\n  local end_pos = vim.api.nvim_buf_get_mark(0, \"]\")\n  vim.cmd \"normal! m'\"\n  vim.api.nvim_win_set_cursor(0, start_pos)\n  vim.cmd('normal! v')\n  vim.api.nvim_win_set_cursor(0, end_pos)\n  vim.api.nvim_input(vim.api.nvim_replace_termcodes(operator .. '<C-o>', true, false, true))\nend\nThen just set a operator pending key to trigger the jumping when there is a pending operator (in this case the \"r\" key):\nvim.keymap.set(\"o\", \"r\", function()\n  vim.o.operatorfunc = \"v:lua.remote_jump_operator\"\n  operator = vim.v.operator -- Save the operator\n  vim.api.nvim_input(vim.api.nvim_replace_termcodes('<esc>', true, false, true))\n  vim.schedule(function()\n    MiniJump2d.start(MiniJump2d.builtin_opts.single_character)\n    vim.api.nvim_input(\"g@\") -- play custom operator so we can handle when finished\n  end)\nend, { desc = \"Goto to remote word\" })",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI haven't tried this, but one area I noticed might need an improvement is that it seems to only work in a current window (while jumping to other windows is possible).\r\n\r\n---\r\n\r\nI do have plans to upgrade 'mini.jump2d' some time in the future. This would include changing default options (to dim and showing 1 step ahead) and spotter. Not quite sure yet to which one: currently testing `gen_pattern_spotter('[^%s%p]+')` and it's okay, but a bit sparse at times.\r\n\r\n*Probably* will also add the \"remote action\" feature, as it indeed might be useful from time to time.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I haven't tried this, but one area I noticed might need an improvement is that it seems to only work in a current window (while jumping to other windows is possible).</p>\n<hr>\n<p dir=\"auto\">I do have plans to upgrade 'mini.jump2d' some time in the future. This would include changing default options (to dim and showing 1 step ahead) and spotter. Not quite sure yet to which one: currently testing <code class=\"notranslate\">gen_pattern_spotter('[^%s%p]+')</code> and it's okay, but a bit sparse at times.</p>\n<p dir=\"auto\"><em>Probably</em> will also add the \"remote action\" feature, as it indeed might be useful from time to time.</p>",
+            "bodyText": "Thanks for sharing!\nI haven't tried this, but one area I noticed might need an improvement is that it seems to only work in a current window (while jumping to other windows is possible).\n\nI do have plans to upgrade 'mini.jump2d' some time in the future. This would include changing default options (to dim and showing 1 step ahead) and spotter. Not quite sure yet to which one: currently testing gen_pattern_spotter('[^%s%p]+') and it's okay, but a bit sparse at times.\nProbably will also add the \"remote action\" feature, as it indeed might be useful from time to time.",
+            "createdAt": "2025-04-21T13:31:43Z",
+            "createdViaEmail": false,
+            "databaseId": 12898834,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AxNIS",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-21T13:31:43Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 5,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/77889270?u=3a07fe5396d7374e376988d0bb8386cde3bbcdc9&v=4",
+                        "login": "leath-dub",
+                        "resourcePath": "/leath-dub",
+                        "url": "https://github.com/leath-dub"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> I haven't tried this, but one area I noticed might need an improvement is that it seems to only work in a current window (while jumping to other windows is possible).\r\n\r\nYeah I guess would need to save and restore the cursor position + window rather than use marks",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I haven't tried this, but one area I noticed might need an improvement is that it seems to only work in a current window (while jumping to other windows is possible).</p>\n</blockquote>\n<p dir=\"auto\">Yeah I guess would need to save and restore the cursor position + window rather than use marks</p>",
+                    "bodyText": "I haven't tried this, but one area I noticed might need an improvement is that it seems to only work in a current window (while jumping to other windows is possible).\n\nYeah I guess would need to save and restore the cursor position + window rather than use marks",
+                    "createdAt": "2025-04-21T15:42:04Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12900034,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxNbC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-21T15:42:04Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12898834,
+                        "id": "DC_kwDOFoksYM4AxNIS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12900034",
+                    "updatedAt": "2025-04-21T15:42:05Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12900034"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I think you should give `MiniJump2d.builtin_opts.single_character` a test run for a few days. It’s my favorite mode of operation in jump2d because you can jump anywhere (well, except blank lines). As I look to redo my mini config, I’ve been running your setup the past couple of days and many times I just can’t jump to where I want directly.",
+                    "bodyHTML": "<p dir=\"auto\">I think you should give <code class=\"notranslate\">MiniJump2d.builtin_opts.single_character</code> a test run for a few days. It’s my favorite mode of operation in jump2d because you can jump anywhere (well, except blank lines). As I look to redo my mini config, I’ve been running your setup the past couple of days and many times I just can’t jump to where I want directly.</p>",
+                    "bodyText": "I think you should give MiniJump2d.builtin_opts.single_character a test run for a few days. It’s my favorite mode of operation in jump2d because you can jump anywhere (well, except blank lines). As I look to redo my mini config, I’ve been running your setup the past couple of days and many times I just can’t jump to where I want directly.",
+                    "createdAt": "2025-05-04T23:37:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13033885,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxuGd",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-04T23:37:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12898834,
+                        "id": "DC_kwDOFoksYM4AxNIS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13033885",
+                    "updatedAt": "2025-05-04T23:37:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13033885"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Funnily enough, I did come to the same conclusion yesterday. Just to see if it is good enough. So I am trying to daily drive it.\r\n\r\nFirst impressions are that It *might* better than `gen_pattern_spotter('[^%s%p]+')` (\"word start\") that I was daily driving for several months. As it indeed makes possible to navigate to more places. What I don't really like about it is:\r\n- It might require typing a not-so-easy-to-type character. Usually if it involves `<Shift>`.\r\n- There are non-negligible use cases when I want to navigate to something that is either impossible to type (like Unicode characters) or is an inconvenience to do so (like from other human language). This might solved by having a special key (like `<BS>`) treated to spot any such places (how to find them is another story). The same can done for blank lines.\r\n- I *think* it usually leads to 4 keys pressed (<CR> - char - <two char label>) with occasional 3 (<CR> - char - <one char label>). While \"word start\" is usually 3 (<CR> - <two char label>) with occasional 4 (<CR> - <three char label>), *but* not taking into account navigation to a specific char in word, which is usually another two key presses (f - char). So not sure.\r\n- I do find it better to not have to think about what key to type *before* special labels appear. So like \"Press <CR> and type label\" but for any possible visible text cell. I have an idea for a possible two-stage navigation: first filter target word and *then* filter target cell in the word. However, that requires taking eyes from the target cell for the first part, which is not great.\r\n\r\nNot yet sure about this yet.\r\n\r\n---\r\n\r\nWhat I am pretty sure about is that there won't be special \"remote action\" mapping. Instead there will be a special \"go back\" mapping (like <CR><CR> or a special key if going the `single_character` route) which will go to the position before the jump. This is more versatile than a separate concept of \"remote action\" *and* a `<C-o>` because it will be possible to jump to a previous window.",
+                    "bodyHTML": "<p dir=\"auto\">Funnily enough, I did come to the same conclusion yesterday. Just to see if it is good enough. So I am trying to daily drive it.</p>\n<p dir=\"auto\">First impressions are that It <em>might</em> better than <code class=\"notranslate\">gen_pattern_spotter('[^%s%p]+')</code> (\"word start\") that I was daily driving for several months. As it indeed makes possible to navigate to more places. What I don't really like about it is:</p>\n<ul dir=\"auto\">\n<li>It might require typing a not-so-easy-to-type character. Usually if it involves <code class=\"notranslate\">&lt;Shift&gt;</code>.</li>\n<li>There are non-negligible use cases when I want to navigate to something that is either impossible to type (like Unicode characters) or is an inconvenience to do so (like from other human language). This might solved by having a special key (like <code class=\"notranslate\">&lt;BS&gt;</code>) treated to spot any such places (how to find them is another story). The same can done for blank lines.</li>\n<li>I <em>think</em> it usually leads to 4 keys pressed ( - char - ) with occasional 3 ( - char - ). While \"word start\" is usually 3 ( - ) with occasional 4 ( - ), <em>but</em> not taking into account navigation to a specific char in word, which is usually another two key presses (f - char). So not sure.</li>\n<li>I do find it better to not have to think about what key to type <em>before</em> special labels appear. So like \"Press  and type label\" but for any possible visible text cell. I have an idea for a possible two-stage navigation: first filter target word and <em>then</em> filter target cell in the word. However, that requires taking eyes from the target cell for the first part, which is not great.</li>\n</ul>\n<p dir=\"auto\">Not yet sure about this yet.</p>\n<hr>\n<p dir=\"auto\">What I am pretty sure about is that there won't be special \"remote action\" mapping. Instead there will be a special \"go back\" mapping (like  or a special key if going the <code class=\"notranslate\">single_character</code> route) which will go to the position before the jump. This is more versatile than a separate concept of \"remote action\" <em>and</em> a <code class=\"notranslate\">&lt;C-o&gt;</code> because it will be possible to jump to a previous window.</p>",
+                    "bodyText": "Funnily enough, I did come to the same conclusion yesterday. Just to see if it is good enough. So I am trying to daily drive it.\nFirst impressions are that It might better than gen_pattern_spotter('[^%s%p]+') (\"word start\") that I was daily driving for several months. As it indeed makes possible to navigate to more places. What I don't really like about it is:\n\nIt might require typing a not-so-easy-to-type character. Usually if it involves <Shift>.\nThere are non-negligible use cases when I want to navigate to something that is either impossible to type (like Unicode characters) or is an inconvenience to do so (like from other human language). This might solved by having a special key (like <BS>) treated to spot any such places (how to find them is another story). The same can done for blank lines.\nI think it usually leads to 4 keys pressed ( - char - ) with occasional 3 ( - char - ). While \"word start\" is usually 3 ( - ) with occasional 4 ( - ), but not taking into account navigation to a specific char in word, which is usually another two key presses (f - char). So not sure.\nI do find it better to not have to think about what key to type before special labels appear. So like \"Press  and type label\" but for any possible visible text cell. I have an idea for a possible two-stage navigation: first filter target word and then filter target cell in the word. However, that requires taking eyes from the target cell for the first part, which is not great.\n\nNot yet sure about this yet.\n\nWhat I am pretty sure about is that there won't be special \"remote action\" mapping. Instead there will be a special \"go back\" mapping (like  or a special key if going the single_character route) which will go to the position before the jump. This is more versatile than a separate concept of \"remote action\" and a <C-o> because it will be possible to jump to a previous window.",
+                    "createdAt": "2025-05-05T08:42:29Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13036583,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axuwn",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T08:42:29Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12898834,
+                        "id": "DC_kwDOFoksYM4AxNIS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13036583",
+                    "updatedAt": "2025-05-05T08:42:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13036583"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I agree with the \"remote action\" conclusion. I use leap and I very rarely use the remote action capability. And I **never** use its remote action in operator mode. When I do use it, I use the remote action which works just like a normal jump except that after you perform some action like a yank or delete, it will automatically jump back to where you were. I find that far easier than flash's operating pending mode. But, at the end of the day, is that convenience worth wasting another keybinding versus just doing a normal jump, performing some action, and `C-o` back? Not sure.\r\n\r\nI will say that one of the best features that leap has is the concept of equivalence classes. It's genius. Basically, one defines characters that should be treated equivalently. For example\r\n\r\n```\r\n{ ' \\t\\r\\n', '([{', ')]}', '\\'\"`' }\r\n```\r\n\r\nThis means when you want to jump to something like `(`, you don't need to press shift 9 to reach for the left paren, but rather just press the left square bracket which doesn't require pressing shift. It's a similar idea to your `b` and `q` in 'mini.ai'—huge ergonomic wins.  Leap is also case insensitive to require less use of the shift key.\r\n",
+                    "bodyHTML": "<p dir=\"auto\">I agree with the \"remote action\" conclusion. I use leap and I very rarely use the remote action capability. And I <strong>never</strong> use its remote action in operator mode. When I do use it, I use the remote action which works just like a normal jump except that after you perform some action like a yank or delete, it will automatically jump back to where you were. I find that far easier than flash's operating pending mode. But, at the end of the day, is that convenience worth wasting another keybinding versus just doing a normal jump, performing some action, and <code class=\"notranslate\">C-o</code> back? Not sure.</p>\n<p dir=\"auto\">I will say that one of the best features that leap has is the concept of equivalence classes. It's genius. Basically, one defines characters that should be treated equivalently. For example</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"{ ' \\t\\r\\n', '([{', ')]}', '\\'&quot;`' }\"><pre class=\"notranslate\"><code class=\"notranslate\">{ ' \\t\\r\\n', '([{', ')]}', '\\'\"`' }\n</code></pre></div>\n<p dir=\"auto\">This means when you want to jump to something like <code class=\"notranslate\">(</code>, you don't need to press shift 9 to reach for the left paren, but rather just press the left square bracket which doesn't require pressing shift. It's a similar idea to your <code class=\"notranslate\">b</code> and <code class=\"notranslate\">q</code> in 'mini.ai'—huge ergonomic wins.  Leap is also case insensitive to require less use of the shift key.</p>",
+                    "bodyText": "I agree with the \"remote action\" conclusion. I use leap and I very rarely use the remote action capability. And I never use its remote action in operator mode. When I do use it, I use the remote action which works just like a normal jump except that after you perform some action like a yank or delete, it will automatically jump back to where you were. I find that far easier than flash's operating pending mode. But, at the end of the day, is that convenience worth wasting another keybinding versus just doing a normal jump, performing some action, and C-o back? Not sure.\nI will say that one of the best features that leap has is the concept of equivalence classes. It's genius. Basically, one defines characters that should be treated equivalently. For example\n{ ' \\t\\r\\n', '([{', ')]}', '\\'\"`' }\n\nThis means when you want to jump to something like (, you don't need to press shift 9 to reach for the left paren, but rather just press the left square bracket which doesn't require pressing shift. It's a similar idea to your b and q in 'mini.ai'—huge ergonomic wins.  Leap is also case insensitive to require less use of the shift key.",
+                    "createdAt": "2025-05-05T11:19:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13038046,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxvHe",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T11:19:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12898834,
+                        "id": "DC_kwDOFoksYM4AxNIS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13038046",
+                    "updatedAt": "2025-05-05T11:19:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13038046"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> But, at the end of the day, is that convenience worth wasting another keybinding versus just doing a normal jump, performing some action, and `C-o` back?\r\n\r\nThe issue here is that \"jump back\" should respect multiple windows, while `<C-o>` might change buffer in the current window. It is not rare (at least for me) to want to jump to split window to yank something and go back to paste it.\r\n\r\n> I will say that one of the best features that leap has is the concept of equivalence classes.\r\n\r\nYeah, that's a nice idea and can (somewhat straightforwardly) be implemented with the design similar to 'mini.ai' and 'mini.surround': starting jump waits for \"spotter id\" plus `custom_spotters` for adjusting that. Need to figure out a way to make it as less breaking as possible.\r\n\r\n**Edit**: Or another approach would be to expand `start()` to accept function that returns jumping `opts` plus introducing something like `gen_jumper.single_character()`. It can then have something like configurable `chars` with custom effects (for blank lines / line starts, non-typeable characters, \"equivalences\", etc.).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">But, at the end of the day, is that convenience worth wasting another keybinding versus just doing a normal jump, performing some action, and <code class=\"notranslate\">C-o</code> back?</p>\n</blockquote>\n<p dir=\"auto\">The issue here is that \"jump back\" should respect multiple windows, while <code class=\"notranslate\">&lt;C-o&gt;</code> might change buffer in the current window. It is not rare (at least for me) to want to jump to split window to yank something and go back to paste it.</p>\n<blockquote>\n<p dir=\"auto\">I will say that one of the best features that leap has is the concept of equivalence classes.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, that's a nice idea and can (somewhat straightforwardly) be implemented with the design similar to 'mini.ai' and 'mini.surround': starting jump waits for \"spotter id\" plus <code class=\"notranslate\">custom_spotters</code> for adjusting that. Need to figure out a way to make it as less breaking as possible.</p>\n<p dir=\"auto\"><strong>Edit</strong>: Or another approach would be to expand <code class=\"notranslate\">start()</code> to accept function that returns jumping <code class=\"notranslate\">opts</code> plus introducing something like <code class=\"notranslate\">gen_jumper.single_character()</code>. It can then have something like configurable <code class=\"notranslate\">chars</code> with custom effects (for blank lines / line starts, non-typeable characters, \"equivalences\", etc.).</p>",
+                    "bodyText": "But, at the end of the day, is that convenience worth wasting another keybinding versus just doing a normal jump, performing some action, and C-o back?\n\nThe issue here is that \"jump back\" should respect multiple windows, while <C-o> might change buffer in the current window. It is not rare (at least for me) to want to jump to split window to yank something and go back to paste it.\n\nI will say that one of the best features that leap has is the concept of equivalence classes.\n\nYeah, that's a nice idea and can (somewhat straightforwardly) be implemented with the design similar to 'mini.ai' and 'mini.surround': starting jump waits for \"spotter id\" plus custom_spotters for adjusting that. Need to figure out a way to make it as less breaking as possible.\nEdit: Or another approach would be to expand start() to accept function that returns jumping opts plus introducing something like gen_jumper.single_character(). It can then have something like configurable chars with custom effects (for blank lines / line starts, non-typeable characters, \"equivalences\", etc.).",
+                    "createdAt": "2025-05-05T11:46:15Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13038243,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AxvKj",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-05-05T12:12:00Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-05T11:46:15Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12898834,
+                        "id": "DC_kwDOFoksYM4AxNIS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13038243",
+                    "updatedAt": "2025-05-05T12:12:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-13038243"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834",
+            "updatedAt": "2025-04-21T13:31:44Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755#discussioncomment-12898834"
+        }
+    ],
+    "createdAt": "2025-04-21T13:15:39Z",
+    "createdViaEmail": false,
+    "databaseId": 8226339,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AfYYj",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM70q7sq",
+                "name": "mini.jump2d"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1755,
+    "poll": null,
+    "publishedAt": "2025-04-21T13:15:39Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1755",
+    "stateReason": null,
+    "title": "Mini Jump2d remote action",
+    "updatedAt": "2025-05-05T11:46:15Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1755"
+}

@@ -1,0 +1,359 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/35547958?u=ffc582e8893bbde3643f5a8ffad39ef821838678&v=4",
+        "login": "vandalt",
+        "resourcePath": "/vandalt",
+        "url": "https://github.com/vandalt"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi,\r\n\r\nI could not find a simple implementation of an emoji picker for mini.nvim so I made one. I'm not sure it's optimal but it works well enough :) The emoji source and caching are the same as for [Snacks.nvim](https://github.com/folke/snacks.nvim?tab=readme-ov-file).\r\n\r\nIt works in insert and normal mode. The source is available [in my config](https://github.com/vandalt/dotfiles/blob/main/private_dot_config/nvim/lua/mini_pick_emoji.lua) or below. \r\n\r\nHere are example mappings for it:\r\n\r\n```lua\r\nnmap_leader(\"fe\", function() require(\"mini_pick_emoji\").pick() end, \"Emoji\")\r\nimap(\"<C-.>\", function() require(\"mini_pick_emoji\").pick() end, \"Emoji\")\r\n```\r\n\r\n<details>\r\n\r\n<summary>Click for the full module code</summary>\r\n\r\n```lua\r\nlocal M = {}\r\n\r\n-- The emoji data is downloaded online and cached following snacks.nvim\r\nlocal emoji_url = \"https://raw.githubusercontent.com/muan/unicode-emoji-json/refs/heads/main/data-by-emoji.json\"\r\nlocal cache_file = vim.fn.stdpath(\"cache\") .. \"/mini-pick/emoji-v1.json\"\r\n\r\nlocal notify = function(message, level) vim.notify(message, level, { title = \"Emoji picker\" }) end\r\n\r\n--- Normalize emoji data to flat tables\r\nlocal normalize = function(data)\r\n  local items = {}\r\n  for emoji, info in pairs(data) do\r\n    if type(emoji) == \"string\" and type(info) == \"table\" and type(info.name) == \"string\" then\r\n      local group = type(info.group) == \"string\" and info.group or \"\"\r\n      table.insert(items, {\r\n        emoji = emoji,\r\n        group = group,\r\n        name = info.name,\r\n        text = string.format(\"%s  %s\", emoji, info.name),\r\n      })\r\n    end\r\n  end\r\n  table.sort(items, function(a, b) return a.name < b.name end)\r\n  return items\r\nend\r\n\r\n--- Read emoji cache\r\nlocal read_cache = function()\r\n  if vim.fn.filereadable(cache_file) == 0 then\r\n    return nil\r\n  end\r\n\r\n  local ok, lines = pcall(vim.fn.readfile, cache_file)\r\n  local items = ok and vim.json.decode(table.concat(lines, \"\\n\")) or nil\r\n  if items then\r\n    return items\r\n  end\r\n\r\n  notify(\"Could not read cached emoji data; downloading a fresh copy.\", vim.log.levels.WARN)\r\n  return nil\r\nend\r\n\r\n--- Write emoji cache\r\nlocal write_cache = function(items)\r\n  vim.fn.mkdir(vim.fn.fnamemodify(cache_file, \":h\"), \"p\")\r\n  local ok, result = pcall(vim.fn.writefile, { vim.json.encode(items) }, cache_file)\r\n  if ok and result == 0 then\r\n    return true\r\n  end\r\n\r\n  notify(\"Could not write emoji cache: \" .. cache_file, vim.log.levels.ERROR)\r\n  return false\r\nend\r\n\r\n--- Load and normalize emoji items\r\n--- If the cache is not available, downloads emojis with curl\r\nlocal load_items = function()\r\n  -- If the cache exists and can be read, just load it\r\n  -- It's already formatted properly\r\n  local cached_items = read_cache()\r\n  if cached_items then\r\n    return cached_items\r\n  end\r\n\r\n  if vim.fn.executable(\"curl\") == 0 then\r\n    notify(\"curl is required to download emoji data.\", vim.log.levels.ERROR)\r\n    return nil\r\n  end\r\n\r\n  notify(\"Downloading emoji data\", vim.log.levels.INFO)\r\n  local output = vim.fn.system({ \"curl\", \"-fsSL\", emoji_url })\r\n  if vim.v.shell_error ~= 0 then\r\n    notify(\"Could not download emoji data: \" .. vim.trim(output), vim.log.levels.ERROR)\r\n    return nil\r\n  end\r\n\r\n  local items = normalize(vim.json.decode(output))\r\n\r\n  if not write_cache(items) then\r\n    return nil\r\n  end\r\n  return items\r\nend\r\n\r\n-- Insert the emoji at cursor location\r\nlocal insert_emoji = function(item, mode)\r\n  local target = MiniPick.get_picker_state().windows.target\r\n  local buf = vim.api.nvim_win_get_buf(target)\r\n\r\n  local cursor = vim.api.nvim_win_get_cursor(target)\r\n  local row, col = cursor[1], cursor[2]\r\n  local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]\r\n  local insert_col = mode == \"n\" and col + (line == \"\" and 0 or 1) or col\r\n  vim.api.nvim_buf_set_text(buf, row - 1, insert_col, row - 1, insert_col, { item.emoji })\r\n\r\n  local cursor_col = mode == \"n\" and insert_col or insert_col + #item.emoji\r\n  vim.api.nvim_win_set_cursor(target, { row, cursor_col })\r\nend\r\n\r\n--- The emoji picker\r\nM.pick = function()\r\n  local mode = vim.api.nvim_get_mode().mode\r\n  local items = load_items()\r\n  if not items then\r\n    return\r\n  end\r\n\r\n  MiniPick.start({\r\n    source = {\r\n      choose = function(item) insert_emoji(item, mode) end,\r\n      items = items,\r\n      name = \"Emoji\",\r\n    },\r\n  })\r\nend\r\n\r\nreturn M\r\n```\r\n\r\n</details>\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\">Hi,</p>\n<p dir=\"auto\">I could not find a simple implementation of an emoji picker for mini.nvim so I made one. I'm not sure it's optimal but it works well enough :) The emoji source and caching are the same as for <a href=\"https://github.com/folke/snacks.nvim?tab=readme-ov-file\">Snacks.nvim</a>.</p>\n<p dir=\"auto\">It works in insert and normal mode. The source is available <a href=\"https://github.com/vandalt/dotfiles/blob/main/private_dot_config/nvim/lua/mini_pick_emoji.lua\">in my config</a> or below.</p>\n<p dir=\"auto\">Here are example mappings for it:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"nmap_leader(&quot;fe&quot;, function() require(&quot;mini_pick_emoji&quot;).pick() end, &quot;Emoji&quot;)\nimap(&quot;&lt;C-.&gt;&quot;, function() require(&quot;mini_pick_emoji&quot;).pick() end, &quot;Emoji&quot;)\"><pre class=\"notranslate\"><span class=\"pl-c1\">nmap_leader</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fe<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini_pick_emoji<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">pick</span>() <span class=\"pl-k\">end</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Emoji<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-c1\">imap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-.&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini_pick_emoji<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">pick</span>() <span class=\"pl-k\">end</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Emoji<span class=\"pl-pds\">\"</span></span>)</pre></div>\n<details>\n<summary>Click for the full module code</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local M = {}\n\n-- The emoji data is downloaded online and cached following snacks.nvim\nlocal emoji_url = &quot;https://raw.githubusercontent.com/muan/unicode-emoji-json/refs/heads/main/data-by-emoji.json&quot;\nlocal cache_file = vim.fn.stdpath(&quot;cache&quot;) .. &quot;/mini-pick/emoji-v1.json&quot;\n\nlocal notify = function(message, level) vim.notify(message, level, { title = &quot;Emoji picker&quot; }) end\n\n--- Normalize emoji data to flat tables\nlocal normalize = function(data)\n  local items = {}\n  for emoji, info in pairs(data) do\n    if type(emoji) == &quot;string&quot; and type(info) == &quot;table&quot; and type(info.name) == &quot;string&quot; then\n      local group = type(info.group) == &quot;string&quot; and info.group or &quot;&quot;\n      table.insert(items, {\n        emoji = emoji,\n        group = group,\n        name = info.name,\n        text = string.format(&quot;%s  %s&quot;, emoji, info.name),\n      })\n    end\n  end\n  table.sort(items, function(a, b) return a.name &lt; b.name end)\n  return items\nend\n\n--- Read emoji cache\nlocal read_cache = function()\n  if vim.fn.filereadable(cache_file) == 0 then\n    return nil\n  end\n\n  local ok, lines = pcall(vim.fn.readfile, cache_file)\n  local items = ok and vim.json.decode(table.concat(lines, &quot;\\n&quot;)) or nil\n  if items then\n    return items\n  end\n\n  notify(&quot;Could not read cached emoji data; downloading a fresh copy.&quot;, vim.log.levels.WARN)\n  return nil\nend\n\n--- Write emoji cache\nlocal write_cache = function(items)\n  vim.fn.mkdir(vim.fn.fnamemodify(cache_file, &quot;:h&quot;), &quot;p&quot;)\n  local ok, result = pcall(vim.fn.writefile, { vim.json.encode(items) }, cache_file)\n  if ok and result == 0 then\n    return true\n  end\n\n  notify(&quot;Could not write emoji cache: &quot; .. cache_file, vim.log.levels.ERROR)\n  return false\nend\n\n--- Load and normalize emoji items\n--- If the cache is not available, downloads emojis with curl\nlocal load_items = function()\n  -- If the cache exists and can be read, just load it\n  -- It's already formatted properly\n  local cached_items = read_cache()\n  if cached_items then\n    return cached_items\n  end\n\n  if vim.fn.executable(&quot;curl&quot;) == 0 then\n    notify(&quot;curl is required to download emoji data.&quot;, vim.log.levels.ERROR)\n    return nil\n  end\n\n  notify(&quot;Downloading emoji data&quot;, vim.log.levels.INFO)\n  local output = vim.fn.system({ &quot;curl&quot;, &quot;-fsSL&quot;, emoji_url })\n  if vim.v.shell_error ~= 0 then\n    notify(&quot;Could not download emoji data: &quot; .. vim.trim(output), vim.log.levels.ERROR)\n    return nil\n  end\n\n  local items = normalize(vim.json.decode(output))\n\n  if not write_cache(items) then\n    return nil\n  end\n  return items\nend\n\n-- Insert the emoji at cursor location\nlocal insert_emoji = function(item, mode)\n  local target = MiniPick.get_picker_state().windows.target\n  local buf = vim.api.nvim_win_get_buf(target)\n\n  local cursor = vim.api.nvim_win_get_cursor(target)\n  local row, col = cursor[1], cursor[2]\n  local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]\n  local insert_col = mode == &quot;n&quot; and col + (line == &quot;&quot; and 0 or 1) or col\n  vim.api.nvim_buf_set_text(buf, row - 1, insert_col, row - 1, insert_col, { item.emoji })\n\n  local cursor_col = mode == &quot;n&quot; and insert_col or insert_col + #item.emoji\n  vim.api.nvim_win_set_cursor(target, { row, cursor_col })\nend\n\n--- The emoji picker\nM.pick = function()\n  local mode = vim.api.nvim_get_mode().mode\n  local items = load_items()\n  if not items then\n    return\n  end\n\n  MiniPick.start({\n    source = {\n      choose = function(item) insert_emoji(item, mode) end,\n      items = items,\n      name = &quot;Emoji&quot;,\n    },\n  })\nend\n\nreturn M\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">M</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> The emoji data is downloaded online and cached following snacks.nvim</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">emoji_url</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://raw.githubusercontent.com/muan/unicode-emoji-json/refs/heads/main/data-by-emoji.json<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">cache_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>cache<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/mini-pick/emoji-v1.json<span class=\"pl-pds\">\"</span></span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">notify</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">message</span>, <span class=\"pl-smi\">level</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-smi\">message</span>, <span class=\"pl-smi\">level</span>, { <span class=\"pl-smi\">title</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Emoji picker<span class=\"pl-pds\">\" </span></span>}) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Normalize emoji data to flat tables</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">data</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">emoji</span>, <span class=\"pl-smi\">info</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">data</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">emoji</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">info</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>table<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">info</span>.<span class=\"pl-e\">name</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">info</span>.<span class=\"pl-e\">group</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">info</span>.<span class=\"pl-e\">group</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, {\n        <span class=\"pl-smi\">emoji</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">emoji</span>,\n        <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">group</span>,\n        <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">info</span>.<span class=\"pl-e\">name</span>,\n        <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s  %s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">emoji</span>, <span class=\"pl-smi\">info</span>.<span class=\"pl-e\">name</span>),\n      })\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">a</span>.<span class=\"pl-e\">name</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-smi\">b</span>.<span class=\"pl-e\">name</span> <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">items</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Read emoji cache</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">read_cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">filereadable</span>(<span class=\"pl-smi\">cache_file</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">readfile</span>, <span class=\"pl-smi\">cache_file</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">json</span>.<span class=\"pl-c1\">decode</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>)) <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">items</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Could not read cached emoji data; downloading a fresh copy.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">WARN</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Write emoji cache</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">write_cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">mkdir</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">cache_file</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:h<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>p<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">writefile</span>, { <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">json</span>.<span class=\"pl-c1\">encode</span>(<span class=\"pl-smi\">items</span>) }, <span class=\"pl-smi\">cache_file</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Could not write emoji cache: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">cache_file</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Load and normalize emoji items</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> If the cache is not available, downloads emojis with curl</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">load_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> If the cache exists and can be read, just load it</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> It's already formatted properly</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cached_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">read_cache</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cached_items</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">cached_items</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">executable</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>curl<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>curl is required to download emoji data.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Downloading emoji data<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>curl<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-fsSL<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">emoji_url</span> })\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">shell_error</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Could not download emoji data: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">trim</span>(<span class=\"pl-smi\">output</span>), <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">normalize</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">json</span>.<span class=\"pl-c1\">decode</span>(<span class=\"pl-smi\">output</span>))\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">write_cache</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">items</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Insert the emoji at cursor location</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">insert_emoji</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">mode</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">target</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">target</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_buf</span>(<span class=\"pl-smi\">target</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cursor</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-smi\">target</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cursor</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">cursor</span>[<span class=\"pl-c1\">2</span>]\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">row</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">row</span>, <span class=\"pl-c1\">false</span>)[<span class=\"pl-c1\">1</span>]\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">insert_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">col</span> <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">line</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">col</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_text</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">row</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">insert_col</span>, <span class=\"pl-smi\">row</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">insert_col</span>, { <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">emoji</span> })\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cursor_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">insert_col</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">insert_col</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">item</span>.<span class=\"pl-e\">emoji</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-smi\">target</span>, { <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">cursor_col</span> })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> The emoji picker</span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">pick</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_mode</span>().<span class=\"pl-e\">mode</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">load_items</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>) <span class=\"pl-c1\">insert_emoji</span>(<span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">mode</span>) <span class=\"pl-k\">end</span>,\n      <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span>,\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Emoji<span class=\"pl-pds\">\"</span></span>,\n    },\n  })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">M</span></pre></div>\n</details>",
+    "bodyText": "Hi,\nI could not find a simple implementation of an emoji picker for mini.nvim so I made one. I'm not sure it's optimal but it works well enough :) The emoji source and caching are the same as for Snacks.nvim.\nIt works in insert and normal mode. The source is available in my config or below.\nHere are example mappings for it:\nnmap_leader(\"fe\", function() require(\"mini_pick_emoji\").pick() end, \"Emoji\")\nimap(\"<C-.>\", function() require(\"mini_pick_emoji\").pick() end, \"Emoji\")\n\nClick for the full module code\nlocal M = {}\n\n-- The emoji data is downloaded online and cached following snacks.nvim\nlocal emoji_url = \"https://raw.githubusercontent.com/muan/unicode-emoji-json/refs/heads/main/data-by-emoji.json\"\nlocal cache_file = vim.fn.stdpath(\"cache\") .. \"/mini-pick/emoji-v1.json\"\n\nlocal notify = function(message, level) vim.notify(message, level, { title = \"Emoji picker\" }) end\n\n--- Normalize emoji data to flat tables\nlocal normalize = function(data)\n  local items = {}\n  for emoji, info in pairs(data) do\n    if type(emoji) == \"string\" and type(info) == \"table\" and type(info.name) == \"string\" then\n      local group = type(info.group) == \"string\" and info.group or \"\"\n      table.insert(items, {\n        emoji = emoji,\n        group = group,\n        name = info.name,\n        text = string.format(\"%s  %s\", emoji, info.name),\n      })\n    end\n  end\n  table.sort(items, function(a, b) return a.name < b.name end)\n  return items\nend\n\n--- Read emoji cache\nlocal read_cache = function()\n  if vim.fn.filereadable(cache_file) == 0 then\n    return nil\n  end\n\n  local ok, lines = pcall(vim.fn.readfile, cache_file)\n  local items = ok and vim.json.decode(table.concat(lines, \"\\n\")) or nil\n  if items then\n    return items\n  end\n\n  notify(\"Could not read cached emoji data; downloading a fresh copy.\", vim.log.levels.WARN)\n  return nil\nend\n\n--- Write emoji cache\nlocal write_cache = function(items)\n  vim.fn.mkdir(vim.fn.fnamemodify(cache_file, \":h\"), \"p\")\n  local ok, result = pcall(vim.fn.writefile, { vim.json.encode(items) }, cache_file)\n  if ok and result == 0 then\n    return true\n  end\n\n  notify(\"Could not write emoji cache: \" .. cache_file, vim.log.levels.ERROR)\n  return false\nend\n\n--- Load and normalize emoji items\n--- If the cache is not available, downloads emojis with curl\nlocal load_items = function()\n  -- If the cache exists and can be read, just load it\n  -- It's already formatted properly\n  local cached_items = read_cache()\n  if cached_items then\n    return cached_items\n  end\n\n  if vim.fn.executable(\"curl\") == 0 then\n    notify(\"curl is required to download emoji data.\", vim.log.levels.ERROR)\n    return nil\n  end\n\n  notify(\"Downloading emoji data\", vim.log.levels.INFO)\n  local output = vim.fn.system({ \"curl\", \"-fsSL\", emoji_url })\n  if vim.v.shell_error ~= 0 then\n    notify(\"Could not download emoji data: \" .. vim.trim(output), vim.log.levels.ERROR)\n    return nil\n  end\n\n  local items = normalize(vim.json.decode(output))\n\n  if not write_cache(items) then\n    return nil\n  end\n  return items\nend\n\n-- Insert the emoji at cursor location\nlocal insert_emoji = function(item, mode)\n  local target = MiniPick.get_picker_state().windows.target\n  local buf = vim.api.nvim_win_get_buf(target)\n\n  local cursor = vim.api.nvim_win_get_cursor(target)\n  local row, col = cursor[1], cursor[2]\n  local line = vim.api.nvim_buf_get_lines(buf, row - 1, row, false)[1]\n  local insert_col = mode == \"n\" and col + (line == \"\" and 0 or 1) or col\n  vim.api.nvim_buf_set_text(buf, row - 1, insert_col, row - 1, insert_col, { item.emoji })\n\n  local cursor_col = mode == \"n\" and insert_col or insert_col + #item.emoji\n  vim.api.nvim_win_set_cursor(target, { row, cursor_col })\nend\n\n--- The emoji picker\nM.pick = function()\n  local mode = vim.api.nvim_get_mode().mode\n  local items = load_items()\n  if not items then\n    return\n  end\n\n  MiniPick.start({\n    source = {\n      choose = function(item) insert_emoji(item, mode) end,\n      items = items,\n      name = \"Emoji\",\n    },\n  })\nend\n\nreturn M",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nDidn't closely read the \"load-write-read-cache\" part (it does look there are more safeguards than necessary, though), but here is my main thought about the 'mini.pick' part. Executing a picker will return the picked item (or `nil` if nothing was picked). So I'd probably organize it as:\r\n- A simpler picker that just returns the picked emoji (i.e. the `item.emoji` part), without the dedicated `source.choose` part.\r\n- A single Insert mode expression mapping (`:h map-expression`) that returns the picked emoji. This takes care of \"insert the text and move cursor\" part.\r\n- Either do not have a Normal mode mapping for this (I'd guess it is mostly relevant in Insert mode), accepting to have to enter Insert mode to insert an emoji. Or add one that reuses \"return emoji\" style of picker.\r\n\r\nHope this makes sense.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">Didn't closely read the \"load-write-read-cache\" part (it does look there are more safeguards than necessary, though), but here is my main thought about the 'mini.pick' part. Executing a picker will return the picked item (or <code class=\"notranslate\">nil</code> if nothing was picked). So I'd probably organize it as:</p>\n<ul dir=\"auto\">\n<li>A simpler picker that just returns the picked emoji (i.e. the <code class=\"notranslate\">item.emoji</code> part), without the dedicated <code class=\"notranslate\">source.choose</code> part.</li>\n<li>A single Insert mode expression mapping (<code class=\"notranslate\">:h map-expression</code>) that returns the picked emoji. This takes care of \"insert the text and move cursor\" part.</li>\n<li>Either do not have a Normal mode mapping for this (I'd guess it is mostly relevant in Insert mode), accepting to have to enter Insert mode to insert an emoji. Or add one that reuses \"return emoji\" style of picker.</li>\n</ul>\n<p dir=\"auto\">Hope this makes sense.</p>",
+            "bodyText": "Thanks for sharing!\nDidn't closely read the \"load-write-read-cache\" part (it does look there are more safeguards than necessary, though), but here is my main thought about the 'mini.pick' part. Executing a picker will return the picked item (or nil if nothing was picked). So I'd probably organize it as:\n\nA simpler picker that just returns the picked emoji (i.e. the item.emoji part), without the dedicated source.choose part.\nA single Insert mode expression mapping (:h map-expression) that returns the picked emoji. This takes care of \"insert the text and move cursor\" part.\nEither do not have a Normal mode mapping for this (I'd guess it is mostly relevant in Insert mode), accepting to have to enter Insert mode to insert an emoji. Or add one that reuses \"return emoji\" style of picker.\n\nHope this makes sense.",
+            "createdAt": "2026-10-10T19:13:36Z",
+            "createdViaEmail": false,
+            "databaseId": 18854658,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BH7MC",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-10-10T19:13:36Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/35547958?u=ffc582e8893bbde3643f5a8ffad39ef821838678&v=4",
+                        "login": "vandalt",
+                        "resourcePath": "/vandalt",
+                        "url": "https://github.com/vandalt"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for the feedback! I just tried to update a simpler picker and to use an expression mapping, but I got the error below.\r\n\r\nI am sticking to the custom action for now, but sharing in case the fix is obvious to someone else.\r\n\r\nThanks!\r\n\r\nHere is the error:\r\n\r\n```lua\r\nE5108: Lua: ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2331: E565: Not allowed to change text or change window\r\nstack traceback:\r\n        [C]: in function 'nvim_open_win'\r\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2331: in function 'picker_new_win'\r\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2219: in function 'picker_new'\r\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:919: in function 'start'\r\n        /home/vandal/.config/nvim/lua/mini_pick_emoji.lua:108: in function </home/vandal/.config/nvim/lua/mini_pick_emoji.lua:101>\r\nPress ENTER or type command to continue\r\n```\r\n\r\nHere is the updated function:\r\n\r\n```lua\r\n--- The emoji picker\r\nM.pick = function()\r\n  local mode = vim.api.nvim_get_mode().mode\r\n  local items = load_items()\r\n  if not items then\r\n    return\r\n  end\r\n\r\n  local item = MiniPick.start({\r\n    source = {\r\n      -- choose = function(item) insert_emoji(item, mode) end,\r\n      items = items,\r\n      name = \"Emoji\",\r\n    },\r\n  })\r\n  return item and item.emoji or nil\r\nend\r\n```\r\n\r\nand the updated mapping:\r\n\r\n\r\n```lua\r\nvim.keymap.set(\"i\", \"<C-.>\", function() return require(\"mini_pick_emoji\").pick() end, {desc = \"Emoji\", expr = true})\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the feedback! I just tried to update a simpler picker and to use an expression mapping, but I got the error below.</p>\n<p dir=\"auto\">I am sticking to the custom action for now, but sharing in case the fix is obvious to someone else.</p>\n<p dir=\"auto\">Thanks!</p>\n<p dir=\"auto\">Here is the error:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"E5108: Lua: ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2331: E565: Not allowed to change text or change window\nstack traceback:\n        [C]: in function 'nvim_open_win'\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2331: in function 'picker_new_win'\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2219: in function 'picker_new'\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:919: in function 'start'\n        /home/vandal/.config/nvim/lua/mini_pick_emoji.lua:108: in function &lt;/home/vandal/.config/nvim/lua/mini_pick_emoji.lua:101&gt;\nPress ENTER or type command to continue\"><pre class=\"notranslate\"><span class=\"pl-en\">E5108</span>: <span class=\"pl-en\">Lua</span>: <span class=\"pl-c1\">...</span><span class=\"pl-smi\">are</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">site</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pack</span><span class=\"pl-k\">/</span><span class=\"pl-k\">local</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">opt</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span>.<span class=\"pl-e\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">lua</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pick</span>.<span class=\"pl-en\">lua</span>:<span class=\"pl-c1\">2331</span>: <span class=\"pl-en\">E565</span>: <span class=\"pl-smi\">Not</span> <span class=\"pl-smi\">allowed</span> <span class=\"pl-smi\">to</span> <span class=\"pl-smi\">change</span> <span class=\"pl-smi\">text</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">change</span> <span class=\"pl-smi\">window</span>\n<span class=\"pl-smi\">stack</span> <span class=\"pl-en\">traceback</span>:\n        [<span class=\"pl-smi\">C</span>]: <span class=\"pl-k\">in</span> <span class=\"pl-k\">function</span> '<span class=\"pl-c1\">nvim_open_win</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-c1\">...</span><span class=\"pl-smi\">are</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">site</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pack</span><span class=\"pl-k\">/</span><span class=\"pl-k\">local</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">opt</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span>.<span class=\"pl-e\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">lua</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pick</span>.<span class=\"pl-en\">lua</span>:<span class=\"pl-c1\">2331</span>: <span class=\"pl-k\">in</span> <span class=\"pl-k\">function</span> '<span class=\"pl-c1\">picker_new_win</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-c1\">...</span><span class=\"pl-smi\">are</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">site</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pack</span><span class=\"pl-k\">/</span><span class=\"pl-k\">local</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">opt</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span>.<span class=\"pl-e\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">lua</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pick</span>.<span class=\"pl-en\">lua</span>:<span class=\"pl-c1\">2219</span>: <span class=\"pl-k\">in</span> <span class=\"pl-k\">function</span> '<span class=\"pl-c1\">picker_new</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-c1\">...</span><span class=\"pl-smi\">are</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">site</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pack</span><span class=\"pl-k\">/</span><span class=\"pl-k\">local</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">opt</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span>.<span class=\"pl-e\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">lua</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">pick</span>.<span class=\"pl-en\">lua</span>:<span class=\"pl-c1\">919</span>: <span class=\"pl-k\">in</span> <span class=\"pl-k\">function</span> '<span class=\"pl-c1\">start</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-k\">/</span><span class=\"pl-smi\">home</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">vandal</span><span class=\"pl-k\">/</span>.<span class=\"pl-e\">config</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">nvim</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">lua</span><span class=\"pl-k\">/</span><span class=\"pl-smi\">mini_pick_emoji</span>.<span class=\"pl-en\">lua</span>:<span class=\"pl-c1\">108</span>: <span class=\"pl-k\">in</span> <span class=\"pl-k\">function</span> &lt;/<span class=\"pl-en\">home</span>/<span class=\"pl-en\">vandal</span>/.<span class=\"pl-en\">config</span>/<span class=\"pl-en\">nvim</span>/<span class=\"pl-en\">lua</span>/<span class=\"pl-en\">mini_pick_emoji</span>.<span class=\"pl-en\">lua</span>:101&gt;\n<span class=\"pl-en\">Press</span> <span class=\"pl-en\">ENTER</span> <span class=\"pl-en\">or</span> <span class=\"pl-en\">type</span> <span class=\"pl-en\">command</span> <span class=\"pl-en\">to</span> <span class=\"pl-en\">continue</span></pre></div>\n<p dir=\"auto\">Here is the updated function:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"--- The emoji picker\nM.pick = function()\n  local mode = vim.api.nvim_get_mode().mode\n  local items = load_items()\n  if not items then\n    return\n  end\n\n  local item = MiniPick.start({\n    source = {\n      -- choose = function(item) insert_emoji(item, mode) end,\n      items = items,\n      name = &quot;Emoji&quot;,\n    },\n  })\n  return item and item.emoji or nil\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span> The emoji picker</span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">pick</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_mode</span>().<span class=\"pl-e\">mode</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">load_items</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> choose = function(item) insert_emoji(item, mode) end,</span>\n      <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span>,\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Emoji<span class=\"pl-pds\">\"</span></span>,\n    },\n  })\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">emoji</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">and the updated mapping:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;i&quot;, &quot;&lt;C-.&gt;&quot;, function() return require(&quot;mini_pick_emoji&quot;).pick() end, {desc = &quot;Emoji&quot;, expr = true})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-.&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini_pick_emoji<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">pick</span>() <span class=\"pl-k\">end</span>, {<span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Emoji<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>})</pre></div>",
+                    "bodyText": "Thanks for the feedback! I just tried to update a simpler picker and to use an expression mapping, but I got the error below.\nI am sticking to the custom action for now, but sharing in case the fix is obvious to someone else.\nThanks!\nHere is the error:\nE5108: Lua: ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2331: E565: Not allowed to change text or change window\nstack traceback:\n        [C]: in function 'nvim_open_win'\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2331: in function 'picker_new_win'\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:2219: in function 'picker_new'\n        ...are/nvim/site/pack/local/opt/mini.nvim/lua/mini/pick.lua:919: in function 'start'\n        /home/vandal/.config/nvim/lua/mini_pick_emoji.lua:108: in function </home/vandal/.config/nvim/lua/mini_pick_emoji.lua:101>\nPress ENTER or type command to continue\nHere is the updated function:\n--- The emoji picker\nM.pick = function()\n  local mode = vim.api.nvim_get_mode().mode\n  local items = load_items()\n  if not items then\n    return\n  end\n\n  local item = MiniPick.start({\n    source = {\n      -- choose = function(item) insert_emoji(item, mode) end,\n      items = items,\n      name = \"Emoji\",\n    },\n  })\n  return item and item.emoji or nil\nend\nand the updated mapping:\nvim.keymap.set(\"i\", \"<C-.>\", function() return require(\"mini_pick_emoji\").pick() end, {desc = \"Emoji\", expr = true})",
+                    "createdAt": "2026-10-14T17:50:01Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18930761,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BINxJ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-14T17:50:01Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18854658,
+                        "id": "DC_kwDOFoksYM4BH7MC",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18854658"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18930761",
+                    "updatedAt": "2026-10-14T17:50:01Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18930761"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Thanks for the feedback! I just tried to update a simpler picker and to use an expression mapping, but I got the error below.\r\n\r\nAh, indeed, my bad. I forgot that Neovim doesn't allow any buffer text edited. At it is needed to actually show text in a picker.\r\n\r\nThere are very hacky workarounds around that, but those are definitely do not belong in the user config. Maybe `MiniPick.start()` can overcome that... I'll take a look.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Thanks for the feedback! I just tried to update a simpler picker and to use an expression mapping, but I got the error below.</p>\n</blockquote>\n<p dir=\"auto\">Ah, indeed, my bad. I forgot that Neovim doesn't allow any buffer text edited. At it is needed to actually show text in a picker.</p>\n<p dir=\"auto\">There are very hacky workarounds around that, but those are definitely do not belong in the user config. Maybe <code class=\"notranslate\">MiniPick.start()</code> can overcome that... I'll take a look.</p>",
+                    "bodyText": "Thanks for the feedback! I just tried to update a simpler picker and to use an expression mapping, but I got the error below.\n\nAh, indeed, my bad. I forgot that Neovim doesn't allow any buffer text edited. At it is needed to actually show text in a picker.\nThere are very hacky workarounds around that, but those are definitely do not belong in the user config. Maybe MiniPick.start() can overcome that... I'll take a look.",
+                    "createdAt": "2026-10-14T18:01:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18930934,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BINz2",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-14T18:01:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18854658,
+                        "id": "DC_kwDOFoksYM4BH7MC",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18854658"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18930934",
+                    "updatedAt": "2026-10-14T18:01:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18930934"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18854658",
+            "updatedAt": "2026-10-10T19:13:36Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18854658"
+        }
+    ],
+    "createdAt": "2026-10-10T17:48:38Z",
+    "createdViaEmail": false,
+    "databaseId": 10991556,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ap7fE",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2577,
+    "poll": null,
+    "publishedAt": "2026-10-10T17:48:38Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2577",
+    "stateReason": null,
+    "title": "Emoji picker for mini.pick",
+    "updatedAt": "2026-10-14T18:01:42Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577"
+}

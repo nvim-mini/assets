@@ -1,0 +1,710 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 16445835,
+        "id": "DC_kwDOFoksYM4A-vGL",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835"
+    },
+    "answerChosenAt": "2026-04-04T10:59:00Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1290776?u=a39501a8a47ab726d05b89ddc413d273ed17e82f&v=4",
+        "login": "proofer",
+        "resourcePath": "/proofer",
+        "url": "https://github.com/proofer"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1290776?u=a39501a8a47ab726d05b89ddc413d273ed17e82f&v=4",
+        "login": "proofer",
+        "resourcePath": "/proofer",
+        "url": "https://github.com/proofer"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.files\n\n### Question\n\nWhile the explorer window is open, `:map <buffer>` output has an entry for `g?` with \"Show Help\" annotation. Any suggestions for what else I should look at? (Not having found other reports of an issue, I assume it's something local.)\r\n\r\nNeovim 0.12.0",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.files</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">While the explorer window is open, <code class=\"notranslate\">:map &lt;buffer&gt;</code> output has an entry for <code class=\"notranslate\">g?</code> with \"Show Help\" annotation. Any suggestions for what else I should look at? (Not having found other reports of an issue, I assume it's something local.)</p>\n<p dir=\"auto\">Neovim 0.12.0</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.files\nQuestion\nWhile the explorer window is open, :map <buffer> output has an entry for g? with \"Show Help\" annotation. Any suggestions for what else I should look at? (Not having found other reports of an issue, I assume it's something local.)\nNeovim 0.12.0",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-04-04T11:11:27Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I assume you're not pressing `g?` fast enough, so the neovim motion is triggered instead (`:h g?`). \"Fast enough\" means within the time set by `vim.o.timeoutlen` (which is 1000 ms by default).\r\n\r\nThe help window should appear when you do the following:\r\n\r\n```vim\r\n:lua MiniFiles.open()\r\n:lua MiniFiles.show_help()\r\n```\r\n\r\n`g` keymaps are tricky to deal with. For example, remapping `g?` in normal mode should behave the same way:\r\n\r\n```lua\r\nvim.keymap.set(\"n\", \"g?\", function()\r\n  vim.print(\"Did you press me?\")\r\nend)\r\n```\r\n\r\n---\r\n\r\nThe easiest solution is to increase the `vim.o.timeoutlen` option. You can even set it temporarily while the explorer is open, but this feels a bit off:\r\n\r\n<details><summary>No warranty</summary>\r\n\r\n```lua\r\nlocal files_au = vim.api.nvim_create_augroup(\"minifiles\", { clear = true })\r\nlocal timeoutlen\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesExplorerOpen\",\r\n  group = files_au,\r\n  desc = \"Change `vim.o.timeoutlen` after openinig `mini.files`\",\r\n  callback = function()\r\n    timeoutlen = vim.o.timeoutlen\r\n    vim.o.timeoutlen = 1000\r\n  end,\r\n})\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesExplorerClose\",\r\n  group = files_au,\r\n  desc = \"Restore `vim.o.timeoutlen` after closing `mini.files`\",\r\n  callback = function()\r\n    vim.o.timeoutlen = timeoutlen\r\n  end,\r\n})\r\n```\r\n\r\n</details>\r\n\r\n---\r\n\r\nYou can also solve the problem by using `mini.clue`:\r\n\r\n<details><summary>Example</summary>\r\n\r\n```lua\r\nvim.pack.add({\r\n  { src = \"https://github.com/nvim-mini/mini.nvim\" },\r\n})\r\n\r\nvim.o.timeoutlen = 200\r\n\r\nrequire(\"mini.files\").setup()\r\nvim.keymap.set(\"n\", \"<Space>e\", MiniFiles.open)\r\n\r\nlocal files_au = vim.api.nvim_create_augroup(\"minifiles\", { clear = true })\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesBufferCreate\",\r\n  group = files_au,\r\n  callback = function(e)\r\n    if MiniClue then\r\n      -- Should this be the default?\r\n      MiniClue.ensure_buf_triggers(e.data.buf_id)\r\n    end\r\n    -- local buf_map = function(mode, lhs, rhs, opts)\r\n    --   vim.keymap.set(mode, lhs, rhs, vim.tbl_extend(\"keep\", opts or {}, { buffer = e.data.buf_id }))\r\n    -- end\r\n    -- buf_map(\"n\", \"g?\", MiniFiles.show_help, { desc = \"Set cwd\" })\r\n  end,\r\n})\r\n\r\nlocal miniclue = require(\"mini.clue\")\r\nminiclue.setup({\r\n  triggers = {\r\n    -- { mode = { \"n\", \"x\" }, keys = \"<Leader>\" },\r\n    -- { mode = \"n\", keys = \"[\" },\r\n    -- { mode = \"n\", keys = \"]\" },\r\n    -- { mode = \"i\", keys = \"<C-x>\" },\r\n    { mode = { \"n\", \"x\" }, keys = \"g\" },\r\n    -- { mode = { \"n\", \"x\" }, keys = \"'\" },\r\n    -- { mode = { \"n\", \"x\" }, keys = \"`\" },\r\n    -- { mode = { \"n\", \"x\" }, keys = '\"' },\r\n    -- { mode = { \"i\", \"c\" }, keys = \"<C-r>\" },\r\n    -- { mode = \"n\", keys = \"<C-w>\" },\r\n    -- { mode = { \"n\", \"x\" }, keys = \"z\" },\r\n  },\r\n  clues = {\r\n    -- miniclue.gen_clues.square_brackets(),\r\n    -- miniclue.gen_clues.builtin_completion(),\r\n    miniclue.gen_clues.g(),\r\n    -- miniclue.gen_clues.marks(),\r\n    -- miniclue.gen_clues.registers(),\r\n    -- miniclue.gen_clues.windows(),\r\n    -- miniclue.gen_clues.z(),\r\n  },\r\n})\r\n```\r\n\r\n</details>\r\n\r\n---",
+            "bodyHTML": "<p dir=\"auto\">I assume you're not pressing <code class=\"notranslate\">g?</code> fast enough, so the neovim motion is triggered instead (<code class=\"notranslate\">:h g?</code>). \"Fast enough\" means within the time set by <code class=\"notranslate\">vim.o.timeoutlen</code> (which is 1000 ms by default).</p>\n<p dir=\"auto\">The help window should appear when you do the following:</p>\n<div class=\"highlight highlight-source-viml notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\":lua MiniFiles.open()\n:lua MiniFiles.show_help()\"><pre class=\"notranslate\">:<span class=\"pl-c1\">lua</span> MiniFiles.<span class=\"pl-en\">open</span>()\n:<span class=\"pl-c1\">lua</span> MiniFiles.<span class=\"pl-en\">show_help</span>()</pre></div>\n<p dir=\"auto\"><code class=\"notranslate\">g</code> keymaps are tricky to deal with. For example, remapping <code class=\"notranslate\">g?</code> in normal mode should behave the same way:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;n&quot;, &quot;g?&quot;, function()\n  vim.print(&quot;Did you press me?&quot;)\nend)\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g?<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">print</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Did you press me?<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span>)</pre></div>\n<hr>\n<p dir=\"auto\">The easiest solution is to increase the <code class=\"notranslate\">vim.o.timeoutlen</code> option. You can even set it temporarily while the explorer is open, but this feels a bit off:</p>\n<details><summary>No warranty</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local files_au = vim.api.nvim_create_augroup(&quot;minifiles&quot;, { clear = true })\nlocal timeoutlen\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesExplorerOpen&quot;,\n  group = files_au,\n  desc = &quot;Change `vim.o.timeoutlen` after openinig `mini.files`&quot;,\n  callback = function()\n    timeoutlen = vim.o.timeoutlen\n    vim.o.timeoutlen = 1000\n  end,\n})\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesExplorerClose&quot;,\n  group = files_au,\n  desc = &quot;Restore `vim.o.timeoutlen` after closing `mini.files`&quot;,\n  callback = function()\n    vim.o.timeoutlen = timeoutlen\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">files_au</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minifiles<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">timeoutlen</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesExplorerOpen<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">files_au</span>,\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Change `vim.o.timeoutlen` after openinig `mini.files`<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">timeoutlen</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">timeoutlen</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">timeoutlen</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1000</span>\n  <span class=\"pl-k\">end</span>,\n})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesExplorerClose<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">files_au</span>,\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Restore `vim.o.timeoutlen` after closing `mini.files`<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">timeoutlen</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">timeoutlen</span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n</details>\n<hr>\n<p dir=\"auto\">You can also solve the problem by using <code class=\"notranslate\">mini.clue</code>:</p>\n<details><summary>Example</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.pack.add({\n  { src = &quot;https://github.com/nvim-mini/mini.nvim&quot; },\n})\n\nvim.o.timeoutlen = 200\n\nrequire(&quot;mini.files&quot;).setup()\nvim.keymap.set(&quot;n&quot;, &quot;&lt;Space&gt;e&quot;, MiniFiles.open)\n\nlocal files_au = vim.api.nvim_create_augroup(&quot;minifiles&quot;, { clear = true })\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesBufferCreate&quot;,\n  group = files_au,\n  callback = function(e)\n    if MiniClue then\n      -- Should this be the default?\n      MiniClue.ensure_buf_triggers(e.data.buf_id)\n    end\n    -- local buf_map = function(mode, lhs, rhs, opts)\n    --   vim.keymap.set(mode, lhs, rhs, vim.tbl_extend(&quot;keep&quot;, opts or {}, { buffer = e.data.buf_id }))\n    -- end\n    -- buf_map(&quot;n&quot;, &quot;g?&quot;, MiniFiles.show_help, { desc = &quot;Set cwd&quot; })\n  end,\n})\n\nlocal miniclue = require(&quot;mini.clue&quot;)\nminiclue.setup({\n  triggers = {\n    -- { mode = { &quot;n&quot;, &quot;x&quot; }, keys = &quot;&lt;Leader&gt;&quot; },\n    -- { mode = &quot;n&quot;, keys = &quot;[&quot; },\n    -- { mode = &quot;n&quot;, keys = &quot;]&quot; },\n    -- { mode = &quot;i&quot;, keys = &quot;&lt;C-x&gt;&quot; },\n    { mode = { &quot;n&quot;, &quot;x&quot; }, keys = &quot;g&quot; },\n    -- { mode = { &quot;n&quot;, &quot;x&quot; }, keys = &quot;'&quot; },\n    -- { mode = { &quot;n&quot;, &quot;x&quot; }, keys = &quot;`&quot; },\n    -- { mode = { &quot;n&quot;, &quot;x&quot; }, keys = '&quot;' },\n    -- { mode = { &quot;i&quot;, &quot;c&quot; }, keys = &quot;&lt;C-r&gt;&quot; },\n    -- { mode = &quot;n&quot;, keys = &quot;&lt;C-w&gt;&quot; },\n    -- { mode = { &quot;n&quot;, &quot;x&quot; }, keys = &quot;z&quot; },\n  },\n  clues = {\n    -- miniclue.gen_clues.square_brackets(),\n    -- miniclue.gen_clues.builtin_completion(),\n    miniclue.gen_clues.g(),\n    -- miniclue.gen_clues.marks(),\n    -- miniclue.gen_clues.registers(),\n    -- miniclue.gen_clues.windows(),\n    -- miniclue.gen_clues.z(),\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">pack</span>.<span class=\"pl-c1\">add</span>({\n  { <span class=\"pl-smi\">src</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.nvim<span class=\"pl-pds\">\" </span></span>},\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">timeoutlen</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">200</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Space&gt;e<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">open</span>)\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">files_au</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minifiles<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesBufferCreate<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">files_au</span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">e</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniClue</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Should this be the default?</span>\n      <span class=\"pl-smi\">MiniClue</span>.<span class=\"pl-c1\">ensure_buf_triggers</span>(<span class=\"pl-smi\">e</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> local buf_map = function(mode, lhs, rhs, opts)</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span>   vim.keymap.set(mode, lhs, rhs, vim.tbl_extend(\"keep\", opts or {}, { buffer = e.data.buf_id }))</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> end</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> buf_map(\"n\", \"g?\", MiniFiles.show_help, { desc = \"Set cwd\" })</span>\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">miniclue</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.clue<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">miniclue</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = { \"n\", \"x\" }, keys = \"&lt;Leader&gt;\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = \"n\", keys = \"[\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = \"n\", keys = \"]\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = \"i\", keys = \"&lt;C-x&gt;\" },</span>\n    { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>x<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = { \"n\", \"x\" }, keys = \"'\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = { \"n\", \"x\" }, keys = \"`\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = { \"n\", \"x\" }, keys = '\"' },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = { \"i\", \"c\" }, keys = \"&lt;C-r&gt;\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = \"n\", keys = \"&lt;C-w&gt;\" },</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> { mode = { \"n\", \"x\" }, keys = \"z\" },</span>\n  },\n  <span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> miniclue.gen_clues.square_brackets(),</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> miniclue.gen_clues.builtin_completion(),</span>\n    <span class=\"pl-smi\">miniclue</span>.<span class=\"pl-e\">gen_clues</span>.<span class=\"pl-c1\">g</span>(),\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> miniclue.gen_clues.marks(),</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> miniclue.gen_clues.registers(),</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> miniclue.gen_clues.windows(),</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> miniclue.gen_clues.z(),</span>\n  },\n})</pre></div>\n</details>\n<hr>",
+            "bodyText": "I assume you're not pressing g? fast enough, so the neovim motion is triggered instead (:h g?). \"Fast enough\" means within the time set by vim.o.timeoutlen (which is 1000 ms by default).\nThe help window should appear when you do the following:\n:lua MiniFiles.open()\n:lua MiniFiles.show_help()\ng keymaps are tricky to deal with. For example, remapping g? in normal mode should behave the same way:\nvim.keymap.set(\"n\", \"g?\", function()\n  vim.print(\"Did you press me?\")\nend)\n\nThe easiest solution is to increase the vim.o.timeoutlen option. You can even set it temporarily while the explorer is open, but this feels a bit off:\nNo warranty\nlocal files_au = vim.api.nvim_create_augroup(\"minifiles\", { clear = true })\nlocal timeoutlen\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesExplorerOpen\",\n  group = files_au,\n  desc = \"Change `vim.o.timeoutlen` after openinig `mini.files`\",\n  callback = function()\n    timeoutlen = vim.o.timeoutlen\n    vim.o.timeoutlen = 1000\n  end,\n})\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesExplorerClose\",\n  group = files_au,\n  desc = \"Restore `vim.o.timeoutlen` after closing `mini.files`\",\n  callback = function()\n    vim.o.timeoutlen = timeoutlen\n  end,\n})\n\n\nYou can also solve the problem by using mini.clue:\nExample\nvim.pack.add({\n  { src = \"https://github.com/nvim-mini/mini.nvim\" },\n})\n\nvim.o.timeoutlen = 200\n\nrequire(\"mini.files\").setup()\nvim.keymap.set(\"n\", \"<Space>e\", MiniFiles.open)\n\nlocal files_au = vim.api.nvim_create_augroup(\"minifiles\", { clear = true })\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesBufferCreate\",\n  group = files_au,\n  callback = function(e)\n    if MiniClue then\n      -- Should this be the default?\n      MiniClue.ensure_buf_triggers(e.data.buf_id)\n    end\n    -- local buf_map = function(mode, lhs, rhs, opts)\n    --   vim.keymap.set(mode, lhs, rhs, vim.tbl_extend(\"keep\", opts or {}, { buffer = e.data.buf_id }))\n    -- end\n    -- buf_map(\"n\", \"g?\", MiniFiles.show_help, { desc = \"Set cwd\" })\n  end,\n})\n\nlocal miniclue = require(\"mini.clue\")\nminiclue.setup({\n  triggers = {\n    -- { mode = { \"n\", \"x\" }, keys = \"<Leader>\" },\n    -- { mode = \"n\", keys = \"[\" },\n    -- { mode = \"n\", keys = \"]\" },\n    -- { mode = \"i\", keys = \"<C-x>\" },\n    { mode = { \"n\", \"x\" }, keys = \"g\" },\n    -- { mode = { \"n\", \"x\" }, keys = \"'\" },\n    -- { mode = { \"n\", \"x\" }, keys = \"`\" },\n    -- { mode = { \"n\", \"x\" }, keys = '\"' },\n    -- { mode = { \"i\", \"c\" }, keys = \"<C-r>\" },\n    -- { mode = \"n\", keys = \"<C-w>\" },\n    -- { mode = { \"n\", \"x\" }, keys = \"z\" },\n  },\n  clues = {\n    -- miniclue.gen_clues.square_brackets(),\n    -- miniclue.gen_clues.builtin_completion(),\n    miniclue.gen_clues.g(),\n    -- miniclue.gen_clues.marks(),\n    -- miniclue.gen_clues.registers(),\n    -- miniclue.gen_clues.windows(),\n    -- miniclue.gen_clues.z(),\n  },\n})",
+            "createdAt": "2026-04-04T07:57:08Z",
+            "createdViaEmail": false,
+            "databaseId": 16445835,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A-vGL",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2026-04-07T07:58:06Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-04-04T07:57:08Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/1290776?u=a39501a8a47ab726d05b89ddc413d273ed17e82f&v=4",
+                        "login": "proofer",
+                        "resourcePath": "/proofer",
+                        "url": "https://github.com/proofer"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@drowning-cat, as previously noted my setting of `timeoutlen` to 400 is the cause of my issue.\r\n\r\nBut with regard to  the `mini.clue` solution: I am using `mini.clue`. Its `setup`  creates a `BufWinEnter` autocmd that calls `ensure_buf_triggers`. Also, why `vim.o.timeoutlen = 200`?  In any, erm, event, thanks for taking time on this! By happenstance I currently have an intense interest in the internals of `clue.lua`.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/drowning-cat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/drowning-cat\">@drowning-cat</a>, as previously noted my setting of <code class=\"notranslate\">timeoutlen</code> to 400 is the cause of my issue.</p>\n<p dir=\"auto\">But with regard to  the <code class=\"notranslate\">mini.clue</code> solution: I am using <code class=\"notranslate\">mini.clue</code>. Its <code class=\"notranslate\">setup</code>  creates a <code class=\"notranslate\">BufWinEnter</code> autocmd that calls <code class=\"notranslate\">ensure_buf_triggers</code>. Also, why <code class=\"notranslate\">vim.o.timeoutlen = 200</code>?  In any, erm, event, thanks for taking time on this! By happenstance I currently have an intense interest in the internals of <code class=\"notranslate\">clue.lua</code>.</p>",
+                    "bodyText": "@drowning-cat, as previously noted my setting of timeoutlen to 400 is the cause of my issue.\nBut with regard to  the mini.clue solution: I am using mini.clue. Its setup  creates a BufWinEnter autocmd that calls ensure_buf_triggers. Also, why vim.o.timeoutlen = 200?  In any, erm, event, thanks for taking time on this! By happenstance I currently have an intense interest in the internals of clue.lua.",
+                    "createdAt": "2026-04-04T11:38:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16446924,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-vXM",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-04T11:38:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16445835,
+                        "id": "DC_kwDOFoksYM4A-vGL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446924",
+                    "updatedAt": "2026-04-04T11:38:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446924"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Its `setup` creates a `BufWinEnter` autocmd that calls `ensure_buf_triggers`.\r\n\r\nIt is deliberately not ensuring triggers in 'mini.files' buffer or any non-listed buffers except some [allowlist](https://github.com/nvim-mini/mini.nvim/blob/402ee6c6ec8ea44b22330446c8fb4e615fd3953e/lua/mini/clue.lua#L1171-L1174).\r\n\r\n> By happenstance I currently have an intense interest in the internals of `clue.lua`.\r\n\r\nIf you have any questions on this, feel free to open a new discussion. May I ask why the interest?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Its <code class=\"notranslate\">setup</code> creates a <code class=\"notranslate\">BufWinEnter</code> autocmd that calls <code class=\"notranslate\">ensure_buf_triggers</code>.</p>\n</blockquote>\n<p dir=\"auto\">It is deliberately not ensuring triggers in 'mini.files' buffer or any non-listed buffers except some <a href=\"https://github.com/nvim-mini/mini.nvim/blob/402ee6c6ec8ea44b22330446c8fb4e615fd3953e/lua/mini/clue.lua#L1171-L1174\">allowlist</a>.</p>\n<blockquote>\n<p dir=\"auto\">By happenstance I currently have an intense interest in the internals of <code class=\"notranslate\">clue.lua</code>.</p>\n</blockquote>\n<p dir=\"auto\">If you have any questions on this, feel free to open a new discussion. May I ask why the interest?</p>",
+                    "bodyText": "Its setup creates a BufWinEnter autocmd that calls ensure_buf_triggers.\n\nIt is deliberately not ensuring triggers in 'mini.files' buffer or any non-listed buffers except some allowlist.\n\nBy happenstance I currently have an intense interest in the internals of clue.lua.\n\nIf you have any questions on this, feel free to open a new discussion. May I ask why the interest?",
+                    "createdAt": "2026-04-04T11:44:05Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16446945,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-vXh",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-04T11:44:05Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16445835,
+                        "id": "DC_kwDOFoksYM4A-vGL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446945",
+                    "updatedAt": "2026-04-04T11:44:05Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446945"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/1290776?u=a39501a8a47ab726d05b89ddc413d273ed17e82f&v=4",
+                        "login": "proofer",
+                        "resourcePath": "/proofer",
+                        "url": "https://github.com/proofer"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> > By happenstance I currently have an intense interest in the internals of `clue.lua`.\r\n> \r\n> If you have any questions on this, feel free to open a new discussion. May I ask why the interest?\r\n\r\nMy interest is my addition of a feature for my personal use. After I originally added it, I proposed a PR which you rejected for valid reasons. But recently my feature stopped working and I'm just starting to investigate that. Recent changes include moving from a config originally based on your personal dotfiles to one based on MiniMax; Neovim 11 -> 12; and merging six months of (infrequent) `mini.clue` commits.",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">By happenstance I currently have an intense interest in the internals of <code class=\"notranslate\">clue.lua</code>.</p>\n</blockquote>\n<p dir=\"auto\">If you have any questions on this, feel free to open a new discussion. May I ask why the interest?</p>\n</blockquote>\n<p dir=\"auto\">My interest is my addition of a feature for my personal use. After I originally added it, I proposed a PR which you rejected for valid reasons. But recently my feature stopped working and I'm just starting to investigate that. Recent changes include moving from a config originally based on your personal dotfiles to one based on MiniMax; Neovim 11 -&gt; 12; and merging six months of (infrequent) <code class=\"notranslate\">mini.clue</code> commits.</p>",
+                    "bodyText": "By happenstance I currently have an intense interest in the internals of clue.lua.\n\nIf you have any questions on this, feel free to open a new discussion. May I ask why the interest?\n\nMy interest is my addition of a feature for my personal use. After I originally added it, I proposed a PR which you rejected for valid reasons. But recently my feature stopped working and I'm just starting to investigate that. Recent changes include moving from a config originally based on your personal dotfiles to one based on MiniMax; Neovim 11 -> 12; and merging six months of (infrequent) mini.clue commits.",
+                    "createdAt": "2026-04-04T12:26:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16447129,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-vaZ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-04T12:26:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16445835,
+                        "id": "DC_kwDOFoksYM4A-vGL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16447129",
+                    "updatedAt": "2026-04-04T12:26:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16447129"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Recent changes include moving from a config originally based on your personal dotfiles to one based on MiniMax; Neovim 11 -> 12; and merging six months of (infrequent) `mini.clue` commits.\r\n\r\nHmm... Nothing immediate springs to mind, sorry. My guess would be Neovim 0.11 -> 0.12 transition. But maybe six months of 'mini.clue' activity indeed.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Recent changes include moving from a config originally based on your personal dotfiles to one based on MiniMax; Neovim 11 -&gt; 12; and merging six months of (infrequent) <code class=\"notranslate\">mini.clue</code> commits.</p>\n</blockquote>\n<p dir=\"auto\">Hmm... Nothing immediate springs to mind, sorry. My guess would be Neovim 0.11 -&gt; 0.12 transition. But maybe six months of 'mini.clue' activity indeed.</p>",
+                    "bodyText": "Recent changes include moving from a config originally based on your personal dotfiles to one based on MiniMax; Neovim 11 -> 12; and merging six months of (infrequent) mini.clue commits.\n\nHmm... Nothing immediate springs to mind, sorry. My guess would be Neovim 0.11 -> 0.12 transition. But maybe six months of 'mini.clue' activity indeed.",
+                    "createdAt": "2026-04-04T13:33:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16447582,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-vhe",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-04T13:33:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16445835,
+                        "id": "DC_kwDOFoksYM4A-vGL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16447582",
+                    "updatedAt": "2026-04-04T13:33:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16447582"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835",
+            "updatedAt": "2026-04-07T07:58:06Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16445835"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> While the explorer window is open, `:map <buffer>` output has an entry for `g?` with \"Show Help\" annotation. Any suggestions for what else I should look at? (Not having found other reports of an issue, I assume it's something local.)\r\n\r\nCouple of extra questions:\r\n- Does `:map <buffer>` entry with \"Show Help\" line also show that it comes from 'mini.files'? It probably is, but just to be sure.\r\n- Does executing `:lua MiniFiles.show_help()` while inside the explorer work?\r\n- Does executing some other buffer-local mappings work? Like after you navigate inside some subdirectories, does pressing `<BS>` show explorer at its anchor (initial path used to open an explorer)?",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">While the explorer window is open, <code class=\"notranslate\">:map &lt;buffer&gt;</code> output has an entry for <code class=\"notranslate\">g?</code> with \"Show Help\" annotation. Any suggestions for what else I should look at? (Not having found other reports of an issue, I assume it's something local.)</p>\n</blockquote>\n<p dir=\"auto\">Couple of extra questions:</p>\n<ul dir=\"auto\">\n<li>Does <code class=\"notranslate\">:map &lt;buffer&gt;</code> entry with \"Show Help\" line also show that it comes from 'mini.files'? It probably is, but just to be sure.</li>\n<li>Does executing <code class=\"notranslate\">:lua MiniFiles.show_help()</code> while inside the explorer work?</li>\n<li>Does executing some other buffer-local mappings work? Like after you navigate inside some subdirectories, does pressing <code class=\"notranslate\">&lt;BS&gt;</code> show explorer at its anchor (initial path used to open an explorer)?</li>\n</ul>",
+            "bodyText": "While the explorer window is open, :map <buffer> output has an entry for g? with \"Show Help\" annotation. Any suggestions for what else I should look at? (Not having found other reports of an issue, I assume it's something local.)\n\nCouple of extra questions:\n\nDoes :map <buffer> entry with \"Show Help\" line also show that it comes from 'mini.files'? It probably is, but just to be sure.\nDoes executing :lua MiniFiles.show_help() while inside the explorer work?\nDoes executing some other buffer-local mappings work? Like after you navigate inside some subdirectories, does pressing <BS> show explorer at its anchor (initial path used to open an explorer)?",
+            "createdAt": "2026-04-04T10:39:03Z",
+            "createdViaEmail": false,
+            "databaseId": 16446616,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A-vSY",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-04T10:39:03Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/1290776?u=a39501a8a47ab726d05b89ddc413d273ed17e82f&v=4",
+                        "login": "proofer",
+                        "resourcePath": "/proofer",
+                        "url": "https://github.com/proofer"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@echasnovski, you replied just as I was about to reply to @drowning-cat. Indeed, my issue  is `timeoutlen`; I have it set to 400 because I found the default 1000 made the delay of echoing a typed Space (my map leader) annoying. After `:set timeoutlen=1000` I can use `g?` successfully.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, you replied just as I was about to reply to <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/drowning-cat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/drowning-cat\">@drowning-cat</a>. Indeed, my issue  is <code class=\"notranslate\">timeoutlen</code>; I have it set to 400 because I found the default 1000 made the delay of echoing a typed Space (my map leader) annoying. After <code class=\"notranslate\">:set timeoutlen=1000</code> I can use <code class=\"notranslate\">g?</code> successfully.</p>",
+                    "bodyText": "@echasnovski, you replied just as I was about to reply to @drowning-cat. Indeed, my issue  is timeoutlen; I have it set to 400 because I found the default 1000 made the delay of echoing a typed Space (my map leader) annoying. After :set timeoutlen=1000 I can use g? successfully.",
+                    "createdAt": "2026-04-04T10:58:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16446714,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-vT6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-04T10:58:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16446616,
+                        "id": "DC_kwDOFoksYM4A-vSY",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446616"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446714",
+                    "updatedAt": "2026-04-04T10:58:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446714"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446616",
+            "updatedAt": "2026-04-04T10:39:03Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343#discussioncomment-16446616"
+        }
+    ],
+    "createdAt": "2026-04-03T21:56:36Z",
+    "createdViaEmail": false,
+    "databaseId": 9821772,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ald5M",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2343,
+    "poll": null,
+    "publishedAt": "2026-04-03T21:56:36Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2343",
+    "stateReason": "RESOLVED",
+    "title": "[mini.files] `g?`, or maybe `show_help`, not displaying anything",
+    "updatedAt": "2026-04-05T20:48:10Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2343"
+}

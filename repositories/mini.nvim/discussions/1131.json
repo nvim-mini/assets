@@ -1,0 +1,359 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+        "login": "felpafel",
+        "resourcePath": "/felpafel",
+        "url": "https://github.com/felpafel"
+    },
+    "authorAssociation": "NONE",
+    "body": "https://github.com/user-attachments/assets/b16c69c6-88b6-4105-a30e-9d67adfdd5ad\r\n\r\nHello, I've created this picker around 3 months ago, and decided to share it here.\r\n\r\nThis picker list all available worktrees and change neovim working directory (`cwd`) to the selected tree. [screenshot](https://github.com/user-attachments/assets/8f6af9e1-9b69-40f9-94d2-20607f9c1cde)\r\n\r\nI choose to only change the directory so it's simple to anyone to implement their own automation. In my case, I use `DirChangedPre` event and `mini.sessions` to save my current session and load the session to the new working dir (using `oil.nvim` as a fallback in case I don't have a previous session).\r\n\r\n### Usage:\r\n\r\nThe picker accepts an optional `cwd` parameter in case you want to search a repository in another path.\r\n\r\n- On the cmdline: `:Pick git_worktrees` or `Pick git_worktrees cwd='my/git/repo/path'`;\r\n- On keymaps: `vim.keymap.set('n', '<leader>fw', '<cmd>Pick git_worktrees<cr>')`\r\n\r\n### Implementation:\r\n\r\nBasically, this picker queries all available [`git worktrees`](https://git-scm.com/docs/git-worktree) using `git -C $cwd worktree list` and then the cli stdout is parsed using `string.match` to build a table array that has three fields: `text`, `branch` and `path` (you can customize the prompt by changing the content of `text`). So, when the user select an item the `wt_switch` procedure is called, changing the working dir to `item.path`.\r\n\r\n### Code:\r\n\r\n```lua\r\nlocal wt_switch = function(item)\r\n  -- NOTE: Change CWD to selected item's path\r\n  vim.schedule(function()\r\n    vim.fn.chdir(item.path)\r\n  end)\r\n  vim.notify(\r\n    'Git worktree changed to ' .. (item.branch and item.branch or '(bare)'),\r\n    vim.log.levels.INFO\r\n  )\r\nend\r\n\r\n--- @return { text: string, branch: string, path: string }[]\r\nlocal wt_postprocess = function(item)\r\n  local items = {}\r\n  for _, entry in pairs(vim.split(item[1], '%z%z', { trimempty = true })) do\r\n    local path, head, _, ref =\r\n    entry:match('^worktree (.-)%zHEAD (.-)%z([^ ]+) (.+)$')\r\n    if path then\r\n      local branch = vim.fs.basename(ref)\r\n      items[#items + 1] = {\r\n        text = string.format(\r\n          '[%s] %s %s',\r\n          branch,\r\n          head:sub(1, 7),\r\n          path\r\n        ),\r\n        branch = branch,\r\n        path = path,\r\n      }\r\n    else\r\n      path = entry:match('^worktree (.-)%z(bare)$')\r\n      if path then\r\n        items[#items + 1] = {\r\n          text = string.format('(bare) %s', path),\r\n          branch = nil,\r\n          path = path,\r\n        }\r\n      end\r\n    end\r\n  end\r\n  return items\r\nend\r\n\r\nMiniPick.registry.git_worktrees = function(local_opts)\r\n  local cwd = local_opts.cwd or vim.fn.getcwd()\r\n  if vim.system({ 'git', '-C', cwd, 'rev-parse' }):wait().code ~= 0 then\r\n    vim.notify(\r\n      'Not in a git repository',\r\n      vim.log.levels.ERROR\r\n    )\r\n    return\r\n  end\r\n  local opts = {\r\n    source = {\r\n      -- NOTE: Window Title\r\n      name = string.format('Git Worktrees - %s', cwd),\r\n      choose = wt_switch,\r\n    },\r\n  }\r\n  local_opts.command =\r\n  { 'git', '-C', cwd, 'worktree', 'list', '--porcelain', '-z' }\r\n  local_opts.postprocess = wt_postprocess\r\n\r\n  return MiniPick.builtin.cli(local_opts, opts)\r\nend\r\n```\r\n\r\nThanks.",
+    "bodyHTML": "<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">git_worktrees.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/21080902/356801153-b16c69c6-88b6-4105-a30e-9d67adfdd5ad.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MDEsIm5iZiI6MTc5MzU1MzEwMSwicGF0aCI6Ii8yMTA4MDkwMi8zNTY4MDExNTMtYjE2YzY5YzYtODhiNi00MTA1LWEzMGUtOWQ2N2FkZmRkNWFkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTE0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWMyY2Q4Y2E2NTM5YjBhZjA4ODI2MzNmMTliNDllMDc4MTgyOTgxYWVkYWVlNTFjZmViYzM4YTU0YTgyNmNmZWEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.5c7Ah4_QwXijU_SrJEOxdpqh1JTzd7ClnEJcRC0rwL4\" data-canonical-src=\"https://private-user-images.githubusercontent.com/21080902/356801153-b16c69c6-88b6-4105-a30e-9d67adfdd5ad.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MDEsIm5iZiI6MTc5MzU1MzEwMSwicGF0aCI6Ii8yMTA4MDkwMi8zNTY4MDExNTMtYjE2YzY5YzYtODhiNi00MTA1LWEzMGUtOWQ2N2FkZmRkNWFkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTE0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWMyY2Q4Y2E2NTM5YjBhZjA4ODI2MzNmMTliNDllMDc4MTgyOTgxYWVkYWVlNTFjZmViYzM4YTU0YTgyNmNmZWEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.5c7Ah4_QwXijU_SrJEOxdpqh1JTzd7ClnEJcRC0rwL4\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">Hello, I've created this picker around 3 months ago, and decided to share it here.</p>\n<p dir=\"auto\">This picker list all available worktrees and change neovim working directory (<code class=\"notranslate\">cwd</code>) to the selected tree. <a href=\"https://github.com/user-attachments/assets/8f6af9e1-9b69-40f9-94d2-20607f9c1cde\">screenshot</a></p>\n<p dir=\"auto\">I choose to only change the directory so it's simple to anyone to implement their own automation. In my case, I use <code class=\"notranslate\">DirChangedPre</code> event and <code class=\"notranslate\">mini.sessions</code> to save my current session and load the session to the new working dir (using <code class=\"notranslate\">oil.nvim</code> as a fallback in case I don't have a previous session).</p>\n<h3 dir=\"auto\">Usage:</h3>\n<p dir=\"auto\">The picker accepts an optional <code class=\"notranslate\">cwd</code> parameter in case you want to search a repository in another path.</p>\n<ul dir=\"auto\">\n<li>On the cmdline: <code class=\"notranslate\">:Pick git_worktrees</code> or <code class=\"notranslate\">Pick git_worktrees cwd='my/git/repo/path'</code>;</li>\n<li>On keymaps: <code class=\"notranslate\">vim.keymap.set('n', '&lt;leader&gt;fw', '&lt;cmd&gt;Pick git_worktrees&lt;cr&gt;')</code></li>\n</ul>\n<h3 dir=\"auto\">Implementation:</h3>\n<p dir=\"auto\">Basically, this picker queries all available <a href=\"https://git-scm.com/docs/git-worktree\" rel=\"nofollow\"><code class=\"notranslate\">git worktrees</code></a> using <code class=\"notranslate\">git -C $cwd worktree list</code> and then the cli stdout is parsed using <code class=\"notranslate\">string.match</code> to build a table array that has three fields: <code class=\"notranslate\">text</code>, <code class=\"notranslate\">branch</code> and <code class=\"notranslate\">path</code> (you can customize the prompt by changing the content of <code class=\"notranslate\">text</code>). So, when the user select an item the <code class=\"notranslate\">wt_switch</code> procedure is called, changing the working dir to <code class=\"notranslate\">item.path</code>.</p>\n<h3 dir=\"auto\">Code:</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local wt_switch = function(item)\n  -- NOTE: Change CWD to selected item's path\n  vim.schedule(function()\n    vim.fn.chdir(item.path)\n  end)\n  vim.notify(\n    'Git worktree changed to ' .. (item.branch and item.branch or '(bare)'),\n    vim.log.levels.INFO\n  )\nend\n\n--- @return { text: string, branch: string, path: string }[]\nlocal wt_postprocess = function(item)\n  local items = {}\n  for _, entry in pairs(vim.split(item[1], '%z%z', { trimempty = true })) do\n    local path, head, _, ref =\n    entry:match('^worktree (.-)%zHEAD (.-)%z([^ ]+) (.+)$')\n    if path then\n      local branch = vim.fs.basename(ref)\n      items[#items + 1] = {\n        text = string.format(\n          '[%s] %s %s',\n          branch,\n          head:sub(1, 7),\n          path\n        ),\n        branch = branch,\n        path = path,\n      }\n    else\n      path = entry:match('^worktree (.-)%z(bare)$')\n      if path then\n        items[#items + 1] = {\n          text = string.format('(bare) %s', path),\n          branch = nil,\n          path = path,\n        }\n      end\n    end\n  end\n  return items\nend\n\nMiniPick.registry.git_worktrees = function(local_opts)\n  local cwd = local_opts.cwd or vim.fn.getcwd()\n  if vim.system({ 'git', '-C', cwd, 'rev-parse' }):wait().code ~= 0 then\n    vim.notify(\n      'Not in a git repository',\n      vim.log.levels.ERROR\n    )\n    return\n  end\n  local opts = {\n    source = {\n      -- NOTE: Window Title\n      name = string.format('Git Worktrees - %s', cwd),\n      choose = wt_switch,\n    },\n  }\n  local_opts.command =\n  { 'git', '-C', cwd, 'worktree', 'list', '--porcelain', '-z' }\n  local_opts.postprocess = wt_postprocess\n\n  return MiniPick.builtin.cli(local_opts, opts)\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">wt_switch</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Change CWD to selected item's path</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">chdir</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">path</span>)\n  <span class=\"pl-k\">end</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Git worktree changed to <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> (<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">branch</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">branch</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>(bare)<span class=\"pl-pds\">'</span></span>),\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>\n  )\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @return</span> <span class=\"pl-k\">{ </span><span class=\"pl-c1\">text</span><span class=\"pl-k\">: </span><span class=\"pl-c1\">string</span><span class=\"pl-k\">, </span><span class=\"pl-c1\">branch</span><span class=\"pl-k\">: </span><span class=\"pl-c1\">string</span><span class=\"pl-k\">, </span><span class=\"pl-c1\">path</span><span class=\"pl-k\">: </span><span class=\"pl-c1\">string </span><span class=\"pl-k\">}</span><span class=\"pl-c1\">[]</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">wt_postprocess</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">entry</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">item</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%z%z<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">trimempty</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">head</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">ref</span> <span class=\"pl-k\">=</span>\n    <span class=\"pl-en\">entry</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^worktree (.-)%zHEAD (.-)%z([^ ]+) (.+)$<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">branch</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">basename</span>(<span class=\"pl-smi\">ref</span>)\n      <span class=\"pl-smi\">items</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">items</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(\n          <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[%s] %s %s<span class=\"pl-pds\">'</span></span>,\n          <span class=\"pl-smi\">branch</span>,\n          <span class=\"pl-en\">head</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">7</span>),\n          <span class=\"pl-smi\">path</span>\n        ),\n        <span class=\"pl-smi\">branch</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">branch</span>,\n        <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path</span>,\n      }\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">entry</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^worktree (.-)%z(bare)$<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">items</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">items</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> {\n          <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>(bare) %s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">path</span>),\n          <span class=\"pl-smi\">branch</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n          <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path</span>,\n        }\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">items</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">git_worktrees</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">cwd</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>git<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>-C<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">cwd</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>rev-parse<span class=\"pl-pds\">' </span></span>}):<span class=\"pl-c1\">wait</span>().<span class=\"pl-e\">code</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(\n      <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Not in a git repository<span class=\"pl-pds\">'</span></span>,\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>\n    )\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Window Title</span>\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Git Worktrees - %s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">cwd</span>),\n      <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">wt_switch</span>,\n    },\n  }\n  <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">command</span> <span class=\"pl-k\">=</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>git<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>-C<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">cwd</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>worktree<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>list<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>--porcelain<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>-z<span class=\"pl-pds\">' </span></span>}\n  <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">postprocess</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">wt_postprocess</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">cli</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Thanks.</p>",
+    "bodyText": "git_worktrees.mp4\n    \n  \n\n  \n\n  \n\n\nHello, I've created this picker around 3 months ago, and decided to share it here.\nThis picker list all available worktrees and change neovim working directory (cwd) to the selected tree. screenshot\nI choose to only change the directory so it's simple to anyone to implement their own automation. In my case, I use DirChangedPre event and mini.sessions to save my current session and load the session to the new working dir (using oil.nvim as a fallback in case I don't have a previous session).\nUsage:\nThe picker accepts an optional cwd parameter in case you want to search a repository in another path.\n\nOn the cmdline: :Pick git_worktrees or Pick git_worktrees cwd='my/git/repo/path';\nOn keymaps: vim.keymap.set('n', '<leader>fw', '<cmd>Pick git_worktrees<cr>')\n\nImplementation:\nBasically, this picker queries all available git worktrees using git -C $cwd worktree list and then the cli stdout is parsed using string.match to build a table array that has three fields: text, branch and path (you can customize the prompt by changing the content of text). So, when the user select an item the wt_switch procedure is called, changing the working dir to item.path.\nCode:\nlocal wt_switch = function(item)\n  -- NOTE: Change CWD to selected item's path\n  vim.schedule(function()\n    vim.fn.chdir(item.path)\n  end)\n  vim.notify(\n    'Git worktree changed to ' .. (item.branch and item.branch or '(bare)'),\n    vim.log.levels.INFO\n  )\nend\n\n--- @return { text: string, branch: string, path: string }[]\nlocal wt_postprocess = function(item)\n  local items = {}\n  for _, entry in pairs(vim.split(item[1], '%z%z', { trimempty = true })) do\n    local path, head, _, ref =\n    entry:match('^worktree (.-)%zHEAD (.-)%z([^ ]+) (.+)$')\n    if path then\n      local branch = vim.fs.basename(ref)\n      items[#items + 1] = {\n        text = string.format(\n          '[%s] %s %s',\n          branch,\n          head:sub(1, 7),\n          path\n        ),\n        branch = branch,\n        path = path,\n      }\n    else\n      path = entry:match('^worktree (.-)%z(bare)$')\n      if path then\n        items[#items + 1] = {\n          text = string.format('(bare) %s', path),\n          branch = nil,\n          path = path,\n        }\n      end\n    end\n  end\n  return items\nend\n\nMiniPick.registry.git_worktrees = function(local_opts)\n  local cwd = local_opts.cwd or vim.fn.getcwd()\n  if vim.system({ 'git', '-C', cwd, 'rev-parse' }):wait().code ~= 0 then\n    vim.notify(\n      'Not in a git repository',\n      vim.log.levels.ERROR\n    )\n    return\n  end\n  local opts = {\n    source = {\n      -- NOTE: Window Title\n      name = string.format('Git Worktrees - %s', cwd),\n      choose = wt_switch,\n    },\n  }\n  local_opts.command =\n  { 'git', '-C', cwd, 'worktree', 'list', '--porcelain', '-z' }\n  local_opts.postprocess = wt_postprocess\n\n  return MiniPick.builtin.cli(local_opts, opts)\nend\nThanks.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI've wanted to try to learn more about Git worktrees for quite a while in order to incorporate them into my workflow. Yet, never really got to it :(\r\n\r\nI like the usage of `-z` and zero byte character! It took me a while to understand that this is possible and even preferable to any other ad-hoc delimiter.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I've wanted to try to learn more about Git worktrees for quite a while in order to incorporate them into my workflow. Yet, never really got to it :(</p>\n<p dir=\"auto\">I like the usage of <code class=\"notranslate\">-z</code> and zero byte character! It took me a while to understand that this is possible and even preferable to any other ad-hoc delimiter.</p>",
+            "bodyText": "Thanks for sharing!\nI've wanted to try to learn more about Git worktrees for quite a while in order to incorporate them into my workflow. Yet, never really got to it :(\nI like the usage of -z and zero byte character! It took me a while to understand that this is possible and even preferable to any other ad-hoc delimiter.",
+            "createdAt": "2024-08-10T14:27:33Z",
+            "createdViaEmail": false,
+            "databaseId": 10298052,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnSLE",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-10T14:27:33Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I'm glad you like it!\r\n\r\n>I've wanted to try to learn more about Git worktrees for quite a while in order to incorporate them into my workflow. Yet, never really got to it :(\r\n\r\nWell, I found hard to understand it at first, mostly, because everyone on the internet is trying to sell it as \"the killer feature!\", instead of \"branches as folders\".\r\n\r\nUsing `mini.nvim` as an example, my workflow is the following:\r\n\r\n1. `mkdir mini.nvim && cd mini.nvim`\r\n1. `git clone --bare https://github.com/echasnovski/mini.nvim.git `\r\n1. `cd mini.nvim.git`\r\n1. `git worktree add ../main main`\r\n1. `git worktree add ../stable stable`\r\n\r\nThe final file-tree will be:\r\n\r\n```console\r\n mini.nvim/\r\n ├─ main/\r\n ├─ mini.nvim.git/\r\n └─ stable/\r\n```\r\n\r\nIn the end, instead of jumping from branch to branch using `git switch` you just change your working directory, and since they are separate folders you don't need to commit, stash or whatever in order to switch.\r\n\r\nTo wrap up , you only need a worktree if you need to change branches and since git only works inside a git repo, you **can't** use `git` inside the root folder (`mini.nvim`)\r\n\r\nhttps://github.com/user-attachments/assets/a4a3eb8c-ddcb-4047-b3f0-54e64819f861",
+                    "bodyHTML": "<p dir=\"auto\">I'm glad you like it!</p>\n<blockquote>\n<p dir=\"auto\">I've wanted to try to learn more about Git worktrees for quite a while in order to incorporate them into my workflow. Yet, never really got to it :(</p>\n</blockquote>\n<p dir=\"auto\">Well, I found hard to understand it at first, mostly, because everyone on the internet is trying to sell it as \"the killer feature!\", instead of \"branches as folders\".</p>\n<p dir=\"auto\">Using <code class=\"notranslate\">mini.nvim</code> as an example, my workflow is the following:</p>\n<ol dir=\"auto\">\n<li><code class=\"notranslate\">mkdir mini.nvim &amp;&amp; cd mini.nvim</code></li>\n<li><code class=\"notranslate\">git clone --bare https://github.com/echasnovski/mini.nvim.git </code></li>\n<li><code class=\"notranslate\">cd mini.nvim.git</code></li>\n<li><code class=\"notranslate\">git worktree add ../main main</code></li>\n<li><code class=\"notranslate\">git worktree add ../stable stable</code></li>\n</ol>\n<p dir=\"auto\">The final file-tree will be:</p>\n<div class=\"highlight highlight-text-shell-session notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\" mini.nvim/\n ├─ main/\n ├─ mini.nvim.git/\n └─ stable/\"><pre class=\"notranslate\"><span class=\"pl-c1\"> mini.nvim/</span>\n<span class=\"pl-c1\"> ├─ main/</span>\n<span class=\"pl-c1\"> ├─ mini.nvim.git/</span>\n<span class=\"pl-c1\"> └─ stable/</span></pre></div>\n<p dir=\"auto\">In the end, instead of jumping from branch to branch using <code class=\"notranslate\">git switch</code> you just change your working directory, and since they are separate folders you don't need to commit, stash or whatever in order to switch.</p>\n<p dir=\"auto\">To wrap up , you only need a worktree if you need to change branches and since git only works inside a git repo, you <strong>can't</strong> use <code class=\"notranslate\">git</code> inside the root folder (<code class=\"notranslate\">mini.nvim</code>)</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">workflow_demo.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/21080902/356833137-a4a3eb8c-ddcb-4047-b3f0-54e64819f861.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MDEsIm5iZiI6MTc5MzU1MzEwMSwicGF0aCI6Ii8yMTA4MDkwMi8zNTY4MzMxMzctYTRhM2ViOGMtZGRjYi00MDQ3LWIzZjAtNTRlNjQ4MTlmODYxLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTE0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTgxZjQ1ODA2ZmViOTI0YmJmZThkNDQ4ZTZlMTA2YmE4OWYzNWU0OWUwNDU2MDA1M2ZkZTVkZWY5N2E3Y2MzMDUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.iCiu_3-Vy2Gn-KgDn7EnQidZyTZUkiWH1xkJ2bYXfK0\" data-canonical-src=\"https://private-user-images.githubusercontent.com/21080902/356833137-a4a3eb8c-ddcb-4047-b3f0-54e64819f861.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0MDEsIm5iZiI6MTc5MzU1MzEwMSwicGF0aCI6Ii8yMTA4MDkwMi8zNTY4MzMxMzctYTRhM2ViOGMtZGRjYi00MDQ3LWIzZjAtNTRlNjQ4MTlmODYxLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTE0MVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTgxZjQ1ODA2ZmViOTI0YmJmZThkNDQ4ZTZlMTA2YmE4OWYzNWU0OWUwNDU2MDA1M2ZkZTVkZWY5N2E3Y2MzMDUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.iCiu_3-Vy2Gn-KgDn7EnQidZyTZUkiWH1xkJ2bYXfK0\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+                    "bodyText": "I'm glad you like it!\n\nI've wanted to try to learn more about Git worktrees for quite a while in order to incorporate them into my workflow. Yet, never really got to it :(\n\nWell, I found hard to understand it at first, mostly, because everyone on the internet is trying to sell it as \"the killer feature!\", instead of \"branches as folders\".\nUsing mini.nvim as an example, my workflow is the following:\n\nmkdir mini.nvim && cd mini.nvim\ngit clone --bare https://github.com/echasnovski/mini.nvim.git \ncd mini.nvim.git\ngit worktree add ../main main\ngit worktree add ../stable stable\n\nThe final file-tree will be:\n mini.nvim/\n ├─ main/\n ├─ mini.nvim.git/\n └─ stable/\nIn the end, instead of jumping from branch to branch using git switch you just change your working directory, and since they are separate folders you don't need to commit, stash or whatever in order to switch.\nTo wrap up , you only need a worktree if you need to change branches and since git only works inside a git repo, you can't use git inside the root folder (mini.nvim)\n\n  \n    \n    \n\n    workflow_demo.mp4",
+                    "createdAt": "2024-08-10T18:58:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10299953,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnSox",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-10T18:58:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10298052,
+                        "id": "DC_kwDOFoksYM4AnSLE",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10298052"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10299953",
+                    "updatedAt": "2024-08-10T18:58:27Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10299953"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks for the explanation and the video (I *do* plan to add 'mini.quickfix', just not right away :) ).\r\n\r\nI did think about worktrees as \"branches as directories\". It's just that \"regular\" workflow with \"stash - checkout\" is super straightforward with LazyGit, so I am pretty happy with it.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the explanation and the video (I <em>do</em> plan to add 'mini.quickfix', just not right away :) ).</p>\n<p dir=\"auto\">I did think about worktrees as \"branches as directories\". It's just that \"regular\" workflow with \"stash - checkout\" is super straightforward with LazyGit, so I am pretty happy with it.</p>",
+                    "bodyText": "Thanks for the explanation and the video (I do plan to add 'mini.quickfix', just not right away :) ).\nI did think about worktrees as \"branches as directories\". It's just that \"regular\" workflow with \"stash - checkout\" is super straightforward with LazyGit, so I am pretty happy with it.",
+                    "createdAt": "2024-08-10T19:39:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10300140,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnSrs",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-10T19:39:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10298052,
+                        "id": "DC_kwDOFoksYM4AnSLE",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10298052"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10300140",
+                    "updatedAt": "2024-08-10T19:39:21Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10300140"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10298052",
+            "updatedAt": "2024-08-10T14:27:33Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1131#discussioncomment-10298052"
+        }
+    ],
+    "createdAt": "2024-08-10T09:15:00Z",
+    "createdViaEmail": false,
+    "databaseId": 7032837,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Aa1AF",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1131,
+    "poll": null,
+    "publishedAt": "2024-08-10T09:15:00Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 2
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1131",
+    "stateReason": "REOPENED",
+    "title": "[mini.pick] git worktree picker",
+    "updatedAt": "2025-10-15T07:56:46Z",
+    "upvoteCount": 3,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1131"
+}

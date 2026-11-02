@@ -1,0 +1,1706 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+        "login": "edisj",
+        "resourcePath": "/edisj",
+        "url": "https://github.com/edisj"
+    },
+    "authorAssociation": "NONE",
+    "body": "Following up on my reddit post https://www.reddit.com/r/neovim/comments/1pm2m6i/cool_minifiles_sidescrolling_layout/\r\n\r\nI wanted to edit the mini.files window in the center of the screen, but I also wanted to retain the extra Miller-column windows. With the help of @echasnovski I improved my original version and landed on this:\r\n\r\nhttps://github.com/user-attachments/assets/f8d44ae8-8c32-470d-a8fa-04c83ef03b6d\r\n\r\nIf you want the same thing, use the code below :) (or share something you come up with cause I'd love to see that as well...)\r\n\r\n```lua\r\n-- Window width based on the offset from the center, i.e. center window\r\n-- is 60, then next over is 20, then the rest are 10.\r\n-- Can use more resolution if you want like { 60, 20, 20, 10, 5 }\r\nlocal widths = { 60, 20, 10 }\r\n\r\nlocal ensure_center_layout = function(ev)\r\n    local state = MiniFiles.get_explorer_state()\r\n    if state == nil then return end\r\n\r\n    -- Compute \"depth offset\" - how many windows are between this and focused\r\n    local path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match('^minifiles://%d+/(.*)$')\r\n    local depth_this\r\n    for i, path in ipairs(state.branch) do\r\n        if path == path_this then depth_this = i end\r\n    end\r\n    if depth_this == nil then return end\r\n    local depth_offset = depth_this - state.depth_focus\r\n\r\n    -- Adjust config of this event's window\r\n    local i = math.abs(depth_offset) + 1\r\n    local win_config = vim.api.nvim_win_get_config(ev.data.win_id)\r\n    win_config.width = i <= #widths and widths[i] or widths[#widths]\r\n\r\n    win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\r\n    for j = 1, math.abs(depth_offset) do\r\n        local sign = depth_offset == 0 and 0 or (depth_offset > 0 and 1 or -1)\r\n        -- widths[j+1] for the negative case because we don't want to add the center window's width \r\n        local prev_win_width = (sign == -1 and widths[j+1]) or widths[j] or widths[#widths]\r\n        -- Add an extra +2 each step to account for the border width\r\n        win_config.col = win_config.col + sign * (prev_win_width + 2)\r\n    end\r\n\r\n    win_config.height = depth_offset == 0 and 25 or 20\r\n    win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\r\n    win_config.border = { \"🭽\", \"▔\", \"🭾\", \"▕\", \"🭿\", \"▁\", \"🭼\", \"▏\" }\r\n    vim.api.nvim_win_set_config(ev.data.win_id, win_config)\r\nend\r\n\r\nvim.api.nvim_create_autocmd(\"User\", { pattern = \"MiniFilesWindowUpdate\", callback = ensure_center_layout })\r\n```\r\n\r\nFor anyone that wants to play around with it and create their own layout, the above is pretty simple, imagine we have a window arrangement like this - \r\n```\r\n                        O---------------┐\r\n*-----┐*-----┐*--------┐|               |*---------┐\r\n|     ||     ||        ||               ||         |\r\n| -3  || -2  ||   -1   ||       0       ||    1    |\r\n|     ||     ||        ||               ||         |\r\n└-----┘└-----┘└--------┘|               |└---------┘ \r\n                        └---------------┘\r\n```\r\nThe number in the middle is the `depth_offset` for each window (each window triggers its own `'MiniFilesWindowUpdate'` event). The `O` in the topleft of the central window is the origin that every window begins at (see the line with `win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))`). The `*`'s in the upper left are the default 'NW' anchor of each window, so imagining that all anchors are initially stacked on point `O`, the goal is to offset each window's `win_config.col` based on their `depth_offset`. For windows to the right, you can see their anchors need to be shifted right by the previous window's width (plus all other windows to the origin), and for windows to the left, they need to be shifted left by their own width (plus all other windows to the origin).\r\n\r\nHope that helps someone",
+    "bodyHTML": "<p dir=\"auto\">Following up on my reddit post <a href=\"https://www.reddit.com/r/neovim/comments/1pm2m6i/cool_minifiles_sidescrolling_layout/\" rel=\"nofollow\">https://www.reddit.com/r/neovim/comments/1pm2m6i/cool_minifiles_sidescrolling_layout/</a></p>\n<p dir=\"auto\">I wanted to edit the mini.files window in the center of the screen, but I also wanted to retain the extra Miller-column windows. With the help of <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> I improved my original version and landed on this:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">minifiles_demo.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/59893899/526332354-f8d44ae8-8c32-470d-a8fa-04c83ef03b6d.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NTEsIm5iZiI6MTc5MzU1MjM1MSwicGF0aCI6Ii81OTg5Mzg5OS81MjYzMzIzNTQtZjhkNDRhZTgtOGMzMi00NzBkLWE4ZmEtMDRjODNlZjAzYjZkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE2NTkxMVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTQ1MTY0MGI3MTg1ZTRkOGY4ZDI4MzllNTkwNzMwZTdmODExYzM3MzdhYjYzZGFmM2UyZTkwZDExNWIwYzBmYmImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.SmSlpKzCWHmJortP0FJ-Z2a391V3sbq1U4HYuQLv5-A\" data-canonical-src=\"https://private-user-images.githubusercontent.com/59893899/526332354-f8d44ae8-8c32-470d-a8fa-04c83ef03b6d.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NTEsIm5iZiI6MTc5MzU1MjM1MSwicGF0aCI6Ii81OTg5Mzg5OS81MjYzMzIzNTQtZjhkNDRhZTgtOGMzMi00NzBkLWE4ZmEtMDRjODNlZjAzYjZkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE2NTkxMVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTQ1MTY0MGI3MTg1ZTRkOGY4ZDI4MzllNTkwNzMwZTdmODExYzM3MzdhYjYzZGFmM2UyZTkwZDExNWIwYzBmYmImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.SmSlpKzCWHmJortP0FJ-Z2a391V3sbq1U4HYuQLv5-A\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">If you want the same thing, use the code below :) (or share something you come up with cause I'd love to see that as well...)</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Window width based on the offset from the center, i.e. center window\n-- is 60, then next over is 20, then the rest are 10.\n-- Can use more resolution if you want like { 60, 20, 20, 10, 5 }\nlocal widths = { 60, 20, 10 }\n\nlocal ensure_center_layout = function(ev)\n    local state = MiniFiles.get_explorer_state()\n    if state == nil then return end\n\n    -- Compute &quot;depth offset&quot; - how many windows are between this and focused\n    local path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match('^minifiles://%d+/(.*)$')\n    local depth_this\n    for i, path in ipairs(state.branch) do\n        if path == path_this then depth_this = i end\n    end\n    if depth_this == nil then return end\n    local depth_offset = depth_this - state.depth_focus\n\n    -- Adjust config of this event's window\n    local i = math.abs(depth_offset) + 1\n    local win_config = vim.api.nvim_win_get_config(ev.data.win_id)\n    win_config.width = i &lt;= #widths and widths[i] or widths[#widths]\n\n    win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\n    for j = 1, math.abs(depth_offset) do\n        local sign = depth_offset == 0 and 0 or (depth_offset &gt; 0 and 1 or -1)\n        -- widths[j+1] for the negative case because we don't want to add the center window's width \n        local prev_win_width = (sign == -1 and widths[j+1]) or widths[j] or widths[#widths]\n        -- Add an extra +2 each step to account for the border width\n        win_config.col = win_config.col + sign * (prev_win_width + 2)\n    end\n\n    win_config.height = depth_offset == 0 and 25 or 20\n    win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\n    win_config.border = { &quot;🭽&quot;, &quot;▔&quot;, &quot;🭾&quot;, &quot;▕&quot;, &quot;🭿&quot;, &quot;▁&quot;, &quot;🭼&quot;, &quot;▏&quot; }\n    vim.api.nvim_win_set_config(ev.data.win_id, win_config)\nend\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, { pattern = &quot;MiniFilesWindowUpdate&quot;, callback = ensure_center_layout })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Window width based on the offset from the center, i.e. center window</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> is 60, then next over is 20, then the rest are 10.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Can use more resolution if you want like { 60, 20, 20, 10, 5 }</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">widths</span> <span class=\"pl-k\">=</span> { <span class=\"pl-c1\">60</span>, <span class=\"pl-c1\">20</span>, <span class=\"pl-c1\">10</span> }\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">ensure_center_layout</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ev</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Compute \"depth offset\" - how many windows are between this and focused</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>):<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^minifiles://%d+/(.*)$<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth_this</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">branch</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">path_this</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_focus</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Adjust config of this event's window</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">depth_offset</span>) <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>)\n    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span>]\n\n    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-c1\">1</span>]))\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">j</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">depth_offset</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">sign</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> widths[j+1] for the negative case because we don't want to add the center window's width </span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prev_win_width</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">sign</span> <span class=\"pl-k\">==</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">j</span><span class=\"pl-k\">+</span><span class=\"pl-c1\">1</span>]) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">j</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span>]\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Add an extra +2 each step to account for the border width</span>\n        <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">sign</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">prev_win_width</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">2</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">25</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">20</span>\n    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span>))\n    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">border</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>🭽<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>▔<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>🭾<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>▕<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>🭿<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>▁<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>🭼<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>▏<span class=\"pl-pds\">\" </span></span>}\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_config</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-smi\">win_config</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesWindowUpdate<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ensure_center_layout</span> })</pre></div>\n<p dir=\"auto\">For anyone that wants to play around with it and create their own layout, the above is pretty simple, imagine we have a window arrangement like this -</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"                        O---------------┐\n*-----┐*-----┐*--------┐|               |*---------┐\n|     ||     ||        ||               ||         |\n| -3  || -2  ||   -1   ||       0       ||    1    |\n|     ||     ||        ||               ||         |\n└-----┘└-----┘└--------┘|               |└---------┘ \n                        └---------------┘\"><pre class=\"notranslate\"><code class=\"notranslate\">                        O---------------┐\n*-----┐*-----┐*--------┐|               |*---------┐\n|     ||     ||        ||               ||         |\n| -3  || -2  ||   -1   ||       0       ||    1    |\n|     ||     ||        ||               ||         |\n└-----┘└-----┘└--------┘|               |└---------┘ \n                        └---------------┘\n</code></pre></div>\n<p dir=\"auto\">The number in the middle is the <code class=\"notranslate\">depth_offset</code> for each window (each window triggers its own <code class=\"notranslate\">'MiniFilesWindowUpdate'</code> event). The <code class=\"notranslate\">O</code> in the topleft of the central window is the origin that every window begins at (see the line with <code class=\"notranslate\">win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))</code>). The <code class=\"notranslate\">*</code>'s in the upper left are the default 'NW' anchor of each window, so imagining that all anchors are initially stacked on point <code class=\"notranslate\">O</code>, the goal is to offset each window's <code class=\"notranslate\">win_config.col</code> based on their <code class=\"notranslate\">depth_offset</code>. For windows to the right, you can see their anchors need to be shifted right by the previous window's width (plus all other windows to the origin), and for windows to the left, they need to be shifted left by their own width (plus all other windows to the origin).</p>\n<p dir=\"auto\">Hope that helps someone</p>",
+    "bodyText": "Following up on my reddit post https://www.reddit.com/r/neovim/comments/1pm2m6i/cool_minifiles_sidescrolling_layout/\nI wanted to edit the mini.files window in the center of the screen, but I also wanted to retain the extra Miller-column windows. With the help of @echasnovski I improved my original version and landed on this:\n\n  \n    \n    \n\n    minifiles_demo.mp4\n    \n  \n\n  \n\n  \n\n\nIf you want the same thing, use the code below :) (or share something you come up with cause I'd love to see that as well...)\n-- Window width based on the offset from the center, i.e. center window\n-- is 60, then next over is 20, then the rest are 10.\n-- Can use more resolution if you want like { 60, 20, 20, 10, 5 }\nlocal widths = { 60, 20, 10 }\n\nlocal ensure_center_layout = function(ev)\n    local state = MiniFiles.get_explorer_state()\n    if state == nil then return end\n\n    -- Compute \"depth offset\" - how many windows are between this and focused\n    local path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match('^minifiles://%d+/(.*)$')\n    local depth_this\n    for i, path in ipairs(state.branch) do\n        if path == path_this then depth_this = i end\n    end\n    if depth_this == nil then return end\n    local depth_offset = depth_this - state.depth_focus\n\n    -- Adjust config of this event's window\n    local i = math.abs(depth_offset) + 1\n    local win_config = vim.api.nvim_win_get_config(ev.data.win_id)\n    win_config.width = i <= #widths and widths[i] or widths[#widths]\n\n    win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\n    for j = 1, math.abs(depth_offset) do\n        local sign = depth_offset == 0 and 0 or (depth_offset > 0 and 1 or -1)\n        -- widths[j+1] for the negative case because we don't want to add the center window's width \n        local prev_win_width = (sign == -1 and widths[j+1]) or widths[j] or widths[#widths]\n        -- Add an extra +2 each step to account for the border width\n        win_config.col = win_config.col + sign * (prev_win_width + 2)\n    end\n\n    win_config.height = depth_offset == 0 and 25 or 20\n    win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\n    win_config.border = { \"🭽\", \"▔\", \"🭾\", \"▕\", \"🭿\", \"▁\", \"🭼\", \"▏\" }\n    vim.api.nvim_win_set_config(ev.data.win_id, win_config)\nend\n\nvim.api.nvim_create_autocmd(\"User\", { pattern = \"MiniFilesWindowUpdate\", callback = ensure_center_layout })\nFor anyone that wants to play around with it and create their own layout, the above is pretty simple, imagine we have a window arrangement like this -\n                        O---------------┐\n*-----┐*-----┐*--------┐|               |*---------┐\n|     ||     ||        ||               ||         |\n| -3  || -2  ||   -1   ||       0       ||    1    |\n|     ||     ||        ||               ||         |\n└-----┘└-----┘└--------┘|               |└---------┘ \n                        └---------------┘\n\nThe number in the middle is the depth_offset for each window (each window triggers its own 'MiniFilesWindowUpdate' event). The O in the topleft of the central window is the origin that every window begins at (see the line with win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))). The *'s in the upper left are the default 'NW' anchor of each window, so imagining that all anchors are initially stacked on point O, the goal is to offset each window's win_config.col based on their depth_offset. For windows to the right, you can see their anchors need to be shifted right by the previous window's width (plus all other windows to the origin), and for windows to the left, they need to be shifted left by their own width (plus all other windows to the origin).\nHope that helps someone",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing. As I said earlier, this looks awesome. And if I'd thought about this during 'mini.files' creation, this might have been the default look.\r\n\r\n---\r\n\r\nI'll copy my relevant Reddit comment:\r\n\r\n> There is still overlapping when there is too many windows to the left or right (that don't fit the screen), but that seems okay-ish.\r\n> \r\n> Plus I noticed some weird behavior when trying to create a new file with preview enabled. The preview window is not adjusted. This is probably due to an event not triggering, but that would require a deeper dive.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing. As I said earlier, this looks awesome. And if I'd thought about this during 'mini.files' creation, this might have been the default look.</p>\n<hr>\n<p dir=\"auto\">I'll copy my relevant Reddit comment:</p>\n<blockquote>\n<p dir=\"auto\">There is still overlapping when there is too many windows to the left or right (that don't fit the screen), but that seems okay-ish.</p>\n<p dir=\"auto\">Plus I noticed some weird behavior when trying to create a new file with preview enabled. The preview window is not adjusted. This is probably due to an event not triggering, but that would require a deeper dive.</p>\n</blockquote>",
+            "bodyText": "Thanks for sharing. As I said earlier, this looks awesome. And if I'd thought about this during 'mini.files' creation, this might have been the default look.\n\nI'll copy my relevant Reddit comment:\n\nThere is still overlapping when there is too many windows to the left or right (that don't fit the screen), but that seems okay-ish.\nPlus I noticed some weird behavior when trying to create a new file with preview enabled. The preview window is not adjusted. This is probably due to an event not triggering, but that would require a deeper dive.",
+            "createdAt": "2025-12-14T20:55:34Z",
+            "createdViaEmail": false,
+            "databaseId": 15253397,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4A6L-V",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-14T20:56:27Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-14T20:55:34Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 11,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+                        "login": "edisj",
+                        "resourcePath": "/edisj",
+                        "url": "https://github.com/edisj"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I'm thinking about the overlapping windows on the edge of the screen while I can't sleep and had an idea... Obviously you could dynamically resize them if they hit the edge of the screen but I think that would look pretty goofy. What if instead, if a window doesn't have enough space to fit, it just closes? And then it simply reopens when there's room. It would create a really cool kind of \"infinite\" scrolling effect. i gotta test this sometime ",
+                    "bodyHTML": "<p dir=\"auto\">I'm thinking about the overlapping windows on the edge of the screen while I can't sleep and had an idea... Obviously you could dynamically resize them if they hit the edge of the screen but I think that would look pretty goofy. What if instead, if a window doesn't have enough space to fit, it just closes? And then it simply reopens when there's room. It would create a really cool kind of \"infinite\" scrolling effect. i gotta test this sometime</p>",
+                    "bodyText": "I'm thinking about the overlapping windows on the edge of the screen while I can't sleep and had an idea... Obviously you could dynamically resize them if they hit the edge of the screen but I think that would look pretty goofy. What if instead, if a window doesn't have enough space to fit, it just closes? And then it simply reopens when there's room. It would create a really cool kind of \"infinite\" scrolling effect. i gotta test this sometime",
+                    "createdAt": "2025-12-16T09:57:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15267629,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6Pct",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-16T09:57:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15267629",
+                    "updatedAt": "2025-12-16T09:57:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15267629"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> What if instead, if a window doesn't have enough space to fit, it just closes? And then it simply reopens when there's room. It would create a really cool kind of \"infinite\" scrolling effect. i gotta test this sometime\r\n\r\nI'd recommend not doing it. 'mini.files' expects to manage all its windows. Closing some window which it expects to be open will introduce problems.\r\n\r\nI think the most realistic way of handling this is to ensure that if the window doesn't fit on screen it is always shown below other windows. Setting appropriate `zindex` should do the trick here.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">What if instead, if a window doesn't have enough space to fit, it just closes? And then it simply reopens when there's room. It would create a really cool kind of \"infinite\" scrolling effect. i gotta test this sometime</p>\n</blockquote>\n<p dir=\"auto\">I'd recommend not doing it. 'mini.files' expects to manage all its windows. Closing some window which it expects to be open will introduce problems.</p>\n<p dir=\"auto\">I think the most realistic way of handling this is to ensure that if the window doesn't fit on screen it is always shown below other windows. Setting appropriate <code class=\"notranslate\">zindex</code> should do the trick here.</p>",
+                    "bodyText": "What if instead, if a window doesn't have enough space to fit, it just closes? And then it simply reopens when there's room. It would create a really cool kind of \"infinite\" scrolling effect. i gotta test this sometime\n\nI'd recommend not doing it. 'mini.files' expects to manage all its windows. Closing some window which it expects to be open will introduce problems.\nI think the most realistic way of handling this is to ensure that if the window doesn't fit on screen it is always shown below other windows. Setting appropriate zindex should do the trick here.",
+                    "createdAt": "2025-12-16T10:07:38Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15267727,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6PeP",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-16T10:07:38Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15267727",
+                    "updatedAt": "2025-12-16T10:07:38Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15267727"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+                        "login": "edisj",
+                        "resourcePath": "/edisj",
+                        "url": "https://github.com/edisj"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "check it out!\r\n\r\n\r\nhttps://github.com/user-attachments/assets/2e65a735-2a78-4aa8-ad2a-95bb9e5fb86d\r\n\r\n\r\n\r\nnew code:\r\n```lua\r\n        -- Window width based on the offset from the center, i.e. center window\r\n        -- is 60, then next over is 20, then the rest are 10.\r\n        -- Can use more resolution if you want like { 60, 20, 20, 10, 5 }\r\n        local widths = { 60, 20, 10 }\r\n\r\n        local ensure_center_layout = function(ev)\r\n            local state = MiniFiles.get_explorer_state()\r\n            if state == nil then return end\r\n\r\n            -- Compute \"depth offset\" - how many windows are between this and focused\r\n            local path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match('^minifiles://%d+/(.*)$')\r\n            local depth_this\r\n            for i, path in ipairs(state.branch) do\r\n                if path == path_this then depth_this = i end\r\n            end\r\n            if depth_this == nil then return end\r\n            local depth_offset = depth_this - state.depth_focus\r\n\r\n            -- Adjust config of this event's window\r\n            local i = math.abs(depth_offset) + 1\r\n            local win_config = vim.api.nvim_win_get_config(ev.data.win_id)\r\n            win_config.width = i <= #widths and widths[i] or widths[#widths]\r\n\r\n            win_config.zindex = 99\r\n            win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\r\n            local sign = depth_offset == 0 and 0 or (depth_offset > 0 and 1 or -1)\r\n            for j = 1, math.abs(depth_offset) do\r\n                -- widths[j+1] for the negative case because we don't want to add the center window's width\r\n                local prev_win_width = (sign == -1 and widths[j+1]) or widths[j] or widths[#widths]\r\n                -- Add an extra +2 each step to account for the border width\r\n                local new_col = win_config.col + sign * (prev_win_width + 2)\r\n                if (new_col < 0) or (new_col + win_config.width > vim.o.columns) then\r\n                    win_config.zindex = win_config.zindex - 1\r\n                    break\r\n                end\r\n                win_config.col = new_col\r\n            end\r\n\r\n            win_config.height = depth_offset == 0 and 24 or 20\r\n            win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\r\n            -- win_config.border = { \"🭽\", \"▔\", \"🭾\", \"▕\", \"🭿\", \"▁\", \"🭼\", \"▏\" }\r\n            win_config.footer = { { tostring(depth_offset), \"Normal\" } }\r\n            vim.api.nvim_win_set_config(ev.data.win_id, win_config)\r\n        end\r\n\r\n        vim.api.nvim_create_autocmd(\"User\", { pattern = \"MiniFilesWindowUpdate\", callback = ensure_center_layout })\r\n```\r\n\r\nto test I created 50 dirs with this and didn't see any hiccups\r\n```bash\r\n#!/usr/bin/env bash\r\n\r\noriginal_dir=\"$(pwd)\"\r\n\r\nfor i in {1..50}; do\r\n    mkdir $i\r\n    cd $i\r\n    rand10=$(( ($RANDOM % 10) + 1 ))\r\n    for j in $(seq 1 $rand10); do\r\n        rand1000=$(( ($RANDOM % 1000) + 101 ))\r\n        touch $rand1000\r\n    done\r\ndone\r\n\r\ncd $original_dir\r\n```\r\n\r\nI noticed an interesting thing though - initially 'mini.files' wouldn't draw more than 7 windows at a time. I reduced `width_focus` and `width_nofocus` in the original config and it fixed it, so I'm guessing 'mini.files' does some internal calculation based on sum of widths to limit number of windows",
+                    "bodyHTML": "<p dir=\"auto\">check it out!</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">minifiles_scrolling.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/59893899/527229385-2e65a735-2a78-4aa8-ad2a-95bb9e5fb86d.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NTIsIm5iZiI6MTc5MzU1MjM1MiwicGF0aCI6Ii81OTg5Mzg5OS81MjcyMjkzODUtMmU2NWE3MzUtMmE3OC00YWE4LWFkMmEtOTViYjllNWZiODZkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE2NTkxMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTMwZmY2ZTJjZGFmYTg4MDdmZTVlZWZjNWQ1ZmQxMGJmODkyNDk3YmRjODljMDhlYjgwZGU4MmNjNjYxNTI0ZDMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.AJYTnLdSYGJmjjtqfqLql1ERqXvt60w5ZmZwsPdFu-c\" data-canonical-src=\"https://private-user-images.githubusercontent.com/59893899/527229385-2e65a735-2a78-4aa8-ad2a-95bb9e5fb86d.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NTIsIm5iZiI6MTc5MzU1MjM1MiwicGF0aCI6Ii81OTg5Mzg5OS81MjcyMjkzODUtMmU2NWE3MzUtMmE3OC00YWE4LWFkMmEtOTViYjllNWZiODZkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE2NTkxMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTMwZmY2ZTJjZGFmYTg4MDdmZTVlZWZjNWQ1ZmQxMGJmODkyNDk3YmRjODljMDhlYjgwZGU4MmNjNjYxNTI0ZDMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.AJYTnLdSYGJmjjtqfqLql1ERqXvt60w5ZmZwsPdFu-c\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">new code:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"        -- Window width based on the offset from the center, i.e. center window\n        -- is 60, then next over is 20, then the rest are 10.\n        -- Can use more resolution if you want like { 60, 20, 20, 10, 5 }\n        local widths = { 60, 20, 10 }\n\n        local ensure_center_layout = function(ev)\n            local state = MiniFiles.get_explorer_state()\n            if state == nil then return end\n\n            -- Compute &quot;depth offset&quot; - how many windows are between this and focused\n            local path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match('^minifiles://%d+/(.*)$')\n            local depth_this\n            for i, path in ipairs(state.branch) do\n                if path == path_this then depth_this = i end\n            end\n            if depth_this == nil then return end\n            local depth_offset = depth_this - state.depth_focus\n\n            -- Adjust config of this event's window\n            local i = math.abs(depth_offset) + 1\n            local win_config = vim.api.nvim_win_get_config(ev.data.win_id)\n            win_config.width = i &lt;= #widths and widths[i] or widths[#widths]\n\n            win_config.zindex = 99\n            win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\n            local sign = depth_offset == 0 and 0 or (depth_offset &gt; 0 and 1 or -1)\n            for j = 1, math.abs(depth_offset) do\n                -- widths[j+1] for the negative case because we don't want to add the center window's width\n                local prev_win_width = (sign == -1 and widths[j+1]) or widths[j] or widths[#widths]\n                -- Add an extra +2 each step to account for the border width\n                local new_col = win_config.col + sign * (prev_win_width + 2)\n                if (new_col &lt; 0) or (new_col + win_config.width &gt; vim.o.columns) then\n                    win_config.zindex = win_config.zindex - 1\n                    break\n                end\n                win_config.col = new_col\n            end\n\n            win_config.height = depth_offset == 0 and 24 or 20\n            win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\n            -- win_config.border = { &quot;🭽&quot;, &quot;▔&quot;, &quot;🭾&quot;, &quot;▕&quot;, &quot;🭿&quot;, &quot;▁&quot;, &quot;🭼&quot;, &quot;▏&quot; }\n            win_config.footer = { { tostring(depth_offset), &quot;Normal&quot; } }\n            vim.api.nvim_win_set_config(ev.data.win_id, win_config)\n        end\n\n        vim.api.nvim_create_autocmd(&quot;User&quot;, { pattern = &quot;MiniFilesWindowUpdate&quot;, callback = ensure_center_layout })\"><pre class=\"notranslate\">        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Window width based on the offset from the center, i.e. center window</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> is 60, then next over is 20, then the rest are 10.</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Can use more resolution if you want like { 60, 20, 20, 10, 5 }</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">widths</span> <span class=\"pl-k\">=</span> { <span class=\"pl-c1\">60</span>, <span class=\"pl-c1\">20</span>, <span class=\"pl-c1\">10</span> }\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-en\">ensure_center_layout</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ev</span>)\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>()\n            <span class=\"pl-k\">if</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> Compute \"depth offset\" - how many windows are between this and focused</span>\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>):<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^minifiles://%d+/(.*)$<span class=\"pl-pds\">'</span></span>)\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth_this</span>\n            <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">branch</span>) <span class=\"pl-k\">do</span>\n                <span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">path_this</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">end</span>\n            <span class=\"pl-k\">end</span>\n            <span class=\"pl-k\">if</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_focus</span>\n\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> Adjust config of this event's window</span>\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">depth_offset</span>) <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>)\n            <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span>]\n\n            <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">zindex</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">99</span>\n            <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-c1\">1</span>]))\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">sign</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n            <span class=\"pl-k\">for</span> <span class=\"pl-smi\">j</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">depth_offset</span>) <span class=\"pl-k\">do</span>\n                <span class=\"pl-c\"><span class=\"pl-c\">--</span> widths[j+1] for the negative case because we don't want to add the center window's width</span>\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prev_win_width</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">sign</span> <span class=\"pl-k\">==</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">j</span><span class=\"pl-k\">+</span><span class=\"pl-c1\">1</span>]) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">j</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span>]\n                <span class=\"pl-c\"><span class=\"pl-c\">--</span> Add an extra +2 each step to account for the border width</span>\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">sign</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">prev_win_width</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">2</span>)\n                <span class=\"pl-k\">if</span> (<span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span>) <span class=\"pl-k\">then</span>\n                    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">zindex</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">zindex</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>\n                    <span class=\"pl-k\">break</span>\n                <span class=\"pl-k\">end</span>\n                <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_col</span>\n            <span class=\"pl-k\">end</span>\n\n            <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">24</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">20</span>\n            <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span>))\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> win_config.border = { \"🭽\", \"▔\", \"🭾\", \"▕\", \"🭿\", \"▁\", \"🭼\", \"▏\" }</span>\n            <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">footer</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">depth_offset</span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Normal<span class=\"pl-pds\">\" </span></span>} }\n            <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_config</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-smi\">win_config</span>)\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesWindowUpdate<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ensure_center_layout</span> })</pre></div>\n<p dir=\"auto\">to test I created 50 dirs with this and didn't see any hiccups</p>\n<div class=\"highlight highlight-source-shell notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"#!/usr/bin/env bash\n\noriginal_dir=&quot;$(pwd)&quot;\n\nfor i in {1..50}; do\n    mkdir $i\n    cd $i\n    rand10=$(( ($RANDOM % 10) + 1 ))\n    for j in $(seq 1 $rand10); do\n        rand1000=$(( ($RANDOM % 1000) + 101 ))\n        touch $rand1000\n    done\ndone\n\ncd $original_dir\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">#!</span>/usr/bin/env bash</span>\n\noriginal_dir=<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-s\"><span class=\"pl-pds\">$(</span>pwd<span class=\"pl-pds\">)</span></span><span class=\"pl-pds\">\"</span></span>\n\n<span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">in</span> {1..50}<span class=\"pl-k\">;</span> <span class=\"pl-k\">do</span>\n    mkdir <span class=\"pl-smi\">$i</span>\n    <span class=\"pl-c1\">cd</span> <span class=\"pl-smi\">$i</span>\n    rand10=<span class=\"pl-s\"><span class=\"pl-pds\">$((</span> (<span class=\"pl-smi\">$RANDOM</span> <span class=\"pl-k\">%</span> <span class=\"pl-c1\">10</span>) <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> <span class=\"pl-pds\">))</span></span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">j</span> <span class=\"pl-k\">in</span> <span class=\"pl-s\"><span class=\"pl-pds\">$(</span>seq 1 <span class=\"pl-smi\">$rand10</span><span class=\"pl-pds\">)</span></span><span class=\"pl-k\">;</span> <span class=\"pl-k\">do</span>\n        rand1000=<span class=\"pl-s\"><span class=\"pl-pds\">$((</span> (<span class=\"pl-smi\">$RANDOM</span> <span class=\"pl-k\">%</span> <span class=\"pl-c1\">1000</span>) <span class=\"pl-k\">+</span> <span class=\"pl-c1\">101</span> <span class=\"pl-pds\">))</span></span>\n        touch <span class=\"pl-smi\">$rand1000</span>\n    <span class=\"pl-k\">done</span>\n<span class=\"pl-k\">done</span>\n\n<span class=\"pl-c1\">cd</span> <span class=\"pl-smi\">$original_dir</span></pre></div>\n<p dir=\"auto\">I noticed an interesting thing though - initially 'mini.files' wouldn't draw more than 7 windows at a time. I reduced <code class=\"notranslate\">width_focus</code> and <code class=\"notranslate\">width_nofocus</code> in the original config and it fixed it, so I'm guessing 'mini.files' does some internal calculation based on sum of widths to limit number of windows</p>",
+                    "bodyText": "check it out!\n\n  \n    \n    \n\n    minifiles_scrolling.mp4\n    \n  \n\n  \n\n  \n\n\nnew code:\n        -- Window width based on the offset from the center, i.e. center window\n        -- is 60, then next over is 20, then the rest are 10.\n        -- Can use more resolution if you want like { 60, 20, 20, 10, 5 }\n        local widths = { 60, 20, 10 }\n\n        local ensure_center_layout = function(ev)\n            local state = MiniFiles.get_explorer_state()\n            if state == nil then return end\n\n            -- Compute \"depth offset\" - how many windows are between this and focused\n            local path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match('^minifiles://%d+/(.*)$')\n            local depth_this\n            for i, path in ipairs(state.branch) do\n                if path == path_this then depth_this = i end\n            end\n            if depth_this == nil then return end\n            local depth_offset = depth_this - state.depth_focus\n\n            -- Adjust config of this event's window\n            local i = math.abs(depth_offset) + 1\n            local win_config = vim.api.nvim_win_get_config(ev.data.win_id)\n            win_config.width = i <= #widths and widths[i] or widths[#widths]\n\n            win_config.zindex = 99\n            win_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\n            local sign = depth_offset == 0 and 0 or (depth_offset > 0 and 1 or -1)\n            for j = 1, math.abs(depth_offset) do\n                -- widths[j+1] for the negative case because we don't want to add the center window's width\n                local prev_win_width = (sign == -1 and widths[j+1]) or widths[j] or widths[#widths]\n                -- Add an extra +2 each step to account for the border width\n                local new_col = win_config.col + sign * (prev_win_width + 2)\n                if (new_col < 0) or (new_col + win_config.width > vim.o.columns) then\n                    win_config.zindex = win_config.zindex - 1\n                    break\n                end\n                win_config.col = new_col\n            end\n\n            win_config.height = depth_offset == 0 and 24 or 20\n            win_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\n            -- win_config.border = { \"🭽\", \"▔\", \"🭾\", \"▕\", \"🭿\", \"▁\", \"🭼\", \"▏\" }\n            win_config.footer = { { tostring(depth_offset), \"Normal\" } }\n            vim.api.nvim_win_set_config(ev.data.win_id, win_config)\n        end\n\n        vim.api.nvim_create_autocmd(\"User\", { pattern = \"MiniFilesWindowUpdate\", callback = ensure_center_layout })\nto test I created 50 dirs with this and didn't see any hiccups\n#!/usr/bin/env bash\n\noriginal_dir=\"$(pwd)\"\n\nfor i in {1..50}; do\n    mkdir $i\n    cd $i\n    rand10=$(( ($RANDOM % 10) + 1 ))\n    for j in $(seq 1 $rand10); do\n        rand1000=$(( ($RANDOM % 1000) + 101 ))\n        touch $rand1000\n    done\ndone\n\ncd $original_dir\nI noticed an interesting thing though - initially 'mini.files' wouldn't draw more than 7 windows at a time. I reduced width_focus and width_nofocus in the original config and it fixed it, so I'm guessing 'mini.files' does some internal calculation based on sum of widths to limit number of windows",
+                    "createdAt": "2025-12-16T19:07:04Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15272407,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+                        "login": "edisj",
+                        "resourcePath": "/edisj",
+                        "url": "https://github.com/edisj"
+                    },
+                    "id": "DC_kwDOFoksYM4A6QnX",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-16T19:26:02Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-16T19:07:04Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15272407",
+                    "updatedAt": "2025-12-16T19:26:02Z",
+                    "upvoteCount": 1,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15272407"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I noticed an interesting thing though - initially 'mini.files' wouldn't draw more than 7 windows at a time. I reduced `width_focus` and `width_nofocus` in the original config and it fixed it, so I'm guessing 'mini.files' does some internal calculation based on sum of widths to limit number of windows\r\n\r\nIt is not strictly 7, but 'mini.files' does assume that it will draw windows with its own layout. And in fact it does draw them initially. This is followed by triggering a dedicated event and redrawing based on the event's callback.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I noticed an interesting thing though - initially 'mini.files' wouldn't draw more than 7 windows at a time. I reduced <code class=\"notranslate\">width_focus</code> and <code class=\"notranslate\">width_nofocus</code> in the original config and it fixed it, so I'm guessing 'mini.files' does some internal calculation based on sum of widths to limit number of windows</p>\n</blockquote>\n<p dir=\"auto\">It is not strictly 7, but 'mini.files' does assume that it will draw windows with its own layout. And in fact it does draw them initially. This is followed by triggering a dedicated event and redrawing based on the event's callback.</p>",
+                    "bodyText": "I noticed an interesting thing though - initially 'mini.files' wouldn't draw more than 7 windows at a time. I reduced width_focus and width_nofocus in the original config and it fixed it, so I'm guessing 'mini.files' does some internal calculation based on sum of widths to limit number of windows\n\nIt is not strictly 7, but 'mini.files' does assume that it will draw windows with its own layout. And in fact it does draw them initially. This is followed by triggering a dedicated event and redrawing based on the event's callback.",
+                    "createdAt": "2025-12-16T19:12:40Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15272436,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6Qn0",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-16T19:12:40Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15272436",
+                    "updatedAt": "2025-12-16T19:12:40Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15272436"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/176472302?u=c5e821af535f015fcaabf2b18de98c4b00b26f69&v=4",
+                        "login": "themastersheep",
+                        "resourcePath": "/themastersheep",
+                        "url": "https://github.com/themastersheep"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Love this, nice work @edisj!  \r\n\r\nThis tipped me over to using another great mini plugin, slowly but surely taking over my config - thank you @echasnovski.\r\n\r\nOnly one minor comment, I have noticed that occasionally, it draws in the default, top left corner, before centering.  It's not every time, and not enough for me to turn it off, just wondered whether you too, had observed ?",
+                    "bodyHTML": "<p dir=\"auto\">Love this, nice work <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/edisj/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/edisj\">@edisj</a>!</p>\n<p dir=\"auto\">This tipped me over to using another great mini plugin, slowly but surely taking over my config - thank you <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>.</p>\n<p dir=\"auto\">Only one minor comment, I have noticed that occasionally, it draws in the default, top left corner, before centering.  It's not every time, and not enough for me to turn it off, just wondered whether you too, had observed ?</p>",
+                    "bodyText": "Love this, nice work @edisj!\nThis tipped me over to using another great mini plugin, slowly but surely taking over my config - thank you @echasnovski.\nOnly one minor comment, I have noticed that occasionally, it draws in the default, top left corner, before centering.  It's not every time, and not enough for me to turn it off, just wondered whether you too, had observed ?",
+                    "createdAt": "2025-12-17T10:12:15Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15277726,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6R6e",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T10:12:15Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15277726",
+                    "updatedAt": "2025-12-17T10:12:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15277726"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+                        "login": "edisj",
+                        "resourcePath": "/edisj",
+                        "url": "https://github.com/edisj"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "you mean like it kind of flickers from top left to center on opening? I actually do vaguely remember that happening once or twice, but don't see it ever now. I can't recreate it now ",
+                    "bodyHTML": "<p dir=\"auto\">you mean like it kind of flickers from top left to center on opening? I actually do vaguely remember that happening once or twice, but don't see it ever now. I can't recreate it now</p>",
+                    "bodyText": "you mean like it kind of flickers from top left to center on opening? I actually do vaguely remember that happening once or twice, but don't see it ever now. I can't recreate it now",
+                    "createdAt": "2025-12-17T20:11:24Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15282940,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6TL8",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T20:11:24Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15282940",
+                    "updatedAt": "2025-12-17T20:11:24Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15282940"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/69830700?u=b86bc85a8002bca67040b95986b3ddf5453e2e41&v=4",
+                        "login": "Jaage",
+                        "resourcePath": "/Jaage",
+                        "url": "https://github.com/Jaage"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Yes, the buffer appears very briefly in the top left. It seems to happen more frequently (several times in a row) after alt tabbing (technically swapping to another workspace in Hyprland). Then more rarely afterwards (once every ~7 times). I can't pin down any particular cause, but I am a lua novice.",
+                    "bodyHTML": "<p dir=\"auto\">Yes, the buffer appears very briefly in the top left. It seems to happen more frequently (several times in a row) after alt tabbing (technically swapping to another workspace in Hyprland). Then more rarely afterwards (once every ~7 times). I can't pin down any particular cause, but I am a lua novice.</p>",
+                    "bodyText": "Yes, the buffer appears very briefly in the top left. It seems to happen more frequently (several times in a row) after alt tabbing (technically swapping to another workspace in Hyprland). Then more rarely afterwards (once every ~7 times). I can't pin down any particular cause, but I am a lua novice.",
+                    "createdAt": "2025-12-17T22:03:06Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15283605,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6TWV",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T22:03:06Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15283605",
+                    "updatedAt": "2025-12-17T22:03:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15283605"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Yes, the buffer appears very briefly in the top left.\r\n\r\nThis might be because the default layout is drawn before the one from autocommand takes effect. Not sure why this happens: maybe some plugin periodically explicitly redraws the screen or the machine is too fast or slow.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Yes, the buffer appears very briefly in the top left.</p>\n</blockquote>\n<p dir=\"auto\">This might be because the default layout is drawn before the one from autocommand takes effect. Not sure why this happens: maybe some plugin periodically explicitly redraws the screen or the machine is too fast or slow.</p>",
+                    "bodyText": "Yes, the buffer appears very briefly in the top left.\n\nThis might be because the default layout is drawn before the one from autocommand takes effect. Not sure why this happens: maybe some plugin periodically explicitly redraws the screen or the machine is too fast or slow.",
+                    "createdAt": "2025-12-18T09:23:39Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15287662,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6UVu",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-18T09:23:39Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15287662",
+                    "updatedAt": "2025-12-18T09:23:39Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15287662"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/69830700?u=b86bc85a8002bca67040b95986b3ddf5453e2e41&v=4",
+                        "login": "Jaage",
+                        "resourcePath": "/Jaage",
+                        "url": "https://github.com/Jaage"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "After disabling all other plugins, the buffer still draws in the top left periodically. My CPU is a 9800X3D, so it could be related to the machine being too fast.",
+                    "bodyHTML": "<p dir=\"auto\">After disabling all other plugins, the buffer still draws in the top left periodically. My CPU is a 9800X3D, so it could be related to the machine being too fast.</p>",
+                    "bodyText": "After disabling all other plugins, the buffer still draws in the top left periodically. My CPU is a 9800X3D, so it could be related to the machine being too fast.",
+                    "createdAt": "2025-12-18T17:22:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15291670,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6VUW",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-18T17:22:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15291670",
+                    "updatedAt": "2025-12-18T17:22:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15291670"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> My CPU is a 9800X3D, so it could be related to the machine being too fast.\r\n\r\nYep, might be it. Sorry, there is nothing more that can be done right now (beside you downgrading to a slower machine :) ).\r\n\r\nThis side-scrolling layout got me thinking about possible 'mini.files' refactor that would make these use cases more natural, but no promises yet.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">My CPU is a 9800X3D, so it could be related to the machine being too fast.</p>\n</blockquote>\n<p dir=\"auto\">Yep, might be it. Sorry, there is nothing more that can be done right now (beside you downgrading to a slower machine :) ).</p>\n<p dir=\"auto\">This side-scrolling layout got me thinking about possible 'mini.files' refactor that would make these use cases more natural, but no promises yet.</p>",
+                    "bodyText": "My CPU is a 9800X3D, so it could be related to the machine being too fast.\n\nYep, might be it. Sorry, there is nothing more that can be done right now (beside you downgrading to a slower machine :) ).\nThis side-scrolling layout got me thinking about possible 'mini.files' refactor that would make these use cases more natural, but no promises yet.",
+                    "createdAt": "2025-12-18T18:07:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15292024,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6VZ4",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-18T18:07:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15292024",
+                    "updatedAt": "2025-12-18T18:07:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15292024"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/69830700?u=b86bc85a8002bca67040b95986b3ddf5453e2e41&v=4",
+                        "login": "Jaage",
+                        "resourcePath": "/Jaage",
+                        "url": "https://github.com/Jaage"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Suffering from success :).\r\n\r\nThanks edisj for the awesome layout, and thank you echasnovski for the amazing plugins!",
+                    "bodyHTML": "<p dir=\"auto\">Suffering from success :).</p>\n<p dir=\"auto\">Thanks edisj for the awesome layout, and thank you echasnovski for the amazing plugins!</p>",
+                    "bodyText": "Suffering from success :).\nThanks edisj for the awesome layout, and thank you echasnovski for the amazing plugins!",
+                    "createdAt": "2025-12-18T18:09:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15292045,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6VaN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-18T18:09:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 3
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15253397,
+                        "id": "DC_kwDOFoksYM4A6L-V",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15292045",
+                    "updatedAt": "2025-12-18T18:09:44Z",
+                    "upvoteCount": 1,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15292045"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397",
+            "updatedAt": "2025-12-14T20:56:27Z",
+            "upvoteCount": 4,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15253397"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/283819?v=4",
+                "login": "naps62",
+                "resourcePath": "/naps62",
+                "url": "https://github.com/naps62"
+            },
+            "authorAssociation": "NONE",
+            "body": "Finally got around to try this, and loving it.\r\n\r\nI am hitting one error though:\r\n<img width=\"1908\" height=\"1136\" alt=\"image\" src=\"https://github.com/user-attachments/assets/86a0b665-d68f-4a71-9948-83ce530daac6\" />\r\n\r\nThis seems to happen specifically when I'm on a smaller window such as here. if I'm full screen it doesn't happen",
+            "bodyHTML": "<p dir=\"auto\">Finally got around to try this, and loving it.</p>\n<p dir=\"auto\">I am hitting one error though:<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/283819/527563119-86a0b665-d68f-4a71-9948-83ce530daac6.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NTIsIm5iZiI6MTc5MzU1MjM1MiwicGF0aCI6Ii8yODM4MTkvNTI3NTYzMTE5LTg2YTBiNjY1LWQ2OGYtNGE3MS05OTQ4LTgzY2U1MzBkYWFjNi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU5MTJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04ZjljNTIzZmJkOGZlODI0MWQwODM5NGFiNTdkNzcyOTNiNmE4NzM3MGYzYjg3YzM3Yjc5YTE0ZGRjZmNjZjAxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.S-65zp0DBZ0nsXr3UnYmv0riYPruRNKyEe1JF1q7tgs\"><img width=\"1908\" height=\"1136\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/283819/527563119-86a0b665-d68f-4a71-9948-83ce530daac6.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI2NTIsIm5iZiI6MTc5MzU1MjM1MiwicGF0aCI6Ii8yODM4MTkvNTI3NTYzMTE5LTg2YTBiNjY1LWQ2OGYtNGE3MS05OTQ4LTgzY2U1MzBkYWFjNi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU5MTJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT04ZjljNTIzZmJkOGZlODI0MWQwODM5NGFiNTdkNzcyOTNiNmE4NzM3MGYzYjg3YzM3Yjc5YTE0ZGRjZmNjZjAxJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.S-65zp0DBZ0nsXr3UnYmv0riYPruRNKyEe1JF1q7tgs\" style=\"max-width: 100%; height: auto; max-height: 1136px;; aspect-ratio: 1908 / 1136; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></p>\n<p dir=\"auto\">This seems to happen specifically when I'm on a smaller window such as here. if I'm full screen it doesn't happen</p>",
+            "bodyText": "Finally got around to try this, and loving it.\nI am hitting one error though:\n\nThis seems to happen specifically when I'm on a smaller window such as here. if I'm full screen it doesn't happen",
+            "createdAt": "2025-12-17T12:27:54Z",
+            "createdViaEmail": false,
+            "databaseId": 15278836,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A6SL0",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-12-17T12:27:54Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+                        "login": "edisj",
+                        "resourcePath": "/edisj",
+                        "url": "https://github.com/edisj"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I'm trying to recreate myself and can't get the error. What's your whole 'mini.files' config?",
+                    "bodyHTML": "<p dir=\"auto\">I'm trying to recreate myself and can't get the error. What's your whole 'mini.files' config?</p>",
+                    "bodyText": "I'm trying to recreate myself and can't get the error. What's your whole 'mini.files' config?",
+                    "createdAt": "2025-12-17T20:08:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15282920,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6TLo",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-17T20:08:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15278836,
+                        "id": "DC_kwDOFoksYM4A6SL0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15278836"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15282920",
+                    "updatedAt": "2025-12-17T20:08:02Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15282920"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/283819?v=4",
+                        "login": "naps62",
+                        "resourcePath": "/naps62",
+                        "url": "https://github.com/naps62"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "https://github.com/naps62/nvchad-starter/blob/main/lua/plugins/file-explorer.lua",
+                    "bodyHTML": "<p dir=\"auto\"><a href=\"https://github.com/naps62/nvchad-starter/blob/main/lua/plugins/file-explorer.lua\">https://github.com/naps62/nvchad-starter/blob/main/lua/plugins/file-explorer.lua</a></p>",
+                    "bodyText": "https://github.com/naps62/nvchad-starter/blob/main/lua/plugins/file-explorer.lua",
+                    "createdAt": "2025-12-23T10:09:33Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15325732,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6dok",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-23T10:09:33Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15278836,
+                        "id": "DC_kwDOFoksYM4A6SL0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15278836"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15325732",
+                    "updatedAt": "2025-12-23T10:09:33Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15325732"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/25095231?u=f1f39fdd826b44730f4b9d092c9636ef9e066050&v=4",
+                        "login": "nathandaven",
+                        "resourcePath": "/nathandaven",
+                        "url": "https://github.com/nathandaven"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I fixed this, seemed to be due to empty folders, in latest comment",
+                    "bodyHTML": "<p dir=\"auto\">I fixed this, seemed to be due to empty folders, in latest comment</p>",
+                    "bodyText": "I fixed this, seemed to be due to empty folders, in latest comment",
+                    "createdAt": "2026-04-28T02:48:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16737004,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A_2Ls",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-28T02:48:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15278836,
+                        "id": "DC_kwDOFoksYM4A6SL0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15278836"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16737004",
+                    "updatedAt": "2026-04-28T02:48:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16737004"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "@nathandaven, that error is now fixed in mini.files itself, in [this](https://github.com/nvim-mini/mini.nvim/commit/cd8a30f6520d27a26d25b33fdef3c4a465cf96c4) commit resolving PR #2438.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/nathandaven/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/nathandaven\">@nathandaven</a>, that error is now fixed in mini.files itself, in <a href=\"https://github.com/nvim-mini/mini.nvim/commit/cd8a30f6520d27a26d25b33fdef3c4a465cf96c4\">this</a> commit resolving PR <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"4542653650\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/2438\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/2438/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/2438\">#2438</a>.</p>",
+                    "bodyText": "@nathandaven, that error is now fixed in mini.files itself, in this commit resolving PR #2438.",
+                    "createdAt": "2026-06-01T05:32:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17130461,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BBWPd",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-06-01T05:32:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15278836,
+                        "id": "DC_kwDOFoksYM4A6SL0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15278836"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-17130461",
+                    "updatedAt": "2026-06-01T05:32:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-17130461"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15278836",
+            "updatedAt": "2025-12-17T12:27:54Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-15278836"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/25095231?u=f1f39fdd826b44730f4b9d092c9636ef9e066050&v=4",
+                "login": "nathandaven",
+                "resourcePath": "/nathandaven",
+                "url": "https://github.com/nathandaven"
+            },
+            "authorAssociation": "NONE",
+            "body": "Here is my rendition based on the above comments, fixes a few bugs with empty folders which would cause some errors:\r\n\r\n```lua\r\n-- stylua: ignore\r\nvim.api.nvim_create_autocmd(\"User\", { pattern = \"MiniFilesWindowUpdate\", callback = function(ev)\r\n    local widths = { 60, 20, 20, 10, 5 } -- center layout https://github.com/nvim-mini/mini.nvim/discussions/2173\r\n\tlocal state = require(\"mini.files\").get_explorer_state()\r\n\tif not state or #state.branch == 0 then return end\r\n\tlocal ok, r = pcall(require(\"mini.files\").get_explorer_state)\r\n\tif ok then state = r end\r\n\tif not state then vim.wait(50, function()\r\n\t    local ok2, r2 = pcall(require(\"mini.files\").get_explorer_state)\r\n\t\tif ok2 then state = r2 return true end return false end, 10, false) end\r\n\tlocal path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match(\"^minifiles://%d+/(.*)$\")\r\n\tlocal depth_this = 0\r\n\tfor i, path in ipairs(state.branch) do if path == path_this then depth_this = i break end end\r\n\tif depth_this == 0 then return end\r\n\tlocal depth_offset = depth_this - state.depth_focus\r\n\tlocal i = math.abs(depth_offset) + 1\r\n\tlocal win_config = vim.api.nvim_win_get_config(ev.data.win_id)\r\n\twin_config.width = i <= #widths and widths[i] or widths[#widths]\r\n\twin_config.zindex = 99\r\n\twin_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\r\n\tlocal sign = depth_offset == 0 and 0 or (depth_offset > 0 and 1 or -1)\r\n\tfor j = 1, math.abs(depth_offset) do\r\n\t\tlocal prev_win_width = (sign == -1 and widths[j + 1]) or widths[j] or widths[#widths]\r\n\t\tlocal new_col = win_config.col + sign * (prev_win_width + 2)\r\n\t\tif new_col < 0 or new_col + win_config.width > vim.o.columns then\r\n\t\t\twin_config.zindex = win_config.zindex - 1 break end win_config.col = new_col end\r\n\twin_config.height = depth_offset == 0 and 44 or 40\r\n\twin_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\r\n\twin_config.footer = { { tostring(depth_offset), \"Normal\" } }\r\n\tvim.api.nvim_win_set_config(ev.data.win_id, win_config) end })\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Here is my rendition based on the above comments, fixes a few bugs with empty folders which would cause some errors:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- stylua: ignore\nvim.api.nvim_create_autocmd(&quot;User&quot;, { pattern = &quot;MiniFilesWindowUpdate&quot;, callback = function(ev)\n    local widths = { 60, 20, 20, 10, 5 } -- center layout https://github.com/nvim-mini/mini.nvim/discussions/2173\n\tlocal state = require(&quot;mini.files&quot;).get_explorer_state()\n\tif not state or #state.branch == 0 then return end\n\tlocal ok, r = pcall(require(&quot;mini.files&quot;).get_explorer_state)\n\tif ok then state = r end\n\tif not state then vim.wait(50, function()\n\t    local ok2, r2 = pcall(require(&quot;mini.files&quot;).get_explorer_state)\n\t\tif ok2 then state = r2 return true end return false end, 10, false) end\n\tlocal path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match(&quot;^minifiles://%d+/(.*)$&quot;)\n\tlocal depth_this = 0\n\tfor i, path in ipairs(state.branch) do if path == path_this then depth_this = i break end end\n\tif depth_this == 0 then return end\n\tlocal depth_offset = depth_this - state.depth_focus\n\tlocal i = math.abs(depth_offset) + 1\n\tlocal win_config = vim.api.nvim_win_get_config(ev.data.win_id)\n\twin_config.width = i &lt;= #widths and widths[i] or widths[#widths]\n\twin_config.zindex = 99\n\twin_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\n\tlocal sign = depth_offset == 0 and 0 or (depth_offset &gt; 0 and 1 or -1)\n\tfor j = 1, math.abs(depth_offset) do\n\t\tlocal prev_win_width = (sign == -1 and widths[j + 1]) or widths[j] or widths[#widths]\n\t\tlocal new_col = win_config.col + sign * (prev_win_width + 2)\n\t\tif new_col &lt; 0 or new_col + win_config.width &gt; vim.o.columns then\n\t\t\twin_config.zindex = win_config.zindex - 1 break end win_config.col = new_col end\n\twin_config.height = depth_offset == 0 and 44 or 40\n\twin_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\n\twin_config.footer = { { tostring(depth_offset), &quot;Normal&quot; } }\n\tvim.api.nvim_win_set_config(ev.data.win_id, win_config) end })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesWindowUpdate<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ev</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">widths</span> <span class=\"pl-k\">=</span> { <span class=\"pl-c1\">60</span>, <span class=\"pl-c1\">20</span>, <span class=\"pl-c1\">20</span>, <span class=\"pl-c1\">10</span>, <span class=\"pl-c1\">5</span> } <span class=\"pl-c\"><span class=\"pl-c\">--</span> center layout https://github.com/nvim-mini/mini.nvim/discussions/2173</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">get_explorer_state</span>()\n\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">state</span>.<span class=\"pl-e\">branch</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">r</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">get_explorer_state</span>)\n\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r</span> <span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">wait</span>(<span class=\"pl-c1\">50</span>, <span class=\"pl-k\">function</span>()\n\t    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok2</span>, <span class=\"pl-smi\">r2</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">get_explorer_state</span>)\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">ok2</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r2</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">true</span> <span class=\"pl-k\">end</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>, <span class=\"pl-c1\">10</span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">path_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>):<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^minifiles://%d+/(.*)$<span class=\"pl-pds\">\"</span></span>)\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>\n\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">branch</span>) <span class=\"pl-k\">do</span> <span class=\"pl-k\">if</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">path_this</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">break</span> <span class=\"pl-k\">end</span> <span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_this</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_focus</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">depth_offset</span>) <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>)\n\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span>]\n\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">zindex</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">99</span>\n\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-c1\">1</span>]))\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">sign</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">j</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">depth_offset</span>) <span class=\"pl-k\">do</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">prev_win_width</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">sign</span> <span class=\"pl-k\">==</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">j</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>]) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-smi\">j</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">widths</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">widths</span>]\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">sign</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">prev_win_width</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">2</span>)\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">zindex</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">zindex</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">break</span> <span class=\"pl-k\">end</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">new_col</span> <span class=\"pl-k\">end</span>\n\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">depth_offset</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">44</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">40</span>\n\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span>))\n\t<span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">footer</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">depth_offset</span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Normal<span class=\"pl-pds\">\" </span></span>} }\n\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_config</span>(<span class=\"pl-smi\">ev</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-smi\">win_config</span>) <span class=\"pl-k\">end</span> })</pre></div>",
+            "bodyText": "Here is my rendition based on the above comments, fixes a few bugs with empty folders which would cause some errors:\n-- stylua: ignore\nvim.api.nvim_create_autocmd(\"User\", { pattern = \"MiniFilesWindowUpdate\", callback = function(ev)\n    local widths = { 60, 20, 20, 10, 5 } -- center layout https://github.com/nvim-mini/mini.nvim/discussions/2173\n\tlocal state = require(\"mini.files\").get_explorer_state()\n\tif not state or #state.branch == 0 then return end\n\tlocal ok, r = pcall(require(\"mini.files\").get_explorer_state)\n\tif ok then state = r end\n\tif not state then vim.wait(50, function()\n\t    local ok2, r2 = pcall(require(\"mini.files\").get_explorer_state)\n\t\tif ok2 then state = r2 return true end return false end, 10, false) end\n\tlocal path_this = vim.api.nvim_buf_get_name(ev.data.buf_id):match(\"^minifiles://%d+/(.*)$\")\n\tlocal depth_this = 0\n\tfor i, path in ipairs(state.branch) do if path == path_this then depth_this = i break end end\n\tif depth_this == 0 then return end\n\tlocal depth_offset = depth_this - state.depth_focus\n\tlocal i = math.abs(depth_offset) + 1\n\tlocal win_config = vim.api.nvim_win_get_config(ev.data.win_id)\n\twin_config.width = i <= #widths and widths[i] or widths[#widths]\n\twin_config.zindex = 99\n\twin_config.col = math.floor(0.5 * (vim.o.columns - widths[1]))\n\tlocal sign = depth_offset == 0 and 0 or (depth_offset > 0 and 1 or -1)\n\tfor j = 1, math.abs(depth_offset) do\n\t\tlocal prev_win_width = (sign == -1 and widths[j + 1]) or widths[j] or widths[#widths]\n\t\tlocal new_col = win_config.col + sign * (prev_win_width + 2)\n\t\tif new_col < 0 or new_col + win_config.width > vim.o.columns then\n\t\t\twin_config.zindex = win_config.zindex - 1 break end win_config.col = new_col end\n\twin_config.height = depth_offset == 0 and 44 or 40\n\twin_config.row = math.floor(0.5 * (vim.o.lines - win_config.height))\n\twin_config.footer = { { tostring(depth_offset), \"Normal\" } }\n\tvim.api.nvim_win_set_config(ev.data.win_id, win_config) end })",
+            "createdAt": "2026-04-28T02:48:14Z",
+            "createdViaEmail": false,
+            "databaseId": 16737002,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A_2Lq",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-28T02:48:14Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+                        "login": "edisj",
+                        "resourcePath": "/edisj",
+                        "url": "https://github.com/edisj"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "glad you found a fix for that! was it only with preview enabled in empty directories? I don't run into any errors with empty dirs",
+                    "bodyHTML": "<p dir=\"auto\">glad you found a fix for that! was it only with preview enabled in empty directories? I don't run into any errors with empty dirs</p>",
+                    "bodyText": "glad you found a fix for that! was it only with preview enabled in empty directories? I don't run into any errors with empty dirs",
+                    "createdAt": "2026-04-29T06:47:04Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16752169,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A_54p",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-29T06:47:04Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16737002,
+                        "id": "DC_kwDOFoksYM4A_2Lq",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16737002"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16752169",
+                    "updatedAt": "2026-04-29T06:47:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16752169"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16737002",
+            "updatedAt": "2026-04-28T02:48:14Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173#discussioncomment-16737002"
+        }
+    ],
+    "createdAt": "2025-12-14T20:32:17Z",
+    "createdViaEmail": false,
+    "databaseId": 9246590,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/59893899?v=4",
+        "login": "edisj",
+        "resourcePath": "/edisj",
+        "url": "https://github.com/edisj"
+    },
+    "id": "D_kwDOFoksYM4AjRd-",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-12-15T07:53:27Z",
+    "locked": false,
+    "number": 2173,
+    "poll": null,
+    "publishedAt": "2025-12-14T20:32:17Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 23
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2173",
+    "stateReason": null,
+    "title": "[mini.files] custom side-scrolling layout",
+    "updatedAt": "2026-06-01T05:32:58Z",
+    "upvoteCount": 14,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2173"
+}

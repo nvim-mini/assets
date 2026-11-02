@@ -1,0 +1,302 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 14509417,
+        "id": "DC_kwDOFoksYM4A3WVp",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2024#discussioncomment-14509417"
+    },
+    "answerChosenAt": "2025-09-25T10:28:17Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/7804791?u=0d2b50ed53cda59faa3e2770599a7d942da63ea9&v=4",
+        "login": "purarue",
+        "resourcePath": "/purarue",
+        "url": "https://github.com/purarue"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.misc\r\n\r\n### Question\r\n\r\nI'm not particularly sure if this is a bug in either project, but I thought I'd share a workaround.\r\n\r\nI recently started using `setup_auto_root`, and in conjunction with [`snacks`](https://github.com/folke/snacks.nvim), and using the `Snacks.picker.projects`, which searches for `.git` directories from some top level folder, lets you pick one, `chdir`s to it and then opens another picker to let you pick a file in that repository.\r\n\r\nThis can be reproduced in the following scenario:\r\n\r\n- Open some file in repository `a`: `setup_auto_root` changes you to the root of that directory\r\n- Trigger `snacks.picker.project` to change to some other repository `b`.\r\n\r\n**Expected:** Switch to repository `b`, `chdir` and then display the files in repository `b`.\r\n\r\n**Actual**: Still shows me files from repository `a`, and doesnt change the `cwd`\r\n\r\nHere is a repro script:\r\n\r\n```lua\r\nfor name, url in pairs({\r\n    mini = \"https://github.com/nvim-mini/mini.nvim\",\r\n    wk = \"https://github.com/folke/which-key.nvim\",\r\n    snacks = \"https://github.com/folke/snacks.nvim\",\r\n}) do\r\n    local tmpdir = vim.loop.os_tmpdir()\r\n    local install_path = vim.fn.fnamemodify(tmpdir .. \"/misc_root_repro/\" .. name, \":p\")\r\n    if vim.fn.isdirectory(install_path) == 0 then\r\n        vim.fn.system({ \"git\", \"clone\", \"--depth=1\", url, install_path })\r\n    end\r\n    vim.opt.runtimepath:append(install_path)\r\nend\r\n\r\nvim.g.leader = \" \"\r\nvim.o.timeoutlen = 1000\r\n\r\nlocal wk = require(\"which-key\")\r\nwk.setup()\r\nrequire(\"mini.misc\").setup_auto_root()\r\nrequire(\"snacks\").setup({\r\n    picker = { enabled = true, sources = {}, layout = {\r\n        preset = \"telescope\",\r\n    } },\r\n})\r\n\r\nvim.api.nvim_create_user_command(\"ProjectsFailsToCd\", function(opts)\r\n    local path = vim.fn.expand(opts.args)\r\n    require(\"snacks.picker\").projects({ dev = { path }, matcher = { frecency = false } })\r\nend, { nargs = 1, complete = \"dir\" })\r\n\r\nvim.api.nvim_create_user_command(\"ProjectsWorkaround\", function(opts)\r\n    local path = vim.fn.expand(opts.args)\r\n    require(\"snacks.picker\").projects({\r\n        dev = { path },\r\n        matcher = { frecency = false },\r\n        -- can override the confirm to do something else\r\n        -- instead of load_session here (the default), just cd and open a file picker\r\n        -- https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L543\r\n        confirm = function(picker, chosen)\r\n            -- change default from load_session, just cd and open a picker\r\n            picker:close()\r\n            vim.fn.chdir(chosen.file)\r\n            Snacks.picker.files()\r\n        end,\r\n    })\r\nend, { nargs = 1, complete = \"dir\" })\r\n```\r\n\r\nIf you download that to `~/Downloads.repro.lua`, you can reproduce this by doing something like:\r\n\r\n```\r\nmkdir -p /tmp/test/\r\ncd /tmp/test\r\nmkdir -p a/c b; git -C a init; git -C b init; touch a/c/test1 b/test2; nvim -u ~/Downloads/repro.lua a/c/test1\r\n```\r\n\r\n- That init's two git repos to test in, and opens you in `a/c/test1` (repository `a`)\r\n- setup_auto_root then changes your `:pwd` to /tmp/test/a\r\n- Try to run `:ProjectFailsToCd ..` and then select `b`\r\n\r\nThen run `:pwd` to confirm you're still in the old directory.\r\n\r\nI included `ProjectsWorkaround`, which is [the workaround that I ended up using](https://github.com/purarue/dotfiles/blob/1bc13932969d107d3c75b322668f3352d04b31e3/.config/nvim/lua/plugins/snacks.lua#L131-L136), but maybe this is a bug/could be configurable in some way (using `lcd` instead of `chdir`, im not sure what is causing this specifically?)\r\n\r\nThis may also just be a weird interaction with [`load_session`](https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L543) action that is being run, but it looks like it does a `chdir` there as well.\r\n\r\nedit: to state the obvious, if you disable `setup_auto_root`, the picker works fine",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.misc</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I'm not particularly sure if this is a bug in either project, but I thought I'd share a workaround.</p>\n<p dir=\"auto\">I recently started using <code class=\"notranslate\">setup_auto_root</code>, and in conjunction with <a href=\"https://github.com/folke/snacks.nvim\"><code class=\"notranslate\">snacks</code></a>, and using the <code class=\"notranslate\">Snacks.picker.projects</code>, which searches for <code class=\"notranslate\">.git</code> directories from some top level folder, lets you pick one, <code class=\"notranslate\">chdir</code>s to it and then opens another picker to let you pick a file in that repository.</p>\n<p dir=\"auto\">This can be reproduced in the following scenario:</p>\n<ul dir=\"auto\">\n<li>Open some file in repository <code class=\"notranslate\">a</code>: <code class=\"notranslate\">setup_auto_root</code> changes you to the root of that directory</li>\n<li>Trigger <code class=\"notranslate\">snacks.picker.project</code> to change to some other repository <code class=\"notranslate\">b</code>.</li>\n</ul>\n<p dir=\"auto\"><strong>Expected:</strong> Switch to repository <code class=\"notranslate\">b</code>, <code class=\"notranslate\">chdir</code> and then display the files in repository <code class=\"notranslate\">b</code>.</p>\n<p dir=\"auto\"><strong>Actual</strong>: Still shows me files from repository <code class=\"notranslate\">a</code>, and doesnt change the <code class=\"notranslate\">cwd</code></p>\n<p dir=\"auto\">Here is a repro script:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"for name, url in pairs({\n    mini = &quot;https://github.com/nvim-mini/mini.nvim&quot;,\n    wk = &quot;https://github.com/folke/which-key.nvim&quot;,\n    snacks = &quot;https://github.com/folke/snacks.nvim&quot;,\n}) do\n    local tmpdir = vim.loop.os_tmpdir()\n    local install_path = vim.fn.fnamemodify(tmpdir .. &quot;/misc_root_repro/&quot; .. name, &quot;:p&quot;)\n    if vim.fn.isdirectory(install_path) == 0 then\n        vim.fn.system({ &quot;git&quot;, &quot;clone&quot;, &quot;--depth=1&quot;, url, install_path })\n    end\n    vim.opt.runtimepath:append(install_path)\nend\n\nvim.g.leader = &quot; &quot;\nvim.o.timeoutlen = 1000\n\nlocal wk = require(&quot;which-key&quot;)\nwk.setup()\nrequire(&quot;mini.misc&quot;).setup_auto_root()\nrequire(&quot;snacks&quot;).setup({\n    picker = { enabled = true, sources = {}, layout = {\n        preset = &quot;telescope&quot;,\n    } },\n})\n\nvim.api.nvim_create_user_command(&quot;ProjectsFailsToCd&quot;, function(opts)\n    local path = vim.fn.expand(opts.args)\n    require(&quot;snacks.picker&quot;).projects({ dev = { path }, matcher = { frecency = false } })\nend, { nargs = 1, complete = &quot;dir&quot; })\n\nvim.api.nvim_create_user_command(&quot;ProjectsWorkaround&quot;, function(opts)\n    local path = vim.fn.expand(opts.args)\n    require(&quot;snacks.picker&quot;).projects({\n        dev = { path },\n        matcher = { frecency = false },\n        -- can override the confirm to do something else\n        -- instead of load_session here (the default), just cd and open a file picker\n        -- https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L543\n        confirm = function(picker, chosen)\n            -- change default from load_session, just cd and open a picker\n            picker:close()\n            vim.fn.chdir(chosen.file)\n            Snacks.picker.files()\n        end,\n    })\nend, { nargs = 1, complete = &quot;dir&quot; })\"><pre class=\"notranslate\"><span class=\"pl-k\">for</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">url</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>({\n    <span class=\"pl-smi\">mini</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/nvim-mini/mini.nvim<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">wk</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/folke/which-key.nvim<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">snacks</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/folke/snacks.nvim<span class=\"pl-pds\">\"</span></span>,\n}) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">tmpdir</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">os_tmpdir</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">install_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">tmpdir</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/misc_root_repro/<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:p<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">isdirectory</span>(<span class=\"pl-smi\">install_path</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>clone<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--depth=1<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">url</span>, <span class=\"pl-smi\">install_path</span> })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">opt</span>.<span class=\"pl-en\">runtimepath</span>:<span class=\"pl-c1\">append</span>(<span class=\"pl-smi\">install_path</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">leader</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">timeoutlen</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1000</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">wk</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>which-key<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">wk</span>.<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.misc<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup_auto_root</span>()\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>snacks<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n    <span class=\"pl-smi\">picker</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">enabled</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">sources</span> <span class=\"pl-k\">=</span> {}, <span class=\"pl-smi\">layout</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">preset</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>telescope<span class=\"pl-pds\">\"</span></span>,\n    } },\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_user_command</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ProjectsFailsToCd<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">args</span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>snacks.picker<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">projects</span>({ <span class=\"pl-smi\">dev</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">path</span> }, <span class=\"pl-smi\">matcher</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">frecency</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> } })\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">nargs</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">complete</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dir<span class=\"pl-pds\">\" </span></span>})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_user_command</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ProjectsWorkaround<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">args</span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>snacks.picker<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">projects</span>({\n        <span class=\"pl-smi\">dev</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">path</span> },\n        <span class=\"pl-smi\">matcher</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">frecency</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> },\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> can override the confirm to do something else</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> instead of load_session here (the default), just cd and open a file picker</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L543</span>\n        <span class=\"pl-en\">confirm</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">picker</span>, <span class=\"pl-smi\">chosen</span>)\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> change default from load_session, just cd and open a picker</span>\n            <span class=\"pl-en\">picker</span>:<span class=\"pl-c1\">close</span>()\n            <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">chdir</span>(<span class=\"pl-smi\">chosen</span>.<span class=\"pl-e\">file</span>)\n            <span class=\"pl-smi\">Snacks</span>.<span class=\"pl-e\">picker</span>.<span class=\"pl-c1\">files</span>()\n        <span class=\"pl-k\">end</span>,\n    })\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">nargs</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">complete</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dir<span class=\"pl-pds\">\" </span></span>})</pre></div>\n<p dir=\"auto\">If you download that to <code class=\"notranslate\">~/Downloads.repro.lua</code>, you can reproduce this by doing something like:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"mkdir -p /tmp/test/\ncd /tmp/test\nmkdir -p a/c b; git -C a init; git -C b init; touch a/c/test1 b/test2; nvim -u ~/Downloads/repro.lua a/c/test1\"><pre class=\"notranslate\"><code class=\"notranslate\">mkdir -p /tmp/test/\ncd /tmp/test\nmkdir -p a/c b; git -C a init; git -C b init; touch a/c/test1 b/test2; nvim -u ~/Downloads/repro.lua a/c/test1\n</code></pre></div>\n<ul dir=\"auto\">\n<li>That init's two git repos to test in, and opens you in <code class=\"notranslate\">a/c/test1</code> (repository <code class=\"notranslate\">a</code>)</li>\n<li>setup_auto_root then changes your <code class=\"notranslate\">:pwd</code> to /tmp/test/a</li>\n<li>Try to run <code class=\"notranslate\">:ProjectFailsToCd ..</code> and then select <code class=\"notranslate\">b</code></li>\n</ul>\n<p dir=\"auto\">Then run <code class=\"notranslate\">:pwd</code> to confirm you're still in the old directory.</p>\n<p dir=\"auto\">I included <code class=\"notranslate\">ProjectsWorkaround</code>, which is <a href=\"https://github.com/purarue/dotfiles/blob/1bc13932969d107d3c75b322668f3352d04b31e3/.config/nvim/lua/plugins/snacks.lua#L131-L136\">the workaround that I ended up using</a>, but maybe this is a bug/could be configurable in some way (using <code class=\"notranslate\">lcd</code> instead of <code class=\"notranslate\">chdir</code>, im not sure what is causing this specifically?)</p>\n<p dir=\"auto\">This may also just be a weird interaction with <a href=\"https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L543\"><code class=\"notranslate\">load_session</code></a> action that is being run, but it looks like it does a <code class=\"notranslate\">chdir</code> there as well.</p>\n<p dir=\"auto\">edit: to state the obvious, if you disable <code class=\"notranslate\">setup_auto_root</code>, the picker works fine</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.misc\nQuestion\nI'm not particularly sure if this is a bug in either project, but I thought I'd share a workaround.\nI recently started using setup_auto_root, and in conjunction with snacks, and using the Snacks.picker.projects, which searches for .git directories from some top level folder, lets you pick one, chdirs to it and then opens another picker to let you pick a file in that repository.\nThis can be reproduced in the following scenario:\n\nOpen some file in repository a: setup_auto_root changes you to the root of that directory\nTrigger snacks.picker.project to change to some other repository b.\n\nExpected: Switch to repository b, chdir and then display the files in repository b.\nActual: Still shows me files from repository a, and doesnt change the cwd\nHere is a repro script:\nfor name, url in pairs({\n    mini = \"https://github.com/nvim-mini/mini.nvim\",\n    wk = \"https://github.com/folke/which-key.nvim\",\n    snacks = \"https://github.com/folke/snacks.nvim\",\n}) do\n    local tmpdir = vim.loop.os_tmpdir()\n    local install_path = vim.fn.fnamemodify(tmpdir .. \"/misc_root_repro/\" .. name, \":p\")\n    if vim.fn.isdirectory(install_path) == 0 then\n        vim.fn.system({ \"git\", \"clone\", \"--depth=1\", url, install_path })\n    end\n    vim.opt.runtimepath:append(install_path)\nend\n\nvim.g.leader = \" \"\nvim.o.timeoutlen = 1000\n\nlocal wk = require(\"which-key\")\nwk.setup()\nrequire(\"mini.misc\").setup_auto_root()\nrequire(\"snacks\").setup({\n    picker = { enabled = true, sources = {}, layout = {\n        preset = \"telescope\",\n    } },\n})\n\nvim.api.nvim_create_user_command(\"ProjectsFailsToCd\", function(opts)\n    local path = vim.fn.expand(opts.args)\n    require(\"snacks.picker\").projects({ dev = { path }, matcher = { frecency = false } })\nend, { nargs = 1, complete = \"dir\" })\n\nvim.api.nvim_create_user_command(\"ProjectsWorkaround\", function(opts)\n    local path = vim.fn.expand(opts.args)\n    require(\"snacks.picker\").projects({\n        dev = { path },\n        matcher = { frecency = false },\n        -- can override the confirm to do something else\n        -- instead of load_session here (the default), just cd and open a file picker\n        -- https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L543\n        confirm = function(picker, chosen)\n            -- change default from load_session, just cd and open a picker\n            picker:close()\n            vim.fn.chdir(chosen.file)\n            Snacks.picker.files()\n        end,\n    })\nend, { nargs = 1, complete = \"dir\" })\nIf you download that to ~/Downloads.repro.lua, you can reproduce this by doing something like:\nmkdir -p /tmp/test/\ncd /tmp/test\nmkdir -p a/c b; git -C a init; git -C b init; touch a/c/test1 b/test2; nvim -u ~/Downloads/repro.lua a/c/test1\n\n\nThat init's two git repos to test in, and opens you in a/c/test1 (repository a)\nsetup_auto_root then changes your :pwd to /tmp/test/a\nTry to run :ProjectFailsToCd .. and then select b\n\nThen run :pwd to confirm you're still in the old directory.\nI included ProjectsWorkaround, which is the workaround that I ended up using, but maybe this is a bug/could be configurable in some way (using lcd instead of chdir, im not sure what is causing this specifically?)\nThis may also just be a weird interaction with load_session action that is being run, but it looks like it does a chdir there as well.\nedit: to state the obvious, if you disable setup_auto_root, the picker works fine",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-09-25T10:28:14Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> I'm not particularly sure if this is a bug in either project, but I thought I'd share a workaround.\r\n\r\nI think the culprit lies in 'snacks.picker'. Thanks to your helpful link to the actual action that is used here, [this call](https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L558) is the problem here. It defers the `files` picker by 100 ms and eventually calls it without arguments. This implicitly assumes that it will start in target directory [due to this `chdir`](https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L561), which does not hold in this particular case.\r\n\r\nSince a lot can happen during those 100ms (like user/plugin changing working directory to something else), I think it is more reasonable to explicitly start `files` picker with target directory. Basically applying the following patch to 'snacks.nvim' code that is being used seems to fix the issue:\r\n\r\n```diff\r\ndiff --git a/lua/snacks/picker/actions.lua b/lua/snacks/picker/actions.lua\r\nindex 6e6050e..fa20238 100644\r\n--- a/lua/snacks/picker/actions.lua\r\n+++ b/lua/snacks/picker/actions.lua\r\n@@ -555,7 +555,7 @@ function M.load_session(picker, item)\r\n   })\r\n   vim.defer_fn(function()\r\n     if not session_loaded then\r\n-      Snacks.picker.files()\r\n+      Snacks.picker.files({ dirs = { dir } })\r\n     end\r\n   end, 100)\r\n   vim.fn.chdir(dir)\r\n```\r\n\r\n---\r\n\r\nFor future, I'd highly recommend to limit reproduction setup to as minimal code as possible. Leave *only* the code that you can not remove while still reproducing the issue. In particular, there is no reason to install/setup 'folke/which-key.nvim', set particular options, or create a dedicated user command (the `:lua Snacks.picker.projects()` call with possible options would be enough). Having extra stuff in the reproduction code usually makes it harder for the recipient to find the root cause of the issue.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">I'm not particularly sure if this is a bug in either project, but I thought I'd share a workaround.</p>\n</blockquote>\n<p dir=\"auto\">I think the culprit lies in 'snacks.picker'. Thanks to your helpful link to the actual action that is used here, <a href=\"https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L558\">this call</a> is the problem here. It defers the <code class=\"notranslate\">files</code> picker by 100 ms and eventually calls it without arguments. This implicitly assumes that it will start in target directory <a href=\"https://github.com/folke/snacks.nvim/blob/68da653d206069007f71d4373049193248bf913b/lua/snacks/picker/actions.lua#L561\">due to this <code class=\"notranslate\">chdir</code></a>, which does not hold in this particular case.</p>\n<p dir=\"auto\">Since a lot can happen during those 100ms (like user/plugin changing working directory to something else), I think it is more reasonable to explicitly start <code class=\"notranslate\">files</code> picker with target directory. Basically applying the following patch to 'snacks.nvim' code that is being used seems to fix the issue:</p>\n<div class=\"highlight highlight-source-diff notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"diff --git a/lua/snacks/picker/actions.lua b/lua/snacks/picker/actions.lua\nindex 6e6050e..fa20238 100644\n--- a/lua/snacks/picker/actions.lua\n+++ b/lua/snacks/picker/actions.lua\n@@ -555,7 +555,7 @@ function M.load_session(picker, item)\n   })\n   vim.defer_fn(function()\n     if not session_loaded then\n-      Snacks.picker.files()\n+      Snacks.picker.files({ dirs = { dir } })\n     end\n   end, 100)\n   vim.fn.chdir(dir)\"><pre class=\"notranslate\"><span class=\"pl-c1\">diff --git a/lua/snacks/picker/actions.lua b/lua/snacks/picker/actions.lua</span>\nindex 6e6050e..fa20238 100644\n<span class=\"pl-md\">--- a/lua/snacks/picker/actions.lua</span>\n<span class=\"pl-mi1\">+++ b/lua/snacks/picker/actions.lua</span>\n<span class=\"pl-mdr\">@@ -555,7 +555,7 @@</span> function M.load_session(picker, item)\n   })\n   vim.defer_fn(function()\n     if not session_loaded then\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>      Snacks.picker.files()</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      Snacks.picker.files({ dirs = { dir } })</span>\n     end\n   end, 100)\n   vim.fn.chdir(dir)</pre></div>\n<hr>\n<p dir=\"auto\">For future, I'd highly recommend to limit reproduction setup to as minimal code as possible. Leave <em>only</em> the code that you can not remove while still reproducing the issue. In particular, there is no reason to install/setup 'folke/which-key.nvim', set particular options, or create a dedicated user command (the <code class=\"notranslate\">:lua Snacks.picker.projects()</code> call with possible options would be enough). Having extra stuff in the reproduction code usually makes it harder for the recipient to find the root cause of the issue.</p>",
+            "bodyText": "I'm not particularly sure if this is a bug in either project, but I thought I'd share a workaround.\n\nI think the culprit lies in 'snacks.picker'. Thanks to your helpful link to the actual action that is used here, this call is the problem here. It defers the files picker by 100 ms and eventually calls it without arguments. This implicitly assumes that it will start in target directory due to this chdir, which does not hold in this particular case.\nSince a lot can happen during those 100ms (like user/plugin changing working directory to something else), I think it is more reasonable to explicitly start files picker with target directory. Basically applying the following patch to 'snacks.nvim' code that is being used seems to fix the issue:\ndiff --git a/lua/snacks/picker/actions.lua b/lua/snacks/picker/actions.lua\nindex 6e6050e..fa20238 100644\n--- a/lua/snacks/picker/actions.lua\n+++ b/lua/snacks/picker/actions.lua\n@@ -555,7 +555,7 @@ function M.load_session(picker, item)\n   })\n   vim.defer_fn(function()\n     if not session_loaded then\n-      Snacks.picker.files()\n+      Snacks.picker.files({ dirs = { dir } })\n     end\n   end, 100)\n   vim.fn.chdir(dir)\n\nFor future, I'd highly recommend to limit reproduction setup to as minimal code as possible. Leave only the code that you can not remove while still reproducing the issue. In particular, there is no reason to install/setup 'folke/which-key.nvim', set particular options, or create a dedicated user command (the :lua Snacks.picker.projects() call with possible options would be enough). Having extra stuff in the reproduction code usually makes it harder for the recipient to find the root cause of the issue.",
+            "createdAt": "2025-09-25T10:28:14Z",
+            "createdViaEmail": false,
+            "databaseId": 14509417,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A3WVp",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-09-25T10:28:14Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/7804791?u=0d2b50ed53cda59faa3e2770599a7d942da63ea9&v=4",
+                        "login": "purarue",
+                        "resourcePath": "/purarue",
+                        "url": "https://github.com/purarue"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for the pointers on the reproduction, was trying to figure out an easy way to trigger it with a keybind/on launch (but was not running if I just had it inline) but `:lua Snacks...` would've worked as well.\r\n\r\nI will think about opening an issue in the snacks repository to configure/add that as the default",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the pointers on the reproduction, was trying to figure out an easy way to trigger it with a keybind/on launch (but was not running if I just had it inline) but <code class=\"notranslate\">:lua Snacks...</code> would've worked as well.</p>\n<p dir=\"auto\">I will think about opening an issue in the snacks repository to configure/add that as the default</p>",
+                    "bodyText": "Thanks for the pointers on the reproduction, was trying to figure out an easy way to trigger it with a keybind/on launch (but was not running if I just had it inline) but :lua Snacks... would've worked as well.\nI will think about opening an issue in the snacks repository to configure/add that as the default",
+                    "createdAt": "2025-09-25T21:02:19Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14515600,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3X2Q",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-25T21:02:19Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14509417,
+                        "id": "DC_kwDOFoksYM4A3WVp",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2024#discussioncomment-14509417"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2024#discussioncomment-14515600",
+                    "updatedAt": "2025-09-25T21:02:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2024#discussioncomment-14515600"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2024#discussioncomment-14509417",
+            "updatedAt": "2025-09-25T10:28:15Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2024#discussioncomment-14509417"
+        }
+    ],
+    "createdAt": "2025-09-25T08:46:25Z",
+    "createdViaEmail": false,
+    "databaseId": 8944353,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/7804791?u=0d2b50ed53cda59faa3e2770599a7d942da63ea9&v=4",
+        "login": "purarue",
+        "resourcePath": "/purarue",
+        "url": "https://github.com/purarue"
+    },
+    "id": "D_kwDOFoksYM4AiHrh",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vWD",
+                "name": "mini.misc"
+            },
+            {
+                "color": "C9C2C1",
+                "description": "Related to how upstream application works",
+                "id": "LA_kwDOFoksYM8AAAABwzAVVQ",
+                "name": "upstream"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2025-09-25T08:49:13Z",
+    "locked": false,
+    "number": 2024,
+    "poll": null,
+    "publishedAt": "2025-09-25T08:46:25Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2024",
+    "stateReason": "RESOLVED",
+    "title": "`MiniMisc.setup_auto_root` w/ snacks projects cd failure workaround",
+    "updatedAt": "2025-09-25T21:02:19Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2024"
+}

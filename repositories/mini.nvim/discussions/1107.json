@@ -1,0 +1,456 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 10221879,
+        "id": "DC_kwDOFoksYM4Am_k3",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10221879"
+    },
+    "answerChosenAt": "2024-08-02T09:39:07Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/668146?u=ba20b4a492d7e74f3146891afa4da60adebd480a&v=4",
+        "login": "maxandron",
+        "resourcePath": "/maxandron",
+        "url": "https://github.com/maxandron"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi,\r\n\r\nI recently started tinkering with writing plugins, and even more recently started using mini.test\r\nCurrently, I'm writing an adapter for neotest which uses nio.\r\n\r\nI wonder what is the best approach for testing async functions with mini.test (in a child process)?\r\n\r\nOne option I see is to make the async function print the result and then capture it with `cmd_capture`, but that feels very backwards.\r\nAnother option is to sleep, which also seems backward.\r\nShould I poll a variable?\r\n\r\nI'm probably missing an obvious solution due to my unfamiliarity.\r\n\r\nI would love your advice on the best approach.\r\nThank you!",
+    "bodyHTML": "<p dir=\"auto\">Hi,</p>\n<p dir=\"auto\">I recently started tinkering with writing plugins, and even more recently started using mini.test<br>\nCurrently, I'm writing an adapter for neotest which uses nio.</p>\n<p dir=\"auto\">I wonder what is the best approach for testing async functions with mini.test (in a child process)?</p>\n<p dir=\"auto\">One option I see is to make the async function print the result and then capture it with <code class=\"notranslate\">cmd_capture</code>, but that feels very backwards.<br>\nAnother option is to sleep, which also seems backward.<br>\nShould I poll a variable?</p>\n<p dir=\"auto\">I'm probably missing an obvious solution due to my unfamiliarity.</p>\n<p dir=\"auto\">I would love your advice on the best approach.<br>\nThank you!</p>",
+    "bodyText": "Hi,\nI recently started tinkering with writing plugins, and even more recently started using mini.test\nCurrently, I'm writing an adapter for neotest which uses nio.\nI wonder what is the best approach for testing async functions with mini.test (in a child process)?\nOne option I see is to make the async function print the result and then capture it with cmd_capture, but that feels very backwards.\nAnother option is to sleep, which also seems backward.\nShould I poll a variable?\nI'm probably missing an obvious solution due to my unfamiliarity.\nI would love your advice on the best approach.\nThank you!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-08-02T09:39:05Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "This very much depends on the tested function.\r\n\r\nIf the problem here is to test a function which executes not immediately and can take unknown beforehand amount of time to finish, then the most straightforward approach is to wait *some* amount of time before checking the state of the child process. This is how I usually go with it. Here is [an example from 'mini.test' test](https://github.com/echasnovski/mini.nvim/blob/74e6b722c91113bc70d4bf67249ed8de0642b20e/tests/test_test.lua#L1376). Choosing an actual time to wait is tricky: should be long enough to have small number of false negatives but not long enough to unnecessarily prolong test execution.\r\n\r\nThe other situation is if async function is meant to do something in a known amount of time (like show completion in 300 ms). Then the approach is similar but I also like to test if there is no side effect *just before* time expires. There are many examples in 'mini.nvim' tests, [here is the first that came to mind](https://github.com/echasnovski/mini.nvim/blob/74e6b722c91113bc70d4bf67249ed8de0642b20e/tests/test_notify.lua#L973-L977).\r\n\r\nHope it helps. If there any other questions, feel free to ask.",
+            "bodyHTML": "<p dir=\"auto\">This very much depends on the tested function.</p>\n<p dir=\"auto\">If the problem here is to test a function which executes not immediately and can take unknown beforehand amount of time to finish, then the most straightforward approach is to wait <em>some</em> amount of time before checking the state of the child process. This is how I usually go with it. Here is <a href=\"https://github.com/echasnovski/mini.nvim/blob/74e6b722c91113bc70d4bf67249ed8de0642b20e/tests/test_test.lua#L1376\">an example from 'mini.test' test</a>. Choosing an actual time to wait is tricky: should be long enough to have small number of false negatives but not long enough to unnecessarily prolong test execution.</p>\n<p dir=\"auto\">The other situation is if async function is meant to do something in a known amount of time (like show completion in 300 ms). Then the approach is similar but I also like to test if there is no side effect <em>just before</em> time expires. There are many examples in 'mini.nvim' tests, <a href=\"https://github.com/echasnovski/mini.nvim/blob/74e6b722c91113bc70d4bf67249ed8de0642b20e/tests/test_notify.lua#L973-L977\">here is the first that came to mind</a>.</p>\n<p dir=\"auto\">Hope it helps. If there any other questions, feel free to ask.</p>",
+            "bodyText": "This very much depends on the tested function.\nIf the problem here is to test a function which executes not immediately and can take unknown beforehand amount of time to finish, then the most straightforward approach is to wait some amount of time before checking the state of the child process. This is how I usually go with it. Here is an example from 'mini.test' test. Choosing an actual time to wait is tricky: should be long enough to have small number of false negatives but not long enough to unnecessarily prolong test execution.\nThe other situation is if async function is meant to do something in a known amount of time (like show completion in 300 ms). Then the approach is similar but I also like to test if there is no side effect just before time expires. There are many examples in 'mini.nvim' tests, here is the first that came to mind.\nHope it helps. If there any other questions, feel free to ask.",
+            "createdAt": "2024-08-02T09:39:04Z",
+            "createdViaEmail": false,
+            "databaseId": 10221879,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Am_k3",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-02T09:39:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/668146?u=ba20b4a492d7e74f3146891afa4da60adebd480a&v=4",
+                        "login": "maxandron",
+                        "resourcePath": "/maxandron",
+                        "url": "https://github.com/maxandron"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you for such a quick and thorough reply!\r\nI feel like my case is actually simpler - I'm just using a function from nio for reading a file from disk. So it should finish quickly.\r\nIf I call it directly I get the error: `Cannot call async function from non-async context` which happens from `nio` when doing `fs_open`.\r\n\r\nSleeping solves the issue - but I risk creating a non-deterministic test.\r\n\r\nThis is how the test currently looks:\r\n\r\n```lua\r\nT[\"is_test_file()\"][\"contains cfg(test)\"] = function()\r\n  child.b.path = vim.fn.getcwd() .. \"/tests/files/projroot/tests/example.cairo\"\r\n  child.lua([[require('nio').run(function()\r\n    vim.b.result = M.is_test_file(vim.b.path)\r\n  end)]])\r\n  vim.uv.sleep(1)\r\n  local result = child.lua_get(\"vim.b.result\")\r\n  eq(result, true)\r\nend\r\n```\r\n\r\nP.S.\r\n\r\nIn the examples you linked - what does `poke_eventloop` (`child.api.nvim_eval('1')`) achieve? I'm guessing nvim_eval is pushed to the end of the event pool so we can be sure the rest of the scheduled tasks were completed?",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for such a quick and thorough reply!<br>\nI feel like my case is actually simpler - I'm just using a function from nio for reading a file from disk. So it should finish quickly.<br>\nIf I call it directly I get the error: <code class=\"notranslate\">Cannot call async function from non-async context</code> which happens from <code class=\"notranslate\">nio</code> when doing <code class=\"notranslate\">fs_open</code>.</p>\n<p dir=\"auto\">Sleeping solves the issue - but I risk creating a non-deterministic test.</p>\n<p dir=\"auto\">This is how the test currently looks:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"T[&quot;is_test_file()&quot;][&quot;contains cfg(test)&quot;] = function()\n  child.b.path = vim.fn.getcwd() .. &quot;/tests/files/projroot/tests/example.cairo&quot;\n  child.lua([[require('nio').run(function()\n    vim.b.result = M.is_test_file(vim.b.path)\n  end)]])\n  vim.uv.sleep(1)\n  local result = child.lua_get(&quot;vim.b.result&quot;)\n  eq(result, true)\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">T</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>is_test_file()<span class=\"pl-pds\">\"</span></span>][<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>contains cfg(test)<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>() <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/tests/files/projroot/tests/example.cairo<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[[</span>require('nio').run(function()</span>\n<span class=\"pl-s\">    vim.b.result = M.is_test_file(vim.b.path)</span>\n<span class=\"pl-s\">  end)<span class=\"pl-pds\">]]</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">sleep</span>(<span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim.b.result<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-c1\">eq</span>(<span class=\"pl-smi\">result</span>, <span class=\"pl-c1\">true</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">P.S.</p>\n<p dir=\"auto\">In the examples you linked - what does <code class=\"notranslate\">poke_eventloop</code> (<code class=\"notranslate\">child.api.nvim_eval('1')</code>) achieve? I'm guessing nvim_eval is pushed to the end of the event pool so we can be sure the rest of the scheduled tasks were completed?</p>",
+                    "bodyText": "Thank you for such a quick and thorough reply!\nI feel like my case is actually simpler - I'm just using a function from nio for reading a file from disk. So it should finish quickly.\nIf I call it directly I get the error: Cannot call async function from non-async context which happens from nio when doing fs_open.\nSleeping solves the issue - but I risk creating a non-deterministic test.\nThis is how the test currently looks:\nT[\"is_test_file()\"][\"contains cfg(test)\"] = function()\n  child.b.path = vim.fn.getcwd() .. \"/tests/files/projroot/tests/example.cairo\"\n  child.lua([[require('nio').run(function()\n    vim.b.result = M.is_test_file(vim.b.path)\n  end)]])\n  vim.uv.sleep(1)\n  local result = child.lua_get(\"vim.b.result\")\n  eq(result, true)\nend\nP.S.\nIn the examples you linked - what does poke_eventloop (child.api.nvim_eval('1')) achieve? I'm guessing nvim_eval is pushed to the end of the event pool so we can be sure the rest of the scheduled tasks were completed?",
+                    "createdAt": "2024-08-02T12:23:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10223275,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Am_6r",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-02T12:23:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10221879,
+                        "id": "DC_kwDOFoksYM4Am_k3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10221879"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10223275",
+                    "updatedAt": "2024-08-02T12:23:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10223275"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Sleeping solves the issue - but I risk creating a non-deterministic test.\r\n\r\nTrue. But sleeping a bit longer makes it close to being deterministic in most practical scenarios. If you can somehow track that async function is done executing (like it triggers a `User` event or something else), you of course can use it for a more reliable test. Sleeping a bit is just a simpler way to do that.\r\n\r\n> In the examples you linked - what does `poke_eventloop` (`child.api.nvim_eval('1')`) achieve? I'm guessing nvim_eval is pushed to the end of the event pool so we can be sure the rest of the scheduled tasks were completed?\r\n\r\nI've got it from Neovimi tests and can't with 100% certainty say what it does. But yes, it is something like \"ensure that all scheduled tasks are completed\" type of thing. I remember it mattered only couple of times (the others I just used it after sleeping, so can't definitively tell), but still.\r\n\r\n------\r\n\r\n> ```lua\r\n>   local result = child.lua_get(\"vim.b.result\")\r\n>   eq(result, true)\r\n> ```\r\n\r\nYou can directly use `child.b` \"redirection table\" here: `eq(child.b.result, true)`. See [this](https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md#managing-neovim-options-and-state) for more examples.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Sleeping solves the issue - but I risk creating a non-deterministic test.</p>\n</blockquote>\n<p dir=\"auto\">True. But sleeping a bit longer makes it close to being deterministic in most practical scenarios. If you can somehow track that async function is done executing (like it triggers a <code class=\"notranslate\">User</code> event or something else), you of course can use it for a more reliable test. Sleeping a bit is just a simpler way to do that.</p>\n<blockquote>\n<p dir=\"auto\">In the examples you linked - what does <code class=\"notranslate\">poke_eventloop</code> (<code class=\"notranslate\">child.api.nvim_eval('1')</code>) achieve? I'm guessing nvim_eval is pushed to the end of the event pool so we can be sure the rest of the scheduled tasks were completed?</p>\n</blockquote>\n<p dir=\"auto\">I've got it from Neovimi tests and can't with 100% certainty say what it does. But yes, it is something like \"ensure that all scheduled tasks are completed\" type of thing. I remember it mattered only couple of times (the others I just used it after sleeping, so can't definitively tell), but still.</p>\n<hr>\n<blockquote>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local result = child.lua_get(&quot;vim.b.result&quot;)\n  eq(result, true)\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim.b.result<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-c1\">eq</span>(<span class=\"pl-smi\">result</span>, <span class=\"pl-c1\">true</span>)</pre></div>\n</blockquote>\n<p dir=\"auto\">You can directly use <code class=\"notranslate\">child.b</code> \"redirection table\" here: <code class=\"notranslate\">eq(child.b.result, true)</code>. See <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md#managing-neovim-options-and-state\">this</a> for more examples.</p>",
+                    "bodyText": "Sleeping solves the issue - but I risk creating a non-deterministic test.\n\nTrue. But sleeping a bit longer makes it close to being deterministic in most practical scenarios. If you can somehow track that async function is done executing (like it triggers a User event or something else), you of course can use it for a more reliable test. Sleeping a bit is just a simpler way to do that.\n\nIn the examples you linked - what does poke_eventloop (child.api.nvim_eval('1')) achieve? I'm guessing nvim_eval is pushed to the end of the event pool so we can be sure the rest of the scheduled tasks were completed?\n\nI've got it from Neovimi tests and can't with 100% certainty say what it does. But yes, it is something like \"ensure that all scheduled tasks are completed\" type of thing. I remember it mattered only couple of times (the others I just used it after sleeping, so can't definitively tell), but still.\n\n\n  local result = child.lua_get(\"vim.b.result\")\n  eq(result, true)\n\nYou can directly use child.b \"redirection table\" here: eq(child.b.result, true). See this for more examples.",
+                    "createdAt": "2024-08-02T12:46:45Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10223458,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Am_9i",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-02T12:46:45Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10221879,
+                        "id": "DC_kwDOFoksYM4Am_k3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10221879"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10223458",
+                    "updatedAt": "2024-08-02T12:46:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10223458"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/668146?u=ba20b4a492d7e74f3146891afa4da60adebd480a&v=4",
+                        "login": "maxandron",
+                        "resourcePath": "/maxandron",
+                        "url": "https://github.com/maxandron"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you! I didn't realize the redirection table works both ways",
+                    "bodyHTML": "<p dir=\"auto\">Thank you! I didn't realize the redirection table works both ways</p>",
+                    "bodyText": "Thank you! I didn't realize the redirection table works both ways",
+                    "createdAt": "2024-08-02T13:00:32Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10223598,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/668146?u=ba20b4a492d7e74f3146891afa4da60adebd480a&v=4",
+                        "login": "maxandron",
+                        "resourcePath": "/maxandron",
+                        "url": "https://github.com/maxandron"
+                    },
+                    "id": "DC_kwDOFoksYM4Am__u",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-08-02T13:01:56Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-02T13:00:32Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10221879,
+                        "id": "DC_kwDOFoksYM4Am_k3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10221879"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10223598",
+                    "updatedAt": "2024-08-02T13:01:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10223598"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10221879",
+            "updatedAt": "2024-08-02T09:39:05Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107#discussioncomment-10221879"
+        }
+    ],
+    "createdAt": "2024-08-02T08:50:26Z",
+    "createdViaEmail": false,
+    "databaseId": 7005634,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AauXC",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7_iXcP",
+                "name": "mini.test"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1107,
+    "poll": null,
+    "publishedAt": "2024-08-02T08:50:26Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1107",
+    "stateReason": "RESOLVED",
+    "title": "[mini.test] testing async functions",
+    "updatedAt": "2024-08-02T13:00:32Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1107"
+}

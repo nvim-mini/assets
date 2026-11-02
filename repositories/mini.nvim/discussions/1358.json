@@ -1,0 +1,535 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/934490?u=8666a27d42c11534d4ae7e5995c3bab11f4e355d&v=4",
+        "login": "tradiff",
+        "resourcePath": "/tradiff",
+        "url": "https://github.com/tradiff"
+    },
+    "authorAssociation": "NONE",
+    "body": "I'm trying to set a distinct icon for Ruby spec files to visually differentiate them from other ruby files. These files can be identified by:\r\n- Filenames ending in `_spec.rb` (eg: `user_controller_spec.rb`)\r\n- Being located in the `./spec/**/*` directory\r\n\r\nI've explored the following config options:\r\n\r\n- `extension`: Not applicable since `_spec.rb` isn't a true extension, and I don't want to affect all `*.rb` files.\r\n- `file`: Works for specific files but doesn't support patterns.\r\n- `filetype`: I could add a custom vim filetype. It seems very far-reaching, as it would require handling implications with treesitter, lsp, etc.\r\n\r\nI'm curious if anyone has any other \"outside the box\" thoughts for this problem.",
+    "bodyHTML": "<p dir=\"auto\">I'm trying to set a distinct icon for Ruby spec files to visually differentiate them from other ruby files. These files can be identified by:</p>\n<ul dir=\"auto\">\n<li>Filenames ending in <code class=\"notranslate\">_spec.rb</code> (eg: <code class=\"notranslate\">user_controller_spec.rb</code>)</li>\n<li>Being located in the <code class=\"notranslate\">./spec/**/*</code> directory</li>\n</ul>\n<p dir=\"auto\">I've explored the following config options:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">extension</code>: Not applicable since <code class=\"notranslate\">_spec.rb</code> isn't a true extension, and I don't want to affect all <code class=\"notranslate\">*.rb</code> files.</li>\n<li><code class=\"notranslate\">file</code>: Works for specific files but doesn't support patterns.</li>\n<li><code class=\"notranslate\">filetype</code>: I could add a custom vim filetype. It seems very far-reaching, as it would require handling implications with treesitter, lsp, etc.</li>\n</ul>\n<p dir=\"auto\">I'm curious if anyone has any other \"outside the box\" thoughts for this problem.</p>",
+    "bodyText": "I'm trying to set a distinct icon for Ruby spec files to visually differentiate them from other ruby files. These files can be identified by:\n\nFilenames ending in _spec.rb (eg: user_controller_spec.rb)\nBeing located in the ./spec/**/* directory\n\nI've explored the following config options:\n\nextension: Not applicable since _spec.rb isn't a true extension, and I don't want to affect all *.rb files.\nfile: Works for specific files but doesn't support patterns.\nfiletype: I could add a custom vim filetype. It seems very far-reaching, as it would require handling implications with treesitter, lsp, etc.\n\nI'm curious if anyone has any other \"outside the box\" thoughts for this problem.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-11-23T20:00:55Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I am afraid 'mini.icons' was (deliberately) not really designed to make this kind of adjustment straightforward. The only way to have icon be decided based on pattern matching is indeed by using `vim.filetype.add()`. This is usually fine when target files don't already have filetype associated with them, which is not the case here.\r\n\r\nOne way to make it less painful for overall setup is to use custom filetype which starts with `'ruby.'`. This way it will source 'ruby' filetype and syntax plugins (see `:h 'filetype'`). It seems to work for tree-sitter highlighting (tested with for Lua files), but LSP might need extra work.\r\n\r\nHere is the setup for you to try:\r\n\r\n```lua\r\nvim.filetype.add({\r\n  pattern = {\r\n    ['.*/spec/.*%.rb'] = 'ruby.spec',\r\n    ['.*_spec%.rb'] = 'ruby.spec',\r\n  },\r\n})\r\nrequire('mini.icons').setup({\r\n  filetype = {\r\n    ['ruby.spec'] = { glyph = '󰴭', hl = 'MiniIconsAzure' },\r\n  },\r\n  -- Make sure that .rb extension is not used during resolution and\r\n  -- filetype matching is used instead\r\n  use_file_extension = function(ext, _) return ext:sub(-2) ~= 'rb' end,\r\n})\r\n```\r\n\r\nSo what is left is to adjust LSP (is there anything else?) to be autostarted in 'ruby.spec' filetype also. But if you use `vim.lsp.start()` in 'after/filetype/ruby', then it might not need even that.",
+            "bodyHTML": "<p dir=\"auto\">I am afraid 'mini.icons' was (deliberately) not really designed to make this kind of adjustment straightforward. The only way to have icon be decided based on pattern matching is indeed by using <code class=\"notranslate\">vim.filetype.add()</code>. This is usually fine when target files don't already have filetype associated with them, which is not the case here.</p>\n<p dir=\"auto\">One way to make it less painful for overall setup is to use custom filetype which starts with <code class=\"notranslate\">'ruby.'</code>. This way it will source 'ruby' filetype and syntax plugins (see <code class=\"notranslate\">:h 'filetype'</code>). It seems to work for tree-sitter highlighting (tested with for Lua files), but LSP might need extra work.</p>\n<p dir=\"auto\">Here is the setup for you to try:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.filetype.add({\n  pattern = {\n    ['.*/spec/.*%.rb'] = 'ruby.spec',\n    ['.*_spec%.rb'] = 'ruby.spec',\n  },\n})\nrequire('mini.icons').setup({\n  filetype = {\n    ['ruby.spec'] = { glyph = '󰴭', hl = 'MiniIconsAzure' },\n  },\n  -- Make sure that .rb extension is not used during resolution and\n  -- filetype matching is used instead\n  use_file_extension = function(ext, _) return ext:sub(-2) ~= 'rb' end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">filetype</span>.<span class=\"pl-c1\">add</span>({\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> {\n    [<span class=\"pl-s\"><span class=\"pl-pds\">'</span>.*/spec/.*%.rb<span class=\"pl-pds\">'</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>ruby.spec<span class=\"pl-pds\">'</span></span>,\n    [<span class=\"pl-s\"><span class=\"pl-pds\">'</span>.*_spec%.rb<span class=\"pl-pds\">'</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>ruby.spec<span class=\"pl-pds\">'</span></span>,\n  },\n})\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.icons<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">filetype</span> <span class=\"pl-k\">=</span> {\n    [<span class=\"pl-s\"><span class=\"pl-pds\">'</span>ruby.spec<span class=\"pl-pds\">'</span></span>] <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">glyph</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>󰴭<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniIconsAzure<span class=\"pl-pds\">' </span></span>},\n  },\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Make sure that .rb extension is not used during resolution and</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> filetype matching is used instead</span>\n  <span class=\"pl-en\">use_file_extension</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ext</span>, <span class=\"pl-smi\">_</span>) <span class=\"pl-k\">return</span> <span class=\"pl-en\">ext</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-k\">-</span><span class=\"pl-c1\">2</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>rb<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">So what is left is to adjust LSP (is there anything else?) to be autostarted in 'ruby.spec' filetype also. But if you use <code class=\"notranslate\">vim.lsp.start()</code> in 'after/filetype/ruby', then it might not need even that.</p>",
+            "bodyText": "I am afraid 'mini.icons' was (deliberately) not really designed to make this kind of adjustment straightforward. The only way to have icon be decided based on pattern matching is indeed by using vim.filetype.add(). This is usually fine when target files don't already have filetype associated with them, which is not the case here.\nOne way to make it less painful for overall setup is to use custom filetype which starts with 'ruby.'. This way it will source 'ruby' filetype and syntax plugins (see :h 'filetype'). It seems to work for tree-sitter highlighting (tested with for Lua files), but LSP might need extra work.\nHere is the setup for you to try:\nvim.filetype.add({\n  pattern = {\n    ['.*/spec/.*%.rb'] = 'ruby.spec',\n    ['.*_spec%.rb'] = 'ruby.spec',\n  },\n})\nrequire('mini.icons').setup({\n  filetype = {\n    ['ruby.spec'] = { glyph = '󰴭', hl = 'MiniIconsAzure' },\n  },\n  -- Make sure that .rb extension is not used during resolution and\n  -- filetype matching is used instead\n  use_file_extension = function(ext, _) return ext:sub(-2) ~= 'rb' end,\n})\nSo what is left is to adjust LSP (is there anything else?) to be autostarted in 'ruby.spec' filetype also. But if you use vim.lsp.start() in 'after/filetype/ruby', then it might not need even that.",
+            "createdAt": "2024-11-23T20:00:55Z",
+            "createdViaEmail": false,
+            "databaseId": 11359358,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4ArVR-",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-11-23T20:00:55Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/934490?u=8666a27d42c11534d4ae7e5995c3bab11f4e355d&v=4",
+                        "login": "tradiff",
+                        "resourcePath": "/tradiff",
+                        "url": "https://github.com/tradiff"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks @echasnovski (love your work btw, and Slava Ukraini!).\r\n\r\nYou're right, this is working, and was less painful than I expected. For anyone else trying to do something similar, I needed to add the new `ruby.spec` filetype to the lsp config:\r\n```lua\r\nlspconfig.solargraph.setup({\r\n  on_attach = on_attach,\r\n  capabilities = capabilities,\r\n  filetypes = { \"ruby\", \"ruby.spec\" },\r\n})\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Thanks <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> (love your work btw, and Slava Ukraini!).</p>\n<p dir=\"auto\">You're right, this is working, and was less painful than I expected. For anyone else trying to do something similar, I needed to add the new <code class=\"notranslate\">ruby.spec</code> filetype to the lsp config:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"lspconfig.solargraph.setup({\n  on_attach = on_attach,\n  capabilities = capabilities,\n  filetypes = { &quot;ruby&quot;, &quot;ruby.spec&quot; },\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">lspconfig</span>.<span class=\"pl-e\">solargraph</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">on_attach</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">on_attach</span>,\n  <span class=\"pl-smi\">capabilities</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">capabilities</span>,\n  <span class=\"pl-smi\">filetypes</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ruby<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ruby.spec<span class=\"pl-pds\">\" </span></span>},\n})</pre></div>",
+                    "bodyText": "Thanks @echasnovski (love your work btw, and Slava Ukraini!).\nYou're right, this is working, and was less painful than I expected. For anyone else trying to do something similar, I needed to add the new ruby.spec filetype to the lsp config:\nlspconfig.solargraph.setup({\n  on_attach = on_attach,\n  capabilities = capabilities,\n  filetypes = { \"ruby\", \"ruby.spec\" },\n})",
+                    "createdAt": "2024-11-23T20:22:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11359443,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ArVTT",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-11-23T20:22:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11359358,
+                        "id": "DC_kwDOFoksYM4ArVR-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359358"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359443",
+                    "updatedAt": "2024-11-23T20:22:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359443"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/934490?u=8666a27d42c11534d4ae7e5995c3bab11f4e355d&v=4",
+                        "login": "tradiff",
+                        "resourcePath": "/tradiff",
+                        "url": "https://github.com/tradiff"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "This is not a problem for me, but just leaving some info for future explorers.\r\n\r\nI show the directory matching mentioned above (`'.*/spec/.*%.rb'`) does not have any effect on mini.icons (icons in places like telescope, neotree, DiffView, and lualine). It does affect `:echo &filetype`, but mini.icons sees these files as `ruby`. Without looking at the source, I suspect mini.icons only cares about the filename, not the full path.\r\n\r\nAgain, not an issue for me, as the files I'm interested in do mostly match the `'.*_spec%.rb'` filename pattern, which works fine.",
+                    "bodyHTML": "<p dir=\"auto\">This is not a problem for me, but just leaving some info for future explorers.</p>\n<p dir=\"auto\">I show the directory matching mentioned above (<code class=\"notranslate\">'.*/spec/.*%.rb'</code>) does not have any effect on mini.icons (icons in places like telescope, neotree, DiffView, and lualine). It does affect <code class=\"notranslate\">:echo &amp;filetype</code>, but mini.icons sees these files as <code class=\"notranslate\">ruby</code>. Without looking at the source, I suspect mini.icons only cares about the filename, not the full path.</p>\n<p dir=\"auto\">Again, not an issue for me, as the files I'm interested in do mostly match the <code class=\"notranslate\">'.*_spec%.rb'</code> filename pattern, which works fine.</p>",
+                    "bodyText": "This is not a problem for me, but just leaving some info for future explorers.\nI show the directory matching mentioned above ('.*/spec/.*%.rb') does not have any effect on mini.icons (icons in places like telescope, neotree, DiffView, and lualine). It does affect :echo &filetype, but mini.icons sees these files as ruby. Without looking at the source, I suspect mini.icons only cares about the filename, not the full path.\nAgain, not an issue for me, as the files I'm interested in do mostly match the '.*_spec%.rb' filename pattern, which works fine.",
+                    "createdAt": "2024-11-23T20:54:45Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11359573,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/934490?u=8666a27d42c11534d4ae7e5995c3bab11f4e355d&v=4",
+                        "login": "tradiff",
+                        "resourcePath": "/tradiff",
+                        "url": "https://github.com/tradiff"
+                    },
+                    "id": "DC_kwDOFoksYM4ArVVV",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-11-23T21:12:47Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-11-23T20:54:45Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11359358,
+                        "id": "DC_kwDOFoksYM4ArVR-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359358"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359573",
+                    "updatedAt": "2024-11-23T21:12:47Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359573"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I show the directory matching mentioned above (`'.*/spec/.*%.rb'`) does not have any effect on mini.icons (icons in places like telescope, neotree, DiffView, and lualine). It does affect `:echo &filetype`, but mini.icons sees these files as `ruby`. Without looking at the source, I suspect mini.icons only cares about the filename, not the full path.\r\n\r\nThat's exactly the opposite: 'mini.icons' does care about full path and [it is recommended](https://github.com/echasnovski/mini.nvim/blob/ccfc6300a5c17387f2899f979ecc04f942bee2a0/doc/mini-icons.txt#L43-L45) for plugins to supply full path to `MiniIcons.get()` (specifically for the reason you mention). The problem here is that those plugins don't have direct 'mini.icons' support in favor of 'nvim-tree/nvim-web-devicons'. If they use icons from 'mini.icons' for you, then it is probably thanks to calling [`mock_nvim_web_devicons()`](https://github.com/echasnovski/mini.nvim/blob/ccfc6300a5c17387f2899f979ecc04f942bee2a0/doc/mini-icons.txt#L461) in your config.\r\n\r\nYou can verify that 'mini.icons' respect the `'.*/spec/.*%.rb'` filetype matching pattern by something like `:=MiniIcons.get('file', '/home/user/spec/subdir/file.rb')` which should show you icon data configured for `'ruby.spec'` filetype.\r\n\r\nBy the way, all similar 'mini.nvim' modules ('mini.files', 'mini.pick', 'mini.statusline') work as expected here.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I show the directory matching mentioned above (<code class=\"notranslate\">'.*/spec/.*%.rb'</code>) does not have any effect on mini.icons (icons in places like telescope, neotree, DiffView, and lualine). It does affect <code class=\"notranslate\">:echo &amp;filetype</code>, but mini.icons sees these files as <code class=\"notranslate\">ruby</code>. Without looking at the source, I suspect mini.icons only cares about the filename, not the full path.</p>\n</blockquote>\n<p dir=\"auto\">That's exactly the opposite: 'mini.icons' does care about full path and <a href=\"https://github.com/echasnovski/mini.nvim/blob/ccfc6300a5c17387f2899f979ecc04f942bee2a0/doc/mini-icons.txt#L43-L45\">it is recommended</a> for plugins to supply full path to <code class=\"notranslate\">MiniIcons.get()</code> (specifically for the reason you mention). The problem here is that those plugins don't have direct 'mini.icons' support in favor of 'nvim-tree/nvim-web-devicons'. If they use icons from 'mini.icons' for you, then it is probably thanks to calling <a href=\"https://github.com/echasnovski/mini.nvim/blob/ccfc6300a5c17387f2899f979ecc04f942bee2a0/doc/mini-icons.txt#L461\"><code class=\"notranslate\">mock_nvim_web_devicons()</code></a> in your config.</p>\n<p dir=\"auto\">You can verify that 'mini.icons' respect the <code class=\"notranslate\">'.*/spec/.*%.rb'</code> filetype matching pattern by something like <code class=\"notranslate\">:=MiniIcons.get('file', '/home/user/spec/subdir/file.rb')</code> which should show you icon data configured for <code class=\"notranslate\">'ruby.spec'</code> filetype.</p>\n<p dir=\"auto\">By the way, all similar 'mini.nvim' modules ('mini.files', 'mini.pick', 'mini.statusline') work as expected here.</p>",
+                    "bodyText": "I show the directory matching mentioned above ('.*/spec/.*%.rb') does not have any effect on mini.icons (icons in places like telescope, neotree, DiffView, and lualine). It does affect :echo &filetype, but mini.icons sees these files as ruby. Without looking at the source, I suspect mini.icons only cares about the filename, not the full path.\n\nThat's exactly the opposite: 'mini.icons' does care about full path and it is recommended for plugins to supply full path to MiniIcons.get() (specifically for the reason you mention). The problem here is that those plugins don't have direct 'mini.icons' support in favor of 'nvim-tree/nvim-web-devicons'. If they use icons from 'mini.icons' for you, then it is probably thanks to calling mock_nvim_web_devicons() in your config.\nYou can verify that 'mini.icons' respect the '.*/spec/.*%.rb' filetype matching pattern by something like :=MiniIcons.get('file', '/home/user/spec/subdir/file.rb') which should show you icon data configured for 'ruby.spec' filetype.\nBy the way, all similar 'mini.nvim' modules ('mini.files', 'mini.pick', 'mini.statusline') work as expected here.",
+                    "createdAt": "2024-11-23T21:23:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11359723,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ArVXr",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-11-23T21:23:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11359358,
+                        "id": "DC_kwDOFoksYM4ArVR-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359358"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359723",
+                    "updatedAt": "2024-11-23T21:23:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359723"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/934490?u=8666a27d42c11534d4ae7e5995c3bab11f4e355d&v=4",
+                        "login": "tradiff",
+                        "resourcePath": "/tradiff",
+                        "url": "https://github.com/tradiff"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Ah that makes sense. Thanks for adding that additional detail. So maybe those plugins will improve with time. As for me, I've been gradually swapping things over to mini where I can. I tend to customize pretty heavily, so often times mini is a bit too minimalist for my preferences 😅",
+                    "bodyHTML": "<p dir=\"auto\">Ah that makes sense. Thanks for adding that additional detail. So maybe those plugins will improve with time. As for me, I've been gradually swapping things over to mini where I can. I tend to customize pretty heavily, so often times mini is a bit too minimalist for my preferences 😅</p>",
+                    "bodyText": "Ah that makes sense. Thanks for adding that additional detail. So maybe those plugins will improve with time. As for me, I've been gradually swapping things over to mini where I can. I tend to customize pretty heavily, so often times mini is a bit too minimalist for my preferences 😅",
+                    "createdAt": "2024-11-23T21:33:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11359756,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ArVYM",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-11-23T21:33:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11359358,
+                        "id": "DC_kwDOFoksYM4ArVR-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359358"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359756",
+                    "updatedAt": "2024-11-23T21:33:35Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359756"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359358",
+            "updatedAt": "2024-11-23T20:00:55Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358#discussioncomment-11359358"
+        }
+    ],
+    "createdAt": "2024-11-23T19:35:10Z",
+    "createdViaEmail": false,
+    "databaseId": 7540062,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/934490?u=8666a27d42c11534d4ae7e5995c3bab11f4e355d&v=4",
+        "login": "tradiff",
+        "resourcePath": "/tradiff",
+        "url": "https://github.com/tradiff"
+    },
+    "id": "D_kwDOFoksYM4Acw1e",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABqrRdwg",
+                "name": "mini.icons"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-11-23T19:41:05Z",
+    "locked": false,
+    "number": 1358,
+    "poll": null,
+    "publishedAt": "2024-11-23T19:35:10Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1358",
+    "stateReason": "RESOLVED",
+    "title": "[mini.icons] Icon customization for a filename pattern",
+    "updatedAt": "2024-11-23T21:33:34Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1358"
+}

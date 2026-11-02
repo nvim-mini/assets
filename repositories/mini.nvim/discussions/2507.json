@@ -1,0 +1,295 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 17594295,
+        "id": "DC_kwDOFoksYM4BDHe3",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2507#discussioncomment-17594295"
+    },
+    "answerChosenAt": "2026-07-13T08:27:38Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/45960823?v=4",
+        "login": "owenstake",
+        "resourcePath": "/owenstake",
+        "url": "https://github.com/owenstake"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [x] I have read [CONTRIBUTING.md](https://github.com/nvim-mini/mini.nvim/blob/main/CONTRIBUTING.md)\n- [x] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.surround\n\n### Description\n\nI want to map `replace` to two different keymaps as follows. But it do not worked.\n```lua\n  {\n    \"nvim-mini/mini.surround\",\n    opts = {\n      mappings = {\n        replace = \"gzc\", \n        replace = \"cz\",\n      },\n    },\n  },\n```",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CONTRIBUTING.md\">CONTRIBUTING.md</a></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.surround</p>\n<h3 dir=\"auto\">Description</h3>\n<p dir=\"auto\">I want to map <code class=\"notranslate\">replace</code> to two different keymaps as follows. But it do not worked.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  {\n    &quot;nvim-mini/mini.surround&quot;,\n    opts = {\n      mappings = {\n        replace = &quot;gzc&quot;, \n        replace = &quot;cz&quot;,\n      },\n    },\n  },\"><pre class=\"notranslate\">  {\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-mini/mini.surround<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">replace</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gzc<span class=\"pl-pds\">\"</span></span>, \n        <span class=\"pl-smi\">replace</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>cz<span class=\"pl-pds\">\"</span></span>,\n      },\n    },\n  },</pre></div>",
+    "bodyText": "Contributing guidelines\n\n I have read CONTRIBUTING.md\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.surround\nDescription\nI want to map replace to two different keymaps as follows. But it do not worked.\n  {\n    \"nvim-mini/mini.surround\",\n    opts = {\n      mappings = {\n        replace = \"gzc\", \n        replace = \"cz\",\n      },\n    },\n  },",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-07-10T13:44:09Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hello @owenstake,\r\n\r\nThanks for the question!\r\nUnfortunately, you can't do it like that in lua. Your second 'replace' key overwrites the value of the first.\r\n\r\nThe problem can be solved by adding the second mapping *after* `mini.surround` has been setup.\r\n\r\n```lua\r\n\r\n{\r\n  \"nvim-mini/mini.surround\",\r\n  config = function()\r\n    require(\"mini.surround\").setup({\r\n      mappings = { replace = \"gzc\" },\r\n    })\r\n    local gzc = vim.fn.maparg(\"gzc\", \"n\", false, true).callback\r\n    vim.keymap.set(\"n\", \"cz\", gzc, { expr = true, silent = true, desc = \"Replace surrounding\" })\r\n    local gzcl = vim.fn.maparg(\"gzcl\", \"n\", false, true).callback\r\n    vim.keymap.set(\"n\", \"czl\", gzcl, { expr = true, silent = true, desc = \"Replace previous surrounding\" })\r\n    local gzcn = vim.fn.maparg(\"gzcn\", \"n\", false, true).callback\r\n    vim.keymap.set(\"n\", \"czn\", gzcn, { expr = true, silent = true, desc = \"Replace next surrounding\" })\r\n  end,\r\n},\r\n\r\n```\r\nNote that if you are using `LazyVim`(the distro), the only caveat of the solution above is that the extra `cz` mappings will not [lazy load](https://github.com/LazyVim/LazyVim/blob/459a4c3b1059671e766a46c7cc223827dc67e3d0/lua/lazyvim/plugins/extras/coding/mini-surround.lua#L7) the plugin.\r\n\r\nIs there a reason you want to use 2 different keymaps?\r\n\r\n",
+            "bodyHTML": "<p dir=\"auto\">Hello <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/owenstake/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/owenstake\">@owenstake</a>,</p>\n<p dir=\"auto\">Thanks for the question!<br>\nUnfortunately, you can't do it like that in lua. Your second 'replace' key overwrites the value of the first.</p>\n<p dir=\"auto\">The problem can be solved by adding the second mapping <em>after</em> <code class=\"notranslate\">mini.surround</code> has been setup.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\n{\n  &quot;nvim-mini/mini.surround&quot;,\n  config = function()\n    require(&quot;mini.surround&quot;).setup({\n      mappings = { replace = &quot;gzc&quot; },\n    })\n    local gzc = vim.fn.maparg(&quot;gzc&quot;, &quot;n&quot;, false, true).callback\n    vim.keymap.set(&quot;n&quot;, &quot;cz&quot;, gzc, { expr = true, silent = true, desc = &quot;Replace surrounding&quot; })\n    local gzcl = vim.fn.maparg(&quot;gzcl&quot;, &quot;n&quot;, false, true).callback\n    vim.keymap.set(&quot;n&quot;, &quot;czl&quot;, gzcl, { expr = true, silent = true, desc = &quot;Replace previous surrounding&quot; })\n    local gzcn = vim.fn.maparg(&quot;gzcn&quot;, &quot;n&quot;, false, true).callback\n    vim.keymap.set(&quot;n&quot;, &quot;czn&quot;, gzcn, { expr = true, silent = true, desc = &quot;Replace next surrounding&quot; })\n  end,\n},\n\"><pre class=\"notranslate\">{\n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-mini/mini.surround<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.surround<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n      <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">replace</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gzc<span class=\"pl-pds\">\" </span></span>},\n    })\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">gzc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">maparg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gzc<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>).<span class=\"pl-e\">callback</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>cz<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">gzc</span>, { <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Replace surrounding<span class=\"pl-pds\">\" </span></span>})\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">gzcl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">maparg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gzcl<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>).<span class=\"pl-e\">callback</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>czl<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">gzcl</span>, { <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Replace previous surrounding<span class=\"pl-pds\">\" </span></span>})\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">gzcn</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">maparg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gzcn<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>).<span class=\"pl-e\">callback</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>czn<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">gzcn</span>, { <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Replace next surrounding<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-k\">end</span>,\n},\n</pre></div>\n<p dir=\"auto\">Note that if you are using <code class=\"notranslate\">LazyVim</code>(the distro), the only caveat of the solution above is that the extra <code class=\"notranslate\">cz</code> mappings will not <a href=\"https://github.com/LazyVim/LazyVim/blob/459a4c3b1059671e766a46c7cc223827dc67e3d0/lua/lazyvim/plugins/extras/coding/mini-surround.lua#L7\">lazy load</a> the plugin.</p>\n<p dir=\"auto\">Is there a reason you want to use 2 different keymaps?</p>",
+            "bodyText": "Hello @owenstake,\nThanks for the question!\nUnfortunately, you can't do it like that in lua. Your second 'replace' key overwrites the value of the first.\nThe problem can be solved by adding the second mapping after mini.surround has been setup.\n{\n  \"nvim-mini/mini.surround\",\n  config = function()\n    require(\"mini.surround\").setup({\n      mappings = { replace = \"gzc\" },\n    })\n    local gzc = vim.fn.maparg(\"gzc\", \"n\", false, true).callback\n    vim.keymap.set(\"n\", \"cz\", gzc, { expr = true, silent = true, desc = \"Replace surrounding\" })\n    local gzcl = vim.fn.maparg(\"gzcl\", \"n\", false, true).callback\n    vim.keymap.set(\"n\", \"czl\", gzcl, { expr = true, silent = true, desc = \"Replace previous surrounding\" })\n    local gzcn = vim.fn.maparg(\"gzcn\", \"n\", false, true).callback\n    vim.keymap.set(\"n\", \"czn\", gzcn, { expr = true, silent = true, desc = \"Replace next surrounding\" })\n  end,\n},\n\nNote that if you are using LazyVim(the distro), the only caveat of the solution above is that the extra cz mappings will not lazy load the plugin.\nIs there a reason you want to use 2 different keymaps?",
+            "createdAt": "2026-07-10T08:47:42Z",
+            "createdViaEmail": false,
+            "databaseId": 17594295,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "id": "DC_kwDOFoksYM4BDHe3",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2026-07-10T09:29:59Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-07-10T08:47:42Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/45960823?v=4",
+                        "login": "owenstake",
+                        "resourcePath": "/owenstake",
+                        "url": "https://github.com/owenstake"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thx. It solved.",
+                    "bodyHTML": "<p dir=\"auto\">Thx. It solved.</p>",
+                    "bodyText": "Thx. It solved.",
+                    "createdAt": "2026-07-13T07:47:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17619198,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BDNj-",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-07-13T07:47:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 17594295,
+                        "id": "DC_kwDOFoksYM4BDHe3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2507#discussioncomment-17594295"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2507#discussioncomment-17619198",
+                    "updatedAt": "2026-07-13T07:47:28Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2507#discussioncomment-17619198"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2507#discussioncomment-17594295",
+            "updatedAt": "2026-07-10T09:29:59Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2507#discussioncomment-17594295"
+        }
+    ],
+    "createdAt": "2026-07-10T07:32:32Z",
+    "createdViaEmail": false,
+    "databaseId": 10403983,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/45960823?v=4",
+        "login": "owenstake",
+        "resourcePath": "/owenstake",
+        "url": "https://github.com/owenstake"
+    },
+    "id": "D_kwDOFoksYM4AnsCP",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vpB",
+                "name": "mini.surround"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2026-07-10T07:33:42Z",
+    "locked": false,
+    "number": 2507,
+    "poll": null,
+    "publishedAt": "2026-07-10T07:32:32Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2507",
+    "stateReason": "RESOLVED",
+    "title": "how to map `replace` to two different keymaps",
+    "updatedAt": "2026-07-13T08:27:38Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2507"
+}

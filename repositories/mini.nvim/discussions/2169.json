@@ -1,0 +1,880 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Keymaps:\r\n\r\n- [x] `<C-Left>` / `<C-Right>` like in Insert mode, respecting `vim.bo.iskeyword`\r\n- [x] `<Home>` / `<End>` like in Insert mode (overrides `move_start`, see [comment](https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242642))\r\n- [x] `<C-S-Left>` / `<C-S-Right>` similar to `<C-Left>` / `<C-Right>` in Cmdline\r\n\r\nhttps://github.com/user-attachments/assets/7bb4e79c-10dd-489a-8b9b-37a08944dbe5\r\n\r\n```lua\r\nlocal run_keys = function(keys, rep)\r\n  vim.api.nvim_input(string.rep(keys, rep or 1))\r\nend\r\n\r\nlocal move_caret = function(next_caret)\r\n  local caret = MiniPick.get_picker_state().caret\r\n  local query = MiniPick.get_picker_query()\r\n  next_caret = math.max(1, math.min(next_caret, #query + 1))\r\n  local move = next_caret - caret\r\n  run_keys(move >= 0 and \"<Right>\" or \"<Left>\", math.abs(move))\r\nend\r\n\r\nrequire(\"mini.pick\").setup({\r\n  mappings = {\r\n    -- Easy\r\n    caret_start = {\r\n      char = \"<Home>\",\r\n      func = function()\r\n        move_caret(1)\r\n      end,\r\n    },\r\n    caret_end = {\r\n      char = \"<End>\",\r\n      func = function()\r\n        -- TIP: You can also use `math.huge` instead\r\n        move_caret(#MiniPick.get_picker_query() + 1)\r\n      end,\r\n    },\r\n    -- Medium\r\n    -- Like <C-Left>/<C-Right> in Cmdline, but skip spaces\r\n    prev_before_space = {\r\n      char = \"<C-S-Left>\",\r\n      func = function()\r\n        local query_str = table.concat(MiniPick.get_picker_query())\r\n        local caret = MiniPick.get_picker_state().caret\r\n        local search_str = string.sub(query_str, 1, caret - 1)\r\n        local word_start = string.find(search_str, \"%S+%s*$\")\r\n        move_caret(word_start or 1)\r\n      end,\r\n    },\r\n    next_before_space = {\r\n      char = \"<C-S-Right>\",\r\n      func = function()\r\n        local query_str = table.concat(MiniPick.get_picker_query())\r\n        local caret = MiniPick.get_picker_state().caret\r\n        local word_end = string.find(query_str, \"%f[%s]\", caret + 1)\r\n        move_caret(word_end or #query_str + 1)\r\n      end,\r\n    },\r\n    -- Hard\r\n    -- Like <C-Left>/<C-Right> in Insert mode, vim.bo.iskeyword\r\n    prev_word = {\r\n      char = \"<C-Left>\",\r\n      func = function()\r\n        local query_str = table.concat(MiniPick.get_picker_query())\r\n        local caret = MiniPick.get_picker_state().caret\r\n        -- TIP: To avoid recompiling regex on each key press, move it outside the `func`\r\n        -- NOTE: ((not keyword and not space)+ OR keyword+)space*$\r\n        local regex = vim.regex([=[\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*$]=])\r\n        local from, _ = regex:match_str(string.sub(query_str, 1, caret - 1))\r\n        local prev_word_start = from and from + 1 or nil\r\n        move_caret(prev_word_start or 1)\r\n      end,\r\n    },\r\n    next_word = {\r\n      char = \"<C-Right>\",\r\n      func = function()\r\n        local query_str = table.concat(MiniPick.get_picker_query())\r\n        local caret = MiniPick.get_picker_state().caret\r\n        -- NOTE: ^((not keyword and not space)+ OR keyword+)space*\r\n        local regex = vim.regex([=[^\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*]=])\r\n        local _, to = regex:match_str(string.sub(query_str, caret))\r\n        local next_word_start = to and to + caret or nil\r\n        move_caret(next_word_start or #query_str + 1)\r\n      end,\r\n    },\r\n    -- stylua: ignore start\r\n    caret_start_alt = { char = \"<C-a>\", func = function() run_keys(\"<Home>\") end },\r\n    caret_end_alt = { char = \"<C-e>\", func = function() run_keys(\"<End>\") end },\r\n    move_down_alt = { char = \"<C-j>\", func = function() run_keys(\"<C-n>\") end },\r\n    move_up_alt = { char = \"<C-k>\", func = function() run_keys(\"<C-p>\") end },\r\n  },\r\n})\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Keymaps:</p>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> <code class=\"notranslate\">&lt;C-Left&gt;</code> / <code class=\"notranslate\">&lt;C-Right&gt;</code> like in Insert mode, respecting <code class=\"notranslate\">vim.bo.iskeyword</code></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> <code class=\"notranslate\">&lt;Home&gt;</code> / <code class=\"notranslate\">&lt;End&gt;</code> like in Insert mode (overrides <code class=\"notranslate\">move_start</code>, see <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242642\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2169/hovercard?comment_id=15242642\">comment</a>)</li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> <code class=\"notranslate\">&lt;C-S-Left&gt;</code> / <code class=\"notranslate\">&lt;C-S-Right&gt;</code> similar to <code class=\"notranslate\">&lt;C-Left&gt;</code> / <code class=\"notranslate\">&lt;C-Right&gt;</code> in Cmdline</li>\n</ul>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">pick-motions.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/525998270-7bb4e79c-10dd-489a-8b9b-37a08944dbe5.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjUsIm5iZiI6MTc5MzU1MjUyNSwicGF0aCI6Ii8xMTk4NDUwNDUvNTI1OTk4MjcwLTdiYjRlNzljLTEwZGQtNDg5YS04YjliLTM3YTA4OTQ0ZGJlNS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0yNTU0NWZiNDk1NmYwYjc3YjE3NTU4ZThkYzFmN2I5MzBjNDc0NDc0ODNiZTIzZDQyNWY0MWE3Yjc4ZmM0NzFlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.A8txkLd1jszS2oCRMRucbD2eKM8fCUiXqWNOlcJtVYA\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/525998270-7bb4e79c-10dd-489a-8b9b-37a08944dbe5.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjUsIm5iZiI6MTc5MzU1MjUyNSwicGF0aCI6Ii8xMTk4NDUwNDUvNTI1OTk4MjcwLTdiYjRlNzljLTEwZGQtNDg5YS04YjliLTM3YTA4OTQ0ZGJlNS5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0yNTU0NWZiNDk1NmYwYjc3YjE3NTU4ZThkYzFmN2I5MzBjNDc0NDc0ODNiZTIzZDQyNWY0MWE3Yjc4ZmM0NzFlJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.A8txkLd1jszS2oCRMRucbD2eKM8fCUiXqWNOlcJtVYA\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local run_keys = function(keys, rep)\n  vim.api.nvim_input(string.rep(keys, rep or 1))\nend\n\nlocal move_caret = function(next_caret)\n  local caret = MiniPick.get_picker_state().caret\n  local query = MiniPick.get_picker_query()\n  next_caret = math.max(1, math.min(next_caret, #query + 1))\n  local move = next_caret - caret\n  run_keys(move &gt;= 0 and &quot;&lt;Right&gt;&quot; or &quot;&lt;Left&gt;&quot;, math.abs(move))\nend\n\nrequire(&quot;mini.pick&quot;).setup({\n  mappings = {\n    -- Easy\n    caret_start = {\n      char = &quot;&lt;Home&gt;&quot;,\n      func = function()\n        move_caret(1)\n      end,\n    },\n    caret_end = {\n      char = &quot;&lt;End&gt;&quot;,\n      func = function()\n        -- TIP: You can also use `math.huge` instead\n        move_caret(#MiniPick.get_picker_query() + 1)\n      end,\n    },\n    -- Medium\n    -- Like &lt;C-Left&gt;/&lt;C-Right&gt; in Cmdline, but skip spaces\n    prev_before_space = {\n      char = &quot;&lt;C-S-Left&gt;&quot;,\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        local search_str = string.sub(query_str, 1, caret - 1)\n        local word_start = string.find(search_str, &quot;%S+%s*$&quot;)\n        move_caret(word_start or 1)\n      end,\n    },\n    next_before_space = {\n      char = &quot;&lt;C-S-Right&gt;&quot;,\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        local word_end = string.find(query_str, &quot;%f[%s]&quot;, caret + 1)\n        move_caret(word_end or #query_str + 1)\n      end,\n    },\n    -- Hard\n    -- Like &lt;C-Left&gt;/&lt;C-Right&gt; in Insert mode, vim.bo.iskeyword\n    prev_word = {\n      char = &quot;&lt;C-Left&gt;&quot;,\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        -- TIP: To avoid recompiling regex on each key press, move it outside the `func`\n        -- NOTE: ((not keyword and not space)+ OR keyword+)space*$\n        local regex = vim.regex([=[\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*$]=])\n        local from, _ = regex:match_str(string.sub(query_str, 1, caret - 1))\n        local prev_word_start = from and from + 1 or nil\n        move_caret(prev_word_start or 1)\n      end,\n    },\n    next_word = {\n      char = &quot;&lt;C-Right&gt;&quot;,\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        -- NOTE: ^((not keyword and not space)+ OR keyword+)space*\n        local regex = vim.regex([=[^\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*]=])\n        local _, to = regex:match_str(string.sub(query_str, caret))\n        local next_word_start = to and to + caret or nil\n        move_caret(next_word_start or #query_str + 1)\n      end,\n    },\n    -- stylua: ignore start\n    caret_start_alt = { char = &quot;&lt;C-a&gt;&quot;, func = function() run_keys(&quot;&lt;Home&gt;&quot;) end },\n    caret_end_alt = { char = &quot;&lt;C-e&gt;&quot;, func = function() run_keys(&quot;&lt;End&gt;&quot;) end },\n    move_down_alt = { char = &quot;&lt;C-j&gt;&quot;, func = function() run_keys(&quot;&lt;C-n&gt;&quot;) end },\n    move_up_alt = { char = &quot;&lt;C-k&gt;&quot;, func = function() run_keys(&quot;&lt;C-p&gt;&quot;) end },\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">run_keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-smi\">rep</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_input</span>(<span class=\"pl-c1\">string.rep</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-smi\">rep</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">move_caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">next_caret</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">caret</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">query</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_query</span>()\n  <span class=\"pl-smi\">next_caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">math.min</span>(<span class=\"pl-smi\">next_caret</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">query</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>))\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">move</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">next_caret</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">caret</span>\n  <span class=\"pl-c1\">run_keys</span>(<span class=\"pl-smi\">move</span> <span class=\"pl-k\">&gt;=</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Right&gt;<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Left&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">math.abs</span>(<span class=\"pl-smi\">move</span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Easy</span>\n    <span class=\"pl-smi\">caret_start</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Home&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-c1\">move_caret</span>(<span class=\"pl-c1\">1</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n    <span class=\"pl-smi\">caret_end</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;End&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> TIP: You can also use `math.huge` instead</span>\n        <span class=\"pl-c1\">move_caret</span>(<span class=\"pl-k\">#</span><span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_query</span>() <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Medium</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Like &lt;C-Left&gt;/&lt;C-Right&gt; in Cmdline, but skip spaces</span>\n    <span class=\"pl-smi\">prev_before_space</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-S-Left&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">query_str</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_query</span>())\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">caret</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">search_str</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">query_str</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">word_start</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">search_str</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%S+%s*$<span class=\"pl-pds\">\"</span></span>)\n        <span class=\"pl-c1\">move_caret</span>(<span class=\"pl-smi\">word_start</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n    <span class=\"pl-smi\">next_before_space</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-S-Right&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">query_str</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_query</span>())\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">caret</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">word_end</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">query_str</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%s]<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n        <span class=\"pl-c1\">move_caret</span>(<span class=\"pl-smi\">word_end</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">query_str</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Hard</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Like &lt;C-Left&gt;/&lt;C-Right&gt; in Insert mode, vim.bo.iskeyword</span>\n    <span class=\"pl-smi\">prev_word</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-Left&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">query_str</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_query</span>())\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">caret</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> TIP: To avoid recompiling regex on each key press, move it outside the `func`</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: ((not keyword and not space)+ OR keyword+)space*$</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">regex</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">regex</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[=[</span>\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*$<span class=\"pl-pds\">]=]</span></span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">regex</span>:<span class=\"pl-c1\">match_str</span>(<span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">query_str</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>))\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prev_word_start</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">from</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">from</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>\n        <span class=\"pl-c1\">move_caret</span>(<span class=\"pl-smi\">prev_word_start</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n    <span class=\"pl-smi\">next_word</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-Right&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">query_str</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_query</span>())\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>().<span class=\"pl-e\">caret</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: ^((not keyword and not space)+ OR keyword+)space*</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">regex</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">regex</span>(<span class=\"pl-s\"><span class=\"pl-pds\">[=[</span>^\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*<span class=\"pl-pds\">]=]</span></span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">regex</span>:<span class=\"pl-c1\">match_str</span>(<span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">query_str</span>, <span class=\"pl-smi\">caret</span>))\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">next_word_start</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">to</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">to</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">caret</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>\n        <span class=\"pl-c1\">move_caret</span>(<span class=\"pl-smi\">next_word_start</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">query_str</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>)\n      <span class=\"pl-k\">end</span>,\n    },\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n    <span class=\"pl-smi\">caret_start_alt</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-a&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">run_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Home&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span> },\n    <span class=\"pl-smi\">caret_end_alt</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-e&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">run_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;End&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span> },\n    <span class=\"pl-smi\">move_down_alt</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-j&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">run_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span> },\n    <span class=\"pl-smi\">move_up_alt</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-k&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">run_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-p&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span> },\n  },\n})</pre></div>",
+    "bodyText": "Keymaps:\n\n <C-Left> / <C-Right> like in Insert mode, respecting vim.bo.iskeyword\n <Home> / <End> like in Insert mode (overrides move_start, see comment)\n <C-S-Left> / <C-S-Right> similar to <C-Left> / <C-Right> in Cmdline\n\n\n  \n    \n    \n\n    pick-motions.mp4\n    \n  \n\n  \n\n  \n\n\nlocal run_keys = function(keys, rep)\n  vim.api.nvim_input(string.rep(keys, rep or 1))\nend\n\nlocal move_caret = function(next_caret)\n  local caret = MiniPick.get_picker_state().caret\n  local query = MiniPick.get_picker_query()\n  next_caret = math.max(1, math.min(next_caret, #query + 1))\n  local move = next_caret - caret\n  run_keys(move >= 0 and \"<Right>\" or \"<Left>\", math.abs(move))\nend\n\nrequire(\"mini.pick\").setup({\n  mappings = {\n    -- Easy\n    caret_start = {\n      char = \"<Home>\",\n      func = function()\n        move_caret(1)\n      end,\n    },\n    caret_end = {\n      char = \"<End>\",\n      func = function()\n        -- TIP: You can also use `math.huge` instead\n        move_caret(#MiniPick.get_picker_query() + 1)\n      end,\n    },\n    -- Medium\n    -- Like <C-Left>/<C-Right> in Cmdline, but skip spaces\n    prev_before_space = {\n      char = \"<C-S-Left>\",\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        local search_str = string.sub(query_str, 1, caret - 1)\n        local word_start = string.find(search_str, \"%S+%s*$\")\n        move_caret(word_start or 1)\n      end,\n    },\n    next_before_space = {\n      char = \"<C-S-Right>\",\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        local word_end = string.find(query_str, \"%f[%s]\", caret + 1)\n        move_caret(word_end or #query_str + 1)\n      end,\n    },\n    -- Hard\n    -- Like <C-Left>/<C-Right> in Insert mode, vim.bo.iskeyword\n    prev_word = {\n      char = \"<C-Left>\",\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        -- TIP: To avoid recompiling regex on each key press, move it outside the `func`\n        -- NOTE: ((not keyword and not space)+ OR keyword+)space*$\n        local regex = vim.regex([=[\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*$]=])\n        local from, _ = regex:match_str(string.sub(query_str, 1, caret - 1))\n        local prev_word_start = from and from + 1 or nil\n        move_caret(prev_word_start or 1)\n      end,\n    },\n    next_word = {\n      char = \"<C-Right>\",\n      func = function()\n        local query_str = table.concat(MiniPick.get_picker_query())\n        local caret = MiniPick.get_picker_state().caret\n        -- NOTE: ^((not keyword and not space)+ OR keyword+)space*\n        local regex = vim.regex([=[^\\([^[:keyword:][:space:]]\\+\\|\\k\\+\\)\\s*]=])\n        local _, to = regex:match_str(string.sub(query_str, caret))\n        local next_word_start = to and to + caret or nil\n        move_caret(next_word_start or #query_str + 1)\n      end,\n    },\n    -- stylua: ignore start\n    caret_start_alt = { char = \"<C-a>\", func = function() run_keys(\"<Home>\") end },\n    caret_end_alt = { char = \"<C-e>\", func = function() run_keys(\"<End>\") end },\n    move_down_alt = { char = \"<C-j>\", func = function() run_keys(\"<C-n>\") end },\n    move_up_alt = { char = \"<C-k>\", func = function() run_keys(\"<C-p>\") end },\n  },\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I hope `mini.nvim` will include:\r\n\r\n- `<Home>` / `<End>`\r\n- `<C-Right>` / `<C-Left>` (with `iskeyword` support)\r\n\r\n---\r\n\r\nTL;DR\r\n\r\n> it is in the \"not planned\" list at the moment.\r\n\r\nSee https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243269.",
+            "bodyHTML": "<p dir=\"auto\">I hope <code class=\"notranslate\">mini.nvim</code> will include:</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">&lt;Home&gt;</code> / <code class=\"notranslate\">&lt;End&gt;</code></li>\n<li><code class=\"notranslate\">&lt;C-Right&gt;</code> / <code class=\"notranslate\">&lt;C-Left&gt;</code> (with <code class=\"notranslate\">iskeyword</code> support)</li>\n</ul>\n<hr>\n<p dir=\"auto\">TL;DR</p>\n<blockquote>\n<p dir=\"auto\">it is in the \"not planned\" list at the moment.</p>\n</blockquote>\n<p dir=\"auto\">See <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"9241914\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/2169\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2169/hovercard?comment_id=15243269\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243269\">#2169 (reply in thread)</a>.</p>",
+            "bodyText": "I hope mini.nvim will include:\n\n<Home> / <End>\n<C-Right> / <C-Left> (with iskeyword support)\n\n\nTL;DR\n\nit is in the \"not planned\" list at the moment.\n\nSee #2169 (reply in thread).",
+            "createdAt": "2025-12-12T17:38:38Z",
+            "createdViaEmail": false,
+            "databaseId": 15242625,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A6JWB",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-12T22:28:39Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-12T17:38:38Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 7,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "At the moment, I don't think so.\r\n\r\n- `<Home>` is already supported and is an alternative to `move_start` action.\r\n- The `<End>` is the same as `<Home><Up>` and is not really useful when it comes to navigating through matches.\r\n- `<C-Right>` and `<C-left>` is a bit too much. Especially since it requires 'iskeyword' support, which is also rather ambiguous. Since it can be a buffer-local option, picker's behavior will depend on the current buffer. Which is somewhat unintuitive. Always using global option is doable, but may be a bit unintuitive for people who are not really aware about global/local options.\r\n\r\n    One extra problem here is that query technically can contain not only single letters, but whole words. So full \"word\" navigation is not always possible since caret can be placed only in between query entries.",
+                    "bodyHTML": "<p dir=\"auto\">At the moment, I don't think so.</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;Home&gt;</code> is already supported and is an alternative to <code class=\"notranslate\">move_start</code> action.</p>\n</li>\n<li>\n<p dir=\"auto\">The <code class=\"notranslate\">&lt;End&gt;</code> is the same as <code class=\"notranslate\">&lt;Home&gt;&lt;Up&gt;</code> and is not really useful when it comes to navigating through matches.</p>\n</li>\n<li>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;C-Right&gt;</code> and <code class=\"notranslate\">&lt;C-left&gt;</code> is a bit too much. Especially since it requires 'iskeyword' support, which is also rather ambiguous. Since it can be a buffer-local option, picker's behavior will depend on the current buffer. Which is somewhat unintuitive. Always using global option is doable, but may be a bit unintuitive for people who are not really aware about global/local options.</p>\n<p dir=\"auto\">One extra problem here is that query technically can contain not only single letters, but whole words. So full \"word\" navigation is not always possible since caret can be placed only in between query entries.</p>\n</li>\n</ul>",
+                    "bodyText": "At the moment, I don't think so.\n\n\n<Home> is already supported and is an alternative to move_start action.\n\n\nThe <End> is the same as <Home><Up> and is not really useful when it comes to navigating through matches.\n\n\n<C-Right> and <C-left> is a bit too much. Especially since it requires 'iskeyword' support, which is also rather ambiguous. Since it can be a buffer-local option, picker's behavior will depend on the current buffer. Which is somewhat unintuitive. Always using global option is doable, but may be a bit unintuitive for people who are not really aware about global/local options.\nOne extra problem here is that query technically can contain not only single letters, but whole words. So full \"word\" navigation is not always possible since caret can be placed only in between query entries.",
+                    "createdAt": "2025-12-12T17:44:08Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15242667,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4A6JWr",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-12T17:45:16Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T17:44:08Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242667",
+                    "updatedAt": "2025-12-12T17:45:16Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242667"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "I still believe it should work the same way it does in Insert mode. For me, that’s a feature that has to be there, one way or another.\r\n\r\n1. Using `PageUp` for `move_start` makes more sense to me.\r\n2. Since `vim.bo.iskeyword` is a buffer-local option, it can be changed in `MiniPickStart` because the picker focuses on the main window. It will use the `vim.o.iskeyword` option by default but can be overridden in the autocmd with `vim.bo.iskeyword` (in theory).\r\n\r\nThese keymaps might not seem very useful at first glance, but they’re actually quite handy. I understand that refining helps to some extent—one word at a time—but these keymaps will not only make multiword searching much easier, they also allow you to change already typed \"code\" in the search. Imagine you’ve typed `vim.print(\"name\")` and want to change `vim.print` to `vim.notify`. Wouldn’t it be easier to press `<C-Left>` a few times followed by `<C-w>`?\r\n\r\nAlso, regarding refining, is there a way to jump back to the previous refinement?",
+                    "bodyHTML": "<p dir=\"auto\">I still believe it should work the same way it does in Insert mode. For me, that’s a feature that has to be there, one way or another.</p>\n<ol dir=\"auto\">\n<li>Using <code class=\"notranslate\">PageUp</code> for <code class=\"notranslate\">move_start</code> makes more sense to me.</li>\n<li>Since <code class=\"notranslate\">vim.bo.iskeyword</code> is a buffer-local option, it can be changed in <code class=\"notranslate\">MiniPickStart</code> because the picker focuses on the main window. It will use the <code class=\"notranslate\">vim.o.iskeyword</code> option by default but can be overridden in the autocmd with <code class=\"notranslate\">vim.bo.iskeyword</code> (in theory).</li>\n</ol>\n<p dir=\"auto\">These keymaps might not seem very useful at first glance, but they’re actually quite handy. I understand that refining helps to some extent—one word at a time—but these keymaps will not only make multiword searching much easier, they also allow you to change already typed \"code\" in the search. Imagine you’ve typed <code class=\"notranslate\">vim.print(\"name\")</code> and want to change <code class=\"notranslate\">vim.print</code> to <code class=\"notranslate\">vim.notify</code>. Wouldn’t it be easier to press <code class=\"notranslate\">&lt;C-Left&gt;</code> a few times followed by <code class=\"notranslate\">&lt;C-w&gt;</code>?</p>\n<p dir=\"auto\">Also, regarding refining, is there a way to jump back to the previous refinement?</p>",
+                    "bodyText": "I still believe it should work the same way it does in Insert mode. For me, that’s a feature that has to be there, one way or another.\n\nUsing PageUp for move_start makes more sense to me.\nSince vim.bo.iskeyword is a buffer-local option, it can be changed in MiniPickStart because the picker focuses on the main window. It will use the vim.o.iskeyword option by default but can be overridden in the autocmd with vim.bo.iskeyword (in theory).\n\nThese keymaps might not seem very useful at first glance, but they’re actually quite handy. I understand that refining helps to some extent—one word at a time—but these keymaps will not only make multiword searching much easier, they also allow you to change already typed \"code\" in the search. Imagine you’ve typed vim.print(\"name\") and want to change vim.print to vim.notify. Wouldn’t it be easier to press <C-Left> a few times followed by <C-w>?\nAlso, regarding refining, is there a way to jump back to the previous refinement?",
+                    "createdAt": "2025-12-12T18:16:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15242925,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6Jat",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-12T18:41:18Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T18:16:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242925",
+                    "updatedAt": "2025-12-12T18:41:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242925"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> 1. Using `PageUp` for `move_start` makes more sense to me.\r\n\r\n`<PageUp>` is more like `scroll_up` action.\r\n\r\n> Wouldn’t it be easier to press `<C-Left>` a few times followed by `<C-w>`?\r\n\r\nEasier - probably. Doing something that is not currently possible - no. Expanding 'mini.pick' only for something very high leverage is a high priority right now. Mostly due to the module's size.\r\n\r\n> Also, regarding refining, is there a way to jump back to the previous refinement?\r\n\r\nI am afraid, no. That would add memory footprint and code complexity. And there is no good default key for that which is universally supported enough.",
+                    "bodyHTML": "<blockquote>\n<ol dir=\"auto\">\n<li>Using <code class=\"notranslate\">PageUp</code> for <code class=\"notranslate\">move_start</code> makes more sense to me.</li>\n</ol>\n</blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;PageUp&gt;</code> is more like <code class=\"notranslate\">scroll_up</code> action.</p>\n<blockquote>\n<p dir=\"auto\">Wouldn’t it be easier to press <code class=\"notranslate\">&lt;C-Left&gt;</code> a few times followed by <code class=\"notranslate\">&lt;C-w&gt;</code>?</p>\n</blockquote>\n<p dir=\"auto\">Easier - probably. Doing something that is not currently possible - no. Expanding 'mini.pick' only for something very high leverage is a high priority right now. Mostly due to the module's size.</p>\n<blockquote>\n<p dir=\"auto\">Also, regarding refining, is there a way to jump back to the previous refinement?</p>\n</blockquote>\n<p dir=\"auto\">I am afraid, no. That would add memory footprint and code complexity. And there is no good default key for that which is universally supported enough.</p>",
+                    "bodyText": "Using PageUp for move_start makes more sense to me.\n\n\n<PageUp> is more like scroll_up action.\n\nWouldn’t it be easier to press <C-Left> a few times followed by <C-w>?\n\nEasier - probably. Doing something that is not currently possible - no. Expanding 'mini.pick' only for something very high leverage is a high priority right now. Mostly due to the module's size.\n\nAlso, regarding refining, is there a way to jump back to the previous refinement?\n\nI am afraid, no. That would add memory footprint and code complexity. And there is no good default key for that which is universally supported enough.",
+                    "createdAt": "2025-12-12T18:41:18Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15243071,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6Jc_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T18:41:18Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243071",
+                    "updatedAt": "2025-12-12T18:41:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243071"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> `<PageUp>` is more like a `scroll_up` action.\r\n\r\nMakes sense. But even in normal mode, `<Home>` and `<End>` don’t jump to the first and last columns.\r\n\r\n> That would add memory footprint and code complexity.\r\n\r\nI don’t think memory footprint is an issue unless all entries are saved—saving only the query should be enough. But I haven’t looked at the code, so it’s really stupid for me to argue.\r\n\r\n> And there is no good default key for that which is universally supported enough.\r\n\r\nI would use \"Control/Alt + Arrow\" keys.\r\n\r\nI guess implementing such a feature would only make sense if at least a few people needed it, not just me. I just hope it doesn’t get thrown into the \"not to do\" bucket, but at least into the \"maybe to do\" list. Personally, I can always keep these mappings in my own configuration.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;PageUp&gt;</code> is more like a <code class=\"notranslate\">scroll_up</code> action.</p>\n</blockquote>\n<p dir=\"auto\">Makes sense. But even in normal mode, <code class=\"notranslate\">&lt;Home&gt;</code> and <code class=\"notranslate\">&lt;End&gt;</code> don’t jump to the first and last columns.</p>\n<blockquote>\n<p dir=\"auto\">That would add memory footprint and code complexity.</p>\n</blockquote>\n<p dir=\"auto\">I don’t think memory footprint is an issue unless all entries are saved—saving only the query should be enough. But I haven’t looked at the code, so it’s really stupid for me to argue.</p>\n<blockquote>\n<p dir=\"auto\">And there is no good default key for that which is universally supported enough.</p>\n</blockquote>\n<p dir=\"auto\">I would use \"Control/Alt + Arrow\" keys.</p>\n<p dir=\"auto\">I guess implementing such a feature would only make sense if at least a few people needed it, not just me. I just hope it doesn’t get thrown into the \"not to do\" bucket, but at least into the \"maybe to do\" list. Personally, I can always keep these mappings in my own configuration.</p>",
+                    "bodyText": "<PageUp> is more like a scroll_up action.\n\nMakes sense. But even in normal mode, <Home> and <End> don’t jump to the first and last columns.\n\nThat would add memory footprint and code complexity.\n\nI don’t think memory footprint is an issue unless all entries are saved—saving only the query should be enough. But I haven’t looked at the code, so it’s really stupid for me to argue.\n\nAnd there is no good default key for that which is universally supported enough.\n\nI would use \"Control/Alt + Arrow\" keys.\nI guess implementing such a feature would only make sense if at least a few people needed it, not just me. I just hope it doesn’t get thrown into the \"not to do\" bucket, but at least into the \"maybe to do\" list. Personally, I can always keep these mappings in my own configuration.",
+                    "createdAt": "2025-12-12T19:06:04Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15243213,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6JfN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T19:06:04Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243213",
+                    "updatedAt": "2025-12-12T19:06:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243213"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I guess implementing such a feature would only make sense if at least a few people needed it, not just me. I just hope it doesn’t get thrown into the \"not to do\" bucket, but at least into the \"maybe to do\" list. Personally, I can always keep these mappings in my own configuration.\r\n\r\nIf you mean mappings from this discussion - it is in the \"not planned\" list at the moment.\r\n\r\nIf you mean \"previous refine\" - it is in the \"probably not planned\" list at the moment.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I guess implementing such a feature would only make sense if at least a few people needed it, not just me. I just hope it doesn’t get thrown into the \"not to do\" bucket, but at least into the \"maybe to do\" list. Personally, I can always keep these mappings in my own configuration.</p>\n</blockquote>\n<p dir=\"auto\">If you mean mappings from this discussion - it is in the \"not planned\" list at the moment.</p>\n<p dir=\"auto\">If you mean \"previous refine\" - it is in the \"probably not planned\" list at the moment.</p>",
+                    "bodyText": "I guess implementing such a feature would only make sense if at least a few people needed it, not just me. I just hope it doesn’t get thrown into the \"not to do\" bucket, but at least into the \"maybe to do\" list. Personally, I can always keep these mappings in my own configuration.\n\nIf you mean mappings from this discussion - it is in the \"not planned\" list at the moment.\nIf you mean \"previous refine\" - it is in the \"probably not planned\" list at the moment.",
+                    "createdAt": "2025-12-12T19:16:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15243269,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6JgF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T19:16:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243269",
+                    "updatedAt": "2025-12-12T19:16:28Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243269"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> One extra problem here is that query technically can contain not only single letters, but whole words. So full \"word\" navigation is not always possible since caret can be placed only in between query entries.\r\n\r\n~~So if a table of characters is needed, then `vim.split(table.concat(query), '')` should be enough?~~\r\n\r\nOh, if the query is `{ \"a\", \" \", \"bcd\", \"e\" }`, it will still be shown as `a bcd|e` (caret is 4), but pressing `<Left>` will jump over `bcd` to the space?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">One extra problem here is that query technically can contain not only single letters, but whole words. So full \"word\" navigation is not always possible since caret can be placed only in between query entries.</p>\n</blockquote>\n<p dir=\"auto\"><del>So if a table of characters is needed, then <code class=\"notranslate\">vim.split(table.concat(query), '')</code> should be enough?</del></p>\n<p dir=\"auto\">Oh, if the query is <code class=\"notranslate\">{ \"a\", \" \", \"bcd\", \"e\" }</code>, it will still be shown as <code class=\"notranslate\">a bcd|e</code> (caret is 4), but pressing <code class=\"notranslate\">&lt;Left&gt;</code> will jump over <code class=\"notranslate\">bcd</code> to the space?</p>",
+                    "bodyText": "One extra problem here is that query technically can contain not only single letters, but whole words. So full \"word\" navigation is not always possible since caret can be placed only in between query entries.\n\nSo if a table of characters is needed, then vim.split(table.concat(query), '') should be enough?\nOh, if the query is { \"a\", \" \", \"bcd\", \"e\" }, it will still be shown as a bcd|e (caret is 4), but pressing <Left> will jump over bcd to the space?",
+                    "createdAt": "2025-12-12T19:49:16Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15243443,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6Jiz",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-12T20:18:30Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T19:49:16Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243443",
+                    "updatedAt": "2025-12-12T20:18:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243443"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Oh, if the query is `{ \"a\", \" \", \"bcd\", \"e\" }`, it will still be shown as `a bcd|e` (caret is 4), but pressing `<Left>` will jump from `bcd` to the space?\r\n\r\nYes. Because it is a single query entry.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Oh, if the query is <code class=\"notranslate\">{ \"a\", \" \", \"bcd\", \"e\" }</code>, it will still be shown as <code class=\"notranslate\">a bcd|e</code> (caret is 4), but pressing <code class=\"notranslate\">&lt;Left&gt;</code> will jump from <code class=\"notranslate\">bcd</code> to the space?</p>\n</blockquote>\n<p dir=\"auto\">Yes. Because it is a single query entry.</p>",
+                    "bodyText": "Oh, if the query is { \"a\", \" \", \"bcd\", \"e\" }, it will still be shown as a bcd|e (caret is 4), but pressing <Left> will jump from bcd to the space?\n\nYes. Because it is a single query entry.",
+                    "createdAt": "2025-12-12T20:05:29Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15243536,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6JkQ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-12T20:05:29Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15242625,
+                        "id": "DC_kwDOFoksYM4A6JWB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243536",
+                    "updatedAt": "2025-12-12T20:05:29Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15243536"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625",
+            "updatedAt": "2025-12-12T22:28:39Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242625"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nNote that `<Home>` is a [built-in mapping](https://github.com/nvim-mini/mini.nvim/blob/9087880da9ed1e5b06a28b75b4424fd8218bd189/doc/mini-pick.txt#L534) that will always be there as an alternative to `move_start` action. So mapping it to `move_caret(1)` will probably be ambiguous.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">Note that <code class=\"notranslate\">&lt;Home&gt;</code> is a <a href=\"https://github.com/nvim-mini/mini.nvim/blob/9087880da9ed1e5b06a28b75b4424fd8218bd189/doc/mini-pick.txt#L534\">built-in mapping</a> that will always be there as an alternative to <code class=\"notranslate\">move_start</code> action. So mapping it to <code class=\"notranslate\">move_caret(1)</code> will probably be ambiguous.</p>",
+            "bodyText": "Thanks for sharing!\nNote that <Home> is a built-in mapping that will always be there as an alternative to move_start action. So mapping it to move_caret(1) will probably be ambiguous.",
+            "createdAt": "2025-12-12T17:41:05Z",
+            "createdViaEmail": false,
+            "databaseId": 15242642,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A6JWS",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-12-12T17:41:05Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242642",
+            "updatedAt": "2025-12-12T17:41:05Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169#discussioncomment-15242642"
+        }
+    ],
+    "createdAt": "2025-12-12T17:36:06Z",
+    "createdViaEmail": false,
+    "databaseId": 9241914,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AjQU6",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-12-14T13:44:21Z",
+    "locked": false,
+    "number": 2169,
+    "poll": null,
+    "publishedAt": "2025-12-12T17:36:06Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2169",
+    "stateReason": null,
+    "title": "[mini.pick] Input motions",
+    "updatedAt": "2025-12-14T13:44:21Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2169"
+}

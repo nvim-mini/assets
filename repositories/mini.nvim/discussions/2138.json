@@ -1,0 +1,296 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 15075028,
+        "id": "DC_kwDOFoksYM4A5gbU",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2138#discussioncomment-15075028"
+    },
+    "answerChosenAt": "2025-11-25T13:00:20Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/54599408?u=9a88ae51a4d9ff2ef06af28317231df2bdd69b0f&v=4",
+        "login": "elanmed",
+        "resourcePath": "/elanmed",
+        "url": "https://github.com/elanmed"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.test\n\n### Question\n\n:wave: I'm writing tests for a small file tree plugin, and I'm running into an issue where `vim.fn.confirm` seems to automatically trigger and use the default choice. I was able to reproduce this using just these files:\r\n\r\n```lua\r\n-- lua/confirm/init.lua\r\n\r\nlocal M = {}\r\n\r\nM.run = function()\r\n  -- roughly my use-case\r\n  local dirname = vim.fs.joinpath(vim.fs.dirname(vim.api.nvim_buf_get_name(0)), '/')\r\n  local create_path = vim.fn.input(\"Create a file: \", dirname)\r\n  local option = vim.fn.confirm((\"Create %s?\"):format(create_path), \"&Yes\\n&No\", 2)\r\n  if option == 1 then\r\n    vim.fn.writefile({}, create_path)\r\n    return\r\n  end\r\n  vim.notify(\"Aborting create\", vim.log.levels.INFO)\r\nend\r\n\r\nreturn M\r\n```\r\n\r\n```lua\r\n-- tests/test_run.lua\r\n\r\nrequire \"mini.test\".setup()\r\n\r\nlocal expect = MiniTest.expect\r\nlocal child = MiniTest.new_child_neovim()\r\n\r\nlocal T = MiniTest.new_set {\r\n  hooks = {\r\n    pre_case = function()\r\n      child.restart { \"-u\", \"scripts/minimal_init.lua\", }\r\n      child.lua [[M = require('confirm')]]\r\n      child.o.lines = 30\r\n      child.o.columns = 30\r\n    end,\r\n    post_once = child.stop,\r\n  },\r\n}\r\n\r\nT[\"confirm\"] = function()\r\n  child.lua_notify [[M.run()]]\r\n  expect.reference_screenshot(child.get_screenshot())\r\n\r\n  child.type_keys(\"tester.txt\")\r\n  expect.reference_screenshot(child.get_screenshot())\r\n\r\n  child.type_keys(\"<CR>\")\r\n  expect.reference_screenshot(child.get_screenshot())\r\n\r\n  vim.print(child.cmd_capture(\"messages\"))\r\nend\r\n\r\nreturn T\r\n```\r\n\r\nWith this output:\r\n\r\n```shell\r\nnvim --headless --noplugin -u ./scripts/minimal_init.lua -c \"lua MiniTest.run()\"\r\nTotal number of cases: 1\r\nTotal number of groups: 1\r\n\r\ntests/test_run.lua: Aborting createo\r\n\r\nFails (0) and Notes (0)\r\n```\r\n\r\nAs you can see, `Aborting create` is printed despite that fact that no `Y`/`1` was entered - submitting the `vim.fn.input` with `<CR>` also triggered the `vim.fn.confirm` to use the default value.\r\n\r\nI haven't been able to find anything relevant online, has anyone encountered issues with `vim.fn.confirm` before? Any help is appreciated :pray:",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.test</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">👋 I'm writing tests for a small file tree plugin, and I'm running into an issue where <code class=\"notranslate\">vim.fn.confirm</code> seems to automatically trigger and use the default choice. I was able to reproduce this using just these files:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- lua/confirm/init.lua\n\nlocal M = {}\n\nM.run = function()\n  -- roughly my use-case\n  local dirname = vim.fs.joinpath(vim.fs.dirname(vim.api.nvim_buf_get_name(0)), '/')\n  local create_path = vim.fn.input(&quot;Create a file: &quot;, dirname)\n  local option = vim.fn.confirm((&quot;Create %s?&quot;):format(create_path), &quot;&amp;Yes\\n&amp;No&quot;, 2)\n  if option == 1 then\n    vim.fn.writefile({}, create_path)\n    return\n  end\n  vim.notify(&quot;Aborting create&quot;, vim.log.levels.INFO)\nend\n\nreturn M\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> lua/confirm/init.lua</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">M</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">run</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> roughly my use-case</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">dirname</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">joinpath</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">dirname</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_name</span>(<span class=\"pl-c1\">0</span>)), <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">create_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">input</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a file: <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">dirname</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">option</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">confirm</span>((<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create %s?<span class=\"pl-pds\">\"</span></span>):<span class=\"pl-c1\">format</span>(<span class=\"pl-smi\">create_path</span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&amp;Yes<span class=\"pl-cce\">\\n</span>&amp;No<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">2</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">option</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">writefile</span>({}, <span class=\"pl-smi\">create_path</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Aborting create<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">M</span></pre></div>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- tests/test_run.lua\n\nrequire &quot;mini.test&quot;.setup()\n\nlocal expect = MiniTest.expect\nlocal child = MiniTest.new_child_neovim()\n\nlocal T = MiniTest.new_set {\n  hooks = {\n    pre_case = function()\n      child.restart { &quot;-u&quot;, &quot;scripts/minimal_init.lua&quot;, }\n      child.lua [[M = require('confirm')]]\n      child.o.lines = 30\n      child.o.columns = 30\n    end,\n    post_once = child.stop,\n  },\n}\n\nT[&quot;confirm&quot;] = function()\n  child.lua_notify [[M.run()]]\n  expect.reference_screenshot(child.get_screenshot())\n\n  child.type_keys(&quot;tester.txt&quot;)\n  expect.reference_screenshot(child.get_screenshot())\n\n  child.type_keys(&quot;&lt;CR&gt;&quot;)\n  expect.reference_screenshot(child.get_screenshot())\n\n  vim.print(child.cmd_capture(&quot;messages&quot;))\nend\n\nreturn T\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> tests/test_run.lua</span>\n\n<span class=\"pl-c1\">require</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.test<span class=\"pl-pds\">\"</span></span>.<span class=\"pl-c1\">setup</span>()\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">expect</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniTest</span>.<span class=\"pl-e\">expect</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">child</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniTest</span>.<span class=\"pl-c1\">new_child_neovim</span>()\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">T</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniTest</span>.<span class=\"pl-c1\">new_set</span> {\n  <span class=\"pl-smi\">hooks</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-en\">pre_case</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">restart</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-u<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>scripts/minimal_init.lua<span class=\"pl-pds\">\"</span></span>, }\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>M = require('confirm')<span class=\"pl-pds\">]]</span></span>\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">30</span>\n      <span class=\"pl-smi\">child</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">30</span>\n    <span class=\"pl-k\">end</span>,\n    <span class=\"pl-smi\">post_once</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">child</span>.<span class=\"pl-e\">stop</span>,\n  },\n}\n\n<span class=\"pl-smi\">T</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>confirm<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_notify</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>M.run()<span class=\"pl-pds\">]]</span></span>\n  <span class=\"pl-smi\">expect</span>.<span class=\"pl-c1\">reference_screenshot</span>(<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">get_screenshot</span>())\n\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">type_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>tester.txt<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">expect</span>.<span class=\"pl-c1\">reference_screenshot</span>(<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">get_screenshot</span>())\n\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">type_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;CR&gt;<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">expect</span>.<span class=\"pl-c1\">reference_screenshot</span>(<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">get_screenshot</span>())\n\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">print</span>(<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">cmd_capture</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>messages<span class=\"pl-pds\">\"</span></span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">T</span></pre></div>\n<p dir=\"auto\">With this output:</p>\n<div class=\"highlight highlight-source-shell notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"nvim --headless --noplugin -u ./scripts/minimal_init.lua -c &quot;lua MiniTest.run()&quot;\nTotal number of cases: 1\nTotal number of groups: 1\n\ntests/test_run.lua: Aborting createo\n\nFails (0) and Notes (0)\"><pre class=\"notranslate\">nvim --headless --noplugin -u ./scripts/minimal_init.lua -c <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua MiniTest.run()<span class=\"pl-pds\">\"</span></span>\nTotal number of cases: 1\nTotal number of groups: 1\n\ntests/test_run.lua: Aborting createo\n\nFails (0) and Notes (0)</pre></div>\n<p dir=\"auto\">As you can see, <code class=\"notranslate\">Aborting create</code> is printed despite that fact that no <code class=\"notranslate\">Y</code>/<code class=\"notranslate\">1</code> was entered - submitting the <code class=\"notranslate\">vim.fn.input</code> with <code class=\"notranslate\">&lt;CR&gt;</code> also triggered the <code class=\"notranslate\">vim.fn.confirm</code> to use the default value.</p>\n<p dir=\"auto\">I haven't been able to find anything relevant online, has anyone encountered issues with <code class=\"notranslate\">vim.fn.confirm</code> before? Any help is appreciated 🙏</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.test\nQuestion\n👋 I'm writing tests for a small file tree plugin, and I'm running into an issue where vim.fn.confirm seems to automatically trigger and use the default choice. I was able to reproduce this using just these files:\n-- lua/confirm/init.lua\n\nlocal M = {}\n\nM.run = function()\n  -- roughly my use-case\n  local dirname = vim.fs.joinpath(vim.fs.dirname(vim.api.nvim_buf_get_name(0)), '/')\n  local create_path = vim.fn.input(\"Create a file: \", dirname)\n  local option = vim.fn.confirm((\"Create %s?\"):format(create_path), \"&Yes\\n&No\", 2)\n  if option == 1 then\n    vim.fn.writefile({}, create_path)\n    return\n  end\n  vim.notify(\"Aborting create\", vim.log.levels.INFO)\nend\n\nreturn M\n-- tests/test_run.lua\n\nrequire \"mini.test\".setup()\n\nlocal expect = MiniTest.expect\nlocal child = MiniTest.new_child_neovim()\n\nlocal T = MiniTest.new_set {\n  hooks = {\n    pre_case = function()\n      child.restart { \"-u\", \"scripts/minimal_init.lua\", }\n      child.lua [[M = require('confirm')]]\n      child.o.lines = 30\n      child.o.columns = 30\n    end,\n    post_once = child.stop,\n  },\n}\n\nT[\"confirm\"] = function()\n  child.lua_notify [[M.run()]]\n  expect.reference_screenshot(child.get_screenshot())\n\n  child.type_keys(\"tester.txt\")\n  expect.reference_screenshot(child.get_screenshot())\n\n  child.type_keys(\"<CR>\")\n  expect.reference_screenshot(child.get_screenshot())\n\n  vim.print(child.cmd_capture(\"messages\"))\nend\n\nreturn T\nWith this output:\nnvim --headless --noplugin -u ./scripts/minimal_init.lua -c \"lua MiniTest.run()\"\nTotal number of cases: 1\nTotal number of groups: 1\n\ntests/test_run.lua: Aborting createo\n\nFails (0) and Notes (0)\nAs you can see, Aborting create is printed despite that fact that no Y/1 was entered - submitting the vim.fn.input with <CR> also triggered the vim.fn.confirm to use the default value.\nI haven't been able to find anything relevant online, has anyone encountered issues with vim.fn.confirm before? Any help is appreciated 🙏",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-11-25T13:00:17Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Yes, unfortunately, `vim.fn.confirm()` does tend to behave like this. I am not sure why, but mocking the method works pretty good here. This is what I use for ['mini.files' testing](https://github.com/nvim-mini/mini.nvim/blob/72b0194c56c984476c5975b62eb340fd1aa1686a/tests/test_files.lua#L135-L144). It can then be used before invoking action that would require confirm (like [this](https://github.com/nvim-mini/mini.nvim/blob/72b0194c56c984476c5975b62eb340fd1aa1686a/tests/test_files.lua#L776)). Then validate arguments with which it was called ([something like this](https://github.com/nvim-mini/mini.nvim/blob/72b0194c56c984476c5975b62eb340fd1aa1686a/tests/test_files.lua#L89)).\r\n\r\nThe same approach is used [in Neovim itself for `vim.pack` testing](https://github.com/neovim/neovim/blob/e82aef2e22a57688dcc19a978cbe083349ad8a2a/test/functional/plugin/pack_spec.lua#L310-L320).\r\n\r\nSo here it would be something like this:\r\n\r\n```lua\r\nT[\"confirm\"] = function()\r\n  child.lua_notify [[M.run()]]\r\n  child.type_keys(\"tester.txt\")\r\n  mock_confirm(1)\r\n  child.type_keys(\"<CR>\")\r\n\r\n  eq(child.cmd_capture(\"messages\"), '')\r\nend\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Yes, unfortunately, <code class=\"notranslate\">vim.fn.confirm()</code> does tend to behave like this. I am not sure why, but mocking the method works pretty good here. This is what I use for <a href=\"https://github.com/nvim-mini/mini.nvim/blob/72b0194c56c984476c5975b62eb340fd1aa1686a/tests/test_files.lua#L135-L144\">'mini.files' testing</a>. It can then be used before invoking action that would require confirm (like <a href=\"https://github.com/nvim-mini/mini.nvim/blob/72b0194c56c984476c5975b62eb340fd1aa1686a/tests/test_files.lua#L776\">this</a>). Then validate arguments with which it was called (<a href=\"https://github.com/nvim-mini/mini.nvim/blob/72b0194c56c984476c5975b62eb340fd1aa1686a/tests/test_files.lua#L89\">something like this</a>).</p>\n<p dir=\"auto\">The same approach is used <a href=\"https://github.com/neovim/neovim/blob/e82aef2e22a57688dcc19a978cbe083349ad8a2a/test/functional/plugin/pack_spec.lua#L310-L320\">in Neovim itself for <code class=\"notranslate\">vim.pack</code> testing</a>.</p>\n<p dir=\"auto\">So here it would be something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"T[&quot;confirm&quot;] = function()\n  child.lua_notify [[M.run()]]\n  child.type_keys(&quot;tester.txt&quot;)\n  mock_confirm(1)\n  child.type_keys(&quot;&lt;CR&gt;&quot;)\n\n  eq(child.cmd_capture(&quot;messages&quot;), '')\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">T</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>confirm<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">lua_notify</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>M.run()<span class=\"pl-pds\">]]</span></span>\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">type_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>tester.txt<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-c1\">mock_confirm</span>(<span class=\"pl-c1\">1</span>)\n  <span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">type_keys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;CR&gt;<span class=\"pl-pds\">\"</span></span>)\n\n  <span class=\"pl-c1\">eq</span>(<span class=\"pl-smi\">child</span>.<span class=\"pl-c1\">cmd_capture</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>messages<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "Yes, unfortunately, vim.fn.confirm() does tend to behave like this. I am not sure why, but mocking the method works pretty good here. This is what I use for 'mini.files' testing. It can then be used before invoking action that would require confirm (like this). Then validate arguments with which it was called (something like this).\nThe same approach is used in Neovim itself for vim.pack testing.\nSo here it would be something like this:\nT[\"confirm\"] = function()\n  child.lua_notify [[M.run()]]\n  child.type_keys(\"tester.txt\")\n  mock_confirm(1)\n  child.type_keys(\"<CR>\")\n\n  eq(child.cmd_capture(\"messages\"), '')\nend",
+            "createdAt": "2025-11-25T13:00:17Z",
+            "createdViaEmail": false,
+            "databaseId": 15075028,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A5gbU",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-11-25T13:00:17Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/54599408?u=9a88ae51a4d9ff2ef06af28317231df2bdd69b0f&v=4",
+                        "login": "elanmed",
+                        "resourcePath": "/elanmed",
+                        "url": "https://github.com/elanmed"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "ah interesting, thanks for the quick response!",
+                    "bodyHTML": "<p dir=\"auto\">ah interesting, thanks for the quick response!</p>",
+                    "bodyText": "ah interesting, thanks for the quick response!",
+                    "createdAt": "2025-11-25T14:48:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15076268,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/54599408?u=9a88ae51a4d9ff2ef06af28317231df2bdd69b0f&v=4",
+                        "login": "elanmed",
+                        "resourcePath": "/elanmed",
+                        "url": "https://github.com/elanmed"
+                    },
+                    "id": "DC_kwDOFoksYM4A5gus",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-11-25T14:48:21Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-25T14:48:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15075028,
+                        "id": "DC_kwDOFoksYM4A5gbU",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2138#discussioncomment-15075028"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2138#discussioncomment-15076268",
+                    "updatedAt": "2025-11-25T14:48:21Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2138#discussioncomment-15076268"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2138#discussioncomment-15075028",
+            "updatedAt": "2025-11-25T13:00:18Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2138#discussioncomment-15075028"
+        }
+    ],
+    "createdAt": "2025-11-25T03:09:53Z",
+    "createdViaEmail": false,
+    "databaseId": 9174606,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ai_5O",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7_iXcP",
+                "name": "mini.test"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2138,
+    "poll": null,
+    "publishedAt": "2025-11-25T03:09:53Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2138",
+    "stateReason": "RESOLVED",
+    "title": "[mini.test] vim.fn.confirm seems to always use the default choice",
+    "updatedAt": "2025-11-25T14:48:10Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2138"
+}

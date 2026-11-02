@@ -1,0 +1,444 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/116887703?u=2c5030bd46804f6e9b5a7fbf806a39159d7dec51&v=4",
+        "login": "froq0",
+        "resourcePath": "/froq0",
+        "url": "https://github.com/froq0"
+    },
+    "authorAssociation": "NONE",
+    "body": "So, I noticed that a `colorschemes` picker is provided in [`mini.extra`](https://github.com/nvim-mini/mini.extra), which includes a preview of hl_groups. Some how I find it hard to search for and view the colors and styles of a certain hl_group (or maybe I am just too dumb to know the correct way). What I'd like to have is a picker like [highligthts picker](https://github.com/folke/snacks.nvim/blob/main/docs/picker.md#highlights) in Snacks.\r\n\r\nSo here's my implementation:\r\n\r\n```lua\r\nmini_pick.registry.hl_groups = function()\r\n  -- Get all hl name\r\n  local hls = vim.api.nvim_get_hl(0, { link = false })\r\n  local items = {}\r\n  for name, _ in pairs(hls) do\r\n    table.insert(items, name)\r\n  end\r\n\r\n  table.sort(items, function(a, b) return a < b end)\r\n\r\n  -- Show items with their highlight groups applied\r\n  local show = function(buf_id, items_to_show, _)\r\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, {})\r\n\r\n    local lines = {}\r\n    local highlights = {}\r\n\r\n    for i, item in ipairs(items_to_show) do\r\n      table.insert(lines, item)\r\n\r\n      table.insert(highlights, {\r\n        group = item,\r\n        line = i - 1,\r\n        col_start = 0,\r\n        col_end = -1\r\n      })\r\n    end\r\n\r\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\r\n\r\n    local ns_id = vim.api.nvim_create_namespace('mini_pick_hl_groups')\r\n    vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)\r\n\r\n    for _, hl in ipairs(highlights) do\r\n      pcall(vim.hl.range, buf_id, ns_id, hl.group, { hl.line, hl.col_start }, { hl.line, hl.col_end })\r\n    end\r\n  end\r\n\r\n  local preview = function(buf_id, item)\r\n    vim.api.nvim_set_option_value('modifiable', true, { buf = buf_id })\r\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, {})\r\n\r\n    local lines = {}\r\n\r\n    local hl_def = vim.api.nvim_get_hl(0, { name = item, link = false })\r\n\r\n    if next(hl_def) == nil then\r\n      table.insert(lines, \"-- No definition\")\r\n      vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\r\n      vim.api.nvim_set_option_value('modifiable', false, { buf = buf_id })\r\n      return\r\n    end\r\n\r\n    for k, v in pairs(hl_def) do\r\n      if type(v) == \"number\" then\r\n        -- Use hex format for colors\r\n        table.insert(lines, string.format(\"%s = \\\"#%06x\\\",\", k, v))\r\n      elseif type(v) == \"boolean\" then\r\n        table.insert(lines, string.format(\"%s = %s,\", k, tostring(v)))\r\n      end\r\n    end\r\n\r\n    table.sort(lines, function(a, b)\r\n      return type(a) < type(b)\r\n    end)\r\n\r\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\r\n    vim.api.nvim_set_option_value('modifiable', false, { buf = buf_id })\r\n  end\r\n\r\n  local source = {\r\n    items = items,\r\n    name = 'Highlight Groups',\r\n    show = show,\r\n    preview = preview,\r\n    choose = function(item)\r\n      if item then\r\n        -- Copy highlight group name to clipboard\r\n        vim.fn.setreg('+', item)\r\n        vim.notify('Copied \"' .. item .. '\" to clipboard', vim.log.levels.INFO)\r\n      end\r\n    end\r\n  }\r\n\r\n  return MiniPick.start({ source = source })\r\nend\r\n```\r\n\r\nNot elegant but works for me.\r\n\r\n![hl_group picker](https://github.com/user-attachments/assets/f1a6a181-660f-463c-bcec-5e1d814bd36f)\r\n",
+    "bodyHTML": "<p dir=\"auto\">So, I noticed that a <code class=\"notranslate\">colorschemes</code> picker is provided in <a href=\"https://github.com/nvim-mini/mini.extra\"><code class=\"notranslate\">mini.extra</code></a>, which includes a preview of hl_groups. Some how I find it hard to search for and view the colors and styles of a certain hl_group (or maybe I am just too dumb to know the correct way). What I'd like to have is a picker like <a href=\"https://github.com/folke/snacks.nvim/blob/main/docs/picker.md#highlights\">highligthts picker</a> in Snacks.</p>\n<p dir=\"auto\">So here's my implementation:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"mini_pick.registry.hl_groups = function()\n  -- Get all hl name\n  local hls = vim.api.nvim_get_hl(0, { link = false })\n  local items = {}\n  for name, _ in pairs(hls) do\n    table.insert(items, name)\n  end\n\n  table.sort(items, function(a, b) return a &lt; b end)\n\n  -- Show items with their highlight groups applied\n  local show = function(buf_id, items_to_show, _)\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, {})\n\n    local lines = {}\n    local highlights = {}\n\n    for i, item in ipairs(items_to_show) do\n      table.insert(lines, item)\n\n      table.insert(highlights, {\n        group = item,\n        line = i - 1,\n        col_start = 0,\n        col_end = -1\n      })\n    end\n\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\n\n    local ns_id = vim.api.nvim_create_namespace('mini_pick_hl_groups')\n    vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)\n\n    for _, hl in ipairs(highlights) do\n      pcall(vim.hl.range, buf_id, ns_id, hl.group, { hl.line, hl.col_start }, { hl.line, hl.col_end })\n    end\n  end\n\n  local preview = function(buf_id, item)\n    vim.api.nvim_set_option_value('modifiable', true, { buf = buf_id })\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, {})\n\n    local lines = {}\n\n    local hl_def = vim.api.nvim_get_hl(0, { name = item, link = false })\n\n    if next(hl_def) == nil then\n      table.insert(lines, &quot;-- No definition&quot;)\n      vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\n      vim.api.nvim_set_option_value('modifiable', false, { buf = buf_id })\n      return\n    end\n\n    for k, v in pairs(hl_def) do\n      if type(v) == &quot;number&quot; then\n        -- Use hex format for colors\n        table.insert(lines, string.format(&quot;%s = \\&quot;#%06x\\&quot;,&quot;, k, v))\n      elseif type(v) == &quot;boolean&quot; then\n        table.insert(lines, string.format(&quot;%s = %s,&quot;, k, tostring(v)))\n      end\n    end\n\n    table.sort(lines, function(a, b)\n      return type(a) &lt; type(b)\n    end)\n\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\n    vim.api.nvim_set_option_value('modifiable', false, { buf = buf_id })\n  end\n\n  local source = {\n    items = items,\n    name = 'Highlight Groups',\n    show = show,\n    preview = preview,\n    choose = function(item)\n      if item then\n        -- Copy highlight group name to clipboard\n        vim.fn.setreg('+', item)\n        vim.notify('Copied &quot;' .. item .. '&quot; to clipboard', vim.log.levels.INFO)\n      end\n    end\n  }\n\n  return MiniPick.start({ source = source })\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">mini_pick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">hl_groups</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Get all hl name</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hls</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_hl</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">link</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">hls</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">name</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">a</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-smi\">b</span> <span class=\"pl-k\">end</span>)\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Show items with their highlight groups applied</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">_</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, {})\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlights</span> <span class=\"pl-k\">=</span> {}\n\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items_to_show</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-smi\">item</span>)\n\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">highlights</span>, {\n        <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>,\n        <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n        <span class=\"pl-smi\">col_start</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>,\n        <span class=\"pl-smi\">col_end</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>\n      })\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">lines</span>)\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ns_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini_pick_hl_groups<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_clear_namespace</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">highlights</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">hl</span>.<span class=\"pl-e\">range</span>, <span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">ns_id</span>, <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">group</span>, { <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">line</span>, <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">col_start</span> }, { <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">line</span>, <span class=\"pl-smi\">hl</span>.<span class=\"pl-e\">col_end</span> })\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">item</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_option_value</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>modifiable<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>, { <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_id</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, {})\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> {}\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hl_def</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_hl</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">link</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-c1\">next</span>(<span class=\"pl-smi\">hl_def</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-- No definition<span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">lines</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_option_value</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>modifiable<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">false</span>, { <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_id</span> })\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">v</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">hl_def</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">v</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>number<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Use hex format for colors</span>\n        <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s = <span class=\"pl-cce\">\\\"</span>#%06x<span class=\"pl-cce\">\\\"</span>,<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">v</span>))\n      <span class=\"pl-k\">elseif</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">v</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>boolean<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n        <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s = %s,<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">k</span>, <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">v</span>)))\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">lines</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">a</span>) <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">b</span>)\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">lines</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_option_value</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>modifiable<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">false</span>, { <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_id</span> })\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span>,\n    <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Highlight Groups<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span>,\n    <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview</span>,\n    <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Copy highlight group name to clipboard</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">setreg</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>+<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">item</span>)\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Copied \"<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\" to clipboard<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  }\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">source</span> })\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Not elegant but works for me.</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/116887703/505740550-f1a6a181-660f-463c-bcec-5e1d814bd36f.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NzcsIm5iZiI6MTc5MzU1MjU3NywicGF0aCI6Ii8xMTY4ODc3MDMvNTA1NzQwNTUwLWYxYTZhMTgxLTY2MGYtNDYzYy1iY2VjLTVlMWQ4MTRiZDM2Zi5naWY_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyNTdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wYzJlMmI4ZTgwMWFmZDg4YTJhNzlmNDBkY2MwYTA4YWE2OWNkNzgwMGM2YmM2YzY5MjcwZTg1NTdjZmI3ZWU1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZnaWYifQ.2qGtI13nN90sxUGaD8i0fIkqH4mZbhHubQAqLR4oJ1A\"><img src=\"https://private-user-images.githubusercontent.com/116887703/505740550-f1a6a181-660f-463c-bcec-5e1d814bd36f.gif?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NzcsIm5iZiI6MTc5MzU1MjU3NywicGF0aCI6Ii8xMTY4ODc3MDMvNTA1NzQwNTUwLWYxYTZhMTgxLTY2MGYtNDYzYy1iY2VjLTVlMWQ4MTRiZDM2Zi5naWY_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyNTdaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wYzJlMmI4ZTgwMWFmZDg4YTJhNzlmNDBkY2MwYTA4YWE2OWNkNzgwMGM2YmM2YzY5MjcwZTg1NTdjZmI3ZWU1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZnaWYifQ.2qGtI13nN90sxUGaD8i0fIkqH4mZbhHubQAqLR4oJ1A\" alt=\"hl_group picker\" data-animated-image=\"\" style=\"max-width: 100%;\"></a></p>",
+    "bodyText": "So, I noticed that a colorschemes picker is provided in mini.extra, which includes a preview of hl_groups. Some how I find it hard to search for and view the colors and styles of a certain hl_group (or maybe I am just too dumb to know the correct way). What I'd like to have is a picker like highligthts picker in Snacks.\nSo here's my implementation:\nmini_pick.registry.hl_groups = function()\n  -- Get all hl name\n  local hls = vim.api.nvim_get_hl(0, { link = false })\n  local items = {}\n  for name, _ in pairs(hls) do\n    table.insert(items, name)\n  end\n\n  table.sort(items, function(a, b) return a < b end)\n\n  -- Show items with their highlight groups applied\n  local show = function(buf_id, items_to_show, _)\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, {})\n\n    local lines = {}\n    local highlights = {}\n\n    for i, item in ipairs(items_to_show) do\n      table.insert(lines, item)\n\n      table.insert(highlights, {\n        group = item,\n        line = i - 1,\n        col_start = 0,\n        col_end = -1\n      })\n    end\n\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\n\n    local ns_id = vim.api.nvim_create_namespace('mini_pick_hl_groups')\n    vim.api.nvim_buf_clear_namespace(buf_id, ns_id, 0, -1)\n\n    for _, hl in ipairs(highlights) do\n      pcall(vim.hl.range, buf_id, ns_id, hl.group, { hl.line, hl.col_start }, { hl.line, hl.col_end })\n    end\n  end\n\n  local preview = function(buf_id, item)\n    vim.api.nvim_set_option_value('modifiable', true, { buf = buf_id })\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, {})\n\n    local lines = {}\n\n    local hl_def = vim.api.nvim_get_hl(0, { name = item, link = false })\n\n    if next(hl_def) == nil then\n      table.insert(lines, \"-- No definition\")\n      vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\n      vim.api.nvim_set_option_value('modifiable', false, { buf = buf_id })\n      return\n    end\n\n    for k, v in pairs(hl_def) do\n      if type(v) == \"number\" then\n        -- Use hex format for colors\n        table.insert(lines, string.format(\"%s = \\\"#%06x\\\",\", k, v))\n      elseif type(v) == \"boolean\" then\n        table.insert(lines, string.format(\"%s = %s,\", k, tostring(v)))\n      end\n    end\n\n    table.sort(lines, function(a, b)\n      return type(a) < type(b)\n    end)\n\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)\n    vim.api.nvim_set_option_value('modifiable', false, { buf = buf_id })\n  end\n\n  local source = {\n    items = items,\n    name = 'Highlight Groups',\n    show = show,\n    preview = preview,\n    choose = function(item)\n      if item then\n        -- Copy highlight group name to clipboard\n        vim.fn.setreg('+', item)\n        vim.notify('Copied \"' .. item .. '\" to clipboard', vim.log.levels.INFO)\n      end\n    end\n  }\n\n  return MiniPick.start({ source = source })\nend\nNot elegant but works for me.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-10-26T16:12:49Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/116887703?u=2c5030bd46804f6e9b5a7fbf806a39159d7dec51&v=4",
+                "login": "froq0",
+                "resourcePath": "/froq0",
+                "url": "https://github.com/froq0"
+            },
+            "authorAssociation": "NONE",
+            "body": "oo btw: `local mini_pick = require(\"mini.pick\")`",
+            "bodyHTML": "<p dir=\"auto\">oo btw: <code class=\"notranslate\">local mini_pick = require(\"mini.pick\")</code></p>",
+            "bodyText": "oo btw: local mini_pick = require(\"mini.pick\")",
+            "createdAt": "2025-10-26T15:32:02Z",
+            "createdViaEmail": false,
+            "databaseId": 14785456,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A4Zuw",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-26T15:32:02Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785456",
+            "updatedAt": "2025-10-26T15:32:02Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785456"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nIf I understand correctly, this is exactly what [`MiniExtra.pickers.hl_groups`](https://nvim-mini.org/mini.nvim/doc/mini-extra.html#miniextra.pickers.hl_groups) does. And even has the same name.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">If I understand correctly, this is exactly what <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-extra.html#miniextra.pickers.hl_groups\" rel=\"nofollow\"><code class=\"notranslate\">MiniExtra.pickers.hl_groups</code></a> does. And even has the same name.</p>",
+            "bodyText": "Thanks for sharing!\nIf I understand correctly, this is exactly what MiniExtra.pickers.hl_groups does. And even has the same name.",
+            "createdAt": "2025-10-26T15:41:41Z",
+            "createdViaEmail": false,
+            "databaseId": 14785507,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A4Zvj",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-26T15:41:41Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785507",
+            "updatedAt": "2025-10-26T15:41:42Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785507"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/116887703?u=2c5030bd46804f6e9b5a7fbf806a39159d7dec51&v=4",
+                "login": "froq0",
+                "resourcePath": "/froq0",
+                "url": "https://github.com/froq0"
+            },
+            "authorAssociation": "NONE",
+            "body": "> or maybe I am just too dumb to know the correct way\r\n\r\n@echasnovski Thx for the kind words even when I done such silly thing! So the lesson is: always take time to read the docs in full :) But honestly—regardless, I really enjoyed the exploration process. And to me, it’s yet another proof that Mini is the greatest.\r\n\r\nSee ya!",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">or maybe I am just too dumb to know the correct way</p>\n</blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Thx for the kind words even when I done such silly thing! So the lesson is: always take time to read the docs in full :) But honestly—regardless, I really enjoyed the exploration process. And to me, it’s yet another proof that Mini is the greatest.</p>\n<p dir=\"auto\">See ya!</p>",
+            "bodyText": "or maybe I am just too dumb to know the correct way\n\n@echasnovski Thx for the kind words even when I done such silly thing! So the lesson is: always take time to read the docs in full :) But honestly—regardless, I really enjoyed the exploration process. And to me, it’s yet another proof that Mini is the greatest.\nSee ya!",
+            "createdAt": "2025-10-26T16:07:24Z",
+            "createdViaEmail": false,
+            "databaseId": 14785636,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A4Zxk",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-26T16:07:24Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "We've all been there. Good job on persisting and implementing something that you wanted/needed! :+1:",
+                    "bodyHTML": "<p dir=\"auto\">We've all been there. Good job on persisting and implementing something that you wanted/needed! 👍</p>",
+                    "bodyText": "We've all been there. Good job on persisting and implementing something that you wanted/needed! 👍",
+                    "createdAt": "2025-10-26T16:12:43Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14785651,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A4Zxz",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-26T16:12:43Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14785636,
+                        "id": "DC_kwDOFoksYM4A4Zxk",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785636"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785651",
+                    "updatedAt": "2025-10-26T16:12:44Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785651"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785636",
+            "updatedAt": "2025-10-26T16:07:25Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2089#discussioncomment-14785636"
+        }
+    ],
+    "createdAt": "2025-10-26T15:30:41Z",
+    "createdViaEmail": false,
+    "databaseId": 9073464,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AinM4",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2089,
+    "poll": null,
+    "publishedAt": "2025-10-26T15:30:41Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2089",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pick] pick all defined highlight groups in case you are interested...",
+    "updatedAt": "2025-10-26T16:12:49Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2089"
+}

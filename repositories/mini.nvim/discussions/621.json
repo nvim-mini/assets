@@ -1,0 +1,201 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 7875532,
+        "id": "DC_kwDOFoksYM4AeCvM",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/621#discussioncomment-7875532"
+    },
+    "answerChosenAt": "2023-12-17T09:06:52Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/63375392?u=13d3a70ed7dffa4b2304d48381cde4723014ca5e&v=4",
+        "login": "beaumccartney",
+        "resourcePath": "/beaumccartney",
+        "url": "https://github.com/beaumccartney"
+    },
+    "authorAssociation": "NONE",
+    "body": "I tend to use goto-definition a lot to look at system libraries and things - what is the simplest way to have mini.visits only track files that are children of PWD and not ignored in git?",
+    "bodyHTML": "<p dir=\"auto\">I tend to use goto-definition a lot to look at system libraries and things - what is the simplest way to have mini.visits only track files that are children of PWD and not ignored in git?</p>",
+    "bodyText": "I tend to use goto-definition a lot to look at system libraries and things - what is the simplest way to have mini.visits only track files that are children of PWD and not ignored in git?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2023-12-17T09:06:49Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There are at least two approaches here:\r\n- Create an autocommand on `BufAdd` which sets `vim.b.minivisits_disable` if it doesn't fit requirements for being tracked. This is doable and does directly what you want.\r\n- A slightly alternative solution would be to define your own `config.store.normalize` function which removes unwanted path entries. This looks like a slightly cleaner and more performant approach, but it means that unwanted paths will be in index before normalization is done (during writing to disk or manually calling `normalize()`). Here is a snippet which removes non-children entries:\r\n\r\n```lua\r\nlocal visits = require('mini.visits')\r\nlocal default_normalize = visits.gen_normalize.default()\r\nlocal normalize = function(index)\r\n  for cwd, cwd_tbl in pairs(index) do\r\n    for path, _ in pairs(cwd_tbl) do\r\n      if not vim.startswith(path, cwd) then cwd_tbl[path] = nil end\r\n    end\r\n  end\r\n\r\n  return default_normalize(index)\r\nend\r\n\r\nvisits.setup({ store = { normalize = normalize } })\r\n```",
+            "bodyHTML": "<p dir=\"auto\">There are at least two approaches here:</p>\n<ul dir=\"auto\">\n<li>Create an autocommand on <code class=\"notranslate\">BufAdd</code> which sets <code class=\"notranslate\">vim.b.minivisits_disable</code> if it doesn't fit requirements for being tracked. This is doable and does directly what you want.</li>\n<li>A slightly alternative solution would be to define your own <code class=\"notranslate\">config.store.normalize</code> function which removes unwanted path entries. This looks like a slightly cleaner and more performant approach, but it means that unwanted paths will be in index before normalization is done (during writing to disk or manually calling <code class=\"notranslate\">normalize()</code>). Here is a snippet which removes non-children entries:</li>\n</ul>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local visits = require('mini.visits')\nlocal default_normalize = visits.gen_normalize.default()\nlocal normalize = function(index)\n  for cwd, cwd_tbl in pairs(index) do\n    for path, _ in pairs(cwd_tbl) do\n      if not vim.startswith(path, cwd) then cwd_tbl[path] = nil end\n    end\n  end\n\n  return default_normalize(index)\nend\n\nvisits.setup({ store = { normalize = normalize } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">visits</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.visits<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">default_normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">visits</span>.<span class=\"pl-e\">gen_normalize</span>.<span class=\"pl-c1\">default</span>()\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">index</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">cwd_tbl</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">index</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">cwd_tbl</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">startswith</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">cwd</span>) <span class=\"pl-k\">then</span> <span class=\"pl-smi\">cwd_tbl</span>[<span class=\"pl-smi\">path</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">default_normalize</span>(<span class=\"pl-smi\">index</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">visits</span>.<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">store</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">normalize</span> } })</pre></div>",
+            "bodyText": "There are at least two approaches here:\n\nCreate an autocommand on BufAdd which sets vim.b.minivisits_disable if it doesn't fit requirements for being tracked. This is doable and does directly what you want.\nA slightly alternative solution would be to define your own config.store.normalize function which removes unwanted path entries. This looks like a slightly cleaner and more performant approach, but it means that unwanted paths will be in index before normalization is done (during writing to disk or manually calling normalize()). Here is a snippet which removes non-children entries:\n\nlocal visits = require('mini.visits')\nlocal default_normalize = visits.gen_normalize.default()\nlocal normalize = function(index)\n  for cwd, cwd_tbl in pairs(index) do\n    for path, _ in pairs(cwd_tbl) do\n      if not vim.startswith(path, cwd) then cwd_tbl[path] = nil end\n    end\n  end\n\n  return default_normalize(index)\nend\n\nvisits.setup({ store = { normalize = normalize } })",
+            "createdAt": "2023-12-17T09:06:49Z",
+            "createdViaEmail": false,
+            "databaseId": 7875532,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AeCvM",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-12-17T09:06:49Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/621#discussioncomment-7875532",
+            "updatedAt": "2023-12-17T09:06:50Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/621#discussioncomment-7875532"
+        }
+    ],
+    "createdAt": "2023-12-17T00:18:48Z",
+    "createdViaEmail": false,
+    "databaseId": 5967561,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AWw7J",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABdUY7Ow",
+                "name": "mini.visits"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 621,
+    "poll": null,
+    "publishedAt": "2023-12-17T00:18:48Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/621",
+    "stateReason": "RESOLVED",
+    "title": "mini visits - only track files in the current dir or its children",
+    "updatedAt": "2023-12-17T09:06:52Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/621"
+}

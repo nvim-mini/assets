@@ -1,0 +1,379 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 15603826,
+        "id": "DC_kwDOFoksYM4A7hhy",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15603826"
+    },
+    "answerChosenAt": "2026-01-26T09:55:09Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/168411976?v=4",
+        "login": "asadzman",
+        "resourcePath": "/asadzman",
+        "url": "https://github.com/asadzman"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.ai\n\n### Question\n\nI have currently this -->\r\n```lua\r\n      custom_textobjects = {\r\n        c = ai.gen_spec.pair('```', '```'),\r\n      }\r\n```\r\nBut this also selects the `lua` part of\r\n\r\n\\``` lua\r\n-- something\r\n\\```\r\n\r\nI only want to select between \\```+\\<code-name\\> and \\```\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I have currently this --&gt;</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"      custom_textobjects = {\n        c = ai.gen_spec.pair('```', '```'),\n      }\"><pre class=\"notranslate\">      <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">pair</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>```<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>```<span class=\"pl-pds\">'</span></span>),\n      }</pre></div>\n<p dir=\"auto\">But this also selects the <code class=\"notranslate\">lua</code> part of</p>\n<p dir=\"auto\">``` lua<br>\n-- something<br>\n```</p>\n<p dir=\"auto\">I only want to select between ```+&lt;code-name&gt; and ```</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai\nQuestion\nI have currently this -->\n      custom_textobjects = {\n        c = ai.gen_spec.pair('```', '```'),\n      }\nBut this also selects the lua part of\n``` lua\n-- something\n```\nI only want to select between ```+<code-name> and ```",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-01-26T10:01:02Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "## Treesitter approach\r\n\r\n> [!CAUTION]\r\n> Make sure the `markdown` parser is installed (`:TSInstall markdown`) and treesitter is working correctly.\r\n\r\n> [!TIP]\r\n> - Use `:InspectTree` to view the parsed syntax tree for the file.\r\n> - Use `:EditQuery` to test the captures shown below.\r\n\r\n### 1. Define captures for `mini.ai`\r\n\r\n```scm\r\n; after/queries/markdown/textobjects.scm\r\n\r\n; extends\r\n\r\n((fenced_code_block) @code_block.outer)\r\n((code_fence_content) @code_block.inner)\r\n```\r\n\r\n### 2. Extend `mini.ai` for the `markdown` filetype\r\n\r\n```lua\r\n-- after/ftplugin/markdown.lua\r\n\r\nif MiniAi then\r\n  vim.b.miniai_config = {\r\n    custom_textobjects = {\r\n      c = MiniAi.gen_spec.treesitter({ a = \"@code_block.outer\", i = \"@code_block.inner\" }),\r\n    },\r\n  }\r\nend\r\n```\r\n\r\nNote there is no \"inline\" fenced code block. An error will be thrown for cases like:\r\n\r\n````\r\n```lua name ```\r\n````\r\n\r\n## Pattern approach (preferred)\r\n\r\n`MiniAi.gen_spec.pair` is not intended to be used with lua patterns, so instead we need to define a custom one. As in the previous example, this extends `mini.ai` for the `markdown` filetype and assumes that you have already called `MiniAi.setup()` in your configuration.\r\n\r\n```lua\r\n-- after/ftplugin/markdown.lua\r\n\r\nif MiniAi then\r\n  vim.b.miniai_config = {\r\n    custom_textobjects = {\r\n      c = { \"```%w*().*()```\" },\r\n    },\r\n  }\r\nend\r\n```\r\n\r\nThe downside is that newlines (`\\n`) are included in the inner match, causing the code block to collapse into a single line:\r\n\r\n````\r\n```lua\r\n|code block -> becomes -> ```lua|```\r\n```\r\n````\r\n\r\nYou can fix this by using a slightly more complex pattern, like:\r\n\r\n> [!NOTE]\r\n> See the comment below for a better pattern implementation.\r\n\r\n<details open><summary>New!</summary>\r\n\r\n```lua\r\nvim.b.miniai_config = {\r\n  custom_textobjects = {\r\n    -- Better for `dic`: place cursor where `treesitter` approach does\r\n    c = { { \"```.*\\n().*()```\", \"```().*()```\" } },\r\n    -- Better for `cic`: leave an empty line\r\n    c = { { \"```.*\\n().*()\\n.*```\", \"```().*()```\" } },\r\n  },\r\n}\r\n```\r\n\r\n</summary>",
+            "bodyHTML": "<h2 dir=\"auto\">Treesitter approach</h2>\n<div class=\"markdown-alert markdown-alert-caution\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-stop mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Caution</p><p dir=\"auto\">Make sure the <code class=\"notranslate\">markdown</code> parser is installed (<code class=\"notranslate\">:TSInstall markdown</code>) and treesitter is working correctly.</p>\n</div>\n<div class=\"markdown-alert markdown-alert-tip\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-light-bulb mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M8 1.5c-2.363 0-4 1.69-4 3.75 0 .984.424 1.625.984 2.304l.214.253c.223.264.47.556.673.848.284.411.537.896.621 1.49a.75.75 0 0 1-1.484.211c-.04-.282-.163-.547-.37-.847a8.456 8.456 0 0 0-.542-.68c-.084-.1-.173-.205-.268-.32C3.201 7.75 2.5 6.766 2.5 5.25 2.5 2.31 4.863 0 8 0s5.5 2.31 5.5 5.25c0 1.516-.701 2.5-1.328 3.259-.095.115-.184.22-.268.319-.207.245-.383.453-.541.681-.208.3-.33.565-.37.847a.751.751 0 0 1-1.485-.212c.084-.593.337-1.078.621-1.489.203-.292.45-.584.673-.848.075-.088.147-.173.213-.253.561-.679.985-1.32.985-2.304 0-2.06-1.637-3.75-4-3.75ZM5.75 12h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM6 15.25a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z\"></path></svg>Tip</p>\n<ul dir=\"auto\">\n<li>Use <code class=\"notranslate\">:InspectTree</code> to view the parsed syntax tree for the file.</li>\n<li>Use <code class=\"notranslate\">:EditQuery</code> to test the captures shown below.</li>\n</ul>\n</div>\n<h3 dir=\"auto\">1. Define captures for <code class=\"notranslate\">mini.ai</code></h3>\n<div class=\"highlight highlight-source-scheme notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"; after/queries/markdown/textobjects.scm\n\n; extends\n\n((fenced_code_block) @code_block.outer)\n((code_fence_content) @code_block.inner)\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">;</span> after/queries/markdown/textobjects.scm</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">;</span> extends</span>\n\n((fenced_code_block) @code_block.outer)\n((code_fence_content) @code_block.inner)</pre></div>\n<h3 dir=\"auto\">2. Extend <code class=\"notranslate\">mini.ai</code> for the <code class=\"notranslate\">markdown</code> filetype</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- after/ftplugin/markdown.lua\n\nif MiniAi then\n  vim.b.miniai_config = {\n    custom_textobjects = {\n      c = MiniAi.gen_spec.treesitter({ a = &quot;@code_block.outer&quot;, i = &quot;@code_block.inner&quot; }),\n    },\n  }\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> after/ftplugin/markdown.lua</span>\n\n<span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniAi</span> <span class=\"pl-k\">then</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">treesitter</span>({ <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@code_block.outer<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@code_block.inner<span class=\"pl-pds\">\" </span></span>}),\n    },\n  }\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Note there is no \"inline\" fenced code block. An error will be thrown for cases like:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"```lua name ```\"><pre class=\"notranslate\"><code class=\"notranslate\">```lua name ```\n</code></pre></div>\n<h2 dir=\"auto\">Pattern approach (preferred)</h2>\n<p dir=\"auto\"><code class=\"notranslate\">MiniAi.gen_spec.pair</code> is not intended to be used with lua patterns, so instead we need to define a custom one. As in the previous example, this extends <code class=\"notranslate\">mini.ai</code> for the <code class=\"notranslate\">markdown</code> filetype and assumes that you have already called <code class=\"notranslate\">MiniAi.setup()</code> in your configuration.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- after/ftplugin/markdown.lua\n\nif MiniAi then\n  vim.b.miniai_config = {\n    custom_textobjects = {\n      c = { &quot;```%w*().*()```&quot; },\n    },\n  }\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> after/ftplugin/markdown.lua</span>\n\n<span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniAi</span> <span class=\"pl-k\">then</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```%w*().*()```<span class=\"pl-pds\">\" </span></span>},\n    },\n  }\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">The downside is that newlines (<code class=\"notranslate\">\\n</code>) are included in the inner match, causing the code block to collapse into a single line:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"```lua\n|code block -&gt; becomes -&gt; ```lua|```\n```\"><pre class=\"notranslate\"><code class=\"notranslate\">```lua\n|code block -&gt; becomes -&gt; ```lua|```\n```\n</code></pre></div>\n<p dir=\"auto\">You can fix this by using a slightly more complex pattern, like:</p>\n<div class=\"markdown-alert markdown-alert-note\" dir=\"auto\"><p class=\"markdown-alert-title\" dir=\"auto\"><svg data-component=\"Octicon\" class=\"octicon octicon-info mr-2\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z\"></path></svg>Note</p><p dir=\"auto\">See the comment below for a better pattern implementation.</p>\n</div>\n<details open=\"\"><summary>New!</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.b.miniai_config = {\n  custom_textobjects = {\n    -- Better for `dic`: place cursor where `treesitter` approach does\n    c = { { &quot;```.*\\n().*()```&quot;, &quot;```().*()```&quot; } },\n    -- Better for `cic`: leave an empty line\n    c = { { &quot;```.*\\n().*()\\n.*```&quot;, &quot;```().*()```&quot; } },\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Better for `dic`: place cursor where `treesitter` approach does</span>\n    <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```.*<span class=\"pl-cce\">\\n</span>().*()```<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```().*()```<span class=\"pl-pds\">\" </span></span>} },\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Better for `cic`: leave an empty line</span>\n    <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```.*<span class=\"pl-cce\">\\n</span>().*()<span class=\"pl-cce\">\\n</span>.*```<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>```().*()```<span class=\"pl-pds\">\" </span></span>} },\n  },\n}</pre></div>\n</details>",
+            "bodyText": "Treesitter approach\nCautionMake sure the markdown parser is installed (:TSInstall markdown) and treesitter is working correctly.\n\nTip\n\nUse :InspectTree to view the parsed syntax tree for the file.\nUse :EditQuery to test the captures shown below.\n\n\n1. Define captures for mini.ai\n; after/queries/markdown/textobjects.scm\n\n; extends\n\n((fenced_code_block) @code_block.outer)\n((code_fence_content) @code_block.inner)\n2. Extend mini.ai for the markdown filetype\n-- after/ftplugin/markdown.lua\n\nif MiniAi then\n  vim.b.miniai_config = {\n    custom_textobjects = {\n      c = MiniAi.gen_spec.treesitter({ a = \"@code_block.outer\", i = \"@code_block.inner\" }),\n    },\n  }\nend\nNote there is no \"inline\" fenced code block. An error will be thrown for cases like:\n```lua name ```\n\nPattern approach (preferred)\nMiniAi.gen_spec.pair is not intended to be used with lua patterns, so instead we need to define a custom one. As in the previous example, this extends mini.ai for the markdown filetype and assumes that you have already called MiniAi.setup() in your configuration.\n-- after/ftplugin/markdown.lua\n\nif MiniAi then\n  vim.b.miniai_config = {\n    custom_textobjects = {\n      c = { \"```%w*().*()```\" },\n    },\n  }\nend\nThe downside is that newlines (\\n) are included in the inner match, causing the code block to collapse into a single line:\n```lua\n|code block -> becomes -> ```lua|```\n```\n\nYou can fix this by using a slightly more complex pattern, like:\nNoteSee the comment below for a better pattern implementation.\n\nNew!\nvim.b.miniai_config = {\n  custom_textobjects = {\n    -- Better for `dic`: place cursor where `treesitter` approach does\n    c = { { \"```.*\\n().*()```\", \"```().*()```\" } },\n    -- Better for `cic`: leave an empty line\n    c = { { \"```.*\\n().*()\\n.*```\", \"```().*()```\" } },\n  },\n}",
+            "createdAt": "2026-01-26T08:52:04Z",
+            "createdViaEmail": false,
+            "databaseId": 15603826,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A7hhy",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2026-01-26T12:58:45Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-01-26T08:52:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I'll mark this as the answer, since both approaches indeed work. My personal suggestions:\r\n\r\n- Tree-sitter approach is usually more robust, but in this case it has some weird relations with indentation and leading whitespace.\r\n- I'd go with Lua pattern approach, but a bit more concise and robust (accounts for indented code blocks):\r\n\r\n    ```lua\r\n    vim.b.miniai_config = {\r\n      custom_textobjects = {\r\n        -- Select `ic` as content from first to last non-blank characters\r\n        -- Selection is charwise by default, so common usages are:\r\n        -- - `cic` to \"change inside codeblock\";\r\n        -- - `Vacd` to \"select linewise around codeblock and delete\".\r\n        c = { '```[^\\n]*\\n%s*().-()\\n%s*```' },\r\n      },\r\n    }\r\n    ```",
+                    "bodyHTML": "<p dir=\"auto\">I'll mark this as the answer, since both approaches indeed work. My personal suggestions:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Tree-sitter approach is usually more robust, but in this case it has some weird relations with indentation and leading whitespace.</p>\n</li>\n<li>\n<p dir=\"auto\">I'd go with Lua pattern approach, but a bit more concise and robust (accounts for indented code blocks):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.b.miniai_config = {\n  custom_textobjects = {\n    -- Select `ic` as content from first to last non-blank characters\n    -- Selection is charwise by default, so common usages are:\n    -- - `cic` to &quot;change inside codeblock&quot;;\n    -- - `Vacd` to &quot;select linewise around codeblock and delete&quot;.\n    c = { '```[^\\n]*\\n%s*().-()\\n%s*```' },\n  },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">miniai_config</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Select `ic` as content from first to last non-blank characters</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Selection is charwise by default, so common usages are:</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - `cic` to \"change inside codeblock\";</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> - `Vacd` to \"select linewise around codeblock and delete\".</span>\n    <span class=\"pl-smi\">c</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>```[^<span class=\"pl-cce\">\\n</span>]*<span class=\"pl-cce\">\\n</span>%s*().-()<span class=\"pl-cce\">\\n</span>%s*```<span class=\"pl-pds\">' </span></span>},\n  },\n}</pre></div>\n</li>\n</ul>",
+                    "bodyText": "I'll mark this as the answer, since both approaches indeed work. My personal suggestions:\n\n\nTree-sitter approach is usually more robust, but in this case it has some weird relations with indentation and leading whitespace.\n\n\nI'd go with Lua pattern approach, but a bit more concise and robust (accounts for indented code blocks):\nvim.b.miniai_config = {\n  custom_textobjects = {\n    -- Select `ic` as content from first to last non-blank characters\n    -- Selection is charwise by default, so common usages are:\n    -- - `cic` to \"change inside codeblock\";\n    -- - `Vacd` to \"select linewise around codeblock and delete\".\n    c = { '```[^\\n]*\\n%s*().-()\\n%s*```' },\n  },\n}",
+                    "createdAt": "2026-01-26T10:00:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15604505,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7hsZ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-26T10:00:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15603826,
+                        "id": "DC_kwDOFoksYM4A7hhy",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15603826"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15604505",
+                    "updatedAt": "2026-01-26T10:00:58Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15604505"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/168411976?v=4",
+                        "login": "asadzman",
+                        "resourcePath": "/asadzman",
+                        "url": "https://github.com/asadzman"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks, works flawlessly.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks, works flawlessly.</p>",
+                    "bodyText": "Thanks, works flawlessly.",
+                    "createdAt": "2026-01-26T13:28:49Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15606203,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7iG7",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-26T13:28:49Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15603826,
+                        "id": "DC_kwDOFoksYM4A7hhy",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15603826"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15606203",
+                    "updatedAt": "2026-01-26T13:28:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15606203"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15603826",
+            "updatedAt": "2026-01-26T12:58:45Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241#discussioncomment-15603826"
+        }
+    ],
+    "createdAt": "2026-01-25T19:15:00Z",
+    "createdViaEmail": false,
+    "databaseId": 9387346,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ajz1S",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2241,
+    "poll": null,
+    "publishedAt": "2026-01-25T19:15:00Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2241",
+    "stateReason": "RESOLVED",
+    "title": "How define code block text object for markdown",
+    "updatedAt": "2026-01-26T13:28:50Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2241"
+}

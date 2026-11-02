@@ -1,0 +1,1469 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "\r\nhttps://github.com/user-attachments/assets/c6f27a83-620d-4e78-b563-be40515c9d2f\r\n\r\n\r\nLeft: Jump2d\r\nRight: Leap\r\n\r\nThe most important reason why I still use leap: Its promise that the second character of the spot I am targeting can always be typed after initiating the search. That way, I have more time to process the generated third char, which is shown immediately.\r\n\r\nI would like to use jump2d, and have been thinking about an idiomatic implementation starting from MiniJump2d.builtin.single_character:\r\n\r\n- on start, dim immediately. Otherwise, there is no indication of activity until the user enters the first character\r\n- n_steps_ahead should be high\r\n- the labels should stay in place when typing\r\n- on start, group by the second character of each spot. Generate labels as usual per group\r\n\r\n~~I am using this [branch](https://github.com/abeldekat/mini.nvim/tree/jump2d_include_second_character) in my fork of mini.nvim.~~\r\n\r\nInit.lua:\r\n\r\n```lua\r\n---@diagnostic disable: undefined-global\r\nlocal function setup_deps(path_to_site)\r\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\r\n  if not vim.uv.fs_stat(mini_path) then\r\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\r\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\r\n    vim.fn.system({\r\n      \"git\",\r\n      \"clone\",\r\n      \"--filter=blob:none\",\r\n      \"https://github.com/abeldekat/mini.nvim\",\r\n      \"--branch=jump2d_include_second_character\",\r\n      mini_path,\r\n    })\r\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\r\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\r\n  end\r\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\r\nend\r\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\r\n\r\nlocal H = {}\r\nvim.g.mapleader = \" \"\r\nlocal setup = function()\r\n  MiniDeps.now(function()\r\n    require(\"mini.basics\").setup()\r\n    vim.cmd.colorscheme(\"randomhue\")\r\n    vim.api.nvim_create_autocmd(\"FileType\", {\r\n      pattern = { \"lua\" },\r\n      callback = function() pcall(vim.treesitter.start) end,\r\n    })\r\n\r\n    local allowed_windows = { current = true, not_current = true }\r\n    local group_dim, ns_id_dim = \"LeapBackdrop\", vim.api.nvim_create_namespace(\"MiniJump2dDimImmediately\")\r\n    require(\"mini.jump2d\").setup({\r\n      allowed_windows = allowed_windows,\r\n      hl_group = group_dim,\r\n      hl_group_ahead = \"LeapLabel\",\r\n      labels = \"jkl;mhniosde\",\r\n      mappings = { start_jumping = \"\" },\r\n      silent = true,\r\n      view = { dim = false, fixed_steps = true }, -- NOTE: New property fixed_steps\r\n    })\r\n\r\n    local single_character_extended = function()\r\n      H.dim_immediately(ns_id_dim, group_dim, allowed_windows)\r\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\r\n      H.dim_remove(ns_id_dim, allowed_windows)\r\n    end\r\n    vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", single_character_extended, { desc = \"Start 2d jumping\" })\r\n  end)\r\nend\r\n\r\nH.dim_immediately = function(ns, group, allowed_windows)\r\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\r\n    local wininfo = vim.fn.getwininfo(win_id)[1]\r\n    --stylua: ignore\r\n    vim.highlight.range(\r\n      wininfo.bufnr, ns, group,\r\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\r\n    )\r\n  end\r\n  vim.cmd(\"redraw\")\r\nend\r\n\r\nH.dim_remove = function(ns, allowed_windows)\r\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\r\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\r\n  end\r\nend\r\n\r\nH.list_wins = function(allowed_windows)\r\n  local win_id_init = vim.api.nvim_get_current_win()\r\n  return vim.tbl_filter(function(win_id)\r\n    if win_id == win_id_init then return allowed_windows.current end\r\n    return allowed_windows.not_current\r\n  end, vim.api.nvim_list_wins())\r\nend\r\n\r\nsetup()\r\n```\r\n\r\nNotes:\r\n- I could not find an easy way to add \"dim immediately\" to jump2d.lua\r\n- I can imagine that `spots_add_steps` does not *have* to be public. Perhaps an internal table, returning a custom function when the spotter has a certain id?\r\n\r\ncc: @pkazmier \r\n\r\nSee also: [Improve 'mini.jump2d' default config and jumping experience](https://github.com/echasnovski/mini.nvim/issues/1818)\r\n\r\n",
+    "bodyHTML": "<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">jump2d_include_second_character.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/456050522-c6f27a83-620d-4e78-b563-be40515c9d2f.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTYwNTA1MjItYzZmMjdhODMtNjIwZC00ZTc4LWI1NjMtYmU0MDUxNWM5ZDJmLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTEyYWZlOGQxYzM4MGI3YTBiNTYxYTRmNDZiMDEyNjlmYmRlMjRjMDViYmI0YjRjODBhN2NhMGQ4ZGZiN2MwMjQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.75ziEbTJTj0q42ChDDThdszsTf4clY56FjGtBxxr1g8\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/456050522-c6f27a83-620d-4e78-b563-be40515c9d2f.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTYwNTA1MjItYzZmMjdhODMtNjIwZC00ZTc4LWI1NjMtYmU0MDUxNWM5ZDJmLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTEyYWZlOGQxYzM4MGI3YTBiNTYxYTRmNDZiMDEyNjlmYmRlMjRjMDViYmI0YjRjODBhN2NhMGQ4ZGZiN2MwMjQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.75ziEbTJTj0q42ChDDThdszsTf4clY56FjGtBxxr1g8\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">Left: Jump2d<br>\nRight: Leap</p>\n<p dir=\"auto\">The most important reason why I still use leap: Its promise that the second character of the spot I am targeting can always be typed after initiating the search. That way, I have more time to process the generated third char, which is shown immediately.</p>\n<p dir=\"auto\">I would like to use jump2d, and have been thinking about an idiomatic implementation starting from MiniJump2d.builtin.single_character:</p>\n<ul dir=\"auto\">\n<li>on start, dim immediately. Otherwise, there is no indication of activity until the user enters the first character</li>\n<li>n_steps_ahead should be high</li>\n<li>the labels should stay in place when typing</li>\n<li>on start, group by the second character of each spot. Generate labels as usual per group</li>\n</ul>\n<p dir=\"auto\"><del>I am using this <a href=\"https://github.com/abeldekat/mini.nvim/tree/jump2d_include_second_character\">branch</a> in my fork of mini.nvim.</del></p>\n<p dir=\"auto\">Init.lua:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. &quot;pack/deps/start/mini.nvim&quot;\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo &quot;Installing `mini.nvim`&quot; | redraw')\n    -- vim.fn.system({ &quot;git&quot;, &quot;clone&quot;, &quot;--filter=blob:none&quot;, &quot;https://github.com/echasnovski/mini.nvim&quot;, mini_path })\n    vim.fn.system({\n      &quot;git&quot;,\n      &quot;clone&quot;,\n      &quot;--filter=blob:none&quot;,\n      &quot;https://github.com/abeldekat/mini.nvim&quot;,\n      &quot;--branch=jump2d_include_second_character&quot;,\n      mini_path,\n    })\n    vim.cmd(&quot;packadd mini.nvim | helptags ALL&quot;)\n    vim.cmd('echo &quot;Installed `mini.nvim`&quot; | redraw')\n  end\n  require(&quot;mini.deps&quot;).setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(&quot;data&quot;) .. &quot;/site/&quot;)\n\nlocal H = {}\nvim.g.mapleader = &quot; &quot;\nlocal setup = function()\n  MiniDeps.now(function()\n    require(&quot;mini.basics&quot;).setup()\n    vim.cmd.colorscheme(&quot;randomhue&quot;)\n    vim.api.nvim_create_autocmd(&quot;FileType&quot;, {\n      pattern = { &quot;lua&quot; },\n      callback = function() pcall(vim.treesitter.start) end,\n    })\n\n    local allowed_windows = { current = true, not_current = true }\n    local group_dim, ns_id_dim = &quot;LeapBackdrop&quot;, vim.api.nvim_create_namespace(&quot;MiniJump2dDimImmediately&quot;)\n    require(&quot;mini.jump2d&quot;).setup({\n      allowed_windows = allowed_windows,\n      hl_group = group_dim,\n      hl_group_ahead = &quot;LeapLabel&quot;,\n      labels = &quot;jkl;mhniosde&quot;,\n      mappings = { start_jumping = &quot;&quot; },\n      silent = true,\n      view = { dim = false, fixed_steps = true }, -- NOTE: New property fixed_steps\n    })\n\n    local single_character_extended = function()\n      H.dim_immediately(ns_id_dim, group_dim, allowed_windows)\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\n      H.dim_remove(ns_id_dim, allowed_windows)\n    end\n    vim.keymap.set({ &quot;n&quot;, &quot;x&quot;, &quot;o&quot; }, &quot;s&quot;, single_character_extended, { desc = &quot;Start 2d jumping&quot; })\n  end)\nend\n\nH.dim_immediately = function(ns, group, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    local wininfo = vim.fn.getwininfo(win_id)[1]\n    --stylua: ignore\n    vim.highlight.range(\n      wininfo.bufnr, ns, group,\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\n    )\n  end\n  vim.cmd(&quot;redraw&quot;)\nend\n\nH.dim_remove = function(ns, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\n  end\nend\n\nH.list_wins = function(allowed_windows)\n  local win_id_init = vim.api.nvim_get_current_win()\n  return vim.tbl_filter(function(win_id)\n    if win_id == win_id_init then return allowed_windows.current end\n    return allowed_windows.not_current\n  end, vim.api.nvim_list_wins())\nend\n\nsetup()\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">undefined-global</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_deps</span>(<span class=\"pl-smi\">path_to_site</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pack/deps/start/mini.nvim<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">mini_path</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installing `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>({\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>clone<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--filter=blob:none<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/abeldekat/mini.nvim<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--branch=jump2d_include_second_character<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">mini_path</span>,\n    })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>packadd mini.nvim | helptags ALL<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installed `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.deps<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> } })\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">setup_deps</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/site/<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> {}\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">mapleader</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">now</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.basics<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">colorscheme</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>randomhue<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FileType<span class=\"pl-pds\">\"</span></span>, {\n      <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua<span class=\"pl-pds\">\" </span></span>},\n      <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-e\">start</span>) <span class=\"pl-k\">end</span>,\n    })\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">allowed_windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">not_current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">group_dim</span>, <span class=\"pl-smi\">ns_id_dim</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>LeapBackdrop<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_namespace</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniJump2dDimImmediately<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.jump2d<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n      <span class=\"pl-smi\">allowed_windows</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">allowed_windows</span>,\n      <span class=\"pl-smi\">hl_group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">group_dim</span>,\n      <span class=\"pl-smi\">hl_group_ahead</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>LeapLabel<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">labels</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>jkl;mhniosde<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">start_jumping</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>},\n      <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n      <span class=\"pl-smi\">view</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">dim</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">fixed_steps</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: New property fixed_steps</span>\n    })\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">single_character_extended</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">dim_immediately</span>(<span class=\"pl-smi\">ns_id_dim</span>, <span class=\"pl-smi\">group_dim</span>, <span class=\"pl-smi\">allowed_windows</span>)\n      <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">single_character_extended</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: New builtin</span>\n      <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">dim_remove</span>(<span class=\"pl-smi\">ns_id_dim</span>, <span class=\"pl-smi\">allowed_windows</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>x<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">single_character_extended</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Start 2d jumping<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">dim_immediately</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ns</span>, <span class=\"pl-smi\">group</span>, <span class=\"pl-smi\">allowed_windows</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">list_wins</span>(<span class=\"pl-smi\">allowed_windows</span>)) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">wininfo</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getwininfo</span>(<span class=\"pl-smi\">win_id</span>)[<span class=\"pl-c1\">1</span>]\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span>stylua: ignore</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">highlight</span>.<span class=\"pl-c1\">range</span>(\n      <span class=\"pl-smi\">wininfo</span>.<span class=\"pl-e\">bufnr</span>, <span class=\"pl-smi\">ns</span>, <span class=\"pl-smi\">group</span>,\n      { <span class=\"pl-smi\">wininfo</span>.<span class=\"pl-e\">topline</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">0</span> }, { <span class=\"pl-smi\">wininfo</span>.<span class=\"pl-e\">botline</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span> }, { <span class=\"pl-smi\">priority</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">9999</span> }\n    )\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>redraw<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">dim_remove</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ns</span>, <span class=\"pl-smi\">allowed_windows</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">list_wins</span>(<span class=\"pl-smi\">allowed_windows</span>)) <span class=\"pl-k\">do</span>\n    <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-e\">nvim_buf_clear_namespace</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_buf</span>(<span class=\"pl-smi\">win_id</span>), <span class=\"pl-smi\">ns</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">list_wins</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">allowed_windows</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win_id_init</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_win</span>()\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">win_id</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">win_id_init</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">allowed_windows</span>.<span class=\"pl-e\">current</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">allowed_windows</span>.<span class=\"pl-e\">not_current</span>\n  <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_wins</span>())\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">setup</span>()</pre></div>\n<p dir=\"auto\">Notes:</p>\n<ul dir=\"auto\">\n<li>I could not find an easy way to add \"dim immediately\" to jump2d.lua</li>\n<li>I can imagine that <code class=\"notranslate\">spots_add_steps</code> does not <em>have</em> to be public. Perhaps an internal table, returning a custom function when the spotter has a certain id?</li>\n</ul>\n<p dir=\"auto\">cc: <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a></p>\n<p dir=\"auto\">See also: <a href=\"https://github.com/echasnovski/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\">Improve 'mini.jump2d' default config and jumping experience</a></p>",
+    "bodyText": "jump2d_include_second_character.mp4\n    \n  \n\n  \n\n  \n\n\nLeft: Jump2d\nRight: Leap\nThe most important reason why I still use leap: Its promise that the second character of the spot I am targeting can always be typed after initiating the search. That way, I have more time to process the generated third char, which is shown immediately.\nI would like to use jump2d, and have been thinking about an idiomatic implementation starting from MiniJump2d.builtin.single_character:\n\non start, dim immediately. Otherwise, there is no indication of activity until the user enters the first character\nn_steps_ahead should be high\nthe labels should stay in place when typing\non start, group by the second character of each spot. Generate labels as usual per group\n\nI am using this branch in my fork of mini.nvim.\nInit.lua:\n---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\n    vim.fn.system({\n      \"git\",\n      \"clone\",\n      \"--filter=blob:none\",\n      \"https://github.com/abeldekat/mini.nvim\",\n      \"--branch=jump2d_include_second_character\",\n      mini_path,\n    })\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\n  end\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\n\nlocal H = {}\nvim.g.mapleader = \" \"\nlocal setup = function()\n  MiniDeps.now(function()\n    require(\"mini.basics\").setup()\n    vim.cmd.colorscheme(\"randomhue\")\n    vim.api.nvim_create_autocmd(\"FileType\", {\n      pattern = { \"lua\" },\n      callback = function() pcall(vim.treesitter.start) end,\n    })\n\n    local allowed_windows = { current = true, not_current = true }\n    local group_dim, ns_id_dim = \"LeapBackdrop\", vim.api.nvim_create_namespace(\"MiniJump2dDimImmediately\")\n    require(\"mini.jump2d\").setup({\n      allowed_windows = allowed_windows,\n      hl_group = group_dim,\n      hl_group_ahead = \"LeapLabel\",\n      labels = \"jkl;mhniosde\",\n      mappings = { start_jumping = \"\" },\n      silent = true,\n      view = { dim = false, fixed_steps = true }, -- NOTE: New property fixed_steps\n    })\n\n    local single_character_extended = function()\n      H.dim_immediately(ns_id_dim, group_dim, allowed_windows)\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\n      H.dim_remove(ns_id_dim, allowed_windows)\n    end\n    vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", single_character_extended, { desc = \"Start 2d jumping\" })\n  end)\nend\n\nH.dim_immediately = function(ns, group, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    local wininfo = vim.fn.getwininfo(win_id)[1]\n    --stylua: ignore\n    vim.highlight.range(\n      wininfo.bufnr, ns, group,\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\n    )\n  end\n  vim.cmd(\"redraw\")\nend\n\nH.dim_remove = function(ns, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\n  end\nend\n\nH.list_wins = function(allowed_windows)\n  local win_id_init = vim.api.nvim_get_current_win()\n  return vim.tbl_filter(function(win_id)\n    if win_id == win_id_init then return allowed_windows.current end\n    return allowed_windows.not_current\n  end, vim.api.nvim_list_wins())\nend\n\nsetup()\nNotes:\n\nI could not find an easy way to add \"dim immediately\" to jump2d.lua\nI can imagine that spots_add_steps does not have to be public. Perhaps an internal table, returning a custom function when the spotter has a certain id?\n\ncc: @pkazmier\nSee also: Improve 'mini.jump2d' default config and jumping experience",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\n> * on start, dim immediately. Otherwise, there is no indication of activity until the user enters the first character\r\n\r\nThis for me breaks the purpose of dimming in the first place: indicate that certain lines have matches (while making labels more visible). If there is dimming before jumping has started, then this interpretation breaks (as before jumping all lines are dimmed). I don't think I like that.\r\n\r\n> * n_steps_ahead should be high\r\n> * the labels should stay in place when typing\r\n\r\nUnfortunately, both of these do not go well together, because labels can overlap. Like in case of several consecutive same characters for `single_character` case. If they stay in place, not-first character of label sequence can be hidden behind the labels from the right neighbor match.\r\n\r\nThere are solutions, of course. Like dynamically hiding already typed letter of matched spots (to clear the space for possible later labels from left to be visible). Or like showing only a single step ahead (like 'leap.nvim' seems to be doing).\r\n\r\nBut I am not a fan of showing labels not at the target spot. Every time I tried it, it was always confusing to adapt to.\r\n\r\nIn theory, showing labels one or two steps to the right is possible with a tweaked spotter:\r\n- Actually match spots that are one or two steps to the right of the target ones.\r\n- Use `hooks.after_jump` to adjust cursor.\r\n\r\nThis would still only show labels after one or two keys are typed, yes.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<blockquote>\n<ul dir=\"auto\">\n<li>on start, dim immediately. Otherwise, there is no indication of activity until the user enters the first character</li>\n</ul>\n</blockquote>\n<p dir=\"auto\">This for me breaks the purpose of dimming in the first place: indicate that certain lines have matches (while making labels more visible). If there is dimming before jumping has started, then this interpretation breaks (as before jumping all lines are dimmed). I don't think I like that.</p>\n<blockquote>\n<ul dir=\"auto\">\n<li>n_steps_ahead should be high</li>\n<li>the labels should stay in place when typing</li>\n</ul>\n</blockquote>\n<p dir=\"auto\">Unfortunately, both of these do not go well together, because labels can overlap. Like in case of several consecutive same characters for <code class=\"notranslate\">single_character</code> case. If they stay in place, not-first character of label sequence can be hidden behind the labels from the right neighbor match.</p>\n<p dir=\"auto\">There are solutions, of course. Like dynamically hiding already typed letter of matched spots (to clear the space for possible later labels from left to be visible). Or like showing only a single step ahead (like 'leap.nvim' seems to be doing).</p>\n<p dir=\"auto\">But I am not a fan of showing labels not at the target spot. Every time I tried it, it was always confusing to adapt to.</p>\n<p dir=\"auto\">In theory, showing labels one or two steps to the right is possible with a tweaked spotter:</p>\n<ul dir=\"auto\">\n<li>Actually match spots that are one or two steps to the right of the target ones.</li>\n<li>Use <code class=\"notranslate\">hooks.after_jump</code> to adjust cursor.</li>\n</ul>\n<p dir=\"auto\">This would still only show labels after one or two keys are typed, yes.</p>",
+            "bodyText": "Thanks for sharing!\n\n\non start, dim immediately. Otherwise, there is no indication of activity until the user enters the first character\n\n\nThis for me breaks the purpose of dimming in the first place: indicate that certain lines have matches (while making labels more visible). If there is dimming before jumping has started, then this interpretation breaks (as before jumping all lines are dimmed). I don't think I like that.\n\n\nn_steps_ahead should be high\nthe labels should stay in place when typing\n\n\nUnfortunately, both of these do not go well together, because labels can overlap. Like in case of several consecutive same characters for single_character case. If they stay in place, not-first character of label sequence can be hidden behind the labels from the right neighbor match.\nThere are solutions, of course. Like dynamically hiding already typed letter of matched spots (to clear the space for possible later labels from left to be visible). Or like showing only a single step ahead (like 'leap.nvim' seems to be doing).\nBut I am not a fan of showing labels not at the target spot. Every time I tried it, it was always confusing to adapt to.\nIn theory, showing labels one or two steps to the right is possible with a tweaked spotter:\n\nActually match spots that are one or two steps to the right of the target ones.\nUse hooks.after_jump to adjust cursor.\n\nThis would still only show labels after one or two keys are typed, yes.",
+            "createdAt": "2025-06-17T16:37:24Z",
+            "createdViaEmail": false,
+            "databaseId": 13499222,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AzftW",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-17T16:37:24Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 15,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks for the feedback!\r\n\r\n> In theory, showing labels one or two steps to the right is possible with a tweaked spotter:...\r\n\r\nUnfortunately, it's most important to show \"char2 + label\" *immediately* after typing the search character...\r\n\r\n> This for me breaks the purpose of dimming in the first place: ...\r\n\r\nYes, I understand. As a user of `leap` I interpret `dim` differently: Acknowledge that `leap` is active. All matches will be highlighted once I enter the search character. Subjectively, I also find this easier for the eyes.\r\nThis is not important though. As a user of `jump2d`, I can control the `dim` myself.\r\n\r\n> Unfortunately, both of these do not go well together, because labels can overlap...\r\n\r\nYes, I noticed that. I merely considered this a limitation, but I can see that this does not fit into `jump2d`. The limitation is also in `leap`:\r\n\r\n```txt\r\naaaa\r\naaaa\r\n```\r\n\r\nIn the example above, not every character is reachable.\r\n\r\n### Refactor\r\n\r\nI refactored the code ~~in a new [branch](https://github.com/abeldekat/mini.nvim/tree/~~jump2d_include_second_character_refactored)~~ and removed setting `view.fixed_steps`. I also changed `spots_add_steps` back to being private. Now, there are considerably less changes. I hope you are willing to ~~[inspect](https://github.com/echasnovski/mini.nvim/compare/main...abeldekat:mini.nvim:jump2d_include_second_character_refactored)~~ them. Conceptually, I only added a new builtin, doing some extra work before adding steps as usual. If I am not mistaken, this adds functionality to `mini.jump2d` which can be interesting for `leap` users, so I hope you will allow a PR.\r\n\r\nNew video:\r\n\r\nhttps://github.com/user-attachments/assets/71dc8b20-8ff2-4375-9547-ca7d59c13e25\r\n\r\n\r\n<details>\r\n\r\n<summary>New init.lua</summary>\r\n\r\n```\r\n---@diagnostic disable: undefined-global\r\nlocal function setup_deps(path_to_site)\r\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\r\n  if not vim.uv.fs_stat(mini_path) then\r\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\r\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\r\n    vim.fn.system({\r\n      \"git\",\r\n      \"clone\",\r\n      \"--filter=blob:none\",\r\n      \"https://github.com/abeldekat/mini.nvim\",\r\n      \"--branch=jump2d_include_second_character_refactored\",\r\n      mini_path,\r\n    })\r\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\r\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\r\n  end\r\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\r\nend\r\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\r\n\r\nlocal H = {}\r\nvim.g.mapleader = \" \"\r\nlocal setup = function()\r\n  MiniDeps.now(function()\r\n    require(\"mini.basics\").setup()\r\n    vim.cmd.colorscheme(\"randomhue\")\r\n    vim.api.nvim_create_autocmd(\"FileType\", {\r\n      pattern = { \"lua\" },\r\n      callback = function() pcall(vim.treesitter.start) end,\r\n    })\r\n\r\n    local allowed_windows = { current = true, not_current = true }\r\n    local ns_id_dim = vim.api.nvim_create_namespace(\"MiniJump2dDimImmediately\")\r\n    require(\"mini.jump2d\").setup({\r\n      allowed_windows = allowed_windows,\r\n      hl_group = \"LeapLabel\",\r\n      hl_group_ahead = \"LeapLabel\",\r\n      labels = \"jkl;mhniosde\",\r\n      mappings = { start_jumping = \"\" },\r\n      silent = true,\r\n    })\r\n\r\n    local single_character_extended = function()\r\n      H.dim_immediately(ns_id_dim, \"LeapBackdrop\", allowed_windows)\r\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\r\n      H.dim_remove(ns_id_dim, allowed_windows)\r\n    end\r\n    vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", single_character_extended, { desc = \"Start 2d jumping\" })\r\n  end)\r\nend\r\n\r\nH.dim_immediately = function(ns, group, allowed_windows)\r\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\r\n    local wininfo = vim.fn.getwininfo(win_id)[1]\r\n    --stylua: ignore\r\n    vim.highlight.range(\r\n      wininfo.bufnr, ns, group,\r\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\r\n    )\r\n  end\r\n  vim.cmd(\"redraw\")\r\nend\r\n\r\nH.dim_remove = function(ns, allowed_windows)\r\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\r\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\r\n  end\r\nend\r\n\r\nH.list_wins = function(allowed_windows)\r\n  local win_id_init = vim.api.nvim_get_current_win()\r\n  return vim.tbl_filter(function(win_id)\r\n    if win_id == win_id_init then return allowed_windows.current end\r\n    return allowed_windows.not_current\r\n  end, vim.api.nvim_list_wins())\r\nend\r\n\r\nsetup()\r\n```\r\n</details>\r\n\r\nNote: In the last part of the video, when jumping to the second `e` in `treesitter`, `jump2d` is easier than `leap`.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the feedback!</p>\n<blockquote>\n<p dir=\"auto\">In theory, showing labels one or two steps to the right is possible with a tweaked spotter:...</p>\n</blockquote>\n<p dir=\"auto\">Unfortunately, it's most important to show \"char2 + label\" <em>immediately</em> after typing the search character...</p>\n<blockquote>\n<p dir=\"auto\">This for me breaks the purpose of dimming in the first place: ...</p>\n</blockquote>\n<p dir=\"auto\">Yes, I understand. As a user of <code class=\"notranslate\">leap</code> I interpret <code class=\"notranslate\">dim</code> differently: Acknowledge that <code class=\"notranslate\">leap</code> is active. All matches will be highlighted once I enter the search character. Subjectively, I also find this easier for the eyes.<br>\nThis is not important though. As a user of <code class=\"notranslate\">jump2d</code>, I can control the <code class=\"notranslate\">dim</code> myself.</p>\n<blockquote>\n<p dir=\"auto\">Unfortunately, both of these do not go well together, because labels can overlap...</p>\n</blockquote>\n<p dir=\"auto\">Yes, I noticed that. I merely considered this a limitation, but I can see that this does not fit into <code class=\"notranslate\">jump2d</code>. The limitation is also in <code class=\"notranslate\">leap</code>:</p>\n<div class=\"highlight highlight-text-adblock notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"aaaa\naaaa\"><pre class=\"notranslate\">aaaa\naaaa</pre></div>\n<p dir=\"auto\">In the example above, not every character is reachable.</p>\n<h3 dir=\"auto\">Refactor</h3>\n<p dir=\"auto\">I refactored the code <del>in a new <a href=\"https://github.com/abeldekat/mini.nvim/tree/~~jump2d_include_second_character_refactored\">branch</a></del> and removed setting <code class=\"notranslate\">view.fixed_steps</code>. I also changed <code class=\"notranslate\">spots_add_steps</code> back to being private. Now, there are considerably less changes. I hope you are willing to <del><a href=\"https://github.com/echasnovski/mini.nvim/compare/main...abeldekat:mini.nvim:jump2d_include_second_character_refactored\">inspect</a></del> them. Conceptually, I only added a new builtin, doing some extra work before adding steps as usual. If I am not mistaken, this adds functionality to <code class=\"notranslate\">mini.jump2d</code> which can be interesting for <code class=\"notranslate\">leap</code> users, so I hope you will allow a PR.</p>\n<p dir=\"auto\">New video:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">jump2d_include_second_character_refactored.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/456440959-71dc8b20-8ff2-4375-9547-ca7d59c13e25.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTY0NDA5NTktNzFkYzhiMjAtOGZmMi00Mzc1LTk1NDctY2E3ZDU5YzEzZTI1Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTFlOTVmMDA0ZWM5MzBjNDA5NTY2YzljMjlhM2RhZjMwZTljMDI3MTdlMGYxNTMzNzM3Y2ZjNGVmNDdlMzE4NTcmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.4y8IdEPk7JmY-9qLqTGePb3AsDSt6SW5yaNj7LKHcfA\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/456440959-71dc8b20-8ff2-4375-9547-ca7d59c13e25.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTY0NDA5NTktNzFkYzhiMjAtOGZmMi00Mzc1LTk1NDctY2E3ZDU5YzEzZTI1Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTFlOTVmMDA0ZWM5MzBjNDA5NTY2YzljMjlhM2RhZjMwZTljMDI3MTdlMGYxNTMzNzM3Y2ZjNGVmNDdlMzE4NTcmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.4y8IdEPk7JmY-9qLqTGePb3AsDSt6SW5yaNj7LKHcfA\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<details>\n<summary>New init.lua</summary>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. &quot;pack/deps/start/mini.nvim&quot;\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo &quot;Installing `mini.nvim`&quot; | redraw')\n    -- vim.fn.system({ &quot;git&quot;, &quot;clone&quot;, &quot;--filter=blob:none&quot;, &quot;https://github.com/echasnovski/mini.nvim&quot;, mini_path })\n    vim.fn.system({\n      &quot;git&quot;,\n      &quot;clone&quot;,\n      &quot;--filter=blob:none&quot;,\n      &quot;https://github.com/abeldekat/mini.nvim&quot;,\n      &quot;--branch=jump2d_include_second_character_refactored&quot;,\n      mini_path,\n    })\n    vim.cmd(&quot;packadd mini.nvim | helptags ALL&quot;)\n    vim.cmd('echo &quot;Installed `mini.nvim`&quot; | redraw')\n  end\n  require(&quot;mini.deps&quot;).setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(&quot;data&quot;) .. &quot;/site/&quot;)\n\nlocal H = {}\nvim.g.mapleader = &quot; &quot;\nlocal setup = function()\n  MiniDeps.now(function()\n    require(&quot;mini.basics&quot;).setup()\n    vim.cmd.colorscheme(&quot;randomhue&quot;)\n    vim.api.nvim_create_autocmd(&quot;FileType&quot;, {\n      pattern = { &quot;lua&quot; },\n      callback = function() pcall(vim.treesitter.start) end,\n    })\n\n    local allowed_windows = { current = true, not_current = true }\n    local ns_id_dim = vim.api.nvim_create_namespace(&quot;MiniJump2dDimImmediately&quot;)\n    require(&quot;mini.jump2d&quot;).setup({\n      allowed_windows = allowed_windows,\n      hl_group = &quot;LeapLabel&quot;,\n      hl_group_ahead = &quot;LeapLabel&quot;,\n      labels = &quot;jkl;mhniosde&quot;,\n      mappings = { start_jumping = &quot;&quot; },\n      silent = true,\n    })\n\n    local single_character_extended = function()\n      H.dim_immediately(ns_id_dim, &quot;LeapBackdrop&quot;, allowed_windows)\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\n      H.dim_remove(ns_id_dim, allowed_windows)\n    end\n    vim.keymap.set({ &quot;n&quot;, &quot;x&quot;, &quot;o&quot; }, &quot;s&quot;, single_character_extended, { desc = &quot;Start 2d jumping&quot; })\n  end)\nend\n\nH.dim_immediately = function(ns, group, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    local wininfo = vim.fn.getwininfo(win_id)[1]\n    --stylua: ignore\n    vim.highlight.range(\n      wininfo.bufnr, ns, group,\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\n    )\n  end\n  vim.cmd(&quot;redraw&quot;)\nend\n\nH.dim_remove = function(ns, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\n  end\nend\n\nH.list_wins = function(allowed_windows)\n  local win_id_init = vim.api.nvim_get_current_win()\n  return vim.tbl_filter(function(win_id)\n    if win_id == win_id_init then return allowed_windows.current end\n    return allowed_windows.not_current\n  end, vim.api.nvim_list_wins())\nend\n\nsetup()\"><pre class=\"notranslate\"><code class=\"notranslate\">---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\n    vim.fn.system({\n      \"git\",\n      \"clone\",\n      \"--filter=blob:none\",\n      \"https://github.com/abeldekat/mini.nvim\",\n      \"--branch=jump2d_include_second_character_refactored\",\n      mini_path,\n    })\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\n  end\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\n\nlocal H = {}\nvim.g.mapleader = \" \"\nlocal setup = function()\n  MiniDeps.now(function()\n    require(\"mini.basics\").setup()\n    vim.cmd.colorscheme(\"randomhue\")\n    vim.api.nvim_create_autocmd(\"FileType\", {\n      pattern = { \"lua\" },\n      callback = function() pcall(vim.treesitter.start) end,\n    })\n\n    local allowed_windows = { current = true, not_current = true }\n    local ns_id_dim = vim.api.nvim_create_namespace(\"MiniJump2dDimImmediately\")\n    require(\"mini.jump2d\").setup({\n      allowed_windows = allowed_windows,\n      hl_group = \"LeapLabel\",\n      hl_group_ahead = \"LeapLabel\",\n      labels = \"jkl;mhniosde\",\n      mappings = { start_jumping = \"\" },\n      silent = true,\n    })\n\n    local single_character_extended = function()\n      H.dim_immediately(ns_id_dim, \"LeapBackdrop\", allowed_windows)\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\n      H.dim_remove(ns_id_dim, allowed_windows)\n    end\n    vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", single_character_extended, { desc = \"Start 2d jumping\" })\n  end)\nend\n\nH.dim_immediately = function(ns, group, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    local wininfo = vim.fn.getwininfo(win_id)[1]\n    --stylua: ignore\n    vim.highlight.range(\n      wininfo.bufnr, ns, group,\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\n    )\n  end\n  vim.cmd(\"redraw\")\nend\n\nH.dim_remove = function(ns, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\n  end\nend\n\nH.list_wins = function(allowed_windows)\n  local win_id_init = vim.api.nvim_get_current_win()\n  return vim.tbl_filter(function(win_id)\n    if win_id == win_id_init then return allowed_windows.current end\n    return allowed_windows.not_current\n  end, vim.api.nvim_list_wins())\nend\n\nsetup()\n</code></pre></div>\n</details>\n<p dir=\"auto\">Note: In the last part of the video, when jumping to the second <code class=\"notranslate\">e</code> in <code class=\"notranslate\">treesitter</code>, <code class=\"notranslate\">jump2d</code> is easier than <code class=\"notranslate\">leap</code>.</p>",
+                    "bodyText": "Thanks for the feedback!\n\nIn theory, showing labels one or two steps to the right is possible with a tweaked spotter:...\n\nUnfortunately, it's most important to show \"char2 + label\" immediately after typing the search character...\n\nThis for me breaks the purpose of dimming in the first place: ...\n\nYes, I understand. As a user of leap I interpret dim differently: Acknowledge that leap is active. All matches will be highlighted once I enter the search character. Subjectively, I also find this easier for the eyes.\nThis is not important though. As a user of jump2d, I can control the dim myself.\n\nUnfortunately, both of these do not go well together, because labels can overlap...\n\nYes, I noticed that. I merely considered this a limitation, but I can see that this does not fit into jump2d. The limitation is also in leap:\naaaa\naaaa\nIn the example above, not every character is reachable.\nRefactor\nI refactored the code in a new branch and removed setting view.fixed_steps. I also changed spots_add_steps back to being private. Now, there are considerably less changes. I hope you are willing to inspect them. Conceptually, I only added a new builtin, doing some extra work before adding steps as usual. If I am not mistaken, this adds functionality to mini.jump2d which can be interesting for leap users, so I hope you will allow a PR.\nNew video:\n\n  \n    \n    \n\n    jump2d_include_second_character_refactored.mp4\n    \n  \n\n  \n\n  \n\n\n\nNew init.lua\n---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\n    vim.fn.system({\n      \"git\",\n      \"clone\",\n      \"--filter=blob:none\",\n      \"https://github.com/abeldekat/mini.nvim\",\n      \"--branch=jump2d_include_second_character_refactored\",\n      mini_path,\n    })\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\n  end\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\n\nlocal H = {}\nvim.g.mapleader = \" \"\nlocal setup = function()\n  MiniDeps.now(function()\n    require(\"mini.basics\").setup()\n    vim.cmd.colorscheme(\"randomhue\")\n    vim.api.nvim_create_autocmd(\"FileType\", {\n      pattern = { \"lua\" },\n      callback = function() pcall(vim.treesitter.start) end,\n    })\n\n    local allowed_windows = { current = true, not_current = true }\n    local ns_id_dim = vim.api.nvim_create_namespace(\"MiniJump2dDimImmediately\")\n    require(\"mini.jump2d\").setup({\n      allowed_windows = allowed_windows,\n      hl_group = \"LeapLabel\",\n      hl_group_ahead = \"LeapLabel\",\n      labels = \"jkl;mhniosde\",\n      mappings = { start_jumping = \"\" },\n      silent = true,\n    })\n\n    local single_character_extended = function()\n      H.dim_immediately(ns_id_dim, \"LeapBackdrop\", allowed_windows)\n      MiniJump2d.start(MiniJump2d.builtin_opts.single_character_extended) -- NOTE: New builtin\n      H.dim_remove(ns_id_dim, allowed_windows)\n    end\n    vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", single_character_extended, { desc = \"Start 2d jumping\" })\n  end)\nend\n\nH.dim_immediately = function(ns, group, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    local wininfo = vim.fn.getwininfo(win_id)[1]\n    --stylua: ignore\n    vim.highlight.range(\n      wininfo.bufnr, ns, group,\n      { wininfo.topline - 1, 0 }, { wininfo.botline - 1, -1 }, { priority = 9999 }\n    )\n  end\n  vim.cmd(\"redraw\")\nend\n\nH.dim_remove = function(ns, allowed_windows)\n  for _, win_id in ipairs(H.list_wins(allowed_windows)) do\n    pcall(vim.api.nvim_buf_clear_namespace, vim.api.nvim_win_get_buf(win_id), ns, 0, -1)\n  end\nend\n\nH.list_wins = function(allowed_windows)\n  local win_id_init = vim.api.nvim_get_current_win()\n  return vim.tbl_filter(function(win_id)\n    if win_id == win_id_init then return allowed_windows.current end\n    return allowed_windows.not_current\n  end, vim.api.nvim_list_wins())\nend\n\nsetup()\n\n\nNote: In the last part of the video, when jumping to the second e in treesitter, jump2d is easier than leap.",
+                    "createdAt": "2025-06-18T09:57:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13507226,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4Azhqa",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-06-19T06:15:27Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-18T09:57:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13507226",
+                    "updatedAt": "2025-06-19T06:15:27Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13507226"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> If I am not mistaken, this adds functionality to `mini.jump2d` which can be interesting for `leap` users, so I hope you will allow a PR.\r\n\r\nI don't think it is a good idea right now. There is planned a moderately severe rewrite of 'mini.jump2d' config and overall approach. So it'd best I keep in mind this use case of maybe allowing to show labels immediately before entering second key (as I think this is the main hurdle here).\r\n\r\nThe problem is that I don't think it fits the overall design of how 'mini.jump2d' works and will keep working: first define all spots, then show labels (that should contain *only* characters from `config.labels`), and then filter them by pressing labels. This `single_character_extended` seems like breaking the \"only characters from `config.labels`\" design by essentially making second character a label, which I am not a fan of.\r\n\r\nThis is already a good candidate for the future wiki, though.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">If I am not mistaken, this adds functionality to <code class=\"notranslate\">mini.jump2d</code> which can be interesting for <code class=\"notranslate\">leap</code> users, so I hope you will allow a PR.</p>\n</blockquote>\n<p dir=\"auto\">I don't think it is a good idea right now. There is planned a moderately severe rewrite of 'mini.jump2d' config and overall approach. So it'd best I keep in mind this use case of maybe allowing to show labels immediately before entering second key (as I think this is the main hurdle here).</p>\n<p dir=\"auto\">The problem is that I don't think it fits the overall design of how 'mini.jump2d' works and will keep working: first define all spots, then show labels (that should contain <em>only</em> characters from <code class=\"notranslate\">config.labels</code>), and then filter them by pressing labels. This <code class=\"notranslate\">single_character_extended</code> seems like breaking the \"only characters from <code class=\"notranslate\">config.labels</code>\" design by essentially making second character a label, which I am not a fan of.</p>\n<p dir=\"auto\">This is already a good candidate for the future wiki, though.</p>",
+                    "bodyText": "If I am not mistaken, this adds functionality to mini.jump2d which can be interesting for leap users, so I hope you will allow a PR.\n\nI don't think it is a good idea right now. There is planned a moderately severe rewrite of 'mini.jump2d' config and overall approach. So it'd best I keep in mind this use case of maybe allowing to show labels immediately before entering second key (as I think this is the main hurdle here).\nThe problem is that I don't think it fits the overall design of how 'mini.jump2d' works and will keep working: first define all spots, then show labels (that should contain only characters from config.labels), and then filter them by pressing labels. This single_character_extended seems like breaking the \"only characters from config.labels\" design by essentially making second character a label, which I am not a fan of.\nThis is already a good candidate for the future wiki, though.",
+                    "createdAt": "2025-06-18T10:36:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13507609,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AzhwZ",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-06-18T10:37:04Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-18T10:36:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13507609",
+                    "updatedAt": "2025-06-18T10:37:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13507609"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... So it'd best I keep in mind this use case of maybe allowing to show labels immediately before entering second key (as I think this is the main hurdle here)...\r\n\r\nUnfortunately I don't completely understand the line above, because showing labels immediately before entering second key is already possible with `n_steps_ahead`.\r\n\r\nIt would be very nice if the use-case could be supported by `jump2d`, either builtin, or via extension points. I would say that the main hurdle is the guarantee that for each spot the first two labels equal the first two characters. Thus, for each spot, user knows the first two labels beforehand. In order to take advantage of that knowledge, it is necessary to show spot's second character and generated label directly after typing its first character.\r\n\r\nCompared to builtin `single_char`, there is a trade-off. Predictability versus the chance that an extra char needs to be typed, in case the inserted second character of the spot is not sufficiently unique. \r\n\r\n> ... This single_character_extended seems like breaking the \"only characters from config.labels\" design by essentially making second character a label, which I am not a fan of....\r\n\r\nI understand. However, the second character serves only as first label in the context of a single individual spot. It is not added to the `labels` option, nor [used](https://github.com/abeldekat/mini.nvim/blob/1610d37cb29f63069df7af56bf4d49d9f85718aa/lua/mini/jump2d.lua#L716) in the algorithm(`H.populate_labels`) that generates labels recursively. That's what made it so \"easy\" to add the behavior to jump2d...\r\n\r\n\r\nThank you for considering this use-case!\r\n\r\nI intend to use the code in my own [config](https://github.com/abeldekat/nvim_pde/blob/f175f937362231c7580e87fb19b9c7d3ae2bc887/lua/ak/workflow/jump2d.lua#L14). The new branch in my fork is called [jump2d_guarantee_second_character](https://github.com/abeldekat/mini.nvim/tree/jump2d_guarantee_second_character)",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... So it'd best I keep in mind this use case of maybe allowing to show labels immediately before entering second key (as I think this is the main hurdle here)...</p>\n</blockquote>\n<p dir=\"auto\">Unfortunately I don't completely understand the line above, because showing labels immediately before entering second key is already possible with <code class=\"notranslate\">n_steps_ahead</code>.</p>\n<p dir=\"auto\">It would be very nice if the use-case could be supported by <code class=\"notranslate\">jump2d</code>, either builtin, or via extension points. I would say that the main hurdle is the guarantee that for each spot the first two labels equal the first two characters. Thus, for each spot, user knows the first two labels beforehand. In order to take advantage of that knowledge, it is necessary to show spot's second character and generated label directly after typing its first character.</p>\n<p dir=\"auto\">Compared to builtin <code class=\"notranslate\">single_char</code>, there is a trade-off. Predictability versus the chance that an extra char needs to be typed, in case the inserted second character of the spot is not sufficiently unique.</p>\n<blockquote>\n<p dir=\"auto\">... This single_character_extended seems like breaking the \"only characters from config.labels\" design by essentially making second character a label, which I am not a fan of....</p>\n</blockquote>\n<p dir=\"auto\">I understand. However, the second character serves only as first label in the context of a single individual spot. It is not added to the <code class=\"notranslate\">labels</code> option, nor <a href=\"https://github.com/abeldekat/mini.nvim/blob/1610d37cb29f63069df7af56bf4d49d9f85718aa/lua/mini/jump2d.lua#L716\">used</a> in the algorithm(<code class=\"notranslate\">H.populate_labels</code>) that generates labels recursively. That's what made it so \"easy\" to add the behavior to jump2d...</p>\n<p dir=\"auto\">Thank you for considering this use-case!</p>\n<p dir=\"auto\">I intend to use the code in my own <a href=\"https://github.com/abeldekat/nvim_pde/blob/f175f937362231c7580e87fb19b9c7d3ae2bc887/lua/ak/workflow/jump2d.lua#L14\">config</a>. The new branch in my fork is called <a href=\"https://github.com/abeldekat/mini.nvim/tree/jump2d_guarantee_second_character\">jump2d_guarantee_second_character</a></p>",
+                    "bodyText": "... So it'd best I keep in mind this use case of maybe allowing to show labels immediately before entering second key (as I think this is the main hurdle here)...\n\nUnfortunately I don't completely understand the line above, because showing labels immediately before entering second key is already possible with n_steps_ahead.\nIt would be very nice if the use-case could be supported by jump2d, either builtin, or via extension points. I would say that the main hurdle is the guarantee that for each spot the first two labels equal the first two characters. Thus, for each spot, user knows the first two labels beforehand. In order to take advantage of that knowledge, it is necessary to show spot's second character and generated label directly after typing its first character.\nCompared to builtin single_char, there is a trade-off. Predictability versus the chance that an extra char needs to be typed, in case the inserted second character of the spot is not sufficiently unique.\n\n... This single_character_extended seems like breaking the \"only characters from config.labels\" design by essentially making second character a label, which I am not a fan of....\n\nI understand. However, the second character serves only as first label in the context of a single individual spot. It is not added to the labels option, nor used in the algorithm(H.populate_labels) that generates labels recursively. That's what made it so \"easy\" to add the behavior to jump2d...\nThank you for considering this use-case!\nI intend to use the code in my own config. The new branch in my fork is called jump2d_guarantee_second_character",
+                    "createdAt": "2025-06-19T07:12:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13516928,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzkCA",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-19T07:12:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13516928",
+                    "updatedAt": "2025-06-19T07:12:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13516928"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I would say that the main hurdle is the guarantee that for each spot the first two labels equal the first two characters. Thus, for each spot, user knows the first two labels beforehand. In order to take advantage of that knowledge, it is necessary to show spot's second character and generated label directly after typing its first character.\r\n\r\nShowing second character and generated label(s) is not tied to user knowing the \"first two labels beforehand\". There is a mix of terminology here:\r\n- Jump spots are visible cells that user might want to jump to. They are computed with spotter, which is the first step of jumping.\r\n- Labels are what is computed and visualized to filter one out of many possible jump spots. Generated labels use *only* characters from `config.labels`.\r\n\r\nThis allows several workflows after jumping is started:\r\n- All jump spots are precomputed by some algorithm (default, word start, etc.), their generated labels are shown, user needs to filter them out. This is the initial and current primary design of 'mini.jump2d'.\r\n- User is required to press single key (which will be a \"jumper identifier\") to decide how target spots are computed. After that spots are computed, labels are shown, user filters through them. This is how `builtin_opts.single_character` works and what is planned as the new design of #1818.\r\n\r\nThe second approach can be extended to also fit the \"type *two* characters to compute spots\":\r\n- User presses jumper identifier, let's say `p`. Its spotter is configured in such a way that it requires pressing *another* character before computing jump spots. So it waits for the user key press, let's say `a`.\r\n- Spotter then computes all jump spots that match `pa`.\r\n- If there are several, labels are shown and user filters them until there is one left. By default labels are shown at the place the jump will happen (i.e. starting over `p` and to the right of `a`), but it should be possible to show them just to the right of `a` via tweaking how spotter computes jump spots and later adjusting cursor in `hooks.after_jump`.\r\n\r\nHope this makes sense.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I would say that the main hurdle is the guarantee that for each spot the first two labels equal the first two characters. Thus, for each spot, user knows the first two labels beforehand. In order to take advantage of that knowledge, it is necessary to show spot's second character and generated label directly after typing its first character.</p>\n</blockquote>\n<p dir=\"auto\">Showing second character and generated label(s) is not tied to user knowing the \"first two labels beforehand\". There is a mix of terminology here:</p>\n<ul dir=\"auto\">\n<li>Jump spots are visible cells that user might want to jump to. They are computed with spotter, which is the first step of jumping.</li>\n<li>Labels are what is computed and visualized to filter one out of many possible jump spots. Generated labels use <em>only</em> characters from <code class=\"notranslate\">config.labels</code>.</li>\n</ul>\n<p dir=\"auto\">This allows several workflows after jumping is started:</p>\n<ul dir=\"auto\">\n<li>All jump spots are precomputed by some algorithm (default, word start, etc.), their generated labels are shown, user needs to filter them out. This is the initial and current primary design of 'mini.jump2d'.</li>\n<li>User is required to press single key (which will be a \"jumper identifier\") to decide how target spots are computed. After that spots are computed, labels are shown, user filters through them. This is how <code class=\"notranslate\">builtin_opts.single_character</code> works and what is planned as the new design of <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a>.</li>\n</ul>\n<p dir=\"auto\">The second approach can be extended to also fit the \"type <em>two</em> characters to compute spots\":</p>\n<ul dir=\"auto\">\n<li>User presses jumper identifier, let's say <code class=\"notranslate\">p</code>. Its spotter is configured in such a way that it requires pressing <em>another</em> character before computing jump spots. So it waits for the user key press, let's say <code class=\"notranslate\">a</code>.</li>\n<li>Spotter then computes all jump spots that match <code class=\"notranslate\">pa</code>.</li>\n<li>If there are several, labels are shown and user filters them until there is one left. By default labels are shown at the place the jump will happen (i.e. starting over <code class=\"notranslate\">p</code> and to the right of <code class=\"notranslate\">a</code>), but it should be possible to show them just to the right of <code class=\"notranslate\">a</code> via tweaking how spotter computes jump spots and later adjusting cursor in <code class=\"notranslate\">hooks.after_jump</code>.</li>\n</ul>\n<p dir=\"auto\">Hope this makes sense.</p>",
+                    "bodyText": "I would say that the main hurdle is the guarantee that for each spot the first two labels equal the first two characters. Thus, for each spot, user knows the first two labels beforehand. In order to take advantage of that knowledge, it is necessary to show spot's second character and generated label directly after typing its first character.\n\nShowing second character and generated label(s) is not tied to user knowing the \"first two labels beforehand\". There is a mix of terminology here:\n\nJump spots are visible cells that user might want to jump to. They are computed with spotter, which is the first step of jumping.\nLabels are what is computed and visualized to filter one out of many possible jump spots. Generated labels use only characters from config.labels.\n\nThis allows several workflows after jumping is started:\n\nAll jump spots are precomputed by some algorithm (default, word start, etc.), their generated labels are shown, user needs to filter them out. This is the initial and current primary design of 'mini.jump2d'.\nUser is required to press single key (which will be a \"jumper identifier\") to decide how target spots are computed. After that spots are computed, labels are shown, user filters through them. This is how builtin_opts.single_character works and what is planned as the new design of #1818.\n\nThe second approach can be extended to also fit the \"type two characters to compute spots\":\n\nUser presses jumper identifier, let's say p. Its spotter is configured in such a way that it requires pressing another character before computing jump spots. So it waits for the user key press, let's say a.\nSpotter then computes all jump spots that match pa.\nIf there are several, labels are shown and user filters them until there is one left. By default labels are shown at the place the jump will happen (i.e. starting over p and to the right of a), but it should be possible to show them just to the right of a via tweaking how spotter computes jump spots and later adjusting cursor in hooks.after_jump.\n\nHope this makes sense.",
+                    "createdAt": "2025-06-19T08:15:03Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13517505,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzkLB",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-19T08:15:03Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13517505",
+                    "updatedAt": "2025-06-19T08:15:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13517505"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> There is a mix of terminology here....\r\n\r\nThere is, and I hope you still have some patience left...)\r\n\r\nI do apologize for not being explicit enough when writing the following in the initial description of this discussion:\r\n\r\n> The most important reason why I still use leap: Its promise that the second character of the spot I am targeting can always be typed after initiating the search. That way, I have more time to process the generated third char, which is shown immediately.\r\n\r\nThat \"more time\" comes from \"second character\" *and* a generated label being shown directly after typing jump identifier \"p\"... I hope this is visible in the videos.\r\n\r\nFor clarity, I would also define \"second character\" as the character after each jump identifier, as it occurs in the text. In this case, \"a\".\r\n\r\n> The second approach can be extended to also fit the \"type two characters to compute spots\":\r\n\r\nYes, I described that second approach in this [comment](https://github.com/echasnovski/mini.nvim/issues/1818#issuecomment-2903604172) and in this [example](https://github.com/abeldekat/nvim_pde/blob/93bfef2b0d5d492b7850ce483f303d84a1826c8e/lua/ak/config/editor/jump2d.lua#L40).\r\n\r\nThat approach can only show the generated label(s) *after* the user has typed the jumper identifier(\"p\") and its second character(\"a\"). So, there still is a \"mental pause\". \r\nIt's not the use-case I am presenting here.\r\n\r\nThe code in this discussion shows second character and the generated label(s) directly after the user has typed the jumper identifier. As a consequence, the user has more time to see the generated label while typing the second character, as that second character is guaranteed to be included.\r\n\r\n- User presses jumper identifier \"p\". \r\n- Spotter does *not* ask for another character, but computes all jump spots matching \"p\", according to builtin `single_character`.\r\n- Spotter [groups](https://github.com/abeldekat/mini.nvim/blob/1610d37cb29f63069df7af56bf4d49d9f85718aa/lua/mini/jump2d.lua#L713) all calculated spots by the character following \"p\", and, per spots having *same  second character*, calculates labels as usual.\r\n- User types \"a\", but has already seen the label he needs to type after \"a\".\r\n\r\nIn a way, the second character is not a \"real\" label. Instead of the spotter asking for an additional character after jump identifier, it can already assume that each second character needs to be included.\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">There is a mix of terminology here....</p>\n</blockquote>\n<p dir=\"auto\">There is, and I hope you still have some patience left...)</p>\n<p dir=\"auto\">I do apologize for not being explicit enough when writing the following in the initial description of this discussion:</p>\n<blockquote>\n<p dir=\"auto\">The most important reason why I still use leap: Its promise that the second character of the spot I am targeting can always be typed after initiating the search. That way, I have more time to process the generated third char, which is shown immediately.</p>\n</blockquote>\n<p dir=\"auto\">That \"more time\" comes from \"second character\" <em>and</em> a generated label being shown directly after typing jump identifier \"p\"... I hope this is visible in the videos.</p>\n<p dir=\"auto\">For clarity, I would also define \"second character\" as the character after each jump identifier, as it occurs in the text. In this case, \"a\".</p>\n<blockquote>\n<p dir=\"auto\">The second approach can be extended to also fit the \"type two characters to compute spots\":</p>\n</blockquote>\n<p dir=\"auto\">Yes, I described that second approach in this <a href=\"https://github.com/echasnovski/mini.nvim/issues/1818#issuecomment-2903604172\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\">comment</a> and in this <a href=\"https://github.com/abeldekat/nvim_pde/blob/93bfef2b0d5d492b7850ce483f303d84a1826c8e/lua/ak/config/editor/jump2d.lua#L40\">example</a>.</p>\n<p dir=\"auto\">That approach can only show the generated label(s) <em>after</em> the user has typed the jumper identifier(\"p\") and its second character(\"a\"). So, there still is a \"mental pause\".<br>\nIt's not the use-case I am presenting here.</p>\n<p dir=\"auto\">The code in this discussion shows second character and the generated label(s) directly after the user has typed the jumper identifier. As a consequence, the user has more time to see the generated label while typing the second character, as that second character is guaranteed to be included.</p>\n<ul dir=\"auto\">\n<li>User presses jumper identifier \"p\".</li>\n<li>Spotter does <em>not</em> ask for another character, but computes all jump spots matching \"p\", according to builtin <code class=\"notranslate\">single_character</code>.</li>\n<li>Spotter <a href=\"https://github.com/abeldekat/mini.nvim/blob/1610d37cb29f63069df7af56bf4d49d9f85718aa/lua/mini/jump2d.lua#L713\">groups</a> all calculated spots by the character following \"p\", and, per spots having <em>same  second character</em>, calculates labels as usual.</li>\n<li>User types \"a\", but has already seen the label he needs to type after \"a\".</li>\n</ul>\n<p dir=\"auto\">In a way, the second character is not a \"real\" label. Instead of the spotter asking for an additional character after jump identifier, it can already assume that each second character needs to be included.</p>",
+                    "bodyText": "There is a mix of terminology here....\n\nThere is, and I hope you still have some patience left...)\nI do apologize for not being explicit enough when writing the following in the initial description of this discussion:\n\nThe most important reason why I still use leap: Its promise that the second character of the spot I am targeting can always be typed after initiating the search. That way, I have more time to process the generated third char, which is shown immediately.\n\nThat \"more time\" comes from \"second character\" and a generated label being shown directly after typing jump identifier \"p\"... I hope this is visible in the videos.\nFor clarity, I would also define \"second character\" as the character after each jump identifier, as it occurs in the text. In this case, \"a\".\n\nThe second approach can be extended to also fit the \"type two characters to compute spots\":\n\nYes, I described that second approach in this comment and in this example.\nThat approach can only show the generated label(s) after the user has typed the jumper identifier(\"p\") and its second character(\"a\"). So, there still is a \"mental pause\".\nIt's not the use-case I am presenting here.\nThe code in this discussion shows second character and the generated label(s) directly after the user has typed the jumper identifier. As a consequence, the user has more time to see the generated label while typing the second character, as that second character is guaranteed to be included.\n\nUser presses jumper identifier \"p\".\nSpotter does not ask for another character, but computes all jump spots matching \"p\", according to builtin single_character.\nSpotter groups all calculated spots by the character following \"p\", and, per spots having same  second character, calculates labels as usual.\nUser types \"a\", but has already seen the label he needs to type after \"a\".\n\nIn a way, the second character is not a \"real\" label. Instead of the spotter asking for an additional character after jump identifier, it can already assume that each second character needs to be included.",
+                    "createdAt": "2025-06-19T09:23:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13518308,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzkXk",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-19T09:23:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13518308",
+                    "updatedAt": "2025-06-19T09:23:28Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13518308"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> That approach can only show the generated label(s) _after_ the user has typed the jumper identifier(\"p\") and its second character(\"a\"). So, there still is a \"mental pause\".\r\n> It's not the use-case I am presenting here.\r\n> ...\r\n> In a way, the second character is not a \"real\" label. Instead of the spotter asking for an additional character after jump identifier, it can already assume that each second character needs to be included.\r\n\r\nI do understand both of that. And it doesn't fit two key parts of the current 'mini.jump2d' design:\r\n- Labels are shown *after* spots are computed.\r\n- Labels should use *only* characters from `config.labels`.\r\n\r\nThese result into \"if labels are shown, user needs to press *only* keys from `config.labels`\", which I think I'd like to keep as part of the design. Same as trying to not introduce something in between of a label and regular key press.\r\n\r\nAs I said, I'll keep this in mind when redesigning 'mini.jump2d', but I don't think it will be easily possible to show any labels before spotter is computed. It would be possible through hacks, of course (like manually computing and showing all labels inside a spotter, but that would require reimplementation of the whole 'mini.jump2d').\r\n\r\n---\r\n\r\nThe \"mental pause\" argument in this discussion doesn't feel as compelling to me. Mostly because I really don't feel a visible difference between duration of \"mental pauses\" when labels are shown after first or second character (I did try 'leap.nvim' just now to test it out). Probably because typing two initial non-label characters is fast enough (for me) to the point where I am not able to take advantage of label being shown after the first one. I guess that deliberately making bigger delay between first and second key press might make a difference here, but this feels like over optimization for a small gain.\r\n\r\nI am deliberately trying out more the `single_character` spotter with the current design, and it feels comfortable to use with changes described in #1818. One of the ongoing goals here is to try to make overall label sequence *easier to type*: default \"asdfghjkl;\" `config.labels` are good enough, but maybe there can be something better.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">That approach can only show the generated label(s) <em>after</em> the user has typed the jumper identifier(\"p\") and its second character(\"a\"). So, there still is a \"mental pause\".<br>\nIt's not the use-case I am presenting here.<br>\n...<br>\nIn a way, the second character is not a \"real\" label. Instead of the spotter asking for an additional character after jump identifier, it can already assume that each second character needs to be included.</p>\n</blockquote>\n<p dir=\"auto\">I do understand both of that. And it doesn't fit two key parts of the current 'mini.jump2d' design:</p>\n<ul dir=\"auto\">\n<li>Labels are shown <em>after</em> spots are computed.</li>\n<li>Labels should use <em>only</em> characters from <code class=\"notranslate\">config.labels</code>.</li>\n</ul>\n<p dir=\"auto\">These result into \"if labels are shown, user needs to press <em>only</em> keys from <code class=\"notranslate\">config.labels</code>\", which I think I'd like to keep as part of the design. Same as trying to not introduce something in between of a label and regular key press.</p>\n<p dir=\"auto\">As I said, I'll keep this in mind when redesigning 'mini.jump2d', but I don't think it will be easily possible to show any labels before spotter is computed. It would be possible through hacks, of course (like manually computing and showing all labels inside a spotter, but that would require reimplementation of the whole 'mini.jump2d').</p>\n<hr>\n<p dir=\"auto\">The \"mental pause\" argument in this discussion doesn't feel as compelling to me. Mostly because I really don't feel a visible difference between duration of \"mental pauses\" when labels are shown after first or second character (I did try 'leap.nvim' just now to test it out). Probably because typing two initial non-label characters is fast enough (for me) to the point where I am not able to take advantage of label being shown after the first one. I guess that deliberately making bigger delay between first and second key press might make a difference here, but this feels like over optimization for a small gain.</p>\n<p dir=\"auto\">I am deliberately trying out more the <code class=\"notranslate\">single_character</code> spotter with the current design, and it feels comfortable to use with changes described in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a>. One of the ongoing goals here is to try to make overall label sequence <em>easier to type</em>: default \"asdfghjkl;\" <code class=\"notranslate\">config.labels</code> are good enough, but maybe there can be something better.</p>",
+                    "bodyText": "That approach can only show the generated label(s) after the user has typed the jumper identifier(\"p\") and its second character(\"a\"). So, there still is a \"mental pause\".\nIt's not the use-case I am presenting here.\n...\nIn a way, the second character is not a \"real\" label. Instead of the spotter asking for an additional character after jump identifier, it can already assume that each second character needs to be included.\n\nI do understand both of that. And it doesn't fit two key parts of the current 'mini.jump2d' design:\n\nLabels are shown after spots are computed.\nLabels should use only characters from config.labels.\n\nThese result into \"if labels are shown, user needs to press only keys from config.labels\", which I think I'd like to keep as part of the design. Same as trying to not introduce something in between of a label and regular key press.\nAs I said, I'll keep this in mind when redesigning 'mini.jump2d', but I don't think it will be easily possible to show any labels before spotter is computed. It would be possible through hacks, of course (like manually computing and showing all labels inside a spotter, but that would require reimplementation of the whole 'mini.jump2d').\n\nThe \"mental pause\" argument in this discussion doesn't feel as compelling to me. Mostly because I really don't feel a visible difference between duration of \"mental pauses\" when labels are shown after first or second character (I did try 'leap.nvim' just now to test it out). Probably because typing two initial non-label characters is fast enough (for me) to the point where I am not able to take advantage of label being shown after the first one. I guess that deliberately making bigger delay between first and second key press might make a difference here, but this feels like over optimization for a small gain.\nI am deliberately trying out more the single_character spotter with the current design, and it feels comfortable to use with changes described in #1818. One of the ongoing goals here is to try to make overall label sequence easier to type: default \"asdfghjkl;\" config.labels are good enough, but maybe there can be something better.",
+                    "createdAt": "2025-06-19T10:30:43Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13518903,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Azkg3",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-19T10:30:43Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13518903",
+                    "updatedAt": "2025-06-19T10:30:44Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13518903"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Recently, I learned enough `fennel` to open a [PR](https://github.com/ggandor/leap.nvim/pull/271) in `leap.nvim`, making it possible to have the generated label at the jump spot.\r\n\r\nI used it for a while and found it confusing, because the second character after jump initializer is positioned *after* the third character, being the generated label shown on jump spot.\r\n\r\nYour feedback regarding labels allowed me to rethink the solution.\r\n\r\nQuoting from [this](https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13518903) comment:\r\n\r\n>  Labels should use only characters from config.labels.\r\n\r\nAnd also, in [this](https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13517505) comment:\r\n\r\n> ... Labels are what is computed and visualized to filter one out of many possible jump spots. Generated labels use only characters from config.labels...\r\n\r\nWhat if the second character is just not shown as a label, in this special case? The user, having no visual prompt, needs to [know](https://github.com/abeldekat/mini.nvim/blob/c0d93e4f49273dc5e36eb2ab7ef37560542161e0/lua/mini/jump2d.lua#L716) that the second character is mandatory and also needs to be entered. The advantage is that the user sees the generated label(s) at the jump spot directly after jump identifier. Also, in a way, now the generated labels indeed only use characters from config.labels...)\r\n\r\nI am enthusiastic about the result.\r\n\r\nI hope you are willing to try this out with a much simpler `init.lua`, and wonder if the \"no mental pause\" argument becomes more applicable.\r\n\r\n@pkazmier, I hope you'll allow me to ask your opinion as well.\r\n\r\n<details>\r\n\r\n<summary>Init.lua</summary>\r\n\r\n```lua\r\n---@diagnostic disable: undefined-global\r\nlocal function setup_deps(path_to_site)\r\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\r\n  if not vim.uv.fs_stat(mini_path) then\r\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\r\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\r\n    vim.fn.system({\r\n      \"git\",\r\n      \"clone\",\r\n      \"--filter=blob:none\",\r\n      \"https://github.com/abeldekat/mini.nvim\",\r\n      \"--branch=jump2d_extended_character\",\r\n      mini_path,\r\n    })\r\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\r\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\r\n  end\r\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\r\nend\r\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\r\n\r\nvim.g.mapleader = \" \"\r\nMiniDeps.now(function()\r\n  require(\"mini.basics\").setup()\r\n  vim.cmd.colorscheme(\"randomhue\")\r\n  vim.api.nvim_create_autocmd(\"FileType\", {\r\n    pattern = { \"lua\" },\r\n    callback = function() pcall(vim.treesitter.start) end,\r\n  })\r\n  require(\"mini.jump2d\").setup({\r\n    labels = \"jklsdefmioh\", -- 11 chars\r\n    mappings = { start_jumping = \"\" },\r\n    silent = true,\r\n  })\r\n\r\n  local extended = function() MiniJump2d.start_extended_character(MiniJump2d.builtin_opts.single_character) end\r\n  vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", extended, { desc = \"Start 2d jumping\" })\r\nend)\r\n\r\n```\r\n</details>\r\n\r\nNew branch in my fork, with quit a few changes: [jump2d_extended_character](https://github.com/abeldekat/mini.nvim/tree/jump2d_extended_character)\r\n\r\nVideo:\r\n\r\nhttps://github.com/user-attachments/assets/ea689ab9-fb97-4c06-b1e4-371390e11e34\r\n\r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Recently, I learned enough <code class=\"notranslate\">fennel</code> to open a <a href=\"https://github.com/ggandor/leap.nvim/pull/271\">PR</a> in <code class=\"notranslate\">leap.nvim</code>, making it possible to have the generated label at the jump spot.</p>\n<p dir=\"auto\">I used it for a while and found it confusing, because the second character after jump initializer is positioned <em>after</em> the third character, being the generated label shown on jump spot.</p>\n<p dir=\"auto\">Your feedback regarding labels allowed me to rethink the solution.</p>\n<p dir=\"auto\">Quoting from <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13518903\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1860/hovercard?comment_id=13518903\">this</a> comment:</p>\n<blockquote>\n<p dir=\"auto\">Labels should use only characters from config.labels.</p>\n</blockquote>\n<p dir=\"auto\">And also, in <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13517505\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1860/hovercard?comment_id=13517505\">this</a> comment:</p>\n<blockquote>\n<p dir=\"auto\">... Labels are what is computed and visualized to filter one out of many possible jump spots. Generated labels use only characters from config.labels...</p>\n</blockquote>\n<p dir=\"auto\">What if the second character is just not shown as a label, in this special case? The user, having no visual prompt, needs to <a href=\"https://github.com/abeldekat/mini.nvim/blob/c0d93e4f49273dc5e36eb2ab7ef37560542161e0/lua/mini/jump2d.lua#L716\">know</a> that the second character is mandatory and also needs to be entered. The advantage is that the user sees the generated label(s) at the jump spot directly after jump identifier. Also, in a way, now the generated labels indeed only use characters from config.labels...)</p>\n<p dir=\"auto\">I am enthusiastic about the result.</p>\n<p dir=\"auto\">I hope you are willing to try this out with a much simpler <code class=\"notranslate\">init.lua</code>, and wonder if the \"no mental pause\" argument becomes more applicable.</p>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a>, I hope you'll allow me to ask your opinion as well.</p>\n<details>\n<summary>Init.lua</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. &quot;pack/deps/start/mini.nvim&quot;\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo &quot;Installing `mini.nvim`&quot; | redraw')\n    -- vim.fn.system({ &quot;git&quot;, &quot;clone&quot;, &quot;--filter=blob:none&quot;, &quot;https://github.com/echasnovski/mini.nvim&quot;, mini_path })\n    vim.fn.system({\n      &quot;git&quot;,\n      &quot;clone&quot;,\n      &quot;--filter=blob:none&quot;,\n      &quot;https://github.com/abeldekat/mini.nvim&quot;,\n      &quot;--branch=jump2d_extended_character&quot;,\n      mini_path,\n    })\n    vim.cmd(&quot;packadd mini.nvim | helptags ALL&quot;)\n    vim.cmd('echo &quot;Installed `mini.nvim`&quot; | redraw')\n  end\n  require(&quot;mini.deps&quot;).setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(&quot;data&quot;) .. &quot;/site/&quot;)\n\nvim.g.mapleader = &quot; &quot;\nMiniDeps.now(function()\n  require(&quot;mini.basics&quot;).setup()\n  vim.cmd.colorscheme(&quot;randomhue&quot;)\n  vim.api.nvim_create_autocmd(&quot;FileType&quot;, {\n    pattern = { &quot;lua&quot; },\n    callback = function() pcall(vim.treesitter.start) end,\n  })\n  require(&quot;mini.jump2d&quot;).setup({\n    labels = &quot;jklsdefmioh&quot;, -- 11 chars\n    mappings = { start_jumping = &quot;&quot; },\n    silent = true,\n  })\n\n  local extended = function() MiniJump2d.start_extended_character(MiniJump2d.builtin_opts.single_character) end\n  vim.keymap.set({ &quot;n&quot;, &quot;x&quot;, &quot;o&quot; }, &quot;s&quot;, extended, { desc = &quot;Start 2d jumping&quot; })\nend)\n\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">undefined-global</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_deps</span>(<span class=\"pl-smi\">path_to_site</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pack/deps/start/mini.nvim<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">mini_path</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installing `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>({\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>clone<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--filter=blob:none<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/abeldekat/mini.nvim<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--branch=jump2d_extended_character<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">mini_path</span>,\n    })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>packadd mini.nvim | helptags ALL<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installed `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.deps<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> } })\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">setup_deps</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/site/<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">mapleader</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">now</span>(<span class=\"pl-k\">function</span>()\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.basics<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">colorscheme</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>randomhue<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FileType<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-e\">start</span>) <span class=\"pl-k\">end</span>,\n  })\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.jump2d<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n    <span class=\"pl-smi\">labels</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>jklsdefmioh<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> 11 chars</span>\n    <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">start_jumping</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n  })\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">extended</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-c1\">start_extended_character</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">single_character</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>x<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">extended</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Start 2d jumping<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-k\">end</span>)\n</pre></div>\n</details>\n<p dir=\"auto\">New branch in my fork, with quit a few changes: <a href=\"https://github.com/abeldekat/mini.nvim/tree/jump2d_extended_character\">jump2d_extended_character</a></p>\n<p dir=\"auto\">Video:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">jump2d_extended_character.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/457564687-ea689ab9-fb97-4c06-b1e4-371390e11e34.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTc1NjQ2ODctZWE2ODlhYjktZmI5Ny00YzA2LWIxZTQtMzcxMzkwZTExZTM0Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWI0ODYwZTdlMjc1N2U5MmFiOTcwM2MwMGMyMTMzM2ViNTNlMTczM2UzY2ZiZjc3Njc0MTkyYzM0MDI4ZmUxMzYmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.TNk8nvn8j6UYmS8Ridfz0ZcxTNt1tOOazzW4yc1Yn0Y\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/457564687-ea689ab9-fb97-4c06-b1e4-371390e11e34.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTc1NjQ2ODctZWE2ODlhYjktZmI5Ny00YzA2LWIxZTQtMzcxMzkwZTExZTM0Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWI0ODYwZTdlMjc1N2U5MmFiOTcwM2MwMGMyMTMzM2ViNTNlMTczM2UzY2ZiZjc3Njc0MTkyYzM0MDI4ZmUxMzYmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.TNk8nvn8j6UYmS8Ridfz0ZcxTNt1tOOazzW4yc1Yn0Y\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+                    "bodyText": "Recently, I learned enough fennel to open a PR in leap.nvim, making it possible to have the generated label at the jump spot.\nI used it for a while and found it confusing, because the second character after jump initializer is positioned after the third character, being the generated label shown on jump spot.\nYour feedback regarding labels allowed me to rethink the solution.\nQuoting from this comment:\n\nLabels should use only characters from config.labels.\n\nAnd also, in this comment:\n\n... Labels are what is computed and visualized to filter one out of many possible jump spots. Generated labels use only characters from config.labels...\n\nWhat if the second character is just not shown as a label, in this special case? The user, having no visual prompt, needs to know that the second character is mandatory and also needs to be entered. The advantage is that the user sees the generated label(s) at the jump spot directly after jump identifier. Also, in a way, now the generated labels indeed only use characters from config.labels...)\nI am enthusiastic about the result.\nI hope you are willing to try this out with a much simpler init.lua, and wonder if the \"no mental pause\" argument becomes more applicable.\n@pkazmier, I hope you'll allow me to ask your opinion as well.\n\nInit.lua\n---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n    -- vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\n    vim.fn.system({\n      \"git\",\n      \"clone\",\n      \"--filter=blob:none\",\n      \"https://github.com/abeldekat/mini.nvim\",\n      \"--branch=jump2d_extended_character\",\n      mini_path,\n    })\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\n  end\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\n\nvim.g.mapleader = \" \"\nMiniDeps.now(function()\n  require(\"mini.basics\").setup()\n  vim.cmd.colorscheme(\"randomhue\")\n  vim.api.nvim_create_autocmd(\"FileType\", {\n    pattern = { \"lua\" },\n    callback = function() pcall(vim.treesitter.start) end,\n  })\n  require(\"mini.jump2d\").setup({\n    labels = \"jklsdefmioh\", -- 11 chars\n    mappings = { start_jumping = \"\" },\n    silent = true,\n  })\n\n  local extended = function() MiniJump2d.start_extended_character(MiniJump2d.builtin_opts.single_character) end\n  vim.keymap.set({ \"n\", \"x\", \"o\" }, \"s\", extended, { desc = \"Start 2d jumping\" })\nend)\n\n\nNew branch in my fork, with quit a few changes: jump2d_extended_character\nVideo:\n\n  \n    \n    \n\n    jump2d_extended_character.mp4",
+                    "createdAt": "2025-06-21T08:37:55Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13536561,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4Azo0x",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-06-21T08:40:33Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-21T08:37:55Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13536561",
+                    "updatedAt": "2025-06-21T08:40:33Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13536561"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I hope you are willing to try this out with a much simpler `init.lua`, and wonder if the \"no mental pause\" argument becomes more applicable.\r\n\r\nSorry, for me looking at the demo (thanks for making them, by the way!) is enough. I *really* don't like the idea of showing labels at the spot while requiring user to press a key to the right of it. Mostly because it requires a slightly unnatural \"right-left\" eye movement, but also because more than two labels will hide the cell to the right. The second one is especially apparent in demo for `pa` keys at the top.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I hope you are willing to try this out with a much simpler <code class=\"notranslate\">init.lua</code>, and wonder if the \"no mental pause\" argument becomes more applicable.</p>\n</blockquote>\n<p dir=\"auto\">Sorry, for me looking at the demo (thanks for making them, by the way!) is enough. I <em>really</em> don't like the idea of showing labels at the spot while requiring user to press a key to the right of it. Mostly because it requires a slightly unnatural \"right-left\" eye movement, but also because more than two labels will hide the cell to the right. The second one is especially apparent in demo for <code class=\"notranslate\">pa</code> keys at the top.</p>",
+                    "bodyText": "I hope you are willing to try this out with a much simpler init.lua, and wonder if the \"no mental pause\" argument becomes more applicable.\n\nSorry, for me looking at the demo (thanks for making them, by the way!) is enough. I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it. Mostly because it requires a slightly unnatural \"right-left\" eye movement, but also because more than two labels will hide the cell to the right. The second one is especially apparent in demo for pa keys at the top.",
+                    "createdAt": "2025-06-21T10:37:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13537098,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Azo9K",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-21T10:37:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13537098",
+                    "updatedAt": "2025-06-21T10:37:35Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13537098"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I agree with @echasnovski about the “right-left” movement. It’s very disconcerting to me. If I’m being candid, I feel this approach is a middle ground between two different labeling approaches that is worse than both. I appreciate your efforts to explore alternate approaches in this space especially as @echasnovski is planning a rewrite. I’m hoping your exploratory work leads to a novel idea.\r\n\r\nWith that said, I’m very happy with leap aside from the guilt that I’m not using another mini plugin (pairs, completion, jump2d), but in some cases, the balance in mini between implementation simplicity and functionality is skewed too far leading to a compromised user experience for me, so I’ve learned to live my guilt. 😄 ",
+                    "bodyHTML": "<p dir=\"auto\">I agree with <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> about the “right-left” movement. It’s very disconcerting to me. If I’m being candid, I feel this approach is a middle ground between two different labeling approaches that is worse than both. I appreciate your efforts to explore alternate approaches in this space especially as <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> is planning a rewrite. I’m hoping your exploratory work leads to a novel idea.</p>\n<p dir=\"auto\">With that said, I’m very happy with leap aside from the guilt that I’m not using another mini plugin (pairs, completion, jump2d), but in some cases, the balance in mini between implementation simplicity and functionality is skewed too far leading to a compromised user experience for me, so I’ve learned to live my guilt. 😄</p>",
+                    "bodyText": "I agree with @echasnovski about the “right-left” movement. It’s very disconcerting to me. If I’m being candid, I feel this approach is a middle ground between two different labeling approaches that is worse than both. I appreciate your efforts to explore alternate approaches in this space especially as @echasnovski is planning a rewrite. I’m hoping your exploratory work leads to a novel idea.\nWith that said, I’m very happy with leap aside from the guilt that I’m not using another mini plugin (pairs, completion, jump2d), but in some cases, the balance in mini between implementation simplicity and functionality is skewed too far leading to a compromised user experience for me, so I’ve learned to live my guilt. 😄",
+                    "createdAt": "2025-06-21T11:40:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13537367,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzpBX",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-21T11:40:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13537367",
+                    "updatedAt": "2025-06-21T11:40:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13537367"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thank you both for the feedback!\r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Thank you both for the feedback!</p>",
+                    "bodyText": "Thank you both for the feedback!",
+                    "createdAt": "2025-06-21T13:04:00Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13537695,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzpGf",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-21T13:04:00Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13537695",
+                    "updatedAt": "2025-06-21T13:04:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13537695"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it.\r\n\r\n@echasnovski, given the quote above, and since it most likely will not be easily possible to show any labels before spotter is computed, I am considering to fork `jump2d`. I have ideas to change the code into a \"minimal\" leap replacement.\r\n\r\nIf I decide to do so, I expect to reuse a substantial amount of your excellent work, including comments and tests.\r\n\r\nDo you think that the use-case is sufficiently different from the intended usage of `mini.jump2d` in order to justify a fork?\r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it.</p>\n</blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, given the quote above, and since it most likely will not be easily possible to show any labels before spotter is computed, I am considering to fork <code class=\"notranslate\">jump2d</code>. I have ideas to change the code into a \"minimal\" leap replacement.</p>\n<p dir=\"auto\">If I decide to do so, I expect to reuse a substantial amount of your excellent work, including comments and tests.</p>\n<p dir=\"auto\">Do you think that the use-case is sufficiently different from the intended usage of <code class=\"notranslate\">mini.jump2d</code> in order to justify a fork?</p>",
+                    "bodyText": "I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it.\n\n@echasnovski, given the quote above, and since it most likely will not be easily possible to show any labels before spotter is computed, I am considering to fork jump2d. I have ideas to change the code into a \"minimal\" leap replacement.\nIf I decide to do so, I expect to reuse a substantial amount of your excellent work, including comments and tests.\nDo you think that the use-case is sufficiently different from the intended usage of mini.jump2d in order to justify a fork?",
+                    "createdAt": "2025-06-22T12:55:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13542574,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzqSu",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-22T12:55:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13542574",
+                    "updatedAt": "2025-06-22T12:55:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13542574"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> > I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it.\r\n> \r\n> @echasnovski, given the quote above ...\r\n\r\nIt should already be possible to show labels to the right of the keys, just as in 'leap.nvim': offset computed jump spots to the right and have `hooks.after_jump` adjust cursor. The rework in #1818 will make it even easier. Plus I am thinking about adding this as something like `config.view.offset_labels` (could be set to 2 in this case to be shown at the right of two cells).\r\n\r\n> If I decide to do so, I expect to reuse a substantial amount of your excellent work, including comments and tests.\r\n> \r\n> Do you think that the use-case is sufficiently different from the intended usage of `mini.jump2d` in order to justify a fork?\r\n\r\nIf it is only to show labels after the first key press and dim all lines - I don't think so (sorry). Of course, you are free to ignore this and fork with proper attribution.\r\n\r\nBut the #1818 rewrite will still happen (not immediately, but hopefully in this 'mini.nvim' version development cycle) and I'll still think about an organic way to control label display (just can't think of any right now).",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it.</p>\n</blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, given the quote above ...</p>\n</blockquote>\n<p dir=\"auto\">It should already be possible to show labels to the right of the keys, just as in 'leap.nvim': offset computed jump spots to the right and have <code class=\"notranslate\">hooks.after_jump</code> adjust cursor. The rework in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a> will make it even easier. Plus I am thinking about adding this as something like <code class=\"notranslate\">config.view.offset_labels</code> (could be set to 2 in this case to be shown at the right of two cells).</p>\n<blockquote>\n<p dir=\"auto\">If I decide to do so, I expect to reuse a substantial amount of your excellent work, including comments and tests.</p>\n<p dir=\"auto\">Do you think that the use-case is sufficiently different from the intended usage of <code class=\"notranslate\">mini.jump2d</code> in order to justify a fork?</p>\n</blockquote>\n<p dir=\"auto\">If it is only to show labels after the first key press and dim all lines - I don't think so (sorry). Of course, you are free to ignore this and fork with proper attribution.</p>\n<p dir=\"auto\">But the <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a> rewrite will still happen (not immediately, but hopefully in this 'mini.nvim' version development cycle) and I'll still think about an organic way to control label display (just can't think of any right now).</p>",
+                    "bodyText": "I really don't like the idea of showing labels at the spot while requiring user to press a key to the right of it.\n\n@echasnovski, given the quote above ...\n\nIt should already be possible to show labels to the right of the keys, just as in 'leap.nvim': offset computed jump spots to the right and have hooks.after_jump adjust cursor. The rework in #1818 will make it even easier. Plus I am thinking about adding this as something like config.view.offset_labels (could be set to 2 in this case to be shown at the right of two cells).\n\nIf I decide to do so, I expect to reuse a substantial amount of your excellent work, including comments and tests.\nDo you think that the use-case is sufficiently different from the intended usage of mini.jump2d in order to justify a fork?\n\nIf it is only to show labels after the first key press and dim all lines - I don't think so (sorry). Of course, you are free to ignore this and fork with proper attribution.\nBut the #1818 rewrite will still happen (not immediately, but hopefully in this 'mini.nvim' version development cycle) and I'll still think about an organic way to control label display (just can't think of any right now).",
+                    "createdAt": "2025-06-22T13:16:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13542650,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzqT6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-22T13:16:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13542650",
+                    "updatedAt": "2025-06-22T13:16:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13542650"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I can certainly wait, and see if the rewrite allows me to achieve what I'm currently having in the [fork](https://github.com/abeldekat/mini.nvim/tree/jump2d_extended_character) I am using in my own config (described in [this](https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13536561) comment). I don't mind having an extended configuration on top of a mini module, and for now an incidental `git rebase -i main` is doable.\r\n\r\nGiven the current code, I would need to be able to:\r\n\r\n- Override H.spot_add_steps\r\n- Override H.spots_show\r\n- Replace `  if vim.tbl_contains(label_tbl, key) then`  with `if not (key == H.keys.cr or key == H.keys.esc or key == H.keys.block_operator_pending) then` in H.advance_jump\r\n\r\nRegarding that third point, all tests pass. Without the user overriding code in the first two points, the prerequisite that each presented label needs to be in `config.labels` still holds true. I have seen that ability to override parts of the algorithm in for example `mini.snippets`.\r\n\r\nIt's not about dimming, I can easily do that myself. It very much is about seeing the generated label after typing the jump initializer, implying the second character will also be given.\r\n\r\nI am a bit surprised how much I like the approach from [this](https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13536561) comment.\r\n\r\nI do understand the argument about the “right-left” eye movement. It's also a matter of habit and practice I think. When I select a target, I already know the first two characters. Thus, I can keep my eyes ~on the ball~ on target position, typing fluently.\r\n\r\nI also don't mind two labels hiding the cell to the right. That will happen when I have already entered the jump indentifier. As I know the second character, I don't need to see it. \r\nIt won't happen on three consecutive characters that are the same. In that case, `mini.jump2d` already makes sure that all targets are reachable, based on the algorithm in `H.spots_to_extmarks`. \r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\">I can certainly wait, and see if the rewrite allows me to achieve what I'm currently having in the <a href=\"https://github.com/abeldekat/mini.nvim/tree/jump2d_extended_character\">fork</a> I am using in my own config (described in <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13536561\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1860/hovercard?comment_id=13536561\">this</a> comment). I don't mind having an extended configuration on top of a mini module, and for now an incidental <code class=\"notranslate\">git rebase -i main</code> is doable.</p>\n<p dir=\"auto\">Given the current code, I would need to be able to:</p>\n<ul dir=\"auto\">\n<li>Override H.spot_add_steps</li>\n<li>Override H.spots_show</li>\n<li>Replace <code class=\"notranslate\">  if vim.tbl_contains(label_tbl, key) then</code>  with <code class=\"notranslate\">if not (key == H.keys.cr or key == H.keys.esc or key == H.keys.block_operator_pending) then</code> in H.advance_jump</li>\n</ul>\n<p dir=\"auto\">Regarding that third point, all tests pass. Without the user overriding code in the first two points, the prerequisite that each presented label needs to be in <code class=\"notranslate\">config.labels</code> still holds true. I have seen that ability to override parts of the algorithm in for example <code class=\"notranslate\">mini.snippets</code>.</p>\n<p dir=\"auto\">It's not about dimming, I can easily do that myself. It very much is about seeing the generated label after typing the jump initializer, implying the second character will also be given.</p>\n<p dir=\"auto\">I am a bit surprised how much I like the approach from <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1860#discussioncomment-13536561\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1860/hovercard?comment_id=13536561\">this</a> comment.</p>\n<p dir=\"auto\">I do understand the argument about the “right-left” eye movement. It's also a matter of habit and practice I think. When I select a target, I already know the first two characters. Thus, I can keep my eyes <del>on the ball</del> on target position, typing fluently.</p>\n<p dir=\"auto\">I also don't mind two labels hiding the cell to the right. That will happen when I have already entered the jump indentifier. As I know the second character, I don't need to see it.<br>\nIt won't happen on three consecutive characters that are the same. In that case, <code class=\"notranslate\">mini.jump2d</code> already makes sure that all targets are reachable, based on the algorithm in <code class=\"notranslate\">H.spots_to_extmarks</code>.</p>",
+                    "bodyText": "I can certainly wait, and see if the rewrite allows me to achieve what I'm currently having in the fork I am using in my own config (described in this comment). I don't mind having an extended configuration on top of a mini module, and for now an incidental git rebase -i main is doable.\nGiven the current code, I would need to be able to:\n\nOverride H.spot_add_steps\nOverride H.spots_show\nReplace   if vim.tbl_contains(label_tbl, key) then  with if not (key == H.keys.cr or key == H.keys.esc or key == H.keys.block_operator_pending) then in H.advance_jump\n\nRegarding that third point, all tests pass. Without the user overriding code in the first two points, the prerequisite that each presented label needs to be in config.labels still holds true. I have seen that ability to override parts of the algorithm in for example mini.snippets.\nIt's not about dimming, I can easily do that myself. It very much is about seeing the generated label after typing the jump initializer, implying the second character will also be given.\nI am a bit surprised how much I like the approach from this comment.\nI do understand the argument about the “right-left” eye movement. It's also a matter of habit and practice I think. When I select a target, I already know the first two characters. Thus, I can keep my eyes on the ball on target position, typing fluently.\nI also don't mind two labels hiding the cell to the right. That will happen when I have already entered the jump indentifier. As I know the second character, I don't need to see it.\nIt won't happen on three consecutive characters that are the same. In that case, mini.jump2d already makes sure that all targets are reachable, based on the algorithm in H.spots_to_extmarks.",
+                    "createdAt": "2025-06-22T16:14:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13543503,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzqhP",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-22T16:14:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13543503",
+                    "updatedAt": "2025-06-22T16:14:51Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13543503"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Using my local [fork](https://github.com/abeldekat/mini.nvim/tree/jump2d_extended_character), I added some improvements, especially for buffers without much text. \r\n\r\nQuite often, when supplying `jump initializer -> second character`, there is no generated label because the combination is unique. I now show the [middledot](https://github.com/abeldekat/nvim_pde/blob/bb0368efa95acb55063ead78b5c93e54648900cd/lua/akmini/jump2d_leaped.lua#L927) on target position in that case.\r\n\r\nSometimes, the jump is immediate when the `jump initializer` is unique. For example, in the video below, in the last jump to `workflow/visits.lua`, the `v` is unique. \r\nWhen I type the first two characters, the second `i` enters insert mode... I added an extra [option](https://github.com/abeldekat/nvim_pde/blob/bb0368efa95acb55063ead78b5c93e54648900cd/lua/ak/workflow/jump2d.lua#L65) to [MiniJump2d.start](https://github.com/abeldekat/nvim_pde/blob/bb0368efa95acb55063ead78b5c93e54648900cd/lua/akmini/jump2d_leaped.lua#L345) to prevent that, forcing the second character to always be requested:\r\n\r\n```lua\r\n---...\r\n\r\n  if #spots == 1 and not opts.force_filtering then\r\n    H.perform_jump(spots[1], opts.hooks.after_jump)\r\n    return\r\n  end\r\n\r\n---...\r\n```\r\n\r\nThese changes are especially nice in `mini.files`, in combination with file `after/ftplugin/minifiles.lua`:\r\n\r\n```lua\r\nvim.b.minijump2d_config = {\r\n  allowed_windows = { current = true, not_current = false },\r\n}\r\n```\r\n\r\nBy default, inside mini.files labels are also generated in all other windows, which is not necessary.\r\n\r\n\r\nI am also experimenting with the labels, trying to increase the chance of being able to alternate between the left and right hand:\r\n\r\n``` lua\r\n  -- Have left hand labels grouped around s:\r\n  labels = \"jskdlwmeixoc\", -- 12 labels alternated \"js\", \"kd\", \"lw\", \"me\", \"ix\", \"oc\"\r\n```\r\n\r\nVideo `mini.files`:\r\n\r\n\r\nhttps://github.com/user-attachments/assets/524d8e78-7a35-4a06-8638-3b665cdf6580\r\n\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Using my local <a href=\"https://github.com/abeldekat/mini.nvim/tree/jump2d_extended_character\">fork</a>, I added some improvements, especially for buffers without much text.</p>\n<p dir=\"auto\">Quite often, when supplying <code class=\"notranslate\">jump initializer -&gt; second character</code>, there is no generated label because the combination is unique. I now show the <a href=\"https://github.com/abeldekat/nvim_pde/blob/bb0368efa95acb55063ead78b5c93e54648900cd/lua/akmini/jump2d_leaped.lua#L927\">middledot</a> on target position in that case.</p>\n<p dir=\"auto\">Sometimes, the jump is immediate when the <code class=\"notranslate\">jump initializer</code> is unique. For example, in the video below, in the last jump to <code class=\"notranslate\">workflow/visits.lua</code>, the <code class=\"notranslate\">v</code> is unique.<br>\nWhen I type the first two characters, the second <code class=\"notranslate\">i</code> enters insert mode... I added an extra <a href=\"https://github.com/abeldekat/nvim_pde/blob/bb0368efa95acb55063ead78b5c93e54648900cd/lua/ak/workflow/jump2d.lua#L65\">option</a> to <a href=\"https://github.com/abeldekat/nvim_pde/blob/bb0368efa95acb55063ead78b5c93e54648900cd/lua/akmini/jump2d_leaped.lua#L345\">MiniJump2d.start</a> to prevent that, forcing the second character to always be requested:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---...\n\n  if #spots == 1 and not opts.force_filtering then\n    H.perform_jump(spots[1], opts.hooks.after_jump)\n    return\n  end\n\n---...\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span>...</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">spots</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">force_filtering</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">perform_jump</span>(<span class=\"pl-smi\">spots</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">hooks</span>.<span class=\"pl-e\">after_jump</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>...</span></pre></div>\n<p dir=\"auto\">These changes are especially nice in <code class=\"notranslate\">mini.files</code>, in combination with file <code class=\"notranslate\">after/ftplugin/minifiles.lua</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.b.minijump2d_config = {\n  allowed_windows = { current = true, not_current = false },\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">minijump2d_config</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">allowed_windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">not_current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> },\n}</pre></div>\n<p dir=\"auto\">By default, inside mini.files labels are also generated in all other windows, which is not necessary.</p>\n<p dir=\"auto\">I am also experimenting with the labels, trying to increase the chance of being able to alternate between the left and right hand:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  -- Have left hand labels grouped around s:\n  labels = &quot;jskdlwmeixoc&quot;, -- 12 labels alternated &quot;js&quot;, &quot;kd&quot;, &quot;lw&quot;, &quot;me&quot;, &quot;ix&quot;, &quot;oc&quot;\"><pre class=\"notranslate\">  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Have left hand labels grouped around s:</span>\n  <span class=\"pl-smi\">labels</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>jskdlwmeixoc<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> 12 labels alternated \"js\", \"kd\", \"lw\", \"me\", \"ix\", \"oc\"</span></pre></div>\n<p dir=\"auto\">Video <code class=\"notranslate\">mini.files</code>:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">jump2d_mini_files.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/459956051-524d8e78-7a35-4a06-8638-3b665cdf6580.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTk5NTYwNTEtNTI0ZDhlNzgtN2EzNS00YTA2LTg2MzgtM2I2NjVjZGY2NTgwLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTUwMjc1NzI2ZWJhOTgxMjg1NGUwNjliZTRhMmY3NTY1MGYyMWM5ZjNmOTk0NGQ3MzMxNzFiMWVjYmZlZTg1ODUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.X6jPxE9V_iRBn57xWR8-jJ8qpgU2Zq8gBnKmkpMTvpI\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/459956051-524d8e78-7a35-4a06-8638-3b665cdf6580.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5OTMsIm5iZiI6MTc5MzU1MjY5MywicGF0aCI6Ii81ODM3MDQzMy80NTk5NTYwNTEtNTI0ZDhlNzgtN2EzNS00YTA2LTg2MzgtM2I2NjVjZGY2NTgwLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDQ1M1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTUwMjc1NzI2ZWJhOTgxMjg1NGUwNjliZTRhMmY3NTY1MGYyMWM5ZjNmOTk0NGQ3MzMxNzFiMWVjYmZlZTg1ODUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.X6jPxE9V_iRBn57xWR8-jJ8qpgU2Zq8gBnKmkpMTvpI\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+                    "bodyText": "Using my local fork, I added some improvements, especially for buffers without much text.\nQuite often, when supplying jump initializer -> second character, there is no generated label because the combination is unique. I now show the middledot on target position in that case.\nSometimes, the jump is immediate when the jump initializer is unique. For example, in the video below, in the last jump to workflow/visits.lua, the v is unique.\nWhen I type the first two characters, the second i enters insert mode... I added an extra option to MiniJump2d.start to prevent that, forcing the second character to always be requested:\n---...\n\n  if #spots == 1 and not opts.force_filtering then\n    H.perform_jump(spots[1], opts.hooks.after_jump)\n    return\n  end\n\n---...\nThese changes are especially nice in mini.files, in combination with file after/ftplugin/minifiles.lua:\nvim.b.minijump2d_config = {\n  allowed_windows = { current = true, not_current = false },\n}\nBy default, inside mini.files labels are also generated in all other windows, which is not necessary.\nI am also experimenting with the labels, trying to increase the chance of being able to alternate between the left and right hand:\n  -- Have left hand labels grouped around s:\n  labels = \"jskdlwmeixoc\", -- 12 labels alternated \"js\", \"kd\", \"lw\", \"me\", \"ix\", \"oc\"\nVideo mini.files:\n\n  \n    \n    \n\n    jump2d_mini_files.mp4",
+                    "createdAt": "2025-06-27T13:02:21Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13597518,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4Az3tO",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-06-27T13:06:49Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-27T13:02:21Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13597518",
+                    "updatedAt": "2025-06-27T13:06:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13597518"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I am also experimenting with the labels, trying to increase the chance of being able to alternate between the left and right hand:\r\n\r\nYes, I had similar idea, but around having two sets of labels. Something like `asdfg` and `hjkl;` Those might alternate directly when computing label steps. But the problem is that it visibly increases the average number of keys users need to type. it can be solved by going outside of home row (like `asdfgrevc` and `hjkl;uinm`), but I think using only home row is pretty useful.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I am also experimenting with the labels, trying to increase the chance of being able to alternate between the left and right hand:</p>\n</blockquote>\n<p dir=\"auto\">Yes, I had similar idea, but around having two sets of labels. Something like <code class=\"notranslate\">asdfg</code> and <code class=\"notranslate\">hjkl;</code> Those might alternate directly when computing label steps. But the problem is that it visibly increases the average number of keys users need to type. it can be solved by going outside of home row (like <code class=\"notranslate\">asdfgrevc</code> and <code class=\"notranslate\">hjkl;uinm</code>), but I think using only home row is pretty useful.</p>",
+                    "bodyText": "I am also experimenting with the labels, trying to increase the chance of being able to alternate between the left and right hand:\n\nYes, I had similar idea, but around having two sets of labels. Something like asdfg and hjkl; Those might alternate directly when computing label steps. But the problem is that it visibly increases the average number of keys users need to type. it can be solved by going outside of home row (like asdfgrevc and hjkl;uinm), but I think using only home row is pretty useful.",
+                    "createdAt": "2025-06-27T13:15:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13597667,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Az3vj",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-27T13:15:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13499222,
+                        "id": "DC_kwDOFoksYM4AzftW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13597667",
+                    "updatedAt": "2025-06-27T13:15:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13597667"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222",
+            "updatedAt": "2025-06-17T16:37:24Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860#discussioncomment-13499222"
+        }
+    ],
+    "createdAt": "2025-06-17T14:50:52Z",
+    "createdViaEmail": false,
+    "databaseId": 8463479,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "id": "D_kwDOFoksYM4AgSR3",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM70q7sq",
+                "name": "mini.jump2d"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-06-19T06:13:04Z",
+    "locked": false,
+    "number": 1860,
+    "poll": null,
+    "publishedAt": "2025-06-17T14:50:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1860",
+    "stateReason": null,
+    "title": "[mini.jump2d] Jump with second character from each spot",
+    "updatedAt": "2025-06-27T13:15:03Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1860"
+}

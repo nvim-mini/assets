@@ -1,0 +1,276 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/11758459?v=4",
+        "login": "sdemura",
+        "resourcePath": "/sdemura",
+        "url": "https://github.com/sdemura"
+    },
+    "authorAssociation": "NONE",
+    "body": "With vim-fugitive, `:G` is available for `:Git`, how can I set up the same with `mini.git`?",
+    "bodyHTML": "<p dir=\"auto\">With vim-fugitive, <code class=\"notranslate\">:G</code> is available for <code class=\"notranslate\">:Git</code>, how can I set up the same with <code class=\"notranslate\">mini.git</code>?</p>",
+    "bodyText": "With vim-fugitive, :G is available for :Git, how can I set up the same with mini.git?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-05-31T16:41:41Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "As far as I know, there doesn't appear to be an easy way to create a copy of an existing user command.\r\n\r\nThe best solution seems to be to create an command line abbreviation for `G` which would expand to `Git` after pressing space.\r\n\r\nFollowing [this answer](https://stackoverflow.com/a/3879737), there are at least two approaches:\r\n\r\n- Easy: `vim.cmd('cnoreabbrev G Git')`. I think this will be enough 99% of times. However, it will expand whenever a separate `G` is entered in a command line, including during search (like after `/`) or when it is not at the first column.\r\n- More robust: `vim.cmd([[cnoreabbrev <expr> G ((getcmdtype() is# ':' && getcmdline() is# 'G')?('Git'):('G'))]])`. If you use Neovim 0.10, this can also be rewritten with `vim.keymap.set()`:\r\n\r\n    ```lua\r\n    local expand_g = function() return (vim.fn.getcmdtype() == ':' and vim.fn.getcmdline() == 'G') and 'Git' or 'G' end\r\n    vim.keymap.set('ca', 'G', expand_g, { expr = true })\r\n    ```",
+            "bodyHTML": "<p dir=\"auto\">As far as I know, there doesn't appear to be an easy way to create a copy of an existing user command.</p>\n<p dir=\"auto\">The best solution seems to be to create an command line abbreviation for <code class=\"notranslate\">G</code> which would expand to <code class=\"notranslate\">Git</code> after pressing space.</p>\n<p dir=\"auto\">Following <a href=\"https://stackoverflow.com/a/3879737\" rel=\"nofollow\">this answer</a>, there are at least two approaches:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Easy: <code class=\"notranslate\">vim.cmd('cnoreabbrev G Git')</code>. I think this will be enough 99% of times. However, it will expand whenever a separate <code class=\"notranslate\">G</code> is entered in a command line, including during search (like after <code class=\"notranslate\">/</code>) or when it is not at the first column.</p>\n</li>\n<li>\n<p dir=\"auto\">More robust: <code class=\"notranslate\">vim.cmd([[cnoreabbrev &lt;expr&gt; G ((getcmdtype() is# ':' &amp;&amp; getcmdline() is# 'G')?('Git'):('G'))]])</code>. If you use Neovim 0.10, this can also be rewritten with <code class=\"notranslate\">vim.keymap.set()</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local expand_g = function() return (vim.fn.getcmdtype() == ':' and vim.fn.getcmdline() == 'G') and 'Git' or 'G' end\nvim.keymap.set('ca', 'G', expand_g, { expr = true })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">expand_g</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcmdtype</span>() <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>:<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcmdline</span>() <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>G<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Git<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>G<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>ca<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>G<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">expand_g</span>, { <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n</li>\n</ul>",
+            "bodyText": "As far as I know, there doesn't appear to be an easy way to create a copy of an existing user command.\nThe best solution seems to be to create an command line abbreviation for G which would expand to Git after pressing space.\nFollowing this answer, there are at least two approaches:\n\n\nEasy: vim.cmd('cnoreabbrev G Git'). I think this will be enough 99% of times. However, it will expand whenever a separate G is entered in a command line, including during search (like after /) or when it is not at the first column.\n\n\nMore robust: vim.cmd([[cnoreabbrev <expr> G ((getcmdtype() is# ':' && getcmdline() is# 'G')?('Git'):('G'))]]). If you use Neovim 0.10, this can also be rewritten with vim.keymap.set():\nlocal expand_g = function() return (vim.fn.getcmdtype() == ':' and vim.fn.getcmdline() == 'G') and 'Git' or 'G' end\nvim.keymap.set('ca', 'G', expand_g, { expr = true })",
+            "createdAt": "2024-05-31T16:41:41Z",
+            "createdViaEmail": false,
+            "databaseId": 9621224,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Aks7o",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-05-31T16:41:41Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/11758459?v=4",
+                        "login": "sdemura",
+                        "resourcePath": "/sdemura",
+                        "url": "https://github.com/sdemura"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "This should be good enough fo rme. Thanks!",
+                    "bodyHTML": "<p dir=\"auto\">This should be good enough fo rme. Thanks!</p>",
+                    "bodyText": "This should be good enough fo rme. Thanks!",
+                    "createdAt": "2024-06-03T13:46:05Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9648936,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Akzso",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-06-03T13:46:05Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9621224,
+                        "id": "DC_kwDOFoksYM4Aks7o",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/929#discussioncomment-9621224"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/929#discussioncomment-9648936",
+                    "updatedAt": "2024-06-03T13:46:05Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/929#discussioncomment-9648936"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/929#discussioncomment-9621224",
+            "updatedAt": "2024-05-31T16:41:42Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/929#discussioncomment-9621224"
+        }
+    ],
+    "createdAt": "2024-05-31T15:40:52Z",
+    "createdViaEmail": false,
+    "databaseId": 6757114,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AZxr6",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABoAnD9w",
+                "name": "mini.git"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 929,
+    "poll": null,
+    "publishedAt": "2024-05-31T15:40:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/929",
+    "stateReason": "RESOLVED",
+    "title": "How can I map :Git to :G?",
+    "updatedAt": "2024-06-03T13:46:05Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/929"
+}

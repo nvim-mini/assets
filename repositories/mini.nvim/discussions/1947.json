@@ -1,0 +1,528 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/11321388?u=50f41339b9e32ca20c757765e75f3e2647c2b0c4&v=4",
+        "login": "appleseedexm",
+        "resourcePath": "/appleseedexm",
+        "url": "https://github.com/appleseedexm"
+    },
+    "authorAssociation": "NONE",
+    "body": "This is either a feature idea or a bug report, so I thought I'll not directly open an issue. \r\nI'm also open to provide a solution according to the path this should take.\r\n\r\n## Usecase\r\n\r\nI'm using jdtls (java lsp) which adds the `jdt://` lsp workspace protocol to reference symbols outside of the project, for example classes from external libraries which are inside the java classpath of the lsp. \r\nNow out of curiosity I've tried adding a buffer with such a `jdt://` path to my visits via `MiniVisits.add_label`, my most common way to use visits. \r\n\r\n## Expectation & Result\r\n\r\nI expected that either:\r\n1. The jdt path doesnt get added at all, since it's no valid file and non-file protocols are just ignored\r\n2. The jdt path gets added but cant be opened\r\n\r\nBut what actually happened was something else:\r\n`H.buf_get_path` checks for `buftype ~= ''` of the current opened buffer, which in this case is `nofile`. It will then early return `nil` and such a path will cause all available paths in all target cwds to be added. That is IMHO a bug and not to be expected. \r\n\r\n## Possible resolutions\r\n\r\n1. Non-supported `buftype` should not add all available paths by default. From my limited analysis I think this was built to provide an easy way to do some wildcard functionality, for example removing a label from any path (= deleting a label). Most methods should probably be sensitive to `buftype` and not use all paths by default. This would be a bugfix.\r\n2. Adding a framework for adding other `buftype` (and protocols) and disable functionality by default. I expect this to be out of scope for this project, but still wanted to suggest it. Just for my usecase it would be close to impossible to persist these paths between instances, since `jdtls` adds a custom hash to the `jdt://` paths per instance. Then again, for me even without persistence I would use this feature frequently, since I'd still be able to store these temporary visits until I close neovim. \r\n\r\nI hope everything is clear and I'm looking forward to other input on this. For now I'll probably try to overwrite keymap for `MiniVisits.add_label` to be sensitive for `buftype`.\r\n",
+    "bodyHTML": "<p dir=\"auto\">This is either a feature idea or a bug report, so I thought I'll not directly open an issue.<br>\nI'm also open to provide a solution according to the path this should take.</p>\n<h2 dir=\"auto\">Usecase</h2>\n<p dir=\"auto\">I'm using jdtls (java lsp) which adds the <code class=\"notranslate\">jdt://</code> lsp workspace protocol to reference symbols outside of the project, for example classes from external libraries which are inside the java classpath of the lsp.<br>\nNow out of curiosity I've tried adding a buffer with such a <code class=\"notranslate\">jdt://</code> path to my visits via <code class=\"notranslate\">MiniVisits.add_label</code>, my most common way to use visits.</p>\n<h2 dir=\"auto\">Expectation &amp; Result</h2>\n<p dir=\"auto\">I expected that either:</p>\n<ol dir=\"auto\">\n<li>The jdt path doesnt get added at all, since it's no valid file and non-file protocols are just ignored</li>\n<li>The jdt path gets added but cant be opened</li>\n</ol>\n<p dir=\"auto\">But what actually happened was something else:<br>\n<code class=\"notranslate\">H.buf_get_path</code> checks for <code class=\"notranslate\">buftype ~= ''</code> of the current opened buffer, which in this case is <code class=\"notranslate\">nofile</code>. It will then early return <code class=\"notranslate\">nil</code> and such a path will cause all available paths in all target cwds to be added. That is IMHO a bug and not to be expected.</p>\n<h2 dir=\"auto\">Possible resolutions</h2>\n<ol dir=\"auto\">\n<li>Non-supported <code class=\"notranslate\">buftype</code> should not add all available paths by default. From my limited analysis I think this was built to provide an easy way to do some wildcard functionality, for example removing a label from any path (= deleting a label). Most methods should probably be sensitive to <code class=\"notranslate\">buftype</code> and not use all paths by default. This would be a bugfix.</li>\n<li>Adding a framework for adding other <code class=\"notranslate\">buftype</code> (and protocols) and disable functionality by default. I expect this to be out of scope for this project, but still wanted to suggest it. Just for my usecase it would be close to impossible to persist these paths between instances, since <code class=\"notranslate\">jdtls</code> adds a custom hash to the <code class=\"notranslate\">jdt://</code> paths per instance. Then again, for me even without persistence I would use this feature frequently, since I'd still be able to store these temporary visits until I close neovim.</li>\n</ol>\n<p dir=\"auto\">I hope everything is clear and I'm looking forward to other input on this. For now I'll probably try to overwrite keymap for <code class=\"notranslate\">MiniVisits.add_label</code> to be sensitive for <code class=\"notranslate\">buftype</code>.</p>",
+    "bodyText": "This is either a feature idea or a bug report, so I thought I'll not directly open an issue.\nI'm also open to provide a solution according to the path this should take.\nUsecase\nI'm using jdtls (java lsp) which adds the jdt:// lsp workspace protocol to reference symbols outside of the project, for example classes from external libraries which are inside the java classpath of the lsp.\nNow out of curiosity I've tried adding a buffer with such a jdt:// path to my visits via MiniVisits.add_label, my most common way to use visits.\nExpectation & Result\nI expected that either:\n\nThe jdt path doesnt get added at all, since it's no valid file and non-file protocols are just ignored\nThe jdt path gets added but cant be opened\n\nBut what actually happened was something else:\nH.buf_get_path checks for buftype ~= '' of the current opened buffer, which in this case is nofile. It will then early return nil and such a path will cause all available paths in all target cwds to be added. That is IMHO a bug and not to be expected.\nPossible resolutions\n\nNon-supported buftype should not add all available paths by default. From my limited analysis I think this was built to provide an easy way to do some wildcard functionality, for example removing a label from any path (= deleting a label). Most methods should probably be sensitive to buftype and not use all paths by default. This would be a bugfix.\nAdding a framework for adding other buftype (and protocols) and disable functionality by default. I expect this to be out of scope for this project, but still wanted to suggest it. Just for my usecase it would be close to impossible to persist these paths between instances, since jdtls adds a custom hash to the jdt:// paths per instance. Then again, for me even without persistence I would use this feature frequently, since I'd still be able to store these temporary visits until I close neovim.\n\nI hope everything is clear and I'm looking forward to other input on this. For now I'll probably try to overwrite keymap for MiniVisits.add_label to be sensitive for buftype.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-08-16T13:59:30Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "After quick look at code and use case description, there indeed might be something wrong going on.\r\n\r\nTo ensure that we are on the same page, could you please describe step by step how to reproduce the issue (exact buffer name+type, etc.). Starting with this (and not pointing at code) usually saves time for both parties involved.",
+            "bodyHTML": "<p dir=\"auto\">After quick look at code and use case description, there indeed might be something wrong going on.</p>\n<p dir=\"auto\">To ensure that we are on the same page, could you please describe step by step how to reproduce the issue (exact buffer name+type, etc.). Starting with this (and not pointing at code) usually saves time for both parties involved.</p>",
+            "bodyText": "After quick look at code and use case description, there indeed might be something wrong going on.\nTo ensure that we are on the same page, could you please describe step by step how to reproduce the issue (exact buffer name+type, etc.). Starting with this (and not pointing at code) usually saves time for both parties involved.",
+            "createdAt": "2025-08-15T17:56:04Z",
+            "createdViaEmail": false,
+            "databaseId": 14119587,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A13Kj",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-08-15T17:56:04Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14119587",
+            "updatedAt": "2025-08-15T17:56:05Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14119587"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Executing `add_label('main')` (i.e. without explicit path) when current buffer is not for a regular file now errors on latest `main`. Thanks for finding this!",
+            "bodyHTML": "<p dir=\"auto\">Executing <code class=\"notranslate\">add_label('main')</code> (i.e. without explicit path) when current buffer is not for a regular file now errors on latest <code class=\"notranslate\">main</code>. Thanks for finding this!</p>",
+            "bodyText": "Executing add_label('main') (i.e. without explicit path) when current buffer is not for a regular file now errors on latest main. Thanks for finding this!",
+            "createdAt": "2025-08-16T13:59:30Z",
+            "createdViaEmail": false,
+            "databaseId": 14125973,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A14uV",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-08-16T13:59:30Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/11321388?u=50f41339b9e32ca20c757765e75f3e2647c2b0c4&v=4",
+                        "login": "appleseedexm",
+                        "resourcePath": "/appleseedexm",
+                        "url": "https://github.com/appleseedexm"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for the quick fix, works as defined now. ",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the quick fix, works as defined now.</p>",
+                    "bodyText": "Thanks for the quick fix, works as defined now.",
+                    "createdAt": "2025-08-18T07:55:17Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14137788,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A17m8",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-18T07:55:17Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14125973,
+                        "id": "DC_kwDOFoksYM4A14uV",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14125973"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14137788",
+                    "updatedAt": "2025-08-18T07:55:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14137788"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/11321388?u=50f41339b9e32ca20c757765e75f3e2647c2b0c4&v=4",
+                        "login": "appleseedexm",
+                        "resourcePath": "/appleseedexm",
+                        "url": "https://github.com/appleseedexm"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Just for documentation reason, I assume that supporting other `buftype` is out of scope for this module, right? ",
+                    "bodyHTML": "<p dir=\"auto\">Just for documentation reason, I assume that supporting other <code class=\"notranslate\">buftype</code> is out of scope for this module, right?</p>",
+                    "bodyText": "Just for documentation reason, I assume that supporting other buftype is out of scope for this module, right?",
+                    "createdAt": "2025-08-18T07:56:59Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14137800,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A17nI",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-18T07:56:59Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14125973,
+                        "id": "DC_kwDOFoksYM4A14uV",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14125973"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14137800",
+                    "updatedAt": "2025-08-18T07:57:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14137800"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yes, the default path value is computed only [for normal buffers](https://github.com/echasnovski/mini.nvim/blob/5d938b3a078a7eeae23ba9f04f180066ab8bd9ef/doc/mini-visits.txt#L505) (i.e. `buftype=''`). This is because non-normal buffers are usually not for actual file path and will be pruned with default normalization.\r\n\r\nIt is still possible to supply any `path` explicitly, but beware that it might get deleted during normalization. But that is maybe what you'd want for \"temporary `jdt://`\" buffers.",
+                    "bodyHTML": "<p dir=\"auto\">Yes, the default path value is computed only <a href=\"https://github.com/echasnovski/mini.nvim/blob/5d938b3a078a7eeae23ba9f04f180066ab8bd9ef/doc/mini-visits.txt#L505\">for normal buffers</a> (i.e. <code class=\"notranslate\">buftype=''</code>). This is because non-normal buffers are usually not for actual file path and will be pruned with default normalization.</p>\n<p dir=\"auto\">It is still possible to supply any <code class=\"notranslate\">path</code> explicitly, but beware that it might get deleted during normalization. But that is maybe what you'd want for \"temporary <code class=\"notranslate\">jdt://</code>\" buffers.</p>",
+                    "bodyText": "Yes, the default path value is computed only for normal buffers (i.e. buftype=''). This is because non-normal buffers are usually not for actual file path and will be pruned with default normalization.\nIt is still possible to supply any path explicitly, but beware that it might get deleted during normalization. But that is maybe what you'd want for \"temporary jdt://\" buffers.",
+                    "createdAt": "2025-08-18T08:10:14Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14137909,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A17o1",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-18T08:10:14Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14125973,
+                        "id": "DC_kwDOFoksYM4A14uV",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14125973"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14137909",
+                    "updatedAt": "2025-08-18T08:10:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14137909"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14125973",
+            "updatedAt": "2025-08-16T13:59:31Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947#discussioncomment-14125973"
+        }
+    ],
+    "createdAt": "2025-08-15T15:30:47Z",
+    "createdViaEmail": false,
+    "databaseId": 8737505,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/11321388?u=50f41339b9e32ca20c757765e75f3e2647c2b0c4&v=4",
+        "login": "appleseedexm",
+        "resourcePath": "/appleseedexm",
+        "url": "https://github.com/appleseedexm"
+    },
+    "id": "D_kwDOFoksYM4AhVLh",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABdUY7Ow",
+                "name": "mini.visits"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-08-15T15:32:13Z",
+    "locked": false,
+    "number": 1947,
+    "poll": null,
+    "publishedAt": "2025-08-15T15:30:47Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1947",
+    "stateReason": "RESOLVED",
+    "title": "[mini.visits] add lsp protocol / buftype support",
+    "updatedAt": "2025-08-18T08:10:14Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1947"
+}

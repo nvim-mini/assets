@@ -1,0 +1,364 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "In my workflow, each project is opened in a `tmux` session. As such, when querying `oldfiles`, I am mostly interested in files inside the current working directory.\r\n\r\nFunction `MiniExtra.pickers.oldfiles` currently does not filter on `cwd`:\r\n```lua\r\n    for _, path in ipairs(oldfiles) do\r\n      if vim.fn.filereadable(path) == 1 then table.insert(res, H.short_path(path, cwd)) end\r\n    end\r\n```\r\n\r\nMy [implementation](https://github.com/abeldekat/nvim_pde/blob/722687803c21952247d2e61be24798b7754857dc/lua/ak/config/editor/mini_pick.lua#L102), using flag `cwd_only`:\r\n\r\n```lua\r\nlocal H = {} -- Helper functions for custom pickers\r\nlocal Path = require(\"plenary.path\")\r\nlocal Pick = require(\"mini.pick\")\r\n\r\n-- from telescope oldfiles:\r\nH.buf_in_cwd = function(bufname, cwd)\r\n  if cwd:sub(-1) ~= Path.path.sep then cwd = cwd .. Path.path.sep end\r\n  local bufname_prefix = bufname:sub(1, #cwd)\r\n  return bufname_prefix == cwd\r\nend\r\n\r\n-- mini.extra:\r\nH.error = function(msg) error(string.format(\"(ak.extra) %s\", msg), 0) end\r\n\r\n-- mini.extra:\r\nH.short_path = function(path, cwd)\r\n  cwd = cwd or vim.fn.getcwd()\r\n  if not vim.startswith(path, cwd) then return vim.fn.fnamemodify(path, \":~\") end\r\n  local res = path:sub(cwd:len() + 1):gsub(\"^/+\", \"\"):gsub(\"/+$\", \"\")\r\n  return res\r\nend\r\n\r\n-- mini.extra:\r\nH.show_with_icons = function(buf_id, items, query) Pick.default_show(buf_id, items, query, { show_icons = true }) end\r\n\r\n-- mini.extra:\r\nH.pick_get_config = function() return vim.tbl_deep_extend(\"force\", Pick.config or {}, vim.b.minipick_config or {}) end\r\n\r\n-- mini.extra:\r\nH.pick_start = function(items, default_opts, opts)\r\n  local fallback = {\r\n    source = {\r\n      preview = Pick.default_preview,\r\n      choose = Pick.default_choose,\r\n      choose_marked = Pick.default_choose_marked,\r\n    },\r\n  }\r\n  local opts_final = vim.tbl_deep_extend(\"force\", fallback, default_opts, opts or {}, { source = { items = items } })\r\n  return Pick.start(opts_final)\r\nend\r\n\r\nPick.registry.oldfiles_with_filter = function(local_opts, opts)\r\n  local oldfiles = vim.v.oldfiles\r\n  if not vim.islist(oldfiles) then H.error(\"`pickers.oldfiles` picker needs valid `v:oldfiles`.\") end\r\n\r\n  local filter = local_opts and local_opts.cwd_only or false\r\n  local items = vim.schedule_wrap(function()\r\n    local cwd = Pick.get_picker_opts().source.cwd\r\n    local res = {}\r\n    for _, path in ipairs(oldfiles) do\r\n      if vim.fn.filereadable(path) == 1 then\r\n        local use = not filter and true or H.buf_in_cwd(path, cwd) -- added condition\r\n        if use then table.insert(res, H.short_path(path, cwd)) end\r\n      end\r\n    end\r\n    Pick.set_picker_items(res)\r\n  end)\r\n\r\n  local show = H.pick_get_config().source.show or H.show_with_icons\r\n  return H.pick_start(items, { source = { name = \"Old files cwd\", show = show } }, opts)\r\nend\r\n\r\nvim.keymap.set(\r\n  \"n\",\r\n  \"<leader>r\",\r\n  function() Pick.registry.oldfiles_with_filter({ cwd_only = true }) end,\r\n  { desc = \"Recent (rel)\" }\r\n)\r\n```",
+    "bodyHTML": "<p dir=\"auto\">In my workflow, each project is opened in a <code class=\"notranslate\">tmux</code> session. As such, when querying <code class=\"notranslate\">oldfiles</code>, I am mostly interested in files inside the current working directory.</p>\n<p dir=\"auto\">Function <code class=\"notranslate\">MiniExtra.pickers.oldfiles</code> currently does not filter on <code class=\"notranslate\">cwd</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"    for _, path in ipairs(oldfiles) do\n      if vim.fn.filereadable(path) == 1 then table.insert(res, H.short_path(path, cwd)) end\n    end\"><pre class=\"notranslate\">    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">oldfiles</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">filereadable</span>(<span class=\"pl-smi\">path</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">short_path</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">cwd</span>)) <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">My <a href=\"https://github.com/abeldekat/nvim_pde/blob/722687803c21952247d2e61be24798b7754857dc/lua/ak/config/editor/mini_pick.lua#L102\">implementation</a>, using flag <code class=\"notranslate\">cwd_only</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local H = {} -- Helper functions for custom pickers\nlocal Path = require(&quot;plenary.path&quot;)\nlocal Pick = require(&quot;mini.pick&quot;)\n\n-- from telescope oldfiles:\nH.buf_in_cwd = function(bufname, cwd)\n  if cwd:sub(-1) ~= Path.path.sep then cwd = cwd .. Path.path.sep end\n  local bufname_prefix = bufname:sub(1, #cwd)\n  return bufname_prefix == cwd\nend\n\n-- mini.extra:\nH.error = function(msg) error(string.format(&quot;(ak.extra) %s&quot;, msg), 0) end\n\n-- mini.extra:\nH.short_path = function(path, cwd)\n  cwd = cwd or vim.fn.getcwd()\n  if not vim.startswith(path, cwd) then return vim.fn.fnamemodify(path, &quot;:~&quot;) end\n  local res = path:sub(cwd:len() + 1):gsub(&quot;^/+&quot;, &quot;&quot;):gsub(&quot;/+$&quot;, &quot;&quot;)\n  return res\nend\n\n-- mini.extra:\nH.show_with_icons = function(buf_id, items, query) Pick.default_show(buf_id, items, query, { show_icons = true }) end\n\n-- mini.extra:\nH.pick_get_config = function() return vim.tbl_deep_extend(&quot;force&quot;, Pick.config or {}, vim.b.minipick_config or {}) end\n\n-- mini.extra:\nH.pick_start = function(items, default_opts, opts)\n  local fallback = {\n    source = {\n      preview = Pick.default_preview,\n      choose = Pick.default_choose,\n      choose_marked = Pick.default_choose_marked,\n    },\n  }\n  local opts_final = vim.tbl_deep_extend(&quot;force&quot;, fallback, default_opts, opts or {}, { source = { items = items } })\n  return Pick.start(opts_final)\nend\n\nPick.registry.oldfiles_with_filter = function(local_opts, opts)\n  local oldfiles = vim.v.oldfiles\n  if not vim.islist(oldfiles) then H.error(&quot;`pickers.oldfiles` picker needs valid `v:oldfiles`.&quot;) end\n\n  local filter = local_opts and local_opts.cwd_only or false\n  local items = vim.schedule_wrap(function()\n    local cwd = Pick.get_picker_opts().source.cwd\n    local res = {}\n    for _, path in ipairs(oldfiles) do\n      if vim.fn.filereadable(path) == 1 then\n        local use = not filter and true or H.buf_in_cwd(path, cwd) -- added condition\n        if use then table.insert(res, H.short_path(path, cwd)) end\n      end\n    end\n    Pick.set_picker_items(res)\n  end)\n\n  local show = H.pick_get_config().source.show or H.show_with_icons\n  return H.pick_start(items, { source = { name = &quot;Old files cwd&quot;, show = show } }, opts)\nend\n\nvim.keymap.set(\n  &quot;n&quot;,\n  &quot;&lt;leader&gt;r&quot;,\n  function() Pick.registry.oldfiles_with_filter({ cwd_only = true }) end,\n  { desc = &quot;Recent (rel)&quot; }\n)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> {} <span class=\"pl-c\"><span class=\"pl-c\">--</span> Helper functions for custom pickers</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">Path</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>plenary.path<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">Pick</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> from telescope oldfiles:</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">buf_in_cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">bufname</span>, <span class=\"pl-smi\">cwd</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-en\">cwd</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">Path</span>.<span class=\"pl-e\">path</span>.<span class=\"pl-e\">sep</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">Path</span>.<span class=\"pl-e\">path</span>.<span class=\"pl-e\">sep</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufname_prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">bufname</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">cwd</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">bufname_prefix</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">cwd</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> mini.extra:</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">error</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">msg</span>) <span class=\"pl-c1\">error</span>(<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>(ak.extra) %s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">msg</span>), <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> mini.extra:</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">short_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">cwd</span>)\n  <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">startswith</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">cwd</span>) <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:~<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">path</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-en\">cwd</span>:<span class=\"pl-c1\">len</span>() <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>):<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^/+<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>):<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/+$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> mini.extra:</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">show_with_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>) <span class=\"pl-smi\">Pick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, { <span class=\"pl-smi\">show_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> mini.extra:</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">pick_get_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">config</span> <span class=\"pl-k\">or</span> {}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">minipick_config</span> <span class=\"pl-k\">or</span> {}) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> mini.extra:</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">pick_start</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">default_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fallback</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">default_preview</span>,\n      <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">default_choose</span>,\n      <span class=\"pl-smi\">choose_marked</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">default_choose_marked</span>,\n    },\n  }\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts_final</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">fallback</span>, <span class=\"pl-smi\">default_opts</span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span> } })\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">Pick</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">opts_final</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">oldfiles_with_filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">oldfiles</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">oldfiles</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">islist</span>(<span class=\"pl-smi\">oldfiles</span>) <span class=\"pl-k\">then</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">error</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>`pickers.oldfiles` picker needs valid `v:oldfiles`.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">cwd_only</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">false</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Pick</span>.<span class=\"pl-c1\">get_picker_opts</span>().<span class=\"pl-e\">source</span>.<span class=\"pl-e\">cwd</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">oldfiles</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">filereadable</span>(<span class=\"pl-smi\">path</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">use</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">true</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">buf_in_cwd</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">cwd</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> added condition</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">use</span> <span class=\"pl-k\">then</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">short_path</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">cwd</span>)) <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">Pick</span>.<span class=\"pl-c1\">set_picker_items</span>(<span class=\"pl-smi\">res</span>)\n  <span class=\"pl-k\">end</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">pick_get_config</span>().<span class=\"pl-e\">source</span>.<span class=\"pl-e\">show</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">show_with_icons</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">pick_start</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Old files cwd<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span> } }, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(\n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;r<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-c1\">oldfiles_with_filter</span>({ <span class=\"pl-smi\">cwd_only</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }) <span class=\"pl-k\">end</span>,\n  { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Recent (rel)<span class=\"pl-pds\">\" </span></span>}\n)</pre></div>",
+    "bodyText": "In my workflow, each project is opened in a tmux session. As such, when querying oldfiles, I am mostly interested in files inside the current working directory.\nFunction MiniExtra.pickers.oldfiles currently does not filter on cwd:\n    for _, path in ipairs(oldfiles) do\n      if vim.fn.filereadable(path) == 1 then table.insert(res, H.short_path(path, cwd)) end\n    end\nMy implementation, using flag cwd_only:\nlocal H = {} -- Helper functions for custom pickers\nlocal Path = require(\"plenary.path\")\nlocal Pick = require(\"mini.pick\")\n\n-- from telescope oldfiles:\nH.buf_in_cwd = function(bufname, cwd)\n  if cwd:sub(-1) ~= Path.path.sep then cwd = cwd .. Path.path.sep end\n  local bufname_prefix = bufname:sub(1, #cwd)\n  return bufname_prefix == cwd\nend\n\n-- mini.extra:\nH.error = function(msg) error(string.format(\"(ak.extra) %s\", msg), 0) end\n\n-- mini.extra:\nH.short_path = function(path, cwd)\n  cwd = cwd or vim.fn.getcwd()\n  if not vim.startswith(path, cwd) then return vim.fn.fnamemodify(path, \":~\") end\n  local res = path:sub(cwd:len() + 1):gsub(\"^/+\", \"\"):gsub(\"/+$\", \"\")\n  return res\nend\n\n-- mini.extra:\nH.show_with_icons = function(buf_id, items, query) Pick.default_show(buf_id, items, query, { show_icons = true }) end\n\n-- mini.extra:\nH.pick_get_config = function() return vim.tbl_deep_extend(\"force\", Pick.config or {}, vim.b.minipick_config or {}) end\n\n-- mini.extra:\nH.pick_start = function(items, default_opts, opts)\n  local fallback = {\n    source = {\n      preview = Pick.default_preview,\n      choose = Pick.default_choose,\n      choose_marked = Pick.default_choose_marked,\n    },\n  }\n  local opts_final = vim.tbl_deep_extend(\"force\", fallback, default_opts, opts or {}, { source = { items = items } })\n  return Pick.start(opts_final)\nend\n\nPick.registry.oldfiles_with_filter = function(local_opts, opts)\n  local oldfiles = vim.v.oldfiles\n  if not vim.islist(oldfiles) then H.error(\"`pickers.oldfiles` picker needs valid `v:oldfiles`.\") end\n\n  local filter = local_opts and local_opts.cwd_only or false\n  local items = vim.schedule_wrap(function()\n    local cwd = Pick.get_picker_opts().source.cwd\n    local res = {}\n    for _, path in ipairs(oldfiles) do\n      if vim.fn.filereadable(path) == 1 then\n        local use = not filter and true or H.buf_in_cwd(path, cwd) -- added condition\n        if use then table.insert(res, H.short_path(path, cwd)) end\n      end\n    end\n    Pick.set_picker_items(res)\n  end)\n\n  local show = H.pick_get_config().source.show or H.show_with_icons\n  return H.pick_start(items, { source = { name = \"Old files cwd\", show = show } }, opts)\nend\n\nvim.keymap.set(\n  \"n\",\n  \"<leader>r\",\n  function() Pick.registry.oldfiles_with_filter({ cwd_only = true }) end,\n  { desc = \"Recent (rel)\" }\n)",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-08-06T16:39:25Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hmmm... As there is a precedent in [`MiniStarter.sections.recent_files()`](https://github.com/echasnovski/mini.nvim/blob/334a2d9cfbd86ea08c4d870e39b5ba8bb354d938/doc/mini-starter.txt#L367) with `current_dir` flag, I think having same flag in `local_opts` of `MiniExtra.pickers.oldfiles()` might be a good idea.\r\n\r\nYou're welcome to create an issue about this (or straight up PR, if you'd like; should be a three line change in code plus docs and tests).",
+            "bodyHTML": "<p dir=\"auto\">Hmmm... As there is a precedent in <a href=\"https://github.com/echasnovski/mini.nvim/blob/334a2d9cfbd86ea08c4d870e39b5ba8bb354d938/doc/mini-starter.txt#L367\"><code class=\"notranslate\">MiniStarter.sections.recent_files()</code></a> with <code class=\"notranslate\">current_dir</code> flag, I think having same flag in <code class=\"notranslate\">local_opts</code> of <code class=\"notranslate\">MiniExtra.pickers.oldfiles()</code> might be a good idea.</p>\n<p dir=\"auto\">You're welcome to create an issue about this (or straight up PR, if you'd like; should be a three line change in code plus docs and tests).</p>",
+            "bodyText": "Hmmm... As there is a precedent in MiniStarter.sections.recent_files() with current_dir flag, I think having same flag in local_opts of MiniExtra.pickers.oldfiles() might be a good idea.\nYou're welcome to create an issue about this (or straight up PR, if you'd like; should be a three line change in code plus docs and tests).",
+            "createdAt": "2024-06-29T09:27:03Z",
+            "createdViaEmail": false,
+            "databaseId": 9911171,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AlzuD",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-06-29T09:27:03Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I will write a PR!",
+                    "bodyHTML": "<p dir=\"auto\">I will write a PR!</p>",
+                    "bodyText": "I will write a PR!",
+                    "createdAt": "2024-06-29T09:29:21Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9911176,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AlzuI",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-06-29T09:29:21Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9911171,
+                        "id": "DC_kwDOFoksYM4AlzuD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/995#discussioncomment-9911171"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/995#discussioncomment-9911176",
+                    "updatedAt": "2024-06-29T09:29:22Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/995#discussioncomment-9911176"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "[PR](https://github.com/echasnovski/mini.nvim/pull/997)",
+                    "bodyHTML": "<p dir=\"auto\"><a href=\"https://github.com/echasnovski/mini.nvim/pull/997\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/997/hovercard\">PR</a></p>",
+                    "bodyText": "PR",
+                    "createdAt": "2024-06-30T10:32:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9916115,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Al07T",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-06-30T10:32:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9911171,
+                        "id": "DC_kwDOFoksYM4AlzuD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/995#discussioncomment-9911171"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/995#discussioncomment-9916115",
+                    "updatedAt": "2024-06-30T10:32:24Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/995#discussioncomment-9916115"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/995#discussioncomment-9911171",
+            "updatedAt": "2024-06-29T09:27:04Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/995#discussioncomment-9911171"
+        }
+    ],
+    "createdAt": "2024-06-29T07:00:46Z",
+    "createdViaEmail": false,
+    "databaseId": 6875520,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "id": "D_kwDOFoksYM4AaOmA",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-06-29T07:10:10Z",
+    "locked": false,
+    "number": 995,
+    "poll": null,
+    "publishedAt": "2024-06-29T07:00:46Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/995",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pick] oldfiles picker restricted to items inside current working directory",
+    "updatedAt": "2024-08-06T16:39:25Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/995"
+}

@@ -1,0 +1,551 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 15036370,
+        "id": "DC_kwDOFoksYM4A5W_S",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370"
+    },
+    "answerChosenAt": "2025-11-21T09:43:00Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/143942440?v=4",
+        "login": "TuTiuTe",
+        "resourcePath": "/TuTiuTe",
+        "url": "https://github.com/TuTiuTe"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.completion\r\n\r\n### Question\r\n\r\nI like to have the first item selected by default so that as soon as I press \\<C-y> it's accepted.\r\nI achieve that with `vim.o.completeopt = 'noinsert'`\r\nHowever, I really dislike Enter to accept. With this, with how nvim works (see ins-completion-menu), it's considered to be in state 2 : `A cursor key has been used to select another match.  The match was not  inserted then, only the entry in the popup menu is highlighted.` and thus pressing enter inserts the first match\r\n\r\nI recently changed to `vim.o.completeopt = 'noselect'` (which might already be default behavior) and made the following maps so that \\<C-y> selects the first option and \\<C-n> goes to the second completion (I am simulating the first entry being selected) with this\r\n\r\n```lua\r\nlocal function helper_pum(lhs)\r\n\tlocal info = vim.fn.complete_info({\"selected\", \"pum_visible\"})\r\n\t-- vim.notify(tostring(info.pum_visible) .. tostring(info.selected == -1) .. '\\n', vim.log.levels.ERROR)\r\n\tif (info.pum_visible) and (info.selected == -1) then\r\n\t\treturn '<C-n>' .. lhs\r\n\tend\r\n\treturn lhs\r\nend\r\n\r\nmap(\"i\", \"<C-y>\", function() return helper_pum('<C-y>') end, {expr = true})\r\nmap(\"i\", \"<C-n>\", function() return helper_pum(\"<C-n>\") end, {expr = true})\r\n```\r\n\r\nThis works fine enough with \\<C-y> but is not even triggered for \\<C-n> (the vim.notify is not displayed) only when the popup menu is active, seems to work fine otherwise.\r\n\r\nMy question is first: Is there a less hacky way to make this work with noinsert?\r\nand then: If there is none, is there a way to make my solution work?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.completion</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I like to have the first item selected by default so that as soon as I press &lt;C-y&gt; it's accepted.<br>\nI achieve that with <code class=\"notranslate\">vim.o.completeopt = 'noinsert'</code><br>\nHowever, I really dislike Enter to accept. With this, with how nvim works (see ins-completion-menu), it's considered to be in state 2 : <code class=\"notranslate\">A cursor key has been used to select another match.  The match was not  inserted then, only the entry in the popup menu is highlighted.</code> and thus pressing enter inserts the first match</p>\n<p dir=\"auto\">I recently changed to <code class=\"notranslate\">vim.o.completeopt = 'noselect'</code> (which might already be default behavior) and made the following maps so that &lt;C-y&gt; selects the first option and &lt;C-n&gt; goes to the second completion (I am simulating the first entry being selected) with this</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local function helper_pum(lhs)\n\tlocal info = vim.fn.complete_info({&quot;selected&quot;, &quot;pum_visible&quot;})\n\t-- vim.notify(tostring(info.pum_visible) .. tostring(info.selected == -1) .. '\\n', vim.log.levels.ERROR)\n\tif (info.pum_visible) and (info.selected == -1) then\n\t\treturn '&lt;C-n&gt;' .. lhs\n\tend\n\treturn lhs\nend\n\nmap(&quot;i&quot;, &quot;&lt;C-y&gt;&quot;, function() return helper_pum('&lt;C-y&gt;') end, {expr = true})\nmap(&quot;i&quot;, &quot;&lt;C-n&gt;&quot;, function() return helper_pum(&quot;&lt;C-n&gt;&quot;) end, {expr = true})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">helper_pum</span>(<span class=\"pl-smi\">lhs</span>)\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">info</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">complete_info</span>({<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>selected<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pum_visible<span class=\"pl-pds\">\"</span></span>})\n\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> vim.notify(tostring(info.pum_visible) .. tostring(info.selected == -1) .. '\\n', vim.log.levels.ERROR)</span>\n\t<span class=\"pl-k\">if</span> (<span class=\"pl-smi\">info</span>.<span class=\"pl-e\">pum_visible</span>) <span class=\"pl-k\">and</span> (<span class=\"pl-smi\">info</span>.<span class=\"pl-e\">selected</span> <span class=\"pl-k\">==</span> <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>) <span class=\"pl-k\">then</span>\n\t\t<span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-n&gt;<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">lhs</span>\n\t<span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">return</span> <span class=\"pl-smi\">lhs</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-y&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-c1\">helper_pum</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-y&gt;<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>, {<span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>})\n<span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-c1\">helper_pum</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>, {<span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>})</pre></div>\n<p dir=\"auto\">This works fine enough with &lt;C-y&gt; but is not even triggered for &lt;C-n&gt; (the vim.notify is not displayed) only when the popup menu is active, seems to work fine otherwise.</p>\n<p dir=\"auto\">My question is first: Is there a less hacky way to make this work with noinsert?<br>\nand then: If there is none, is there a way to make my solution work?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.completion\nQuestion\nI like to have the first item selected by default so that as soon as I press <C-y> it's accepted.\nI achieve that with vim.o.completeopt = 'noinsert'\nHowever, I really dislike Enter to accept. With this, with how nvim works (see ins-completion-menu), it's considered to be in state 2 : A cursor key has been used to select another match.  The match was not  inserted then, only the entry in the popup menu is highlighted. and thus pressing enter inserts the first match\nI recently changed to vim.o.completeopt = 'noselect' (which might already be default behavior) and made the following maps so that <C-y> selects the first option and <C-n> goes to the second completion (I am simulating the first entry being selected) with this\nlocal function helper_pum(lhs)\n\tlocal info = vim.fn.complete_info({\"selected\", \"pum_visible\"})\n\t-- vim.notify(tostring(info.pum_visible) .. tostring(info.selected == -1) .. '\\n', vim.log.levels.ERROR)\n\tif (info.pum_visible) and (info.selected == -1) then\n\t\treturn '<C-n>' .. lhs\n\tend\n\treturn lhs\nend\n\nmap(\"i\", \"<C-y>\", function() return helper_pum('<C-y>') end, {expr = true})\nmap(\"i\", \"<C-n>\", function() return helper_pum(\"<C-n>\") end, {expr = true})\nThis works fine enough with <C-y> but is not even triggered for <C-n> (the vim.notify is not displayed) only when the popup menu is active, seems to work fine otherwise.\nMy question is first: Is there a less hacky way to make this work with noinsert?\nand then: If there is none, is there a way to make my solution work?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-11-21T09:43:02Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> I like to have the first item selected by default so that as soon as I press <C-y> it's accepted.\r\n> I achieve that with `vim.o.completeopt = 'noinsert'`\r\n> However, I really dislike Enter to accept.\r\n\r\nCan you please clarify what would you like to happen when pressing `<CR>` when there is a pmenu visible? Is it basically \"hide pmenu and start new line\"? If yes, then this can be achieved with custom `<CR>` mapping in Insert mode. Something like this:\r\n\r\n```lua\r\nvim.keymap.set('i', '<CR>', [[pumvisible() ? \"\\<C-e>\\<CR>\" : \"\\<CR>\"]], { expr = true })\r\n```\r\n\r\nYou can also utilize [`MiniKeymap.map_multistep()`](https://nvim-mini.org/mini.nvim/doc/mini-keymap.html#minikeymap.map_multistep) to make it work with other uses of `<CR>`. Something like this:\r\n\r\n```lua\r\nlocal pmenu_dismiss = {\r\n  condition = function() return vim.fn.pumvisible() == 1 end,\r\n  action = function() return '<C-e><CR>' end,\r\n}\r\nMiniKeymap.map_multistep('i', '<CR>', { pmenu_dismiss, 'minipairs_cr' })\r\n```\r\n\r\nDoes this answer your question?",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">I like to have the first item selected by default so that as soon as I press  it's accepted.<br>\nI achieve that with <code class=\"notranslate\">vim.o.completeopt = 'noinsert'</code><br>\nHowever, I really dislike Enter to accept.</p>\n</blockquote>\n<p dir=\"auto\">Can you please clarify what would you like to happen when pressing <code class=\"notranslate\">&lt;CR&gt;</code> when there is a pmenu visible? Is it basically \"hide pmenu and start new line\"? If yes, then this can be achieved with custom <code class=\"notranslate\">&lt;CR&gt;</code> mapping in Insert mode. Something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set('i', '&lt;CR&gt;', [[pumvisible() ? &quot;\\&lt;C-e&gt;\\&lt;CR&gt;&quot; : &quot;\\&lt;CR&gt;&quot;]], { expr = true })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;CR&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>pumvisible() ? \"\\&lt;C-e&gt;\\&lt;CR&gt;\" : \"\\&lt;CR&gt;\"<span class=\"pl-pds\">]]</span></span>, { <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n<p dir=\"auto\">You can also utilize <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-keymap.html#minikeymap.map_multistep\" rel=\"nofollow\"><code class=\"notranslate\">MiniKeymap.map_multistep()</code></a> to make it work with other uses of <code class=\"notranslate\">&lt;CR&gt;</code>. Something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local pmenu_dismiss = {\n  condition = function() return vim.fn.pumvisible() == 1 end,\n  action = function() return '&lt;C-e&gt;&lt;CR&gt;' end,\n}\nMiniKeymap.map_multistep('i', '&lt;CR&gt;', { pmenu_dismiss, 'minipairs_cr' })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">pmenu_dismiss</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-en\">condition</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">pumvisible</span>() <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-e&gt;&lt;CR&gt;<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>,\n}\n<span class=\"pl-smi\">MiniKeymap</span>.<span class=\"pl-c1\">map_multistep</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;CR&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">pmenu_dismiss</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>minipairs_cr<span class=\"pl-pds\">' </span></span>})</pre></div>\n<p dir=\"auto\">Does this answer your question?</p>",
+            "bodyText": "I like to have the first item selected by default so that as soon as I press  it's accepted.\nI achieve that with vim.o.completeopt = 'noinsert'\nHowever, I really dislike Enter to accept.\n\nCan you please clarify what would you like to happen when pressing <CR> when there is a pmenu visible? Is it basically \"hide pmenu and start new line\"? If yes, then this can be achieved with custom <CR> mapping in Insert mode. Something like this:\nvim.keymap.set('i', '<CR>', [[pumvisible() ? \"\\<C-e>\\<CR>\" : \"\\<CR>\"]], { expr = true })\nYou can also utilize MiniKeymap.map_multistep() to make it work with other uses of <CR>. Something like this:\nlocal pmenu_dismiss = {\n  condition = function() return vim.fn.pumvisible() == 1 end,\n  action = function() return '<C-e><CR>' end,\n}\nMiniKeymap.map_multistep('i', '<CR>', { pmenu_dismiss, 'minipairs_cr' })\nDoes this answer your question?",
+            "createdAt": "2025-11-21T09:21:00Z",
+            "createdViaEmail": false,
+            "databaseId": 15036370,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A5W_S",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-11-21T09:21:00Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/143942440?v=4",
+                        "login": "TuTiuTe",
+                        "resourcePath": "/TuTiuTe",
+                        "url": "https://github.com/TuTiuTe"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "it does, thank you very much",
+                    "bodyHTML": "<p dir=\"auto\">it does, thank you very much</p>",
+                    "bodyText": "it does, thank you very much",
+                    "createdAt": "2025-11-21T09:39:34Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15036541,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5XB9",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-21T09:39:34Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15036370,
+                        "id": "DC_kwDOFoksYM4A5W_S",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036541",
+                    "updatedAt": "2025-11-21T09:39:35Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036541"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/143942440?v=4",
+                        "login": "TuTiuTe",
+                        "resourcePath": "/TuTiuTe",
+                        "url": "https://github.com/TuTiuTe"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "actually I have an issue with the treesitter now. Cursor is represented with |\r\nBefore, when I was writing C code like this\r\n```c\r\nvoid main() {|}\r\n```\r\n\r\nPressing enter would do\r\n```c\r\nvoid main() {\r\n  |\r\n}\r\n```\r\n\r\nNow it just does\r\n```c\r\nvoid main() {\r\n|}\r\n```\r\n\r\nI guess it's an unintended consequence to inserting a literal enter. Is there a way to restore old behavior without compromises?",
+                    "bodyHTML": "<p dir=\"auto\">actually I have an issue with the treesitter now. Cursor is represented with |<br>\nBefore, when I was writing C code like this</p>\n<div class=\"highlight highlight-source-c notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"void main() {|}\"><pre class=\"notranslate\"><span class=\"pl-smi\">void</span> <span class=\"pl-en\">main</span>() {|}</pre></div>\n<p dir=\"auto\">Pressing enter would do</p>\n<div class=\"highlight highlight-source-c notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"void main() {\n  |\n}\"><pre class=\"notranslate\"><span class=\"pl-smi\">void</span> <span class=\"pl-en\">main</span>() {\n  |\n}</pre></div>\n<p dir=\"auto\">Now it just does</p>\n<div class=\"highlight highlight-source-c notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"void main() {\n|}\"><pre class=\"notranslate\"><span class=\"pl-smi\">void</span> <span class=\"pl-en\">main</span>() {\n|}</pre></div>\n<p dir=\"auto\">I guess it's an unintended consequence to inserting a literal enter. Is there a way to restore old behavior without compromises?</p>",
+                    "bodyText": "actually I have an issue with the treesitter now. Cursor is represented with |\nBefore, when I was writing C code like this\nvoid main() {|}\nPressing enter would do\nvoid main() {\n  |\n}\nNow it just does\nvoid main() {\n|}\nI guess it's an unintended consequence to inserting a literal enter. Is there a way to restore old behavior without compromises?",
+                    "createdAt": "2025-11-21T10:15:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15036893,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5XHd",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-21T10:15:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15036370,
+                        "id": "DC_kwDOFoksYM4A5W_S",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036893",
+                    "updatedAt": "2025-11-21T10:15:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036893"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> actually I have an issue with the treesitter now.\r\n\r\nThis doesn't look like a tree-sitter issue, but an \"auto-pair\" one.\r\n\r\n> I guess it's an unintended consequence to inserting a literal enter. Is there a way to restore old behavior without compromises?\r\n\r\nThe \"You can also utilize [`MiniKeymap.map_multistep()`](https://nvim-mini.org/mini.nvim/doc/mini-keymap.html#minikeymap.map_multistep) to make it work with other uses of `<CR>`\" part of the answer was addressing just that.\r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">actually I have an issue with the treesitter now.</p>\n</blockquote>\n<p dir=\"auto\">This doesn't look like a tree-sitter issue, but an \"auto-pair\" one.</p>\n<blockquote>\n<p dir=\"auto\">I guess it's an unintended consequence to inserting a literal enter. Is there a way to restore old behavior without compromises?</p>\n</blockquote>\n<p dir=\"auto\">The \"You can also utilize <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-keymap.html#minikeymap.map_multistep\" rel=\"nofollow\"><code class=\"notranslate\">MiniKeymap.map_multistep()</code></a> to make it work with other uses of <code class=\"notranslate\">&lt;CR&gt;</code>\" part of the answer was addressing just that.</p>",
+                    "bodyText": "actually I have an issue with the treesitter now.\n\nThis doesn't look like a tree-sitter issue, but an \"auto-pair\" one.\n\nI guess it's an unintended consequence to inserting a literal enter. Is there a way to restore old behavior without compromises?\n\nThe \"You can also utilize MiniKeymap.map_multistep() to make it work with other uses of <CR>\" part of the answer was addressing just that.",
+                    "createdAt": "2025-11-21T10:47:16Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15037113,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5XK5",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-21T10:47:16Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15036370,
+                        "id": "DC_kwDOFoksYM4A5W_S",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15037113",
+                    "updatedAt": "2025-11-21T10:47:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15037113"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/143942440?v=4",
+                        "login": "TuTiuTe",
+                        "resourcePath": "/TuTiuTe",
+                        "url": "https://github.com/TuTiuTe"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "damn I should read more and not be in such a rush, thanks again",
+                    "bodyHTML": "<p dir=\"auto\">damn I should read more and not be in such a rush, thanks again</p>",
+                    "bodyText": "damn I should read more and not be in such a rush, thanks again",
+                    "createdAt": "2025-11-21T10:52:53Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15037152,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5XLg",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-21T10:52:53Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15036370,
+                        "id": "DC_kwDOFoksYM4A5W_S",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15037152",
+                    "updatedAt": "2025-11-21T10:52:54Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15037152"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370",
+            "updatedAt": "2025-11-21T09:21:02Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125#discussioncomment-15036370"
+        }
+    ],
+    "createdAt": "2025-11-21T08:18:32Z",
+    "createdViaEmail": false,
+    "databaseId": 9163510,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "id": "D_kwDOFoksYM4Ai9L2",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB_eLzvQ",
+                "name": "mini.keymap"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2025-11-21T09:05:13Z",
+    "locked": false,
+    "number": 2125,
+    "poll": null,
+    "publishedAt": "2025-11-21T08:18:32Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2125",
+    "stateReason": "RESOLVED",
+    "title": "How to disable Enter to accept suggestion on with completeopt=noinsert",
+    "updatedAt": "2025-11-21T10:52:54Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2125"
+}

@@ -1,0 +1,530 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/649392?u=36e3526d06e87171b44ce61eccf7bed6f23568f8&v=4",
+        "login": "louwers",
+        "resourcePath": "/louwers",
+        "url": "https://github.com/louwers"
+    },
+    "authorAssociation": "NONE",
+    "body": "I would like to keep the visual selection after commenting (out) a block of code.\r\n\r\nAlso I would not like to change lines.\r\n\r\nIs this possible?",
+    "bodyHTML": "<p dir=\"auto\">I would like to keep the visual selection after commenting (out) a block of code.</p>\n<p dir=\"auto\">Also I would not like to change lines.</p>\n<p dir=\"auto\">Is this possible?</p>",
+    "bodyText": "I would like to keep the visual selection after commenting (out) a block of code.\nAlso I would not like to change lines.\nIs this possible?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-10-28T19:42:46Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I am afraid I understand only part of the question.\r\n\r\n> I would like to keep the visual selection after commenting (out) a block of code.\r\n\r\nSo you'd like to have it in Visual mode like this:\r\n- If text is made comment, then preserve visual selection.\r\n- If text is made not comment, then not preserve visual selection.\r\n\r\nHaving this behavior *is* possible, but will not be officially supported. Here is a snippet:\r\n\r\n```lua\r\nlocal is_vis_mode = false\r\nlocal maybe_restore_vis_mode = function(context)\r\n  if is_vis_mode and context.action == 'comment' then vim.schedule(function() vim.cmd('normal! gv') end) end\r\n  is_vis_mode = false\r\nend\r\nlocal vis_operator_rhs = function()\r\n  is_vis_mode = true\r\n  return MiniComment.operator()\r\nend\r\n\r\nrequire('mini.comment').setup({ hooks = { post = maybe_restore_vis_mode } })\r\nvim.keymap.set('x', 'gc', vis_operator_rhs, { desc = 'Comment selection', expr = true })\r\n```\r\n\r\nThis basically overcomes the issue of determining whether the action meets the criteria for preserving visual selection (via `normal! gv`) by using custom mapping in Visual mode (via explicit `MiniComment.operator()` call which I'd personally not recommend).\r\n\r\n------\r\n\r\n> Also I would not like to change lines.\r\n\r\nI don't really understand this. Could you elaborate?",
+            "bodyHTML": "<p dir=\"auto\">I am afraid I understand only part of the question.</p>\n<blockquote>\n<p dir=\"auto\">I would like to keep the visual selection after commenting (out) a block of code.</p>\n</blockquote>\n<p dir=\"auto\">So you'd like to have it in Visual mode like this:</p>\n<ul dir=\"auto\">\n<li>If text is made comment, then preserve visual selection.</li>\n<li>If text is made not comment, then not preserve visual selection.</li>\n</ul>\n<p dir=\"auto\">Having this behavior <em>is</em> possible, but will not be officially supported. Here is a snippet:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local is_vis_mode = false\nlocal maybe_restore_vis_mode = function(context)\n  if is_vis_mode and context.action == 'comment' then vim.schedule(function() vim.cmd('normal! gv') end) end\n  is_vis_mode = false\nend\nlocal vis_operator_rhs = function()\n  is_vis_mode = true\n  return MiniComment.operator()\nend\n\nrequire('mini.comment').setup({ hooks = { post = maybe_restore_vis_mode } })\nvim.keymap.set('x', 'gc', vis_operator_rhs, { desc = 'Comment selection', expr = true })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">maybe_restore_vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">context</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">is_vis_mode</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">context</span>.<span class=\"pl-e\">action</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>comment<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! gv<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">is_vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">vis_operator_rhs</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">is_vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniComment</span>.<span class=\"pl-c1\">operator</span>()\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.comment<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">hooks</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">post</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">maybe_restore_vis_mode</span> } })\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>gc<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vis_operator_rhs</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Comment selection<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })</pre></div>\n<p dir=\"auto\">This basically overcomes the issue of determining whether the action meets the criteria for preserving visual selection (via <code class=\"notranslate\">normal! gv</code>) by using custom mapping in Visual mode (via explicit <code class=\"notranslate\">MiniComment.operator()</code> call which I'd personally not recommend).</p>\n<hr>\n<blockquote>\n<p dir=\"auto\">Also I would not like to change lines.</p>\n</blockquote>\n<p dir=\"auto\">I don't really understand this. Could you elaborate?</p>",
+            "bodyText": "I am afraid I understand only part of the question.\n\nI would like to keep the visual selection after commenting (out) a block of code.\n\nSo you'd like to have it in Visual mode like this:\n\nIf text is made comment, then preserve visual selection.\nIf text is made not comment, then not preserve visual selection.\n\nHaving this behavior is possible, but will not be officially supported. Here is a snippet:\nlocal is_vis_mode = false\nlocal maybe_restore_vis_mode = function(context)\n  if is_vis_mode and context.action == 'comment' then vim.schedule(function() vim.cmd('normal! gv') end) end\n  is_vis_mode = false\nend\nlocal vis_operator_rhs = function()\n  is_vis_mode = true\n  return MiniComment.operator()\nend\n\nrequire('mini.comment').setup({ hooks = { post = maybe_restore_vis_mode } })\nvim.keymap.set('x', 'gc', vis_operator_rhs, { desc = 'Comment selection', expr = true })\nThis basically overcomes the issue of determining whether the action meets the criteria for preserving visual selection (via normal! gv) by using custom mapping in Visual mode (via explicit MiniComment.operator() call which I'd personally not recommend).\n\n\nAlso I would not like to change lines.\n\nI don't really understand this. Could you elaborate?",
+            "createdAt": "2024-10-28T15:08:09Z",
+            "createdViaEmail": false,
+            "databaseId": 11075985,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AqQGR",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-10-28T15:08:09Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/649392?u=36e3526d06e87171b44ce61eccf7bed6f23568f8&v=4",
+                        "login": "louwers",
+                        "resourcePath": "/louwers",
+                        "url": "https://github.com/louwers"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Basically, I want the same behavior as other editors such as VS Code.",
+                    "bodyHTML": "<p dir=\"auto\">Basically, I want the same behavior as other editors such as VS Code.</p>",
+                    "bodyText": "Basically, I want the same behavior as other editors such as VS Code.",
+                    "createdAt": "2024-10-28T18:06:03Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11078160,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AqQoQ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-28T18:06:03Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11075985,
+                        "id": "DC_kwDOFoksYM4AqQGR",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11075985"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11078160",
+                    "updatedAt": "2024-10-28T18:06:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11078160"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/649392?u=36e3526d06e87171b44ce61eccf7bed6f23568f8&v=4",
+                        "login": "louwers",
+                        "resourcePath": "/louwers",
+                        "url": "https://github.com/louwers"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "\r\nhttps://github.com/user-attachments/assets/59e272c4-3171-417c-ac46-26544a551ef2\r\n\r\n",
+                    "bodyHTML": "<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">Screen.Recording.2024-10-28.at.19.06.54.mov</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/649392/380833855-59e272c4-3171-417c-ac46-26544a551ef2.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNDIsIm5iZiI6MTc5MzU1MzA0MiwicGF0aCI6Ii82NDkzOTIvMzgwODMzODU1LTU5ZTI3MmM0LTMxNzEtNDE3Yy1hYzQ2LTI2NTQ0YTU1MWVmMi5tb3Y_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEwNDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wZjg0YTE3NGI5MDg3ZjlkYjIyMjUzNTZkMjk1ZDQyYjc0N2VlZWQ0MjM5Mzg2M2I0YjNjODQ0NDM4YjAzZTgyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZxdWlja3RpbWUifQ.t6USIta0BGaVjwCQl_Vc1bGIKZticmlDweZgk6ljd8o\" data-canonical-src=\"https://private-user-images.githubusercontent.com/649392/380833855-59e272c4-3171-417c-ac46-26544a551ef2.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzNDIsIm5iZiI6MTc5MzU1MzA0MiwicGF0aCI6Ii82NDkzOTIvMzgwODMzODU1LTU5ZTI3MmM0LTMxNzEtNDE3Yy1hYzQ2LTI2NTQ0YTU1MWVmMi5tb3Y_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEwNDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wZjg0YTE3NGI5MDg3ZjlkYjIyMjUzNTZkMjk1ZDQyYjc0N2VlZWQ0MjM5Mzg2M2I0YjNjODQ0NDM4YjAzZTgyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZxdWlja3RpbWUifQ.t6USIta0BGaVjwCQl_Vc1bGIKZticmlDweZgk6ljd8o\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+                    "bodyText": "Screen.Recording.2024-10-28.at.19.06.54.mov",
+                    "createdAt": "2024-10-28T18:07:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11078168,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AqQoY",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-28T18:07:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11075985,
+                        "id": "DC_kwDOFoksYM4AqQGR",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11075985"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11078168",
+                    "updatedAt": "2024-10-28T18:07:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11078168"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Basically, I want the same behavior as other editors such as VS Code.\r\n\r\nThis is Neovim which itself has a long history (including Vim) of how it handles commenting and 'mini.comment' represents exactly that.\r\n\r\nAs far as I can tell with the brief VS Code tests, 'mini.comment' behaves more like `<C-/>` (i.e. per-line toggle comment which stops selection) and not like `<C-S-a>` (i.e. toggle block comment which preserves selection).\r\n\r\nThe closest to VS Code behavior of `<C-S-a>` can be achieved with the solution above, but probably also `and context.action == 'comment'` condition needs to be removed (to preserve selection regardless of the action performed). This will work only on per line basis as ['mini.comment' doesn't support block comments](https://github.com/echasnovski/mini.nvim/blob/919b953f044d97a2243cc2d1f0b316a199434127/doc/mini-comment.txt#L21).\r\n\r\nMy sincere suggestion would be to get used to the mini.comment' behavior as most Neovim (and Vim) operators don't preserve visual selection after operating on it.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Basically, I want the same behavior as other editors such as VS Code.</p>\n</blockquote>\n<p dir=\"auto\">This is Neovim which itself has a long history (including Vim) of how it handles commenting and 'mini.comment' represents exactly that.</p>\n<p dir=\"auto\">As far as I can tell with the brief VS Code tests, 'mini.comment' behaves more like <code class=\"notranslate\">&lt;C-/&gt;</code> (i.e. per-line toggle comment which stops selection) and not like <code class=\"notranslate\">&lt;C-S-a&gt;</code> (i.e. toggle block comment which preserves selection).</p>\n<p dir=\"auto\">The closest to VS Code behavior of <code class=\"notranslate\">&lt;C-S-a&gt;</code> can be achieved with the solution above, but probably also <code class=\"notranslate\">and context.action == 'comment'</code> condition needs to be removed (to preserve selection regardless of the action performed). This will work only on per line basis as <a href=\"https://github.com/echasnovski/mini.nvim/blob/919b953f044d97a2243cc2d1f0b316a199434127/doc/mini-comment.txt#L21\">'mini.comment' doesn't support block comments</a>.</p>\n<p dir=\"auto\">My sincere suggestion would be to get used to the mini.comment' behavior as most Neovim (and Vim) operators don't preserve visual selection after operating on it.</p>",
+                    "bodyText": "Basically, I want the same behavior as other editors such as VS Code.\n\nThis is Neovim which itself has a long history (including Vim) of how it handles commenting and 'mini.comment' represents exactly that.\nAs far as I can tell with the brief VS Code tests, 'mini.comment' behaves more like <C-/> (i.e. per-line toggle comment which stops selection) and not like <C-S-a> (i.e. toggle block comment which preserves selection).\nThe closest to VS Code behavior of <C-S-a> can be achieved with the solution above, but probably also and context.action == 'comment' condition needs to be removed (to preserve selection regardless of the action performed). This will work only on per line basis as 'mini.comment' doesn't support block comments.\nMy sincere suggestion would be to get used to the mini.comment' behavior as most Neovim (and Vim) operators don't preserve visual selection after operating on it.",
+                    "createdAt": "2024-10-28T19:42:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11079114,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AqQ3K",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-28T19:42:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11075985,
+                        "id": "DC_kwDOFoksYM4AqQGR",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11075985"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11079114",
+                    "updatedAt": "2024-10-28T19:42:43Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11079114"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/649392?u=36e3526d06e87171b44ce61eccf7bed6f23568f8&v=4",
+                        "login": "louwers",
+                        "resourcePath": "/louwers",
+                        "url": "https://github.com/louwers"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for your detailed answers!",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for your detailed answers!</p>",
+                    "bodyText": "Thanks for your detailed answers!",
+                    "createdAt": "2024-10-28T19:51:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11079184,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AqQ4Q",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-28T19:51:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11075985,
+                        "id": "DC_kwDOFoksYM4AqQGR",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11075985"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11079184",
+                    "updatedAt": "2024-10-28T19:51:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11079184"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11075985",
+            "updatedAt": "2024-10-28T15:08:10Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313#discussioncomment-11075985"
+        }
+    ],
+    "createdAt": "2024-10-27T22:58:51Z",
+    "createdViaEmail": false,
+    "databaseId": 7379572,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/649392?u=36e3526d06e87171b44ce61eccf7bed6f23568f8&v=4",
+        "login": "louwers",
+        "resourcePath": "/louwers",
+        "url": "https://github.com/louwers"
+    },
+    "id": "D_kwDOFoksYM4AcJp0",
+    "includesCreatedEdit": true,
+    "isAnswered": false,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1uuT",
+                "name": "mini.comment"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-10-27T22:59:25Z",
+    "locked": false,
+    "number": 1313,
+    "poll": null,
+    "publishedAt": "2024-10-27T22:58:51Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1313",
+    "stateReason": "RESOLVED",
+    "title": "[mini.comment] Keep visual selection after toggling comment",
+    "updatedAt": "2024-10-28T19:51:12Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1313"
+}

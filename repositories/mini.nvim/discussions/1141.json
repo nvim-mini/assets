@@ -1,0 +1,1640 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Here's a tiny project picker that I thought I'd share. It's \"hardcoded\" to use ~/Projects for performance. Keep in mind that it hasn't been thoroughly tested and was mainly an ad hoc prototype for my own use :)\r\n\r\n\r\n```lua\r\nlocal projects = function(_, opts)\r\n  local projects = {}\r\n  local projects_dir = vim.fn.expand(\"~/Projects\")\r\n\r\n  for name, type in vim.fs.dir(projects_dir) do\r\n    if type == \"directory\" then\r\n      table.insert(projects, { text = name, dir = projects_dir .. '/' .. name })\r\n    end\r\n  end\r\n\r\n  local choose = function(item)\r\n    if not item then return end\r\n    vim.fn.chdir(item.dir)\r\n\r\n    -- Schedule to focus mini.files, as it doesn't otherwise.\r\n    vim.schedule(function()\r\n      require(\"mini.files\").open(item.dir)\r\n    end)\r\n  end\r\n\r\n  local preview = function(buf_id, item)\r\n    if not item then return end\r\n\r\n    local files = {}\r\n    for name, type in vim.fs.dir(item.dir) do\r\n      if type == \"file\" and not name:match(\"^%.\") then\r\n        table.insert(files, name)\r\n      end\r\n    end\r\n\r\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, files)\r\n  end\r\n\r\n  local source = { items = projects, name = \"Projects\", choose = choose, preview = preview }\r\n  opts = vim.tbl_deep_extend(\"force\", { source = source }, opts or {})\r\n  return MiniPick.start(opts)\r\nend\r\n```\r\n\r\n![Screenshot from 2024-08-12 22-07-53](https://github.com/user-attachments/assets/3a46a72e-f86f-4d35-8880-41a00dc59438)\r\n\r\n![image](https://github.com/user-attachments/assets/a3a6204c-a109-476b-b592-88f45f9a6cb8)\r\n\r\n![image](https://github.com/user-attachments/assets/6748f2a7-bcf7-4b03-8a42-f9e3bc05fbba)\r\n",
+    "bodyHTML": "<p dir=\"auto\">Here's a tiny project picker that I thought I'd share. It's \"hardcoded\" to use ~/Projects for performance. Keep in mind that it hasn't been thoroughly tested and was mainly an ad hoc prototype for my own use :)</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local projects = function(_, opts)\n  local projects = {}\n  local projects_dir = vim.fn.expand(&quot;~/Projects&quot;)\n\n  for name, type in vim.fs.dir(projects_dir) do\n    if type == &quot;directory&quot; then\n      table.insert(projects, { text = name, dir = projects_dir .. '/' .. name })\n    end\n  end\n\n  local choose = function(item)\n    if not item then return end\n    vim.fn.chdir(item.dir)\n\n    -- Schedule to focus mini.files, as it doesn't otherwise.\n    vim.schedule(function()\n      require(&quot;mini.files&quot;).open(item.dir)\n    end)\n  end\n\n  local preview = function(buf_id, item)\n    if not item then return end\n\n    local files = {}\n    for name, type in vim.fs.dir(item.dir) do\n      if type == &quot;file&quot; and not name:match(&quot;^%.&quot;) then\n        table.insert(files, name)\n      end\n    end\n\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, files)\n  end\n\n  local source = { items = projects, name = &quot;Projects&quot;, choose = choose, preview = preview }\n  opts = vim.tbl_deep_extend(&quot;force&quot;, { source = source }, opts or {})\n  return MiniPick.start(opts)\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">projects</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">projects</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">projects_dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>~/Projects<span class=\"pl-pds\">\"</span></span>)\n\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-c1\">type</span> <span class=\"pl-k\">in</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">dir</span>(<span class=\"pl-smi\">projects_dir</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>directory<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">projects</span>, { <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">projects_dir</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">name</span> })\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">chdir</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">dir</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Schedule to focus mini.files, as it doesn't otherwise.</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">open</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">dir</span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">item</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-c1\">type</span> <span class=\"pl-k\">in</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">dir</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">dir</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>file<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-en\">name</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n        <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">files</span>, <span class=\"pl-smi\">name</span>)\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">files</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">projects</span>, <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Projects<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span>, <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview</span> }\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">source</span> }, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {})\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/91024200/357253301-3a46a72e-f86f-4d35-8880-41a00dc59438.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NTksIm5iZiI6MTc5MzU1MjQ1OSwicGF0aCI6Ii85MTAyNDIwMC8zNTcyNTMzMDEtM2E0NmE3MmUtZjg2Zi00ZDM1LTg4ODAtNDFhMDBkYzU5NDM4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDA1OVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWVhNjYzODRiN2YxZGE0ZTJmMDI0ZDI5ZDZhMzUxMGE3OGY4YzgyOGJmZGM4ZGI1NzdiZTE5NDFmZmRmNzc5NjQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.q2epmEDvBSdtVapkJXQPjwPlcxzQCfKuk-bAU7bxcWc\"><img src=\"https://private-user-images.githubusercontent.com/91024200/357253301-3a46a72e-f86f-4d35-8880-41a00dc59438.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NTksIm5iZiI6MTc5MzU1MjQ1OSwicGF0aCI6Ii85MTAyNDIwMC8zNTcyNTMzMDEtM2E0NmE3MmUtZjg2Zi00ZDM1LTg4ODAtNDFhMDBkYzU5NDM4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDA1OVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWVhNjYzODRiN2YxZGE0ZTJmMDI0ZDI5ZDZhMzUxMGE3OGY4YzgyOGJmZGM4ZGI1NzdiZTE5NDFmZmRmNzc5NjQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.q2epmEDvBSdtVapkJXQPjwPlcxzQCfKuk-bAU7bxcWc\" alt=\"Screenshot from 2024-08-12 22-07-53\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/91024200/357453669-a3a6204c-a109-476b-b592-88f45f9a6cb8.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NTksIm5iZiI6MTc5MzU1MjQ1OSwicGF0aCI6Ii85MTAyNDIwMC8zNTc0NTM2NjktYTNhNjIwNGMtYTEwOS00NzZiLWI1OTItODhmNDVmOWE2Y2I4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDA1OVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVkMjRmMjAyZDE0Nzc1MjlmYjRjNzEyNGU2YjlhN2MwNmJjNTk4ODcyNWU4NmNjNWYwNGY5MGM1Yjc3YjU3NWImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.DLWwFwhKLNXOAX_F5FvEHBQt3szslDHcbsj-WUUCMkA\"><img src=\"https://private-user-images.githubusercontent.com/91024200/357453669-a3a6204c-a109-476b-b592-88f45f9a6cb8.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NTksIm5iZiI6MTc5MzU1MjQ1OSwicGF0aCI6Ii85MTAyNDIwMC8zNTc0NTM2NjktYTNhNjIwNGMtYTEwOS00NzZiLWI1OTItODhmNDVmOWE2Y2I4LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDA1OVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVkMjRmMjAyZDE0Nzc1MjlmYjRjNzEyNGU2YjlhN2MwNmJjNTk4ODcyNWU4NmNjNWYwNGY5MGM1Yjc3YjU3NWImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.DLWwFwhKLNXOAX_F5FvEHBQt3szslDHcbsj-WUUCMkA\" alt=\"image\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/91024200/357253414-6748f2a7-bcf7-4b03-8a42-f9e3bc05fbba.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NTksIm5iZiI6MTc5MzU1MjQ1OSwicGF0aCI6Ii85MTAyNDIwMC8zNTcyNTM0MTQtNjc0OGYyYTctYmNmNy00YjAzLThhNDItZjllM2JjMDVmYmJhLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDA1OVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPThlMTUwMjFiMWRjMWUzYmI3NWYxYTM4YTJiNGVkZjk5M2VlOGFlMjQzNGZhZjAzYjc5NzQxMGM3NDQ0NWNlM2UmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.Dubpk5MSc3JVicUsPmCb-8Up_l2kL-wozDv3-FmlNlY\"><img src=\"https://private-user-images.githubusercontent.com/91024200/357253414-6748f2a7-bcf7-4b03-8a42-f9e3bc05fbba.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NTksIm5iZiI6MTc5MzU1MjQ1OSwicGF0aCI6Ii85MTAyNDIwMC8zNTcyNTM0MTQtNjc0OGYyYTctYmNmNy00YjAzLThhNDItZjllM2JjMDVmYmJhLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDA1OVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPThlMTUwMjFiMWRjMWUzYmI3NWYxYTM4YTJiNGVkZjk5M2VlOGFlMjQzNGZhZjAzYjc5NzQxMGM3NDQ0NWNlM2UmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.Dubpk5MSc3JVicUsPmCb-8Up_l2kL-wozDv3-FmlNlY\" alt=\"image\" style=\"max-width: 100%;\"></a></p>",
+    "bodyText": "Here's a tiny project picker that I thought I'd share. It's \"hardcoded\" to use ~/Projects for performance. Keep in mind that it hasn't been thoroughly tested and was mainly an ad hoc prototype for my own use :)\nlocal projects = function(_, opts)\n  local projects = {}\n  local projects_dir = vim.fn.expand(\"~/Projects\")\n\n  for name, type in vim.fs.dir(projects_dir) do\n    if type == \"directory\" then\n      table.insert(projects, { text = name, dir = projects_dir .. '/' .. name })\n    end\n  end\n\n  local choose = function(item)\n    if not item then return end\n    vim.fn.chdir(item.dir)\n\n    -- Schedule to focus mini.files, as it doesn't otherwise.\n    vim.schedule(function()\n      require(\"mini.files\").open(item.dir)\n    end)\n  end\n\n  local preview = function(buf_id, item)\n    if not item then return end\n\n    local files = {}\n    for name, type in vim.fs.dir(item.dir) do\n      if type == \"file\" and not name:match(\"^%.\") then\n        table.insert(files, name)\n      end\n    end\n\n    vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, files)\n  end\n\n  local source = { items = projects, name = \"Projects\", choose = choose, preview = preview }\n  opts = vim.tbl_deep_extend(\"force\", { source = source }, opts or {})\n  return MiniPick.start(opts)\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Nice! This can be simplified, though:\r\n- Instead of using CLI `find`, I'd recommend using `vim.fn.readdir()` (possibly together with `vim.fn.isdirectory()`). Or even `vim.fs.dir()` which already returns an iterator over entry name and its type (file, directory, etc.).\r\n- `vim.cmd.cd(item.dir)` can be `vim.fn.chdir(item.dir)`. There are tiny differences (like the latter will automatically set the \"most local\" working directory), but otherwise they are the same. It's just usually cleaner to use function directly (if it exists) than command through `vim.cmd`.\r\n- I am not really sure about motivation behind showing only files in preview. I'd say that just listing directory contents is more universally useful.",
+            "bodyHTML": "<p dir=\"auto\">Nice! This can be simplified, though:</p>\n<ul dir=\"auto\">\n<li>Instead of using CLI <code class=\"notranslate\">find</code>, I'd recommend using <code class=\"notranslate\">vim.fn.readdir()</code> (possibly together with <code class=\"notranslate\">vim.fn.isdirectory()</code>). Or even <code class=\"notranslate\">vim.fs.dir()</code> which already returns an iterator over entry name and its type (file, directory, etc.).</li>\n<li><code class=\"notranslate\">vim.cmd.cd(item.dir)</code> can be <code class=\"notranslate\">vim.fn.chdir(item.dir)</code>. There are tiny differences (like the latter will automatically set the \"most local\" working directory), but otherwise they are the same. It's just usually cleaner to use function directly (if it exists) than command through <code class=\"notranslate\">vim.cmd</code>.</li>\n<li>I am not really sure about motivation behind showing only files in preview. I'd say that just listing directory contents is more universally useful.</li>\n</ul>",
+            "bodyText": "Nice! This can be simplified, though:\n\nInstead of using CLI find, I'd recommend using vim.fn.readdir() (possibly together with vim.fn.isdirectory()). Or even vim.fs.dir() which already returns an iterator over entry name and its type (file, directory, etc.).\nvim.cmd.cd(item.dir) can be vim.fn.chdir(item.dir). There are tiny differences (like the latter will automatically set the \"most local\" working directory), but otherwise they are the same. It's just usually cleaner to use function directly (if it exists) than command through vim.cmd.\nI am not really sure about motivation behind showing only files in preview. I'd say that just listing directory contents is more universally useful.",
+            "createdAt": "2024-08-13T06:54:52Z",
+            "createdViaEmail": false,
+            "databaseId": 10322071,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnYCX",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-13T06:54:52Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 14,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> Instead of using CLI find, I'd recommend using vim.fn.readdir() (possibly together with vim.fn.isdirectory()). Or even vim.fs.dir() which already returns an iterator over entry name and its type (file, directory, etc.).\r\n\r\nTIL, will take a look at some point. Thanks!\r\n\r\n> vim.cmd.cd(item.dir) can be vim.fn.chdir(item.dir). There are tiny differences (like the latter will automatically set the \"most local\" working directory), but otherwise they are the same. It's just usually cleaner to use function directly (if it exists) than command through vim.cmd.\r\n\r\nFigured there'd be an API for that. Couldn't find it yesterday though, and it was getting late. Thanks!\r\n\r\n> I am not really sure about motivation behind showing only files in preview. I'd say that just listing directory contents is more universally useful.\r\n\r\nHaha, yes. I wasn't sure what to put as the preview but figured that something was better than nothing, and it feels consistent (with other pickers) to quickly have a view of it. But yeah, there's no profound rationale here—it's optional. :)",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Instead of using CLI find, I'd recommend using vim.fn.readdir() (possibly together with vim.fn.isdirectory()). Or even vim.fs.dir() which already returns an iterator over entry name and its type (file, directory, etc.).</p>\n</blockquote>\n<p dir=\"auto\">TIL, will take a look at some point. Thanks!</p>\n<blockquote>\n<p dir=\"auto\">vim.cmd.cd(item.dir) can be vim.fn.chdir(item.dir). There are tiny differences (like the latter will automatically set the \"most local\" working directory), but otherwise they are the same. It's just usually cleaner to use function directly (if it exists) than command through vim.cmd.</p>\n</blockquote>\n<p dir=\"auto\">Figured there'd be an API for that. Couldn't find it yesterday though, and it was getting late. Thanks!</p>\n<blockquote>\n<p dir=\"auto\">I am not really sure about motivation behind showing only files in preview. I'd say that just listing directory contents is more universally useful.</p>\n</blockquote>\n<p dir=\"auto\">Haha, yes. I wasn't sure what to put as the preview but figured that something was better than nothing, and it feels consistent (with other pickers) to quickly have a view of it. But yeah, there's no profound rationale here—it's optional. :)</p>",
+                    "bodyText": "Instead of using CLI find, I'd recommend using vim.fn.readdir() (possibly together with vim.fn.isdirectory()). Or even vim.fs.dir() which already returns an iterator over entry name and its type (file, directory, etc.).\n\nTIL, will take a look at some point. Thanks!\n\nvim.cmd.cd(item.dir) can be vim.fn.chdir(item.dir). There are tiny differences (like the latter will automatically set the \"most local\" working directory), but otherwise they are the same. It's just usually cleaner to use function directly (if it exists) than command through vim.cmd.\n\nFigured there'd be an API for that. Couldn't find it yesterday though, and it was getting late. Thanks!\n\nI am not really sure about motivation behind showing only files in preview. I'd say that just listing directory contents is more universally useful.\n\nHaha, yes. I wasn't sure what to put as the preview but figured that something was better than nothing, and it feels consistent (with other pickers) to quickly have a view of it. But yeah, there's no profound rationale here—it's optional. :)",
+                    "createdAt": "2024-08-13T11:52:53Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10325038,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "id": "DC_kwDOFoksYM4AnYwu",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-08-13T11:53:18Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-13T11:52:53Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10325038",
+                    "updatedAt": "2024-08-13T11:53:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10325038"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "@echasnovski Added your recommendations; let me know if there's more improvement that could be done. :)",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Added your recommendations; let me know if there's more improvement that could be done. :)</p>",
+                    "bodyText": "@echasnovski Added your recommendations; let me know if there's more improvement that could be done. :)",
+                    "createdAt": "2024-08-13T13:47:18Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10326313,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnZEp",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-13T13:47:18Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10326313",
+                    "updatedAt": "2024-08-13T13:47:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10326313"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> @echasnovski Added your recommendations; let me know if there's more improvement that could be done. :)\r\n\r\nSince you asked ( :) ), I'd personally wouldn't use `vim.fn.fnamemodify(item.dir .. '/' .. name, \":~:s?\\\\~/Projects/??\")`. The `string.sub()` approach looks better (more explicit) here: `string.sub(item.dir .. '/' .. name, projects_dir:len() + 2)`. Or even just `name`.\r\n\r\nBy the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for `MiniExtra.pickers.explorer()`. Here is what I'd use:\r\n\r\n```lua\r\n  MiniPick.registry.projects = function()\r\n    local cwd = vim.fn.expand('~/Projects')\r\n    local filter = function(data) return data.fs_type == 'directory' end\r\n    local choose = function(item)\r\n      vim.fn.chdir(item.path)\r\n      vim.schedule(function() MiniFiles.open() end)\r\n    end\r\n\r\n    return MiniExtra.pickers.explorer({ cwd = cwd, filter = filter }, { source = { choose = choose } })\r\n  end\r\n```",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Added your recommendations; let me know if there's more improvement that could be done. :)</p>\n</blockquote>\n<p dir=\"auto\">Since you asked ( :) ), I'd personally wouldn't use <code class=\"notranslate\">vim.fn.fnamemodify(item.dir .. '/' .. name, \":~:s?\\\\~/Projects/??\")</code>. The <code class=\"notranslate\">string.sub()</code> approach looks better (more explicit) here: <code class=\"notranslate\">string.sub(item.dir .. '/' .. name, projects_dir:len() + 2)</code>. Or even just <code class=\"notranslate\">name</code>.</p>\n<p dir=\"auto\">By the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for <code class=\"notranslate\">MiniExtra.pickers.explorer()</code>. Here is what I'd use:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  MiniPick.registry.projects = function()\n    local cwd = vim.fn.expand('~/Projects')\n    local filter = function(data) return data.fs_type == 'directory' end\n    local choose = function(item)\n      vim.fn.chdir(item.path)\n      vim.schedule(function() MiniFiles.open() end)\n    end\n\n    return MiniExtra.pickers.explorer({ cwd = cwd, filter = filter }, { source = { choose = choose } })\n  end\"><pre class=\"notranslate\">  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">projects</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>~/Projects<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">data</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">fs_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>directory<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">chdir</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">path</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">open</span>() <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">explorer</span>({ <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">filter</span> }, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span> } })\n  <span class=\"pl-k\">end</span></pre></div>",
+                    "bodyText": "@echasnovski Added your recommendations; let me know if there's more improvement that could be done. :)\n\nSince you asked ( :) ), I'd personally wouldn't use vim.fn.fnamemodify(item.dir .. '/' .. name, \":~:s?\\\\~/Projects/??\"). The string.sub() approach looks better (more explicit) here: string.sub(item.dir .. '/' .. name, projects_dir:len() + 2). Or even just name.\nBy the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for MiniExtra.pickers.explorer(). Here is what I'd use:\n  MiniPick.registry.projects = function()\n    local cwd = vim.fn.expand('~/Projects')\n    local filter = function(data) return data.fs_type == 'directory' end\n    local choose = function(item)\n      vim.fn.chdir(item.path)\n      vim.schedule(function() MiniFiles.open() end)\n    end\n\n    return MiniExtra.pickers.explorer({ cwd = cwd, filter = filter }, { source = { choose = choose } })\n  end",
+                    "createdAt": "2024-08-13T14:54:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10327131,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AnZRb",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-08-13T14:55:27Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-13T14:54:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10327131",
+                    "updatedAt": "2024-08-13T14:55:27Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10327131"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> > @echasnovski Added your recommendations; let me know if there's more improvement that could be done. :)\r\n> \r\n> Since you asked ( :) ), I'd personally wouldn't use `vim.fn.fnamemodify(item.dir .. '/' .. name, \":~:s?\\\\~/Projects/??\")`. The `string.sub()` approach looks better (more explicit) here: `string.sub(item.dir .. '/' .. name, projects_dir:len() + 2)`. Or even just `name`.\r\n> \r\n> By the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for `MiniExtra.pickers.explorer()`. Here is what I'd use:\r\n> \r\n> ```lua\r\n>   MiniPick.registry.projects = function()\r\n>     local cwd = vim.fn.expand('~/Projects')\r\n>     local filter = function(data) return data.fs_type == 'directory' end\r\n>     local choose = function(item)\r\n>       vim.fn.chdir(item.path)\r\n>       vim.schedule(function() MiniFiles.open() end)\r\n>     end\r\n> \r\n>     return MiniExtra.pickers.explorer({ cwd = cwd, filter = filter }, { source = { choose = choose } })\r\n>   end\r\n> ```\r\n\r\n> By the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for MiniExtra.pickers.explorer(). Here is what I'd use:\r\n\r\nBrilliant, perhaps new Projects picker in mini.extra? ;) \r\n\r\n> string.sub(item.dir .. '/' .. name, projects_dir:len() + 2). Or even just name.\r\n\r\nuh neat, will check it out. Thanks!",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Added your recommendations; let me know if there's more improvement that could be done. :)</p>\n</blockquote>\n<p dir=\"auto\">Since you asked ( :) ), I'd personally wouldn't use <code class=\"notranslate\">vim.fn.fnamemodify(item.dir .. '/' .. name, \":~:s?\\\\~/Projects/??\")</code>. The <code class=\"notranslate\">string.sub()</code> approach looks better (more explicit) here: <code class=\"notranslate\">string.sub(item.dir .. '/' .. name, projects_dir:len() + 2)</code>. Or even just <code class=\"notranslate\">name</code>.</p>\n<p dir=\"auto\">By the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for <code class=\"notranslate\">MiniExtra.pickers.explorer()</code>. Here is what I'd use:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  MiniPick.registry.projects = function()\n    local cwd = vim.fn.expand('~/Projects')\n    local filter = function(data) return data.fs_type == 'directory' end\n    local choose = function(item)\n      vim.fn.chdir(item.path)\n      vim.schedule(function() MiniFiles.open() end)\n    end\n\n    return MiniExtra.pickers.explorer({ cwd = cwd, filter = filter }, { source = { choose = choose } })\n  end\"><pre class=\"notranslate\">  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">projects</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>~/Projects<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">data</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">fs_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>directory<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">chdir</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">path</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">open</span>() <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">explorer</span>({ <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">filter</span> }, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span> } })\n  <span class=\"pl-k\">end</span></pre></div>\n</blockquote>\n<blockquote>\n<p dir=\"auto\">By the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for MiniExtra.pickers.explorer(). Here is what I'd use:</p>\n</blockquote>\n<p dir=\"auto\">Brilliant, perhaps new Projects picker in mini.extra? ;)</p>\n<blockquote>\n<p dir=\"auto\">string.sub(item.dir .. '/' .. name, projects_dir:len() + 2). Or even just name.</p>\n</blockquote>\n<p dir=\"auto\">uh neat, will check it out. Thanks!</p>",
+                    "bodyText": "@echasnovski Added your recommendations; let me know if there's more improvement that could be done. :)\n\nSince you asked ( :) ), I'd personally wouldn't use vim.fn.fnamemodify(item.dir .. '/' .. name, \":~:s?\\\\~/Projects/??\"). The string.sub() approach looks better (more explicit) here: string.sub(item.dir .. '/' .. name, projects_dir:len() + 2). Or even just name.\nBy the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for MiniExtra.pickers.explorer(). Here is what I'd use:\n  MiniPick.registry.projects = function()\n    local cwd = vim.fn.expand('~/Projects')\n    local filter = function(data) return data.fs_type == 'directory' end\n    local choose = function(item)\n      vim.fn.chdir(item.path)\n      vim.schedule(function() MiniFiles.open() end)\n    end\n\n    return MiniExtra.pickers.explorer({ cwd = cwd, filter = filter }, { source = { choose = choose } })\n  end\n\n\nBy the way, I also realized (during trying this out, since I have the same kind directory in '~/repos'), that this is can be implemented as a wrapper for MiniExtra.pickers.explorer(). Here is what I'd use:\n\nBrilliant, perhaps new Projects picker in mini.extra? ;)\n\nstring.sub(item.dir .. '/' .. name, projects_dir:len() + 2). Or even just name.\n\nuh neat, will check it out. Thanks!",
+                    "createdAt": "2024-08-13T14:57:31Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10327170,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnZSC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-13T14:57:31Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10327170",
+                    "updatedAt": "2024-08-13T14:57:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10327170"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Brilliant, perhaps new Projects picker in mini.extra? ;)\r\n\r\nNo, I don't think so :sweat_smile: But I *think* I'll add the version of this to my 'init.lua':\r\n\r\n```lua\r\nMiniPick.registry.projects = function()\r\n  local cwd = vim.fn.expand('~/repos')\r\n  local choose = function(item)\r\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\r\n  end\r\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\r\nend\r\n```",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Brilliant, perhaps new Projects picker in mini.extra? ;)</p>\n</blockquote>\n<p dir=\"auto\">No, I don't think so 😅 But I <em>think</em> I'll add the version of this to my 'init.lua':</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniPick.registry.projects = function()\n  local cwd = vim.fn.expand('~/repos')\n  local choose = function(item)\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\n  end\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">projects</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>~/repos<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">files</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">path</span> } }) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">explorer</span>({ <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> }, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span> } })\n<span class=\"pl-k\">end</span></pre></div>",
+                    "bodyText": "Brilliant, perhaps new Projects picker in mini.extra? ;)\n\nNo, I don't think so 😅 But I think I'll add the version of this to my 'init.lua':\nMiniPick.registry.projects = function()\n  local cwd = vim.fn.expand('~/repos')\n  local choose = function(item)\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\n  end\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\nend",
+                    "createdAt": "2024-08-13T15:01:33Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10327220,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AnZS0",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-08-13T15:03:39Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-13T15:01:33Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10327220",
+                    "updatedAt": "2024-08-13T15:03:39Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10327220"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> > Brilliant, perhaps new Projects picker in mini.extra? ;)\r\n> \r\n> No, I don't think so 😅 But I _think_ I'll add the version of this to my 'init.lua':\r\n> \r\n> ```lua\r\n> MiniPick.registry.projects = function()\r\n>   local cwd = vim.fn.expand('~/repos')\r\n>   local choose = function(item)\r\n>     vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\r\n>   end\r\n>   return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\r\n> end\r\n> ```\r\nI'm still experimenting, but let me share my thought process. I usually start Neovim in the individual project directory. When I need to switch to another project, it's likely because I need to work on it directly, so having mini.files for renaming, editing, or moving files is necessary. If I want to work on specific files, I can simply open them as needed. Wrapping Explorer works more or less the same way, but you lose the direct flexibility—though you can mimic it to an extent with bindings, I believe. :)",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">Brilliant, perhaps new Projects picker in mini.extra? ;)</p>\n</blockquote>\n<p dir=\"auto\">No, I don't think so 😅 But I <em>think</em> I'll add the version of this to my 'init.lua':</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniPick.registry.projects = function()\n  local cwd = vim.fn.expand('~/repos')\n  local choose = function(item)\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\n  end\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">projects</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>~/repos<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">files</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">path</span> } }) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">explorer</span>({ <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> }, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span> } })\n<span class=\"pl-k\">end</span></pre></div>\n</blockquote>\n<p dir=\"auto\">I'm still experimenting, but let me share my thought process. I usually start Neovim in the individual project directory. When I need to switch to another project, it's likely because I need to work on it directly, so having mini.files for renaming, editing, or moving files is necessary. If I want to work on specific files, I can simply open them as needed. Wrapping Explorer works more or less the same way, but you lose the direct flexibility—though you can mimic it to an extent with bindings, I believe. :)</p>",
+                    "bodyText": "Brilliant, perhaps new Projects picker in mini.extra? ;)\n\nNo, I don't think so 😅 But I think I'll add the version of this to my 'init.lua':\nMiniPick.registry.projects = function()\n  local cwd = vim.fn.expand('~/repos')\n  local choose = function(item)\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\n  end\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\nend\n\nI'm still experimenting, but let me share my thought process. I usually start Neovim in the individual project directory. When I need to switch to another project, it's likely because I need to work on it directly, so having mini.files for renaming, editing, or moving files is necessary. If I want to work on specific files, I can simply open them as needed. Wrapping Explorer works more or less the same way, but you lose the direct flexibility—though you can mimic it to an extent with bindings, I believe. :)",
+                    "createdAt": "2024-08-13T20:27:17Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10330207,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnaBf",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-13T20:27:17Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10330207",
+                    "updatedAt": "2024-08-13T20:27:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10330207"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> When I need to switch to another project, it's likely because I need to work on it directly, so having mini.files for renaming, editing, or moving files is necessary.\r\n\r\nI tend to have both \"work on the project\" and \"open file from that project for reference\". The first one is covered by sessions and `MiniSessions.select()`, i.e. if there is \"work on the project\" then there should be session for it. The second one is also quite frequent (like take a look at specific Neovim source code file, for example) and which this new \"projects\" picker is intended to remedy. Up until now using `:Pick visit_paths` was enough (and even more straightforward as there is no need to pick the project first), but I'll try this one instead.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">When I need to switch to another project, it's likely because I need to work on it directly, so having mini.files for renaming, editing, or moving files is necessary.</p>\n</blockquote>\n<p dir=\"auto\">I tend to have both \"work on the project\" and \"open file from that project for reference\". The first one is covered by sessions and <code class=\"notranslate\">MiniSessions.select()</code>, i.e. if there is \"work on the project\" then there should be session for it. The second one is also quite frequent (like take a look at specific Neovim source code file, for example) and which this new \"projects\" picker is intended to remedy. Up until now using <code class=\"notranslate\">:Pick visit_paths</code> was enough (and even more straightforward as there is no need to pick the project first), but I'll try this one instead.</p>",
+                    "bodyText": "When I need to switch to another project, it's likely because I need to work on it directly, so having mini.files for renaming, editing, or moving files is necessary.\n\nI tend to have both \"work on the project\" and \"open file from that project for reference\". The first one is covered by sessions and MiniSessions.select(), i.e. if there is \"work on the project\" then there should be session for it. The second one is also quite frequent (like take a look at specific Neovim source code file, for example) and which this new \"projects\" picker is intended to remedy. Up until now using :Pick visit_paths was enough (and even more straightforward as there is no need to pick the project first), but I'll try this one instead.",
+                    "createdAt": "2024-08-14T06:56:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10333817,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ana55",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-14T06:56:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10333817",
+                    "updatedAt": "2024-08-14T06:56:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10333817"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62209?u=16abb81916ccbbfecbde0fbbea0e99120404e099&v=4",
+                        "login": "evantravers",
+                        "resourcePath": "/evantravers",
+                        "url": "https://github.com/evantravers"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I came here looking for this… I wanted to be able to access my folder of notes anywhere on my system. \r\n\r\nIt makes me kind of wish that `:Pick files` could take a `path=` option to cover options like this.",
+                    "bodyHTML": "<p dir=\"auto\">I came here looking for this… I wanted to be able to access my folder of notes anywhere on my system.</p>\n<p dir=\"auto\">It makes me kind of wish that <code class=\"notranslate\">:Pick files</code> could take a <code class=\"notranslate\">path=</code> option to cover options like this.</p>",
+                    "bodyText": "I came here looking for this… I wanted to be able to access my folder of notes anywhere on my system.\nIt makes me kind of wish that :Pick files could take a path= option to cover options like this.",
+                    "createdAt": "2024-10-02T20:16:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10825017,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ApS05",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-02T20:16:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10825017",
+                    "updatedAt": "2024-10-02T20:16:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10825017"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "You can make it accept `cwd` option, which is the same effect. There is [an example just for that](https://github.com/echasnovski/mini.nvim/blob/848c5e8f428faf843051768e0d56104cd02aea1f/doc/mini-pick.txt#L1204-L1209).\r\n\r\nThe reason this is not built-in is because `cwd` is something that any source can have, so in that case it would have made sense to add to every source. But the latter is a bit too much.",
+                    "bodyHTML": "<p dir=\"auto\">You can make it accept <code class=\"notranslate\">cwd</code> option, which is the same effect. There is <a href=\"https://github.com/echasnovski/mini.nvim/blob/848c5e8f428faf843051768e0d56104cd02aea1f/doc/mini-pick.txt#L1204-L1209\">an example just for that</a>.</p>\n<p dir=\"auto\">The reason this is not built-in is because <code class=\"notranslate\">cwd</code> is something that any source can have, so in that case it would have made sense to add to every source. But the latter is a bit too much.</p>",
+                    "bodyText": "You can make it accept cwd option, which is the same effect. There is an example just for that.\nThe reason this is not built-in is because cwd is something that any source can have, so in that case it would have made sense to add to every source. But the latter is a bit too much.",
+                    "createdAt": "2024-10-03T07:26:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10828666,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ApTt6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-03T07:26:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10828666",
+                    "updatedAt": "2024-10-03T07:26:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10828666"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62209?u=16abb81916ccbbfecbde0fbbea0e99120404e099&v=4",
+                        "login": "evantravers",
+                        "resourcePath": "/evantravers",
+                        "url": "https://github.com/evantravers"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "It makes a lot of sense. I did read through the docs and was able to scrabble this ugly one liner that does (I believe) the same thing: https://github.com/evantravers/dotfiles/blob/3a33131a6a4dbe042fff09b1622494c557ff6f3a/home-manager/nvim/default.nix#L211",
+                    "bodyHTML": "<p dir=\"auto\">It makes a lot of sense. I did read through the docs and was able to scrabble this ugly one liner that does (I believe) the same thing: <a href=\"https://github.com/evantravers/dotfiles/blob/3a33131a6a4dbe042fff09b1622494c557ff6f3a/home-manager/nvim/default.nix#L211\">https://github.com/evantravers/dotfiles/blob/3a33131a6a4dbe042fff09b1622494c557ff6f3a/home-manager/nvim/default.nix#L211</a></p>",
+                    "bodyText": "It makes a lot of sense. I did read through the docs and was able to scrabble this ugly one liner that does (I believe) the same thing: https://github.com/evantravers/dotfiles/blob/3a33131a6a4dbe042fff09b1622494c557ff6f3a/home-manager/nvim/default.nix#L211",
+                    "createdAt": "2024-10-03T12:56:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10831833,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ApUfZ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-03T12:56:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10831833",
+                    "updatedAt": "2024-10-03T12:56:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10831833"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yep, it is the same. Using `vim.fn.expand` is unnecessary, though. 'mini.pick' is smart enough to work with '~' at the start of the path.",
+                    "bodyHTML": "<p dir=\"auto\">Yep, it is the same. Using <code class=\"notranslate\">vim.fn.expand</code> is unnecessary, though. 'mini.pick' is smart enough to work with '~' at the start of the path.</p>",
+                    "bodyText": "Yep, it is the same. Using vim.fn.expand is unnecessary, though. 'mini.pick' is smart enough to work with '~' at the start of the path.",
+                    "createdAt": "2024-10-03T13:06:22Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10831923,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ApUgz",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-03T13:06:22Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10831923",
+                    "updatedAt": "2024-10-03T13:06:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10831923"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/108625844?u=2e3ec9c1e7978b3a2a0c38bf503e27f9c87aedb4&v=4",
+                        "login": "trickyni",
+                        "resourcePath": "/trickyni",
+                        "url": "https://github.com/trickyni"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> > Brilliant, perhaps new Projects picker in mini.extra? ;)\r\n> \r\n> No, I don't think so 😅 But I _think_ I'll add the version of this to my 'init.lua':\r\n> \r\n> ```lua\r\n> MiniPick.registry.projects = function()\r\n>   local cwd = vim.fn.expand('~/repos')\r\n>   local choose = function(item)\r\n>     vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\r\n>   end\r\n>   return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\r\n> end\r\n> ```\r\n\r\ncould this be integrated into the example section of the docs? I find this incredibly useful.",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">Brilliant, perhaps new Projects picker in mini.extra? ;)</p>\n</blockquote>\n<p dir=\"auto\">No, I don't think so 😅 But I <em>think</em> I'll add the version of this to my 'init.lua':</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniPick.registry.projects = function()\n  local cwd = vim.fn.expand('~/repos')\n  local choose = function(item)\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\n  end\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">projects</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>~/repos<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">files</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">path</span> } }) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-c1\">explorer</span>({ <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> }, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span> } })\n<span class=\"pl-k\">end</span></pre></div>\n</blockquote>\n<p dir=\"auto\">could this be integrated into the example section of the docs? I find this incredibly useful.</p>",
+                    "bodyText": "Brilliant, perhaps new Projects picker in mini.extra? ;)\n\nNo, I don't think so 😅 But I think I'll add the version of this to my 'init.lua':\nMiniPick.registry.projects = function()\n  local cwd = vim.fn.expand('~/repos')\n  local choose = function(item)\n    vim.schedule(function() MiniPick.builtin.files(nil, { source = { cwd = item.path } }) end)\n  end\n  return MiniExtra.pickers.explorer({ cwd = cwd }, { source = { choose = choose } })\nend\n\ncould this be integrated into the example section of the docs? I find this incredibly useful.",
+                    "createdAt": "2026-01-31T13:12:38Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15658481,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7u3x",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-31T13:12:38Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-15658481",
+                    "updatedAt": "2026-01-31T13:12:38Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-15658481"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "This is probably a bit too much for 'mini.pick' or 'mini.extra' docs. Maybe for future wiki (no established timeline though, sorry).",
+                    "bodyHTML": "<p dir=\"auto\">This is probably a bit too much for 'mini.pick' or 'mini.extra' docs. Maybe for future wiki (no established timeline though, sorry).</p>",
+                    "bodyText": "This is probably a bit too much for 'mini.pick' or 'mini.extra' docs. Maybe for future wiki (no established timeline though, sorry).",
+                    "createdAt": "2026-01-31T13:40:27Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15658598,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7u5m",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-31T13:40:27Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-15658598",
+                    "updatedAt": "2026-01-31T13:40:27Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-15658598"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/108625844?u=2e3ec9c1e7978b3a2a0c38bf503e27f9c87aedb4&v=4",
+                        "login": "trickyni",
+                        "resourcePath": "/trickyni",
+                        "url": "https://github.com/trickyni"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Understood ^^\r\nRegardless, this will now live happily in my init.lua as well :)",
+                    "bodyHTML": "<p dir=\"auto\">Understood ^^<br>\nRegardless, this will now live happily in my init.lua as well :)</p>",
+                    "bodyText": "Understood ^^\nRegardless, this will now live happily in my init.lua as well :)",
+                    "createdAt": "2026-02-01T09:01:49Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15663359,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7wD_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-02-01T09:01:49Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10322071,
+                        "id": "DC_kwDOFoksYM4AnYCX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-15663359",
+                    "updatedAt": "2026-02-01T09:01:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-15663359"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071",
+            "updatedAt": "2024-08-13T06:54:53Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10322071"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                "login": "wroyca",
+                "resourcePath": "/wroyca",
+                "url": "https://github.com/wroyca"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "If you happen to have a minute to spare, any recommendations on how I could approach adding icons? I did a vague attempt yesterday based on the pick source code and ended up adding the whole plumbing for H.get_icon, and it ... didn’t go well :)",
+            "bodyHTML": "<p dir=\"auto\">If you happen to have a minute to spare, any recommendations on how I could approach adding icons? I did a vague attempt yesterday based on the pick source code and ended up adding the whole plumbing for H.get_icon, and it ... didn’t go well :)</p>",
+            "bodyText": "If you happen to have a minute to spare, any recommendations on how I could approach adding icons? I did a vague attempt yesterday based on the pick source code and ended up adding the whole plumbing for H.get_icon, and it ... didn’t go well :)",
+            "createdAt": "2024-08-14T18:31:00Z",
+            "createdViaEmail": false,
+            "databaseId": 10340520,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Ancio",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-14T18:31:00Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Where specifically do you want icons? If in \"main\" item list, then [`MiniExtra.pickers.explorer()` wrapper](https://github.com/echasnovski/mini.nvim/discussions/1141#discussioncomment-10327131) already has it out of the box and I'd suggest just using it.\r\n\r\nAs a general suggestion for icons I'd recommend to make custom `show` which calls `MiniPick.default_show(buf_id, items, query, { show_icons = true })`. For it to work properly items should be [compatible with common item structure for paths](https://github.com/echasnovski/mini.nvim/blob/cf81e70e8f1fdc36a3c684efc45c4ee561285137/doc/mini-pick.txt#L252). In particular, either be tables with `path` being full path or plain strings (needs properly set `source.cwd` for relative paths to work).",
+                    "bodyHTML": "<p dir=\"auto\">Where specifically do you want icons? If in \"main\" item list, then <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1141#discussioncomment-10327131\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1141/hovercard?comment_id=10327131\"><code class=\"notranslate\">MiniExtra.pickers.explorer()</code> wrapper</a> already has it out of the box and I'd suggest just using it.</p>\n<p dir=\"auto\">As a general suggestion for icons I'd recommend to make custom <code class=\"notranslate\">show</code> which calls <code class=\"notranslate\">MiniPick.default_show(buf_id, items, query, { show_icons = true })</code>. For it to work properly items should be <a href=\"https://github.com/echasnovski/mini.nvim/blob/cf81e70e8f1fdc36a3c684efc45c4ee561285137/doc/mini-pick.txt#L252\">compatible with common item structure for paths</a>. In particular, either be tables with <code class=\"notranslate\">path</code> being full path or plain strings (needs properly set <code class=\"notranslate\">source.cwd</code> for relative paths to work).</p>",
+                    "bodyText": "Where specifically do you want icons? If in \"main\" item list, then MiniExtra.pickers.explorer() wrapper already has it out of the box and I'd suggest just using it.\nAs a general suggestion for icons I'd recommend to make custom show which calls MiniPick.default_show(buf_id, items, query, { show_icons = true }). For it to work properly items should be compatible with common item structure for paths. In particular, either be tables with path being full path or plain strings (needs properly set source.cwd for relative paths to work).",
+                    "createdAt": "2024-08-14T18:50:59Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10340677,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnclF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-14T18:50:59Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10340520,
+                        "id": "DC_kwDOFoksYM4Ancio",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340520"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340677",
+                    "updatedAt": "2024-08-14T18:51:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340677"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> Where specifically do you want icons?  \r\n\r\ndirectories and files (normal and preview)\r\n\r\n> If in \"main\" item list, then [`MiniExtra.pickers.explorer()` wrapper](https://github.com/echasnovski/mini.nvim/discussions/1141#discussioncomment-10327131) already has it out of the box and I'd suggest just using it.\r\n\r\nI did actually give it a fair chance yesterday, but it didn't fit well with my needs. :sweat_smile: \r\n\r\n> { show_icons = true }\r\n\r\nInteresting, will check it out. Thanks!\r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Where specifically do you want icons?</p>\n</blockquote>\n<p dir=\"auto\">directories and files (normal and preview)</p>\n<blockquote>\n<p dir=\"auto\">If in \"main\" item list, then <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1141#discussioncomment-10327131\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1141/hovercard?comment_id=10327131\"><code class=\"notranslate\">MiniExtra.pickers.explorer()</code> wrapper</a> already has it out of the box and I'd suggest just using it.</p>\n</blockquote>\n<p dir=\"auto\">I did actually give it a fair chance yesterday, but it didn't fit well with my needs. 😅</p>\n<blockquote>\n<p dir=\"auto\">{ show_icons = true }</p>\n</blockquote>\n<p dir=\"auto\">Interesting, will check it out. Thanks!</p>",
+                    "bodyText": "Where specifically do you want icons?\n\ndirectories and files (normal and preview)\n\nIf in \"main\" item list, then MiniExtra.pickers.explorer() wrapper already has it out of the box and I'd suggest just using it.\n\nI did actually give it a fair chance yesterday, but it didn't fit well with my needs. 😅\n\n{ show_icons = true }\n\nInteresting, will check it out. Thanks!",
+                    "createdAt": "2024-08-14T19:01:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10340763,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "id": "DC_kwDOFoksYM4Ancmb",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-08-14T19:03:50Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-14T19:01:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10340520,
+                        "id": "DC_kwDOFoksYM4Ancio",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340520"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340763",
+                    "updatedAt": "2024-08-14T19:03:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340763"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340520",
+            "updatedAt": "2024-08-14T18:31:01Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141#discussioncomment-10340520"
+        }
+    ],
+    "createdAt": "2024-08-13T02:09:55Z",
+    "createdViaEmail": false,
+    "databaseId": 7046943,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "id": "D_kwDOFoksYM4Aa4cf",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2024-08-13T15:02:32Z",
+    "locked": false,
+    "number": 1141,
+    "poll": null,
+    "publishedAt": "2024-08-13T02:09:55Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 3
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1141",
+    "stateReason": null,
+    "title": "[mini.pick] Project Picker",
+    "updatedAt": "2026-02-01T09:01:49Z",
+    "upvoteCount": 3,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1141"
+}

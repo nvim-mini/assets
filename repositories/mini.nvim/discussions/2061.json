@@ -1,0 +1,281 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/60170554?u=9334b5dc1813ae2727fe4075b37f8a892129fd64&v=4",
+        "login": "DanWlker",
+        "resourcePath": "/DanWlker",
+        "url": "https://github.com/DanWlker"
+    },
+    "authorAssociation": "NONE",
+    "body": "In light of this https://www.reddit.com/r/neovim/comments/1i6zu8i/miniclue/\r\n\r\nHere's the hacking done, referring to lazyvim's implementation\r\n\r\n```lua\r\nlocal function ai_clue()\r\n  local objects = {\r\n    { ' ', desc = 'whitespace' },\r\n    { '\"', desc = '\" string' },\r\n    { \"'\", desc = \"' string\" },\r\n    { '(', desc = '() block' },\r\n    { ')', desc = '() block with ws' },\r\n    { '<', desc = '<> block' },\r\n    { '>', desc = '<> block with ws' },\r\n    { '?', desc = 'user prompt' },\r\n    { 'U', desc = 'use/call without dot' },\r\n    { '[', desc = '[] block' },\r\n    { ']', desc = '[] block with ws' },\r\n    { '_', desc = 'underscore' },\r\n    { '`', desc = '` string' },\r\n    { 'a', desc = 'argument' },\r\n    { 'b', desc = ')]} block' },\r\n    { 'c', desc = 'class' },\r\n    { 'd', desc = 'digit(s)' },\r\n    { 'e', desc = 'CamelCase / snake_case' },\r\n    { 'f', desc = 'function' },\r\n    { 'g', desc = 'entire file' },\r\n    { 'o', desc = 'block, conditional, loop' },\r\n    { 'q', desc = 'quote `\"\\'' },\r\n    { 't', desc = 'tag' },\r\n    { 'l', desc = 'line' },\r\n    { 'u', desc = 'use/call' },\r\n    { '{', desc = '{} block' },\r\n    { '}', desc = '{} with ws' },\r\n  }\r\n\r\n  local modes = { 'x', 'o' }\r\n  local ret = {}\r\n  ---@type table<string, string>\r\n  local mappings = {\r\n    around = 'a',\r\n    inside = 'i',\r\n    -- around_next = 'an',\r\n    -- inside_next = 'in',\r\n    -- around_last = 'al',\r\n    -- inside_last = 'il',\r\n  }\r\n\r\n  -- print(vim.inspect(mappings))\r\n\r\n  for _, prefix in pairs(mappings) do\r\n    if prefix == '' then goto continue end\r\n    for _, mode in ipairs(modes) do\r\n      for _, obj in ipairs(objects) do\r\n        local desc = obj.desc\r\n        if prefix:sub(1, 1) == 'i' then desc = desc:gsub(' with ws', '') end\r\n        ret[#ret + 1] = { mode = mode, keys = prefix .. obj[1], desc = desc }\r\n      end\r\n    end\r\n    ::continue::\r\n  end\r\n\r\n  return ret\r\nend\r\n\r\n```\r\n\r\nin your setup() call\r\n```lua\r\n    miniclue.setup({\r\n      clues = {\r\n        ai_clue(),\r\n      },\r\n      triggers = {\r\n         -- ... other triggers\r\n        { mode = 'x', keys = 'a' },\r\n        { mode = 'o', keys = 'a' },\r\n        { mode = 'x', keys = 'i' },\r\n        { mode = 'o', keys = 'i' },\r\n      },\r\n    })\r\n\r\n```\r\n\r\nHope it helps",
+    "bodyHTML": "<p dir=\"auto\">In light of this <a href=\"https://www.reddit.com/r/neovim/comments/1i6zu8i/miniclue/\" rel=\"nofollow\">https://www.reddit.com/r/neovim/comments/1i6zu8i/miniclue/</a></p>\n<p dir=\"auto\">Here's the hacking done, referring to lazyvim's implementation</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local function ai_clue()\n  local objects = {\n    { ' ', desc = 'whitespace' },\n    { '&quot;', desc = '&quot; string' },\n    { &quot;'&quot;, desc = &quot;' string&quot; },\n    { '(', desc = '() block' },\n    { ')', desc = '() block with ws' },\n    { '&lt;', desc = '&lt;&gt; block' },\n    { '&gt;', desc = '&lt;&gt; block with ws' },\n    { '?', desc = 'user prompt' },\n    { 'U', desc = 'use/call without dot' },\n    { '[', desc = '[] block' },\n    { ']', desc = '[] block with ws' },\n    { '_', desc = 'underscore' },\n    { '`', desc = '` string' },\n    { 'a', desc = 'argument' },\n    { 'b', desc = ')]} block' },\n    { 'c', desc = 'class' },\n    { 'd', desc = 'digit(s)' },\n    { 'e', desc = 'CamelCase / snake_case' },\n    { 'f', desc = 'function' },\n    { 'g', desc = 'entire file' },\n    { 'o', desc = 'block, conditional, loop' },\n    { 'q', desc = 'quote `&quot;\\'' },\n    { 't', desc = 'tag' },\n    { 'l', desc = 'line' },\n    { 'u', desc = 'use/call' },\n    { '{', desc = '{} block' },\n    { '}', desc = '{} with ws' },\n  }\n\n  local modes = { 'x', 'o' }\n  local ret = {}\n  ---@type table&lt;string, string&gt;\n  local mappings = {\n    around = 'a',\n    inside = 'i',\n    -- around_next = 'an',\n    -- inside_next = 'in',\n    -- around_last = 'al',\n    -- inside_last = 'il',\n  }\n\n  -- print(vim.inspect(mappings))\n\n  for _, prefix in pairs(mappings) do\n    if prefix == '' then goto continue end\n    for _, mode in ipairs(modes) do\n      for _, obj in ipairs(objects) do\n        local desc = obj.desc\n        if prefix:sub(1, 1) == 'i' then desc = desc:gsub(' with ws', '') end\n        ret[#ret + 1] = { mode = mode, keys = prefix .. obj[1], desc = desc }\n      end\n    end\n    ::continue::\n  end\n\n  return ret\nend\n\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">ai_clue</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">objects</span> <span class=\"pl-k\">=</span> {\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span> <span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>whitespace<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\" string<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>'<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>' string<span class=\"pl-pds\">\" </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>(<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>() block<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>)<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>() block with ws<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;&gt; block<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;&gt; block with ws<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>?<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>user prompt<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>U<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>use/call without dot<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[] block<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>]<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[] block with ws<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>_<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>underscore<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>` string<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>argument<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>b<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>)]} block<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>c<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>class<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>d<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>digit(s)<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>e<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>CamelCase / snake_case<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>f<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>function<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>g<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>entire file<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>block, conditional, loop<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>quote `\"<span class=\"pl-cce\">\\'</span><span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>t<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>tag<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>line<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>u<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>use/call<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>{<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>{} block<span class=\"pl-pds\">' </span></span>},\n    { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>}<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>{} with ws<span class=\"pl-pds\">' </span></span>},\n  }\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">modes</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">' </span></span>}\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ret</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@type</span> <span class=\"pl-c1\">table&lt;string</span><span class=\"pl-k\">, </span><span class=\"pl-c1\">string&gt;</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">around</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-smi\">inside</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> around_next = 'an',</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> inside_next = 'in',</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> around_last = 'al',</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> inside_last = 'il',</span>\n  }\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> print(vim.inspect(mappings))</span>\n\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">mappings</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">goto</span> <span class=\"pl-s\">continue</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">modes</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">obj</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">objects</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">obj</span>.<span class=\"pl-e\">desc</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-en\">prefix</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">desc</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span> with ws<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>\n        <span class=\"pl-smi\">ret</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">ret</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">obj</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">desc</span> }\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-s\"><span class=\"pl-pse\">::</span>continue<span class=\"pl-pse\">::</span></span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">ret</span>\n<span class=\"pl-k\">end</span>\n</pre></div>\n<p dir=\"auto\">in your setup() call</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"    miniclue.setup({\n      clues = {\n        ai_clue(),\n      },\n      triggers = {\n         -- ... other triggers\n        { mode = 'x', keys = 'a' },\n        { mode = 'o', keys = 'a' },\n        { mode = 'x', keys = 'i' },\n        { mode = 'o', keys = 'i' },\n      },\n    })\n\"><pre class=\"notranslate\">    <span class=\"pl-smi\">miniclue</span>.<span class=\"pl-c1\">setup</span>({\n      <span class=\"pl-smi\">clues</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-c1\">ai_clue</span>(),\n      },\n      <span class=\"pl-smi\">triggers</span> <span class=\"pl-k\">=</span> {\n         <span class=\"pl-c\"><span class=\"pl-c\">--</span> ... other triggers</span>\n        { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">' </span></span>},\n        { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">' </span></span>},\n        { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span>},\n        { <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span>},\n      },\n    })\n</pre></div>\n<p dir=\"auto\">Hope it helps</p>",
+    "bodyText": "In light of this https://www.reddit.com/r/neovim/comments/1i6zu8i/miniclue/\nHere's the hacking done, referring to lazyvim's implementation\nlocal function ai_clue()\n  local objects = {\n    { ' ', desc = 'whitespace' },\n    { '\"', desc = '\" string' },\n    { \"'\", desc = \"' string\" },\n    { '(', desc = '() block' },\n    { ')', desc = '() block with ws' },\n    { '<', desc = '<> block' },\n    { '>', desc = '<> block with ws' },\n    { '?', desc = 'user prompt' },\n    { 'U', desc = 'use/call without dot' },\n    { '[', desc = '[] block' },\n    { ']', desc = '[] block with ws' },\n    { '_', desc = 'underscore' },\n    { '`', desc = '` string' },\n    { 'a', desc = 'argument' },\n    { 'b', desc = ')]} block' },\n    { 'c', desc = 'class' },\n    { 'd', desc = 'digit(s)' },\n    { 'e', desc = 'CamelCase / snake_case' },\n    { 'f', desc = 'function' },\n    { 'g', desc = 'entire file' },\n    { 'o', desc = 'block, conditional, loop' },\n    { 'q', desc = 'quote `\"\\'' },\n    { 't', desc = 'tag' },\n    { 'l', desc = 'line' },\n    { 'u', desc = 'use/call' },\n    { '{', desc = '{} block' },\n    { '}', desc = '{} with ws' },\n  }\n\n  local modes = { 'x', 'o' }\n  local ret = {}\n  ---@type table<string, string>\n  local mappings = {\n    around = 'a',\n    inside = 'i',\n    -- around_next = 'an',\n    -- inside_next = 'in',\n    -- around_last = 'al',\n    -- inside_last = 'il',\n  }\n\n  -- print(vim.inspect(mappings))\n\n  for _, prefix in pairs(mappings) do\n    if prefix == '' then goto continue end\n    for _, mode in ipairs(modes) do\n      for _, obj in ipairs(objects) do\n        local desc = obj.desc\n        if prefix:sub(1, 1) == 'i' then desc = desc:gsub(' with ws', '') end\n        ret[#ret + 1] = { mode = mode, keys = prefix .. obj[1], desc = desc }\n      end\n    end\n    ::continue::\n  end\n\n  return ret\nend\n\nin your setup() call\n    miniclue.setup({\n      clues = {\n        ai_clue(),\n      },\n      triggers = {\n         -- ... other triggers\n        { mode = 'x', keys = 'a' },\n        { mode = 'o', keys = 'a' },\n        { mode = 'x', keys = 'i' },\n        { mode = 'o', keys = 'i' },\n      },\n    })\n\nHope it helps",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nThere are couple of problems with integrating 'mini.ai' and 'mini.clue':\r\n- There can be custom textobjects in 'mini.ai'. And not only global, but buffer-local also. Ideally, 'mini.clue' should account for that.\r\n- And [this caveat](https://github.com/nvim-mini/mini.nvim/blob/6a224ddd28b4b21a488d6d87e1c2643a029caaa4/doc/mini-clue.txt#L81-L85).",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">There are couple of problems with integrating 'mini.ai' and 'mini.clue':</p>\n<ul dir=\"auto\">\n<li>There can be custom textobjects in 'mini.ai'. And not only global, but buffer-local also. Ideally, 'mini.clue' should account for that.</li>\n<li>And <a href=\"https://github.com/nvim-mini/mini.nvim/blob/6a224ddd28b4b21a488d6d87e1c2643a029caaa4/doc/mini-clue.txt#L81-L85\">this caveat</a>.</li>\n</ul>",
+            "bodyText": "Thanks for sharing!\nThere are couple of problems with integrating 'mini.ai' and 'mini.clue':\n\nThere can be custom textobjects in 'mini.ai'. And not only global, but buffer-local also. Ideally, 'mini.clue' should account for that.\nAnd this caveat.",
+            "createdAt": "2025-10-13T19:07:25Z",
+            "createdViaEmail": false,
+            "databaseId": 14668710,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A39Om",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-10-13T19:07:25Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/60170554?u=9334b5dc1813ae2727fe4075b37f8a892129fd64&v=4",
+                        "login": "DanWlker",
+                        "resourcePath": "/DanWlker",
+                        "url": "https://github.com/DanWlker"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "yeah, this is more of a hardcoded half solution tbh. I switched from which-key because of the submode_resize and needed something comparable.",
+                    "bodyHTML": "<p dir=\"auto\">yeah, this is more of a hardcoded half solution tbh. I switched from which-key because of the submode_resize and needed something comparable.</p>",
+                    "bodyText": "yeah, this is more of a hardcoded half solution tbh. I switched from which-key because of the submode_resize and needed something comparable.",
+                    "createdAt": "2025-10-14T04:48:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14671764,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A39-U",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-14T04:48:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14668710,
+                        "id": "DC_kwDOFoksYM4A39Om",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2061#discussioncomment-14668710"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2061#discussioncomment-14671764",
+                    "updatedAt": "2025-10-14T04:48:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2061#discussioncomment-14671764"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2061#discussioncomment-14668710",
+            "updatedAt": "2025-10-13T19:07:26Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2061#discussioncomment-14668710"
+        }
+    ],
+    "createdAt": "2025-10-13T18:57:08Z",
+    "createdViaEmail": false,
+    "databaseId": 9023191,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/60170554?u=9334b5dc1813ae2727fe4075b37f8a892129fd64&v=4",
+        "login": "DanWlker",
+        "resourcePath": "/DanWlker",
+        "url": "https://github.com/DanWlker"
+    },
+    "id": "D_kwDOFoksYM4Aia7X",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABWZsqRQ",
+                "name": "mini.clue"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-10-13T19:02:48Z",
+    "locked": false,
+    "number": 2061,
+    "poll": null,
+    "publishedAt": "2025-10-13T18:57:08Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2061",
+    "stateReason": null,
+    "title": "Mini.ai and Mini.clue integration",
+    "updatedAt": "2025-10-14T04:48:09Z",
+    "upvoteCount": 5,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2061"
+}

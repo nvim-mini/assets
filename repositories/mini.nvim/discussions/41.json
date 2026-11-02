@@ -1,0 +1,454 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 2013246,
+        "id": "DC_kwDOFoksYM4AHrg-",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-2013246"
+    },
+    "answerChosenAt": "2022-03-14T14:39:51Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/8461253?u=b26f0ee5e9087f1f34ec8a3a517ea62b2202185a&v=4",
+        "login": "HoldenLucas",
+        "resourcePath": "/HoldenLucas",
+        "url": "https://github.com/HoldenLucas"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/8461253?u=b26f0ee5e9087f1f34ec8a3a517ea62b2202185a&v=4",
+        "login": "HoldenLucas",
+        "resourcePath": "/HoldenLucas",
+        "url": "https://github.com/HoldenLucas"
+    },
+    "authorAssociation": "NONE",
+    "body": "https://github.com/echasnovski/mini.nvim/blob/c77359a61d5f0f27603bbc61074e3890a38506c8/lua/mini/statusline.lua#L470\r\n\r\nThis line makes me think \"no\", but I started using `mini` today and haven't poked around very much. Ultimately I'd like to have separate sections for `Error`, `Warning`, and `Hint`, each tied to their respective highlights and shown only if their respective diagnostic lists are populated. Should I just define my own sections?\r\n\r\nAlso, thank you so so much for letting me replace ~100 lines of `cmp` config with a one liner. `mini` has already replaced 30% of my plugins.",
+    "bodyHTML": "<p dir=\"auto\"><a href=\"https://github.com/echasnovski/mini.nvim/blob/c77359a61d5f0f27603bbc61074e3890a38506c8/lua/mini/statusline.lua#L470\">https://github.com/echasnovski/mini.nvim/blob/c77359a61d5f0f27603bbc61074e3890a38506c8/lua/mini/statusline.lua#L470</a></p>\n<p dir=\"auto\">This line makes me think \"no\", but I started using <code class=\"notranslate\">mini</code> today and haven't poked around very much. Ultimately I'd like to have separate sections for <code class=\"notranslate\">Error</code>, <code class=\"notranslate\">Warning</code>, and <code class=\"notranslate\">Hint</code>, each tied to their respective highlights and shown only if their respective diagnostic lists are populated. Should I just define my own sections?</p>\n<p dir=\"auto\">Also, thank you so so much for letting me replace ~100 lines of <code class=\"notranslate\">cmp</code> config with a one liner. <code class=\"notranslate\">mini</code> has already replaced 30% of my plugins.</p>",
+    "bodyText": "https://github.com/echasnovski/mini.nvim/blob/c77359a61d5f0f27603bbc61074e3890a38506c8/lua/mini/statusline.lua#L470\nThis line makes me think \"no\", but I started using mini today and haven't poked around very much. Ultimately I'd like to have separate sections for Error, Warning, and Hint, each tied to their respective highlights and shown only if their respective diagnostic lists are populated. Should I just define my own sections?\nAlso, thank you so so much for letting me replace ~100 lines of cmp config with a one liner. mini has already replaced 30% of my plugins.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-07-14T12:57:34Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Not at the moment, no. Not really because of that line (which is actually redundant, so thank you for pointing this out :) ).\r\n\r\nI'll think for a while about adding this here somehow, as it seems like a reasonable usage. But currently I can't see a good way of doing this that is better than custom minimal section function. Here is my version for Neovim 0.6+ (add it before call to `require('mini.statusline').setup()`):\r\n```lua\r\nlocal diagnostic_level = function(level, prefix)\r\n  if MiniStatusline.is_truncated(75) then\r\n    return ''\r\n  end\r\n\r\n  local n = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity[level] })\r\n  return (n == 0) and '' or ('%s%s'):format(prefix, n)\r\nend\r\n```\r\n\r\nAfter that it can be used something like this:\r\n```lua\r\nrequire('mini.statusline').setup({\r\n  content = {\r\n    active = function()\r\n      -- ...\r\n      local errors = diagnostic_level('ERROR', 'E')\r\n      local warns  = diagnostic_level('WARN', 'W')\r\n      local hints  = diagnostic_level('HINT', 'H')\r\n      -- ...\r\n\r\n      return MiniStatusline.combine_groups({\r\n        -- ...\r\n        { hl = 'DiagnosticError', strings = { errors } },\r\n        { hl = 'DiagnosticWarn',  strings = { warns } },\r\n        { hl = 'DiagnosticHint',  strings = { hints } },\r\n        -- ...\r\n    end,\r\n  },\r\n})\r\n```\r\n\r\n**Edit**: Oh, and thank you for kind words. `nvim-cmp` has **much, much** richer functionality though, and I'd suggest using 'mini.completion' only if you fully aware that it will be enough for you (because I most likely won't implement any new features for it, only bug fixes).",
+            "bodyHTML": "<p dir=\"auto\">Not at the moment, no. Not really because of that line (which is actually redundant, so thank you for pointing this out :) ).</p>\n<p dir=\"auto\">I'll think for a while about adding this here somehow, as it seems like a reasonable usage. But currently I can't see a good way of doing this that is better than custom minimal section function. Here is my version for Neovim 0.6+ (add it before call to <code class=\"notranslate\">require('mini.statusline').setup()</code>):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local diagnostic_level = function(level, prefix)\n  if MiniStatusline.is_truncated(75) then\n    return ''\n  end\n\n  local n = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity[level] })\n  return (n == 0) and '' or ('%s%s'):format(prefix, n)\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">diagnostic_level</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">level</span>, <span class=\"pl-smi\">prefix</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">is_truncated</span>(<span class=\"pl-c1\">75</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">diagnostic</span>.<span class=\"pl-c1\">get</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">severity</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">diagnostic</span>.<span class=\"pl-e\">severity</span>[<span class=\"pl-smi\">level</span>] })\n  <span class=\"pl-k\">return</span> (<span class=\"pl-smi\">n</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> (<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s%s<span class=\"pl-pds\">'</span></span>):<span class=\"pl-c1\">format</span>(<span class=\"pl-smi\">prefix</span>, <span class=\"pl-smi\">n</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">After that it can be used something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.statusline').setup({\n  content = {\n    active = function()\n      -- ...\n      local errors = diagnostic_level('ERROR', 'E')\n      local warns  = diagnostic_level('WARN', 'W')\n      local hints  = diagnostic_level('HINT', 'H')\n      -- ...\n\n      return MiniStatusline.combine_groups({\n        -- ...\n        { hl = 'DiagnosticError', strings = { errors } },\n        { hl = 'DiagnosticWarn',  strings = { warns } },\n        { hl = 'DiagnosticHint',  strings = { hints } },\n        -- ...\n    end,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.statusline<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">content</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-en\">active</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">errors</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">diagnostic_level</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>ERROR<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>E<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">warns</span>  <span class=\"pl-k\">=</span> <span class=\"pl-c1\">diagnostic_level</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>WARN<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>W<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hints</span>  <span class=\"pl-k\">=</span> <span class=\"pl-c1\">diagnostic_level</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>HINT<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>H<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">combine_groups</span>({\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n        { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>DiagnosticError<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">errors</span> } },\n        { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>DiagnosticWarn<span class=\"pl-pds\">'</span></span>,  <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">warns</span> } },\n        { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>DiagnosticHint<span class=\"pl-pds\">'</span></span>,  <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">hints</span> } },\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n    <span class=\"pl-k\">end</span>,\n  },\n})</pre></div>\n<p dir=\"auto\"><strong>Edit</strong>: Oh, and thank you for kind words. <code class=\"notranslate\">nvim-cmp</code> has <strong>much, much</strong> richer functionality though, and I'd suggest using 'mini.completion' only if you fully aware that it will be enough for you (because I most likely won't implement any new features for it, only bug fixes).</p>",
+            "bodyText": "Not at the moment, no. Not really because of that line (which is actually redundant, so thank you for pointing this out :) ).\nI'll think for a while about adding this here somehow, as it seems like a reasonable usage. But currently I can't see a good way of doing this that is better than custom minimal section function. Here is my version for Neovim 0.6+ (add it before call to require('mini.statusline').setup()):\nlocal diagnostic_level = function(level, prefix)\n  if MiniStatusline.is_truncated(75) then\n    return ''\n  end\n\n  local n = #vim.diagnostic.get(0, { severity = vim.diagnostic.severity[level] })\n  return (n == 0) and '' or ('%s%s'):format(prefix, n)\nend\nAfter that it can be used something like this:\nrequire('mini.statusline').setup({\n  content = {\n    active = function()\n      -- ...\n      local errors = diagnostic_level('ERROR', 'E')\n      local warns  = diagnostic_level('WARN', 'W')\n      local hints  = diagnostic_level('HINT', 'H')\n      -- ...\n\n      return MiniStatusline.combine_groups({\n        -- ...\n        { hl = 'DiagnosticError', strings = { errors } },\n        { hl = 'DiagnosticWarn',  strings = { warns } },\n        { hl = 'DiagnosticHint',  strings = { hints } },\n        -- ...\n    end,\n  },\n})\nEdit: Oh, and thank you for kind words. nvim-cmp has much, much richer functionality though, and I'd suggest using 'mini.completion' only if you fully aware that it will be enough for you (because I most likely won't implement any new features for it, only bug fixes).",
+            "createdAt": "2022-01-21T09:03:00Z",
+            "createdViaEmail": false,
+            "databaseId": 2013246,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4AHrg-",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2022-01-21T09:05:19Z",
+            "minimizedReason": null,
+            "publishedAt": "2022-01-21T09:03:00Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/41#discussioncomment-2013246",
+            "updatedAt": "2022-07-13T19:02:26Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-2013246"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/147808181?u=fba96b93f9bd574f429d9fde3544d88a1fe29f14&v=4",
+                "login": "verygitmuchhub",
+                "resourcePath": "/verygitmuchhub",
+                "url": "https://github.com/verygitmuchhub"
+            },
+            "authorAssociation": "NONE",
+            "body": "Hey there,\r\n\r\nI'm pretty much interested in switching to mini.statusline, but whatever I do, .. I don't get how to express the configuration in init.lua to support custom sections.\r\n\r\nI then found this example code here and was like: FINALLY some example to follow! \\o/ Just to find out that it still does not answer this one question that bugs me with like every mini plugin I'm using:\r\n\r\nHow do I customize mini things? So, I've read all the docs, and I understand everything, up to that point when I want to write such configuration things in my init.lua.\r\n\r\nI have the following (Lazy) configuration (that tells me):\r\n\r\n> Lua Diagnostics.: Undefined global `MinitStatusline`. [undefined-global]\r\n\r\n```lua\r\nrequire('lazy').setup({\r\n  { 'echasnovski/mini.statusline',\r\n    config = function()\r\n      vim.api.nvim_set_hl(0, 'MiniStatuslineModeCommand', { ... })\r\n      -- ...\r\n\r\n      require('mini.statusline').setup({\r\n        content = {\r\n          active = function()\r\n            local mode, mode_hl = Ministatusline.section_mode({ trunc_width = 120 }) -- Undefined global Ministatusline here\r\n            -- ...\r\n          end,\r\n        }\r\n      })\r\n    end,\r\n  },\r\n})\r\n```\r\n\r\nPlease please please someone enlighten me. Thanks!",
+            "bodyHTML": "<p dir=\"auto\">Hey there,</p>\n<p dir=\"auto\">I'm pretty much interested in switching to mini.statusline, but whatever I do, .. I don't get how to express the configuration in init.lua to support custom sections.</p>\n<p dir=\"auto\">I then found this example code here and was like: FINALLY some example to follow! \\o/ Just to find out that it still does not answer this one question that bugs me with like every mini plugin I'm using:</p>\n<p dir=\"auto\">How do I customize mini things? So, I've read all the docs, and I understand everything, up to that point when I want to write such configuration things in my init.lua.</p>\n<p dir=\"auto\">I have the following (Lazy) configuration (that tells me):</p>\n<blockquote>\n<p dir=\"auto\">Lua Diagnostics.: Undefined global <code class=\"notranslate\">MinitStatusline</code>. [undefined-global]</p>\n</blockquote>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('lazy').setup({\n  { 'echasnovski/mini.statusline',\n    config = function()\n      vim.api.nvim_set_hl(0, 'MiniStatuslineModeCommand', { ... })\n      -- ...\n\n      require('mini.statusline').setup({\n        content = {\n          active = function()\n            local mode, mode_hl = Ministatusline.section_mode({ trunc_width = 120 }) -- Undefined global Ministatusline here\n            -- ...\n          end,\n        }\n      })\n    end,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>lazy<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>echasnovski/mini.statusline<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_hl</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniStatuslineModeCommand<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-c1\">...</span> })\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n\n      <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.statusline<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n        <span class=\"pl-smi\">content</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-en\">active</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">mode_hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Ministatusline</span>.<span class=\"pl-c1\">section_mode</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">120</span> }) <span class=\"pl-c\"><span class=\"pl-c\">--</span> Undefined global Ministatusline here</span>\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n          <span class=\"pl-k\">end</span>,\n        }\n      })\n    <span class=\"pl-k\">end</span>,\n  },\n})</pre></div>\n<p dir=\"auto\">Please please please someone enlighten me. Thanks!</p>",
+            "bodyText": "Hey there,\nI'm pretty much interested in switching to mini.statusline, but whatever I do, .. I don't get how to express the configuration in init.lua to support custom sections.\nI then found this example code here and was like: FINALLY some example to follow! \\o/ Just to find out that it still does not answer this one question that bugs me with like every mini plugin I'm using:\nHow do I customize mini things? So, I've read all the docs, and I understand everything, up to that point when I want to write such configuration things in my init.lua.\nI have the following (Lazy) configuration (that tells me):\n\nLua Diagnostics.: Undefined global MinitStatusline. [undefined-global]\n\nrequire('lazy').setup({\n  { 'echasnovski/mini.statusline',\n    config = function()\n      vim.api.nvim_set_hl(0, 'MiniStatuslineModeCommand', { ... })\n      -- ...\n\n      require('mini.statusline').setup({\n        content = {\n          active = function()\n            local mode, mode_hl = Ministatusline.section_mode({ trunc_width = 120 }) -- Undefined global Ministatusline here\n            -- ...\n          end,\n        }\n      })\n    end,\n  },\n})\nPlease please please someone enlighten me. Thanks!",
+            "createdAt": "2025-07-07T10:32:51Z",
+            "createdViaEmail": false,
+            "databaseId": 13682324,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A0MaU",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-07-07T10:32:51Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "The code regarding 'mini.statusline' looks correct. The warning can be ignored: `require('mini.statusline').setup()` will create `_G.MiniStatusline` global variable which can be used instead of `require('mini.statusline')`, but LuaLS doesn't understand that.\r\n\r\nIf you don't like that, you can do something like this:\r\n\r\n```lua\r\n      local statusline = require('mini.statusline')\r\n      statusline.setup({\r\n        content = {\r\n          active = function()\r\n            local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })\r\n            -- ...\r\n          end,\r\n        }\r\n      })\r\n```\r\n\r\nStatusline structure is defined [via defining function for active and inactive windows](https://github.com/echasnovski/mini.nvim/blob/48f48e4b3f317e9da34ee7a01958b4c5018e2d34/doc/mini-statusline.txt#L9-L13). Each such function should return a string which is treated as a value of 'statusline' option (i.e. see `:h 'statusline'` for special placeholders it may use).\r\n\r\nThe definition is done by setting [`config.content.active` and/or `config.content.inactive`](https://github.com/echasnovski/mini.nvim/blob/48f48e4b3f317e9da34ee7a01958b4c5018e2d34/doc/mini-statusline.txt#L141-L148). The default value to use as a reference is described [here](https://github.com/echasnovski/mini.nvim/blob/48f48e4b3f317e9da34ee7a01958b4c5018e2d34/doc/mini-statusline.txt#L82).",
+                    "bodyHTML": "<p dir=\"auto\">The code regarding 'mini.statusline' looks correct. The warning can be ignored: <code class=\"notranslate\">require('mini.statusline').setup()</code> will create <code class=\"notranslate\">_G.MiniStatusline</code> global variable which can be used instead of <code class=\"notranslate\">require('mini.statusline')</code>, but LuaLS doesn't understand that.</p>\n<p dir=\"auto\">If you don't like that, you can do something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"      local statusline = require('mini.statusline')\n      statusline.setup({\n        content = {\n          active = function()\n            local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })\n            -- ...\n          end,\n        }\n      })\"><pre class=\"notranslate\">      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">statusline</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.statusline<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-smi\">statusline</span>.<span class=\"pl-c1\">setup</span>({\n        <span class=\"pl-smi\">content</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-en\">active</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">mode_hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">statusline</span>.<span class=\"pl-c1\">section_mode</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">120</span> })\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n          <span class=\"pl-k\">end</span>,\n        }\n      })</pre></div>\n<p dir=\"auto\">Statusline structure is defined <a href=\"https://github.com/echasnovski/mini.nvim/blob/48f48e4b3f317e9da34ee7a01958b4c5018e2d34/doc/mini-statusline.txt#L9-L13\">via defining function for active and inactive windows</a>. Each such function should return a string which is treated as a value of 'statusline' option (i.e. see <code class=\"notranslate\">:h 'statusline'</code> for special placeholders it may use).</p>\n<p dir=\"auto\">The definition is done by setting <a href=\"https://github.com/echasnovski/mini.nvim/blob/48f48e4b3f317e9da34ee7a01958b4c5018e2d34/doc/mini-statusline.txt#L141-L148\"><code class=\"notranslate\">config.content.active</code> and/or <code class=\"notranslate\">config.content.inactive</code></a>. The default value to use as a reference is described <a href=\"https://github.com/echasnovski/mini.nvim/blob/48f48e4b3f317e9da34ee7a01958b4c5018e2d34/doc/mini-statusline.txt#L82\">here</a>.</p>",
+                    "bodyText": "The code regarding 'mini.statusline' looks correct. The warning can be ignored: require('mini.statusline').setup() will create _G.MiniStatusline global variable which can be used instead of require('mini.statusline'), but LuaLS doesn't understand that.\nIf you don't like that, you can do something like this:\n      local statusline = require('mini.statusline')\n      statusline.setup({\n        content = {\n          active = function()\n            local mode, mode_hl = statusline.section_mode({ trunc_width = 120 })\n            -- ...\n          end,\n        }\n      })\nStatusline structure is defined via defining function for active and inactive windows. Each such function should return a string which is treated as a value of 'statusline' option (i.e. see :h 'statusline' for special placeholders it may use).\nThe definition is done by setting config.content.active and/or config.content.inactive. The default value to use as a reference is described here.",
+                    "createdAt": "2025-07-07T10:43:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13682465,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A0Mch",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-07T10:43:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13682324,
+                        "id": "DC_kwDOFoksYM4A0MaU",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682324"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682465",
+                    "updatedAt": "2025-07-07T10:43:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682465"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/147808181?u=fba96b93f9bd574f429d9fde3544d88a1fe29f14&v=4",
+                        "login": "verygitmuchhub",
+                        "resourcePath": "/verygitmuchhub",
+                        "url": "https://github.com/verygitmuchhub"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks @echasnovski. I was pretty sure this cannot be too hard. At least I'm now able to control what's shown \\o/ Let's see whether I can make my custom \"trailing blank lines\" and \"mixed indent\" functions part of this.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>. I was pretty sure this cannot be too hard. At least I'm now able to control what's shown \\o/ Let's see whether I can make my custom \"trailing blank lines\" and \"mixed indent\" functions part of this.</p>",
+                    "bodyText": "Thanks @echasnovski. I was pretty sure this cannot be too hard. At least I'm now able to control what's shown \\o/ Let's see whether I can make my custom \"trailing blank lines\" and \"mixed indent\" functions part of this.",
+                    "createdAt": "2025-07-07T10:59:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13682612,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A0Me0",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-07T10:59:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13682324,
+                        "id": "DC_kwDOFoksYM4A0MaU",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682324"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682612",
+                    "updatedAt": "2025-07-07T10:59:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682612"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682324",
+            "updatedAt": "2025-07-07T10:32:51Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/41#discussioncomment-13682324"
+        }
+    ],
+    "createdAt": "2022-01-20T23:07:46Z",
+    "createdViaEmail": false,
+    "databaseId": 3816604,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AOjyc",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vjI",
+                "name": "mini.statusline"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 41,
+    "poll": null,
+    "publishedAt": "2022-01-20T23:07:46Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/41",
+    "stateReason": "RESOLVED",
+    "title": "Is it possible to configure `MiniStatusline.config.diagnostic_levels`?",
+    "updatedAt": "2025-07-14T12:57:34Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/41"
+}

@@ -1,0 +1,440 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Hello o/\r\n\r\nThis is my take on implementing org.freedesktop.appearance.color-scheme with interrupts, as discussed in [this GitHub issue](https://github.com/echasnovski/mini.nvim/issues/1116). I figured this might be useful to others.\r\n\r\nOne interesting aspect of the XDG Desktop Portal is the color accent and contrast keys, which would integrate nicely with mini.hues. I intend to update this once they are integrated into my desktop, potentially in Fedora 41.\r\n\r\nIn any case:\r\n\r\n```lua\r\n--- Set up org.freedesktop.appearance.\r\n---\r\n--- The org.freedesktop.appearance.color-scheme key got standardized in the XDG\r\n--- desktop portal  specification across all DEs. This make it possible on both\r\n--- X11 and Wayland to be notified at runtime as soon as the dark mode\r\n--- preference changes.\r\n---\r\n--- Currently, the Settings interface provides the following keys:\r\n---\r\n--- - org.freedesktop.appearance color-scheme\r\n---   Indicates the system’s preferred color scheme.\r\n---\r\n--- - org.freedesktop.appearance accent-color (ddd)\r\n---   Indicates the system’s preferred accent color as a tuple of RGB values\r\n---   in the sRGB color space, in the range [0, 1]. Out-of-range RGB values\r\n---   should be treated as an unset accent color.\r\n---\r\n--- - org.freedesktop.appearance contrast (u)\r\n---   Indicates the system’s preferred contrast level.\r\n---\r\n--- https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html\r\n--- https://github.com/flatpak/xdg-desktop-portal/issues/629\r\n---\r\n--- What it does:\r\n--- - Retrieves and interprets information from org.freedesktop.appearance\r\n---   interface.\r\n---\r\n--- - Extracts color-scheme key to determine current color scheme preference\r\n---   set by user.\r\n\r\n--- - Executes gdbus in background to continuously monitor changes to color\r\n---   scheme preference. FYI monitoring uses interrupts instead of polling.\r\n---\r\n--- - Immediately synchronizes Neovim’s \"background\" option with detected\r\n---   preference.\r\n---\r\nMiniMisc.setup_appearance_sync = function()\r\n  -- org.freedesktop.appearance color-scheme\r\n  --\r\n  -- Supported values are:\r\n  -- - 0: No preference\r\n  -- - 1: Prefer dark appearance\r\n  -- - 2: Prefer light appearance\r\n  local function parse_color_scheme(line)\r\n    local v = tonumber(line:match(\"uint32 (%d+)\"))\r\n    if v == nil then return end\r\n    vim.o.background = (v == 2 or v == 0) and \"light\" or \"dark\"\r\n  end\r\n\r\n  vim.fn.jobstart(\r\n    \"gdbus monitor --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop\",\r\n    {\r\n      on_stdout = function (_, data)\r\n        -- Process stdout data. Note that it come in multiple chunks. Join all\r\n        -- chunks into a single line.\r\n        local line = table.concat(data)\r\n        \r\n        -- org.freedesktop.appearance color-scheme\r\n        if string.find(line, \"color%-scheme\") then\r\n          parse_color_scheme(line)\r\n        end\r\n      end\r\n    }\r\n  )\r\n\r\n  -- Apply the correct background based on the user’s preference (dark or\r\n  -- light) when Neovim starts. This should be done before we begin monitoring\r\n  -- changes.\r\n  parse_color_scheme(\r\n    vim.fn.system(\r\n      \"gdbus call -t 1 --session --dest=org.freedesktop.portal.Desktop --object-path=/org/freedesktop/portal/desktop --method=org.freedesktop.portal.Settings.Read org.freedesktop.appearance color-scheme\"\r\n    )\r\n  )\r\nend\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Hello o/</p>\n<p dir=\"auto\">This is my take on implementing org.freedesktop.appearance.color-scheme with interrupts, as discussed in <a href=\"https://github.com/echasnovski/mini.nvim/issues/1116\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1116/hovercard\">this GitHub issue</a>. I figured this might be useful to others.</p>\n<p dir=\"auto\">One interesting aspect of the XDG Desktop Portal is the color accent and contrast keys, which would integrate nicely with mini.hues. I intend to update this once they are integrated into my desktop, potentially in Fedora 41.</p>\n<p dir=\"auto\">In any case:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"--- Set up org.freedesktop.appearance.\n---\n--- The org.freedesktop.appearance.color-scheme key got standardized in the XDG\n--- desktop portal  specification across all DEs. This make it possible on both\n--- X11 and Wayland to be notified at runtime as soon as the dark mode\n--- preference changes.\n---\n--- Currently, the Settings interface provides the following keys:\n---\n--- - org.freedesktop.appearance color-scheme\n---   Indicates the system’s preferred color scheme.\n---\n--- - org.freedesktop.appearance accent-color (ddd)\n---   Indicates the system’s preferred accent color as a tuple of RGB values\n---   in the sRGB color space, in the range [0, 1]. Out-of-range RGB values\n---   should be treated as an unset accent color.\n---\n--- - org.freedesktop.appearance contrast (u)\n---   Indicates the system’s preferred contrast level.\n---\n--- https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html\n--- https://github.com/flatpak/xdg-desktop-portal/issues/629\n---\n--- What it does:\n--- - Retrieves and interprets information from org.freedesktop.appearance\n---   interface.\n---\n--- - Extracts color-scheme key to determine current color scheme preference\n---   set by user.\n\n--- - Executes gdbus in background to continuously monitor changes to color\n---   scheme preference. FYI monitoring uses interrupts instead of polling.\n---\n--- - Immediately synchronizes Neovim’s &quot;background&quot; option with detected\n---   preference.\n---\nMiniMisc.setup_appearance_sync = function()\n  -- org.freedesktop.appearance color-scheme\n  --\n  -- Supported values are:\n  -- - 0: No preference\n  -- - 1: Prefer dark appearance\n  -- - 2: Prefer light appearance\n  local function parse_color_scheme(line)\n    local v = tonumber(line:match(&quot;uint32 (%d+)&quot;))\n    if v == nil then return end\n    vim.o.background = (v == 2 or v == 0) and &quot;light&quot; or &quot;dark&quot;\n  end\n\n  vim.fn.jobstart(\n    &quot;gdbus monitor --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop&quot;,\n    {\n      on_stdout = function (_, data)\n        -- Process stdout data. Note that it come in multiple chunks. Join all\n        -- chunks into a single line.\n        local line = table.concat(data)\n        \n        -- org.freedesktop.appearance color-scheme\n        if string.find(line, &quot;color%-scheme&quot;) then\n          parse_color_scheme(line)\n        end\n      end\n    }\n  )\n\n  -- Apply the correct background based on the user’s preference (dark or\n  -- light) when Neovim starts. This should be done before we begin monitoring\n  -- changes.\n  parse_color_scheme(\n    vim.fn.system(\n      &quot;gdbus call -t 1 --session --dest=org.freedesktop.portal.Desktop --object-path=/org/freedesktop/portal/desktop --method=org.freedesktop.portal.Settings.Read org.freedesktop.appearance color-scheme&quot;\n    )\n  )\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span> Set up org.freedesktop.appearance.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> The org.freedesktop.appearance.color-scheme key got standardized in the XDG</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> desktop portal  specification across all DEs. This make it possible on both</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> X11 and Wayland to be notified at runtime as soon as the dark mode</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> preference changes.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Currently, the Settings interface provides the following keys:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - org.freedesktop.appearance color-scheme</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   Indicates the system’s preferred color scheme.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - org.freedesktop.appearance accent-color (ddd)</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   Indicates the system’s preferred accent color as a tuple of RGB values</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   in the sRGB color space, in the range [0, 1]. Out-of-range RGB values</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   should be treated as an unset accent color.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - org.freedesktop.appearance contrast (u)</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   Indicates the system’s preferred contrast level.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> https://github.com/flatpak/xdg-desktop-portal/issues/629</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> What it does:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - Retrieves and interprets information from org.freedesktop.appearance</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   interface.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - Extracts color-scheme key to determine current color scheme preference</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   set by user.</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - Executes gdbus in background to continuously monitor changes to color</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   scheme preference. FYI monitoring uses interrupts instead of polling.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> - Immediately synchronizes Neovim’s \"background\" option with detected</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   preference.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-smi\">MiniMisc</span>.<span class=\"pl-en\">setup_appearance_sync</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> org.freedesktop.appearance color-scheme</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Supported values are:</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> - 0: No preference</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> - 1: Prefer dark appearance</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> - 2: Prefer light appearance</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">parse_color_scheme</span>(<span class=\"pl-smi\">line</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">v</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">tonumber</span>(<span class=\"pl-en\">line</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>uint32 (%d+)<span class=\"pl-pds\">\"</span></span>))\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">v</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">v</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">v</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>light<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">jobstart</span>(\n    <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gdbus monitor --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop<span class=\"pl-pds\">\"</span></span>,\n    {\n      <span class=\"pl-en\">on_stdout</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span> (<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">data</span>)\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Process stdout data. Note that it come in multiple chunks. Join all</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> chunks into a single line.</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">data</span>)\n        \n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> org.freedesktop.appearance color-scheme</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">line</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>color%-scheme<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n          <span class=\"pl-c1\">parse_color_scheme</span>(<span class=\"pl-smi\">line</span>)\n        <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">end</span>\n    }\n  )\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Apply the correct background based on the user’s preference (dark or</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> light) when Neovim starts. This should be done before we begin monitoring</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> changes.</span>\n  <span class=\"pl-c1\">parse_color_scheme</span>(\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>(\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gdbus call -t 1 --session --dest=org.freedesktop.portal.Desktop --object-path=/org/freedesktop/portal/desktop --method=org.freedesktop.portal.Settings.Read org.freedesktop.appearance color-scheme<span class=\"pl-pds\">\"</span></span>\n    )\n  )\n<span class=\"pl-k\">end</span></pre></div>",
+    "bodyText": "Hello o/\nThis is my take on implementing org.freedesktop.appearance.color-scheme with interrupts, as discussed in this GitHub issue. I figured this might be useful to others.\nOne interesting aspect of the XDG Desktop Portal is the color accent and contrast keys, which would integrate nicely with mini.hues. I intend to update this once they are integrated into my desktop, potentially in Fedora 41.\nIn any case:\n--- Set up org.freedesktop.appearance.\n---\n--- The org.freedesktop.appearance.color-scheme key got standardized in the XDG\n--- desktop portal  specification across all DEs. This make it possible on both\n--- X11 and Wayland to be notified at runtime as soon as the dark mode\n--- preference changes.\n---\n--- Currently, the Settings interface provides the following keys:\n---\n--- - org.freedesktop.appearance color-scheme\n---   Indicates the system’s preferred color scheme.\n---\n--- - org.freedesktop.appearance accent-color (ddd)\n---   Indicates the system’s preferred accent color as a tuple of RGB values\n---   in the sRGB color space, in the range [0, 1]. Out-of-range RGB values\n---   should be treated as an unset accent color.\n---\n--- - org.freedesktop.appearance contrast (u)\n---   Indicates the system’s preferred contrast level.\n---\n--- https://flatpak.github.io/xdg-desktop-portal/docs/doc-org.freedesktop.portal.Settings.html\n--- https://github.com/flatpak/xdg-desktop-portal/issues/629\n---\n--- What it does:\n--- - Retrieves and interprets information from org.freedesktop.appearance\n---   interface.\n---\n--- - Extracts color-scheme key to determine current color scheme preference\n---   set by user.\n\n--- - Executes gdbus in background to continuously monitor changes to color\n---   scheme preference. FYI monitoring uses interrupts instead of polling.\n---\n--- - Immediately synchronizes Neovim’s \"background\" option with detected\n---   preference.\n---\nMiniMisc.setup_appearance_sync = function()\n  -- org.freedesktop.appearance color-scheme\n  --\n  -- Supported values are:\n  -- - 0: No preference\n  -- - 1: Prefer dark appearance\n  -- - 2: Prefer light appearance\n  local function parse_color_scheme(line)\n    local v = tonumber(line:match(\"uint32 (%d+)\"))\n    if v == nil then return end\n    vim.o.background = (v == 2 or v == 0) and \"light\" or \"dark\"\n  end\n\n  vim.fn.jobstart(\n    \"gdbus monitor --session --dest org.freedesktop.portal.Desktop --object-path /org/freedesktop/portal/desktop\",\n    {\n      on_stdout = function (_, data)\n        -- Process stdout data. Note that it come in multiple chunks. Join all\n        -- chunks into a single line.\n        local line = table.concat(data)\n        \n        -- org.freedesktop.appearance color-scheme\n        if string.find(line, \"color%-scheme\") then\n          parse_color_scheme(line)\n        end\n      end\n    }\n  )\n\n  -- Apply the correct background based on the user’s preference (dark or\n  -- light) when Neovim starts. This should be done before we begin monitoring\n  -- changes.\n  parse_color_scheme(\n    vim.fn.system(\n      \"gdbus call -t 1 --session --dest=org.freedesktop.portal.Desktop --object-path=/org/freedesktop/portal/desktop --method=org.freedesktop.portal.Settings.Read org.freedesktop.appearance color-scheme\"\n    )\n  )\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-01-19T03:09:24Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Nice!\r\n\r\nI'd probably refactor the `parse_color_scheme` to be like this:\r\n\r\n```lua\r\n  local function parse_color_scheme(line)\r\n    local v = line:match(\"uint32 (%d+)\")\r\n    if v == nil then return end\r\n    vim.o.background = (v == '1' or v == '0') and 'light' or 'dark'\r\n  end\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Nice!</p>\n<p dir=\"auto\">I'd probably refactor the <code class=\"notranslate\">parse_color_scheme</code> to be like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local function parse_color_scheme(line)\n    local v = line:match(&quot;uint32 (%d+)&quot;)\n    if v == nil then return end\n    vim.o.background = (v == '1' or v == '0') and 'light' or 'dark'\n  end\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">parse_color_scheme</span>(<span class=\"pl-smi\">line</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">v</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>uint32 (%d+)<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">v</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">v</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>1<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-smi\">v</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>0<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>light<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>dark<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "Nice!\nI'd probably refactor the parse_color_scheme to be like this:\n  local function parse_color_scheme(line)\n    local v = line:match(\"uint32 (%d+)\")\n    if v == nil then return end\n    vim.o.background = (v == '1' or v == '0') and 'light' or 'dark'\n  end",
+            "createdAt": "2024-09-08T18:57:21Z",
+            "createdViaEmail": false,
+            "databaseId": 10583928,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AoX94",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-09-08T18:57:21Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Done. Thanks! If you have more tips, go ahead! :partying_face: ",
+                    "bodyHTML": "<p dir=\"auto\">Done. Thanks! If you have more tips, go ahead! 🥳</p>",
+                    "bodyText": "Done. Thanks! If you have more tips, go ahead! 🥳",
+                    "createdAt": "2024-09-08T19:19:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10584020,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoX_U",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-08T19:19:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10583928,
+                        "id": "DC_kwDOFoksYM4AoX94",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10583928"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10584020",
+                    "updatedAt": "2024-09-08T19:19:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10584020"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Well, I don't really see the point of the whole `while #lines > 1 do local line = table.remove(lines, 1); ...`. As `local lines = {\"\"}` is defined *inside* function body, it does not persist across `on_stdout` calls.\r\n\r\nWhat I'd probably do is create `local feed = {}` before first `vim.fn.system()` call and try something like this:\r\n\r\n```lua\r\non_stdout = function(_, data) table.insert(feed, data) end,\r\non_exit = function()\r\n  local lines = vim.split(table.concat(feed, ''), '\\n')\r\n  -- Do the magic\r\nend\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Well, I don't really see the point of the whole <code class=\"notranslate\">while #lines &gt; 1 do local line = table.remove(lines, 1); ...</code>. As <code class=\"notranslate\">local lines = {\"\"}</code> is defined <em>inside</em> function body, it does not persist across <code class=\"notranslate\">on_stdout</code> calls.</p>\n<p dir=\"auto\">What I'd probably do is create <code class=\"notranslate\">local feed = {}</code> before first <code class=\"notranslate\">vim.fn.system()</code> call and try something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"on_stdout = function(_, data) table.insert(feed, data) end,\non_exit = function()\n  local lines = vim.split(table.concat(feed, ''), '\\n')\n  -- Do the magic\nend\"><pre class=\"notranslate\"><span class=\"pl-en\">on_stdout</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">data</span>) <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">feed</span>, <span class=\"pl-smi\">data</span>) <span class=\"pl-k\">end</span>,\n<span class=\"pl-en\">on_exit</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">feed</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Do the magic</span>\n<span class=\"pl-k\">end</span></pre></div>",
+                    "bodyText": "Well, I don't really see the point of the whole while #lines > 1 do local line = table.remove(lines, 1); .... As local lines = {\"\"} is defined inside function body, it does not persist across on_stdout calls.\nWhat I'd probably do is create local feed = {} before first vim.fn.system() call and try something like this:\non_stdout = function(_, data) table.insert(feed, data) end,\non_exit = function()\n  local lines = vim.split(table.concat(feed, ''), '\\n')\n  -- Do the magic\nend",
+                    "createdAt": "2024-09-08T19:43:16Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10584103,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoYAn",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-08T19:43:16Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10583928,
+                        "id": "DC_kwDOFoksYM4AoX94",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10583928"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10584103",
+                    "updatedAt": "2024-09-08T19:43:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10584103"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+                        "login": "wroyca",
+                        "resourcePath": "/wroyca",
+                        "url": "https://github.com/wroyca"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Oh, nice catch. This was initially for debugging :)",
+                    "bodyHTML": "<p dir=\"auto\">Oh, nice catch. This was initially for debugging :)</p>",
+                    "bodyText": "Oh, nice catch. This was initially for debugging :)",
+                    "createdAt": "2024-09-08T19:52:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10584130,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AoYBC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-09-08T19:52:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10583928,
+                        "id": "DC_kwDOFoksYM4AoX94",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10583928"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10584130",
+                    "updatedAt": "2024-09-08T19:52:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10584130"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10583928",
+            "updatedAt": "2024-09-08T18:57:21Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204#discussioncomment-10583928"
+        }
+    ],
+    "createdAt": "2024-09-08T18:46:50Z",
+    "createdViaEmail": false,
+    "databaseId": 7154178,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/91024200?u=7e665e60fd79e034678f7cf9bdae4347558932d3&v=4",
+        "login": "wroyca",
+        "resourcePath": "/wroyca",
+        "url": "https://github.com/wroyca"
+    },
+    "id": "D_kwDOFoksYM4AbSoC",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [],
+        "totalCount": 0
+    },
+    "lastEditedAt": "2024-09-08T19:57:00Z",
+    "locked": false,
+    "number": 1204,
+    "poll": null,
+    "publishedAt": "2024-09-08T18:46:50Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1204",
+    "stateReason": "OUTDATED",
+    "title": "[mini.misc] org.freedesktop.appearance",
+    "updatedAt": "2025-01-19T03:09:24Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1204"
+}

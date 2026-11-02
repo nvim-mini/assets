@@ -1,0 +1,197 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/6431935?u=926039b9b346579ffd484738d2c63e127d035f6a&v=4",
+        "login": "caenrique",
+        "resourcePath": "/caenrique",
+        "url": "https://github.com/caenrique"
+    },
+    "authorAssociation": "NONE",
+    "body": "I recently switched from other pickers to Mini.pick and I'm loving it so far. When using it for my neovim config is perfect out of the box, but for work projects the way files are displayed is inconvenient since my files have paths that are too long (java devs should know 🙈), and so I'm missing a feature I had in snacks picker and that I've been able to implement in others: \r\n\r\nchanging the display of files to be `basename path` and giving `path` a grey highlight (like `NonText` for example).\r\n\r\nLooking into the documentation I was able to find a way to do this: provide a custom `source.show` function, but this quickly grew too much: to do simple things, it is manageable, but to replicate the default behavior (icons, match highlights, current line highlight, case sensitivity, etc) it is too much work for a user defined option imo.\r\n\r\nSo, I made an experiment modifying the code: use an optional parameter `item_to_string` which should be a function that takes the item, and returns a table with the line text and highlights\r\n\r\nExample:\r\n\r\n```lua\r\nlocal files = function()\r\n  MiniPick.builtin.files({}, {\r\n    source = {\r\n      show = function(bufid, items_to_show, query) MiniPick.default_show(bufid, items_to_show, query,\r\n          { use_icons = true, item_to_string =\r\n          function(x)\r\n            local file, dir = vim.fs.basename(x), vim.fs.dirname(x)\r\n            local text = dir ~= '.' and string.format('%s %s', file, dir) or file\r\n            local highlights = {\r\n              { hl = 'MiniPickNormal', from = 0, to = file:len() },\r\n            }\r\n\r\n            if text ~= file then\r\n              table.insert(highlights, { hl = 'NonText', from = file:len() + 1, to = text:len() })\r\n            end\r\n\r\n            return {\r\n              text = text,\r\n              highlights = highlights,\r\n            }\r\n          end })\r\n      end\r\n    }\r\n  })\r\nend\r\n\r\n```\r\n\r\nTo make this work, I had to modify `mini.pick` to handle this parameter in the `default_show` function by calling the `item_to_string` function for every line, then applying the highlights at the end. \r\n\r\n```diff\r\nFrom ab8d61ffa2e872de3355ebed38d68e3c2efb5c54 Mon Sep 17 00:00:00 2001\r\nFrom: Cesar Enrique Ramirez <caenrique93@gmail.com>\r\nDate: Fri, 3 Apr 2026 00:44:30 +0200\r\nSubject: [PATCH] allow custom item_to_string\r\n\r\n---\r\n lua/mini/pick.lua | 33 ++++++++++++++++++++++++++-------\r\n 1 file changed, 26 insertions(+), 7 deletions(-)\r\n\r\ndiff --git a/lua/mini/pick.lua b/lua/mini/pick.lua\r\nindex 55e18359..4af94016 100644\r\n--- a/lua/mini/pick.lua\r\n+++ b/lua/mini/pick.lua\r\n@@ -1072,7 +1072,11 @@ MiniPick.default_show = function(buf_id, items, query, opts)\r\n     or function() return { text = '' } end\r\n   local prefix_data = vim.tbl_map(get_prefix_data, items)\r\n \r\n-  local lines = vim.tbl_map(H.item_to_string, items)\r\n+  local lines_data = opts.item_to_string and type(opts.item_to_string) == 'function' and\r\n+      vim.tbl_map(opts.item_to_string, items) or\r\n+      vim.tbl_map(function(x) return { text = H.item_to_string(x) } end, items)\r\n+\r\n+  local lines = vim.tbl_map(function(x) return x.text end, lines_data)\r\n   local tab_spaces = string.rep(' ', vim.o.tabstop)\r\n   lines = vim.tbl_map(function(l) return l:gsub('%z', '│'):gsub('[\\r\\n]', ' '):gsub('\\t', tab_spaces) end, lines)\r\n \r\n@@ -1108,12 +1112,27 @@ MiniPick.default_show = function(buf_id, items, query, opts)\r\n   end\r\n \r\n   -- Highlight prefixes\r\n-  if not opts.show_icons then return end\r\n-  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\r\n-  for i = 1, #prefix_data do\r\n-    icon_extmark_opts.hl_group = prefix_data[i].hl\r\n-    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()\r\n-    H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\r\n+  if opts.show_icons then\r\n+    local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\r\n+    for i = 1, #prefix_data do\r\n+      icon_extmark_opts.hl_group = prefix_data[i].hl\r\n+      icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()\r\n+      H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\r\n+    end\r\n+  end\r\n+\r\n+  -- Highlight custom line\r\n+  if opts.item_to_string then\r\n+    local line_extmark_opts = { hl_mode = 'combine', priority = 100 }\r\n+    for i = 1, #lines_data do\r\n+      local start_offset = prefix_data[i].text:len()\r\n+      for j = 1, #lines_data[i].highlights do\r\n+        line_extmark_opts.hl_group = lines_data[i].highlights[j].hl\r\n+        line_extmark_opts.end_row, line_extmark_opts.end_col = i - 1, start_offset + lines_data[i].highlights[j].to\r\n+        local col = lines_data[i].highlights[j].from\r\n+        H.set_extmark(buf_id, ns_id, i - 1, start_offset + col, line_extmark_opts)\r\n+      end\r\n+    end\r\n   end\r\n end\r\n \r\n-- \r\n2.51.1\r\n\r\n\r\n```\r\n\r\nDemo:\r\n\r\nhttps://github.com/user-attachments/assets/55580021-af0f-4fc1-a4c2-8e0001bbe70c\r\n\r\nI think having something along those lines would be helpful to make it easier to customize the pickers.\r\n\r\nIs there already an easy way to do this, that would let me write something similar to my example (without having to re-implement `MiniPick.default_show`)?\r\n\r\nThis is just me wondering what it would take to implement this for myself, and I have no idea if this has been considered before and discarded, but I would love to have this in mini.pick!\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\">I recently switched from other pickers to Mini.pick and I'm loving it so far. When using it for my neovim config is perfect out of the box, but for work projects the way files are displayed is inconvenient since my files have paths that are too long (java devs should know 🙈), and so I'm missing a feature I had in snacks picker and that I've been able to implement in others:</p>\n<p dir=\"auto\">changing the display of files to be <code class=\"notranslate\">basename path</code> and giving <code class=\"notranslate\">path</code> a grey highlight (like <code class=\"notranslate\">NonText</code> for example).</p>\n<p dir=\"auto\">Looking into the documentation I was able to find a way to do this: provide a custom <code class=\"notranslate\">source.show</code> function, but this quickly grew too much: to do simple things, it is manageable, but to replicate the default behavior (icons, match highlights, current line highlight, case sensitivity, etc) it is too much work for a user defined option imo.</p>\n<p dir=\"auto\">So, I made an experiment modifying the code: use an optional parameter <code class=\"notranslate\">item_to_string</code> which should be a function that takes the item, and returns a table with the line text and highlights</p>\n<p dir=\"auto\">Example:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local files = function()\n  MiniPick.builtin.files({}, {\n    source = {\n      show = function(bufid, items_to_show, query) MiniPick.default_show(bufid, items_to_show, query,\n          { use_icons = true, item_to_string =\n          function(x)\n            local file, dir = vim.fs.basename(x), vim.fs.dirname(x)\n            local text = dir ~= '.' and string.format('%s %s', file, dir) or file\n            local highlights = {\n              { hl = 'MiniPickNormal', from = 0, to = file:len() },\n            }\n\n            if text ~= file then\n              table.insert(highlights, { hl = 'NonText', from = file:len() + 1, to = text:len() })\n            end\n\n            return {\n              text = text,\n              highlights = highlights,\n            }\n          end })\n      end\n    }\n  })\nend\n\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">files</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">files</span>({}, {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-en\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">bufid</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>) <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">bufid</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>,\n          { <span class=\"pl-smi\">use_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">item_to_string</span> <span class=\"pl-k\">=</span>\n          <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">x</span>)\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">file</span>, <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">basename</span>(<span class=\"pl-smi\">x</span>), <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">dirname</span>(<span class=\"pl-smi\">x</span>)\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>.<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s %s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">file</span>, <span class=\"pl-smi\">dir</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">file</span>\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlights</span> <span class=\"pl-k\">=</span> {\n              { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniPickNormal<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">file</span>:<span class=\"pl-c1\">len</span>() },\n            }\n\n            <span class=\"pl-k\">if</span> <span class=\"pl-smi\">text</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">file</span> <span class=\"pl-k\">then</span>\n              <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">highlights</span>, { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>NonText<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">file</span>:<span class=\"pl-c1\">len</span>() <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">text</span>:<span class=\"pl-c1\">len</span>() })\n            <span class=\"pl-k\">end</span>\n\n            <span class=\"pl-k\">return</span> {\n              <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">text</span>,\n              <span class=\"pl-smi\">highlights</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">highlights</span>,\n            }\n          <span class=\"pl-k\">end</span> })\n      <span class=\"pl-k\">end</span>\n    }\n  })\n<span class=\"pl-k\">end</span>\n</pre></div>\n<p dir=\"auto\">To make this work, I had to modify <code class=\"notranslate\">mini.pick</code> to handle this parameter in the <code class=\"notranslate\">default_show</code> function by calling the <code class=\"notranslate\">item_to_string</code> function for every line, then applying the highlights at the end.</p>\n<div class=\"highlight highlight-source-diff notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"From ab8d61ffa2e872de3355ebed38d68e3c2efb5c54 Mon Sep 17 00:00:00 2001\nFrom: Cesar Enrique Ramirez &lt;caenrique93@gmail.com&gt;\nDate: Fri, 3 Apr 2026 00:44:30 +0200\nSubject: [PATCH] allow custom item_to_string\n\n---\n lua/mini/pick.lua | 33 ++++++++++++++++++++++++++-------\n 1 file changed, 26 insertions(+), 7 deletions(-)\n\ndiff --git a/lua/mini/pick.lua b/lua/mini/pick.lua\nindex 55e18359..4af94016 100644\n--- a/lua/mini/pick.lua\n+++ b/lua/mini/pick.lua\n@@ -1072,7 +1072,11 @@ MiniPick.default_show = function(buf_id, items, query, opts)\n     or function() return { text = '' } end\n   local prefix_data = vim.tbl_map(get_prefix_data, items)\n \n-  local lines = vim.tbl_map(H.item_to_string, items)\n+  local lines_data = opts.item_to_string and type(opts.item_to_string) == 'function' and\n+      vim.tbl_map(opts.item_to_string, items) or\n+      vim.tbl_map(function(x) return { text = H.item_to_string(x) } end, items)\n+\n+  local lines = vim.tbl_map(function(x) return x.text end, lines_data)\n   local tab_spaces = string.rep(' ', vim.o.tabstop)\n   lines = vim.tbl_map(function(l) return l:gsub('%z', '│'):gsub('[\\r\\n]', ' '):gsub('\\t', tab_spaces) end, lines)\n \n@@ -1108,12 +1112,27 @@ MiniPick.default_show = function(buf_id, items, query, opts)\n   end\n \n   -- Highlight prefixes\n-  if not opts.show_icons then return end\n-  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\n-  for i = 1, #prefix_data do\n-    icon_extmark_opts.hl_group = prefix_data[i].hl\n-    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()\n-    H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\n+  if opts.show_icons then\n+    local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\n+    for i = 1, #prefix_data do\n+      icon_extmark_opts.hl_group = prefix_data[i].hl\n+      icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()\n+      H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\n+    end\n+  end\n+\n+  -- Highlight custom line\n+  if opts.item_to_string then\n+    local line_extmark_opts = { hl_mode = 'combine', priority = 100 }\n+    for i = 1, #lines_data do\n+      local start_offset = prefix_data[i].text:len()\n+      for j = 1, #lines_data[i].highlights do\n+        line_extmark_opts.hl_group = lines_data[i].highlights[j].hl\n+        line_extmark_opts.end_row, line_extmark_opts.end_col = i - 1, start_offset + lines_data[i].highlights[j].to\n+        local col = lines_data[i].highlights[j].from\n+        H.set_extmark(buf_id, ns_id, i - 1, start_offset + col, line_extmark_opts)\n+      end\n+    end\n   end\n end\n \n-- \n2.51.1\n\n\"><pre class=\"notranslate\">From ab8d61ffa2e872de3355ebed38d68e3c2efb5c54 Mon Sep 17 00:00:00 2001\nFrom: Cesar Enrique Ramirez &lt;caenrique93@gmail.com&gt;\nDate: Fri, 3 Apr 2026 00:44:30 +0200\nSubject: [PATCH] allow custom item_to_string\n\n<span class=\"pl-ms\">---</span>\n lua/mini/pick.lua | 33 ++++++++++++++++++++++++++-------\n 1 file changed, 26 insertions(+), 7 deletions(-)\n\n<span class=\"pl-c1\">diff --git a/lua/mini/pick.lua b/lua/mini/pick.lua</span>\nindex 55e18359..4af94016 100644\n<span class=\"pl-md\">--- a/lua/mini/pick.lua</span>\n<span class=\"pl-mi1\">+++ b/lua/mini/pick.lua</span>\n<span class=\"pl-mdr\">@@ -1072,7 +1072,11 @@</span> MiniPick.default_show = function(buf_id, items, query, opts)\n     or function() return { text = '' } end\n   local prefix_data = vim.tbl_map(get_prefix_data, items)\n \n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  local lines = vim.tbl_map(H.item_to_string, items)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  local lines_data = opts.item_to_string and type(opts.item_to_string) == 'function' and</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      vim.tbl_map(opts.item_to_string, items) or</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      vim.tbl_map(function(x) return { text = H.item_to_string(x) } end, items)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span></span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  local lines = vim.tbl_map(function(x) return x.text end, lines_data)</span>\n   local tab_spaces = string.rep(' ', vim.o.tabstop)\n   lines = vim.tbl_map(function(l) return l:gsub('%z', '│'):gsub('[\\r\\n]', ' '):gsub('\\t', tab_spaces) end, lines)\n \n<span class=\"pl-mdr\">@@ -1108,12 +1112,27 @@</span> MiniPick.default_show = function(buf_id, items, query, opts)\n   end\n \n   -- Highlight prefixes\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  if not opts.show_icons then return end</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  for i = 1, #prefix_data do</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>    icon_extmark_opts.hl_group = prefix_data[i].hl</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()</span>\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>    H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  if opts.show_icons then</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    for i = 1, #prefix_data do</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      icon_extmark_opts.hl_group = prefix_data[i].hl</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    end</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  end</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span></span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  -- Highlight custom line</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  if opts.item_to_string then</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    local line_extmark_opts = { hl_mode = 'combine', priority = 100 }</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    for i = 1, #lines_data do</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      local start_offset = prefix_data[i].text:len()</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      for j = 1, #lines_data[i].highlights do</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>        line_extmark_opts.hl_group = lines_data[i].highlights[j].hl</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>        line_extmark_opts.end_row, line_extmark_opts.end_col = i - 1, start_offset + lines_data[i].highlights[j].to</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>        local col = lines_data[i].highlights[j].from</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>        H.set_extmark(buf_id, ns_id, i - 1, start_offset + col, line_extmark_opts)</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>      end</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    end</span>\n   end\n end\n \n<span class=\"pl-md\"><span class=\"pl-md\">-</span>- </span>\n2.51.1\n\n</pre></div>\n<p dir=\"auto\">Demo:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">Screen.Recording.2026-04-03.at.00.57.48.mov</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/6431935/573315706-55580021-af0f-4fc1-a4c2-8e0001bbe70c.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MDMsIm5iZiI6MTc5MzU1MjQwMywicGF0aCI6Ii82NDMxOTM1LzU3MzMxNTcwNi01NTU4MDAyMS1hZjBmLTRmYzEtYTRjMi04ZTAwMDFiYmU3MGMubW92P1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcwMDAzWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YTAxMDU2NDRhNGFiMjRjZGU5OTQ4NWQxNDc3NjljZTM3N2Q0MWJiNzY1ZmZiZGI2MTFkYTE4YjJlYzU2YzcyMiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPXZpZGVvJTJGcXVpY2t0aW1lIn0.Wb6esJWQ6xKyQey0VB5aLD_HPYfuKXAZ-KOyfpFTZog\" data-canonical-src=\"https://private-user-images.githubusercontent.com/6431935/573315706-55580021-af0f-4fc1-a4c2-8e0001bbe70c.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3MDMsIm5iZiI6MTc5MzU1MjQwMywicGF0aCI6Ii82NDMxOTM1LzU3MzMxNTcwNi01NTU4MDAyMS1hZjBmLTRmYzEtYTRjMi04ZTAwMDFiYmU3MGMubW92P1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTcwMDAzWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9YTAxMDU2NDRhNGFiMjRjZGU5OTQ4NWQxNDc3NjljZTM3N2Q0MWJiNzY1ZmZiZGI2MTFkYTE4YjJlYzU2YzcyMiZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPXZpZGVvJTJGcXVpY2t0aW1lIn0.Wb6esJWQ6xKyQey0VB5aLD_HPYfuKXAZ-KOyfpFTZog\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">I think having something along those lines would be helpful to make it easier to customize the pickers.</p>\n<p dir=\"auto\">Is there already an easy way to do this, that would let me write something similar to my example (without having to re-implement <code class=\"notranslate\">MiniPick.default_show</code>)?</p>\n<p dir=\"auto\">This is just me wondering what it would take to implement this for myself, and I have no idea if this has been considered before and discarded, but I would love to have this in mini.pick!</p>",
+    "bodyText": "I recently switched from other pickers to Mini.pick and I'm loving it so far. When using it for my neovim config is perfect out of the box, but for work projects the way files are displayed is inconvenient since my files have paths that are too long (java devs should know 🙈), and so I'm missing a feature I had in snacks picker and that I've been able to implement in others:\nchanging the display of files to be basename path and giving path a grey highlight (like NonText for example).\nLooking into the documentation I was able to find a way to do this: provide a custom source.show function, but this quickly grew too much: to do simple things, it is manageable, but to replicate the default behavior (icons, match highlights, current line highlight, case sensitivity, etc) it is too much work for a user defined option imo.\nSo, I made an experiment modifying the code: use an optional parameter item_to_string which should be a function that takes the item, and returns a table with the line text and highlights\nExample:\nlocal files = function()\n  MiniPick.builtin.files({}, {\n    source = {\n      show = function(bufid, items_to_show, query) MiniPick.default_show(bufid, items_to_show, query,\n          { use_icons = true, item_to_string =\n          function(x)\n            local file, dir = vim.fs.basename(x), vim.fs.dirname(x)\n            local text = dir ~= '.' and string.format('%s %s', file, dir) or file\n            local highlights = {\n              { hl = 'MiniPickNormal', from = 0, to = file:len() },\n            }\n\n            if text ~= file then\n              table.insert(highlights, { hl = 'NonText', from = file:len() + 1, to = text:len() })\n            end\n\n            return {\n              text = text,\n              highlights = highlights,\n            }\n          end })\n      end\n    }\n  })\nend\n\nTo make this work, I had to modify mini.pick to handle this parameter in the default_show function by calling the item_to_string function for every line, then applying the highlights at the end.\nFrom ab8d61ffa2e872de3355ebed38d68e3c2efb5c54 Mon Sep 17 00:00:00 2001\nFrom: Cesar Enrique Ramirez <caenrique93@gmail.com>\nDate: Fri, 3 Apr 2026 00:44:30 +0200\nSubject: [PATCH] allow custom item_to_string\n\n---\n lua/mini/pick.lua | 33 ++++++++++++++++++++++++++-------\n 1 file changed, 26 insertions(+), 7 deletions(-)\n\ndiff --git a/lua/mini/pick.lua b/lua/mini/pick.lua\nindex 55e18359..4af94016 100644\n--- a/lua/mini/pick.lua\n+++ b/lua/mini/pick.lua\n@@ -1072,7 +1072,11 @@ MiniPick.default_show = function(buf_id, items, query, opts)\n     or function() return { text = '' } end\n   local prefix_data = vim.tbl_map(get_prefix_data, items)\n \n-  local lines = vim.tbl_map(H.item_to_string, items)\n+  local lines_data = opts.item_to_string and type(opts.item_to_string) == 'function' and\n+      vim.tbl_map(opts.item_to_string, items) or\n+      vim.tbl_map(function(x) return { text = H.item_to_string(x) } end, items)\n+\n+  local lines = vim.tbl_map(function(x) return x.text end, lines_data)\n   local tab_spaces = string.rep(' ', vim.o.tabstop)\n   lines = vim.tbl_map(function(l) return l:gsub('%z', '│'):gsub('[\\r\\n]', ' '):gsub('\\t', tab_spaces) end, lines)\n \n@@ -1108,12 +1112,27 @@ MiniPick.default_show = function(buf_id, items, query, opts)\n   end\n \n   -- Highlight prefixes\n-  if not opts.show_icons then return end\n-  local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\n-  for i = 1, #prefix_data do\n-    icon_extmark_opts.hl_group = prefix_data[i].hl\n-    icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()\n-    H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\n+  if opts.show_icons then\n+    local icon_extmark_opts = { hl_mode = 'combine', priority = 200 }\n+    for i = 1, #prefix_data do\n+      icon_extmark_opts.hl_group = prefix_data[i].hl\n+      icon_extmark_opts.end_row, icon_extmark_opts.end_col = i - 1, prefix_data[i].text:len()\n+      H.set_extmark(buf_id, ns_id, i - 1, 0, icon_extmark_opts)\n+    end\n+  end\n+\n+  -- Highlight custom line\n+  if opts.item_to_string then\n+    local line_extmark_opts = { hl_mode = 'combine', priority = 100 }\n+    for i = 1, #lines_data do\n+      local start_offset = prefix_data[i].text:len()\n+      for j = 1, #lines_data[i].highlights do\n+        line_extmark_opts.hl_group = lines_data[i].highlights[j].hl\n+        line_extmark_opts.end_row, line_extmark_opts.end_col = i - 1, start_offset + lines_data[i].highlights[j].to\n+        local col = lines_data[i].highlights[j].from\n+        H.set_extmark(buf_id, ns_id, i - 1, start_offset + col, line_extmark_opts)\n+      end\n+    end\n   end\n end\n \n-- \n2.51.1\n\n\nDemo:\n\n  \n    \n    \n\n    Screen.Recording.2026-04-03.at.00.57.48.mov\n    \n  \n\n  \n\n  \n\n\nI think having something along those lines would be helpful to make it easier to customize the pickers.\nIs there already an easy way to do this, that would let me write something similar to my example (without having to re-implement MiniPick.default_show)?\nThis is just me wondering what it would take to implement this for myself, and I have no idea if this has been considered before and discarded, but I would love to have this in mini.pick!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-04-03T13:39:20Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the suggestion!\r\n\r\n> I think having something along those lines would be helpful to make it easier to customize the pickers.\r\n\r\nIt would have been better for that goal indeed. Unfortunately, one of 'mini.pick' goals (as any 'mini.nvim' module) is to balance features and maintainability. Allowing this type of flexibility in the `show` function is somewhat complex.\r\n\r\n> Is there already an easy way to do this, that would let me write something similar to my example (without having to re-implement `MiniPick.default_show`)?\r\n\r\nWriting own version of `source.show` might be a more valid approach in this situation in particular. One of the main things that makes supporting \"show file name first followed by the directory\" is that it results into a completely different assumptions about how the matching is done. Because default matching is done based on the full path from left to right, so rearranging path parts looks somewhat confusing to me.\r\n\r\n> This is just me wondering what it would take to implement this for myself, and I have no idea if this has been considered before and discarded, but I would love to have this in mini.pick!\r\n\r\nIt was considered, yes. And it was discarded, yes. For example, in #1082.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion!</p>\n<blockquote>\n<p dir=\"auto\">I think having something along those lines would be helpful to make it easier to customize the pickers.</p>\n</blockquote>\n<p dir=\"auto\">It would have been better for that goal indeed. Unfortunately, one of 'mini.pick' goals (as any 'mini.nvim' module) is to balance features and maintainability. Allowing this type of flexibility in the <code class=\"notranslate\">show</code> function is somewhat complex.</p>\n<blockquote>\n<p dir=\"auto\">Is there already an easy way to do this, that would let me write something similar to my example (without having to re-implement <code class=\"notranslate\">MiniPick.default_show</code>)?</p>\n</blockquote>\n<p dir=\"auto\">Writing own version of <code class=\"notranslate\">source.show</code> might be a more valid approach in this situation in particular. One of the main things that makes supporting \"show file name first followed by the directory\" is that it results into a completely different assumptions about how the matching is done. Because default matching is done based on the full path from left to right, so rearranging path parts looks somewhat confusing to me.</p>\n<blockquote>\n<p dir=\"auto\">This is just me wondering what it would take to implement this for myself, and I have no idea if this has been considered before and discarded, but I would love to have this in mini.pick!</p>\n</blockquote>\n<p dir=\"auto\">It was considered, yes. And it was discarded, yes. For example, in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6967757\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/1082\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1082/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/1082\">#1082</a>.</p>",
+            "bodyText": "Thanks for the suggestion!\n\nI think having something along those lines would be helpful to make it easier to customize the pickers.\n\nIt would have been better for that goal indeed. Unfortunately, one of 'mini.pick' goals (as any 'mini.nvim' module) is to balance features and maintainability. Allowing this type of flexibility in the show function is somewhat complex.\n\nIs there already an easy way to do this, that would let me write something similar to my example (without having to re-implement MiniPick.default_show)?\n\nWriting own version of source.show might be a more valid approach in this situation in particular. One of the main things that makes supporting \"show file name first followed by the directory\" is that it results into a completely different assumptions about how the matching is done. Because default matching is done based on the full path from left to right, so rearranging path parts looks somewhat confusing to me.\n\nThis is just me wondering what it would take to implement this for myself, and I have no idea if this has been considered before and discarded, but I would love to have this in mini.pick!\n\nIt was considered, yes. And it was discarded, yes. For example, in #1082.",
+            "createdAt": "2026-04-03T13:39:20Z",
+            "createdViaEmail": false,
+            "databaseId": 16438484,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A-tTU",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-03T13:39:20Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2341#discussioncomment-16438484",
+            "updatedAt": "2026-04-03T13:39:20Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2341#discussioncomment-16438484"
+        }
+    ],
+    "createdAt": "2026-04-02T23:06:30Z",
+    "createdViaEmail": false,
+    "databaseId": 9816204,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/6431935?u=926039b9b346579ffd484738d2c63e127d035f6a&v=4",
+        "login": "caenrique",
+        "resourcePath": "/caenrique",
+        "url": "https://github.com/caenrique"
+    },
+    "id": "D_kwDOFoksYM4AlciM",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2026-04-02T23:07:06Z",
+    "locked": false,
+    "number": 2341,
+    "poll": null,
+    "publishedAt": "2026-04-02T23:06:30Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2341",
+    "stateReason": "RESOLVED",
+    "title": "Simpler show function",
+    "updatedAt": "2026-04-03T13:39:21Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2341"
+}

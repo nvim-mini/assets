@@ -1,0 +1,543 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "This is an override of [`MiniPick.builtin.grep_live`](https://github.com/nvim-mini/mini.nvim/blob/6bd3a01aaf7d248aea1b78aacdd5d44bffa002c1/lua/mini/pick.lua#L1359-L1413) via `MiniPick.registry.grep_live`.\r\n\r\nFor easier navigation use https://github.com/nvim-mini/mini.nvim/discussions/2169.\r\n\r\n## Glob mode (NEW!)\r\n\r\n### Description\r\n\r\n| Pattern | Globs |\r\n|-|-|\r\n| <img width=\"1196\" height=\"651\" alt=\"image\" src=\"https://github.com/user-attachments/assets/0f3218a0-4da3-4f8d-9f3f-a3c51b13f842\" /> | <img width=\"1199\" height=\"650\" alt=\"image\" src=\"https://github.com/user-attachments/assets/01bf2fc1-73d6-4e21-911a-478e76c60e4c\" /> |\r\n\r\nThe `<C-o>` mapping is used to toggle a secondary mode that allows modifying multiple globs on the fly, rather than just adding them as in the default `mini.nvim` behavior.\r\n\r\n#### Parsing notes\r\n\r\nIn `glob_mode`, the query is split by spaces `%s+`. If you need to include a space delimiter, you must escape it with a backslash `\\`:\r\n\r\n```lua\r\n*glob1* *glob2* *glob3\\ \\ *\r\n```\r\n\r\nYou can change the logic for parsing globs in the `parse_globs` function. For example, instead of using a space (` `) as the separator, you can use a comma (`,`) instead. For additional information, see https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15270327.\r\n\r\n### Code\r\n\r\n```lua\r\nMiniPick.registry.grep_live = function(local_opts, opts)\r\n  local_opts = vim.tbl_extend(\"keep\", local_opts or {}, { globs = {} })\r\n  opts = vim.tbl_extend(\"keep\", opts or {}, { source = {} })\r\n\r\n  local cwd = vim.fs.abspath(opts.source.cwd or vim.fn.getcwd())\r\n  local set_items_opts = { do_match = false, querytick = MiniPick.get_querytick() }\r\n\r\n  local rg_cmd = function(pattern, globs)\r\n    local cmd =\r\n      { \"rg\", \"--column\", \"--line-number\", \"--no-heading\", \"--field-match-separator\", \"\\\\x00\", \"--color=never\" }\r\n    for _, g in ipairs(globs) do\r\n      vim.list_extend(cmd, { \"--glob\", g })\r\n    end\r\n    local case = vim.o.ignorecase and (vim.o.smartcase and \"smart-case\" or \"ignore-case\") or \"case-sensitive\"\r\n    vim.list_extend(cmd, { \"--\" .. case })\r\n    vim.list_extend(cmd, { \"--\", pattern })\r\n    return cmd\r\n  end\r\n\r\n  local parse_globs = function(query_str)\r\n    local escape = function(str)\r\n      return str:gsub(\"\\\\ \", \"\\1\")\r\n    end\r\n    local unescape = function(str)\r\n      return str:gsub(\"\\1\", \"\\\\ \")\r\n    end\r\n    local after_split = vim.split(escape(query_str), \"%s+\", { trimempty = true })\r\n    return vim.tbl_map(unescape, after_split)\r\n  end\r\n\r\n  local glob_mode = false\r\n  local glob_query = {}\r\n  local pattern_query = {}\r\n\r\n  local query_globs = {}\r\n  local globs = {}\r\n\r\n  local process\r\n  local match = function(_, _, query)\r\n    pcall(vim.loop.process_kill, process)\r\n    if MiniPick.get_querytick() == set_items_opts.querytick then\r\n      return\r\n    end\r\n    if glob_mode then\r\n      glob_query = query\r\n      query_globs = parse_globs(table.concat(query))\r\n      globs = {}\r\n      vim.list_extend(globs, local_opts.globs)\r\n      vim.list_extend(globs, query_globs)\r\n    else\r\n      pattern_query = query\r\n    end\r\n    if vim.tbl_isempty(pattern_query) and vim.tbl_isempty(query_globs) then\r\n      return MiniPick.set_picker_items({}, set_items_opts)\r\n    end\r\n    set_items_opts.querytick = MiniPick.get_querytick()\r\n    local cmd = rg_cmd(table.concat(pattern_query), globs)\r\n    -- NOTE: You can update `source_name` here on `query` match\r\n    process = MiniPick.set_picker_items_from_cli(cmd, { set_items_opts = set_items_opts, spawn_opts = { cwd = cwd } })\r\n  end\r\n\r\n  local toggle_glob = function()\r\n    glob_mode = not glob_mode\r\n    if glob_mode then\r\n      MiniPick.set_picker_opts({ source = { name = \"Grep live (rg*)\" } })\r\n      -- WARN: After `MiniPick.set_picker_opts`\r\n      MiniPick.set_picker_query(glob_query)\r\n    else\r\n      local suffix = vim.tbl_isempty(globs) and \"\" or \" | \" .. table.concat(globs, \", \")\r\n      local source_name = string.format(\"Grep live (rg%s)\", suffix)\r\n      MiniPick.set_picker_opts({ source = { name = source_name } })\r\n      MiniPick.set_picker_query(pattern_query)\r\n    end\r\n  end\r\n\r\n  local show_fn = MiniPick.config.source.show\r\n    or function(buf_id, items, query)\r\n      MiniPick.default_show(buf_id, items, query, { show_icons = true })\r\n    end\r\n\r\n  local show = function(buf, items, _)\r\n    show_fn(buf, items, pattern_query)\r\n  end\r\n\r\n  return MiniPick.start(vim.tbl_deep_extend(\"force\", opts or {}, {\r\n    source = {\r\n      name = \"Grep live (rg)\",\r\n      items = {},\r\n      match = match,\r\n      show = show,\r\n    },\r\n    mappings = {\r\n      toggle_glob = { char = \"<C-o>\", func = toggle_glob },\r\n    },\r\n  }))\r\nend\r\n```\r\n\r\n## Glob in the query\r\n\r\n<details><summary>Hide</summary>\r\n\r\n### Description\r\n\r\n<img width=\"1197\" height=\"651\" alt=\"image\" src=\"https://github.com/user-attachments/assets/36f626ba-1ac3-4f3a-9838-a659d4d31409\" />\r\n\r\nWrite globs directly inside the input instead of using `<C-o>`, because it’s easier to visualize changes immediately:\r\n\r\n```txt\r\n-> vim.print | plugins/**, *json\r\n   ^^^^^^^^^   ^^^^^^^^^^^^^^^^^\r\n   pattern     globs\r\n```\r\n\r\n#### Parsing notes\r\n\r\nThe trailing space at the end of the pattern is removed, so if you need a space in the pattern, use two spaces instead of one:\r\n\r\n```txt\r\nvim.print  |\r\n          ^ trimmed\r\n```\r\n\r\nThe globs pattern is split by commas `,`, and empty globs are skipped. Also, each individual glob is trimmed by one space on both sides. Therefore, if you need an empty string at the start of the individual glob, use two spaces:\r\n\r\n```txt\r\n| *glob1  , glob2 \r\n ^       ^ ^     ^ trimmed\r\n```\r\n\r\n### Code\r\n\r\n```lua\r\nMiniPick.registry.grep_live = function(local_opts, opts)\r\n  local_opts = vim.tbl_extend(\"keep\", local_opts or {}, { globs = {} })\r\n  opts = vim.tbl_extend(\"keep\", opts or {}, { source = {} })\r\n\r\n  local cwd = vim.fs.abspath(opts.source.cwd or vim.fn.getcwd())\r\n  local set_items_opts = { do_match = false, querytick = MiniPick.get_querytick() }\r\n\r\n  local rg_cmd = function(pattern, globs)\r\n    local cmd =\r\n      { \"rg\", \"--column\", \"--line-number\", \"--no-heading\", \"--field-match-separator\", \"\\\\x00\", \"--color=never\" }\r\n    for _, g in ipairs(globs) do\r\n      vim.list_extend(cmd, { \"--glob\", g })\r\n    end\r\n    local case = vim.o.ignorecase and (vim.o.smartcase and \"smart-case\" or \"ignore-case\") or \"case-sensitive\"\r\n    vim.list_extend(cmd, { \"--\" .. case })\r\n    vim.list_extend(cmd, { \"--\", pattern })\r\n    return cmd\r\n  end\r\n\r\n  local trim_space_1 = function(str, l, r)\r\n    str = l and string.gsub(str, \"^ \", \"\") or str\r\n    str = r and string.gsub(str, \" $\", \"\") or str\r\n    return str\r\n  end\r\n\r\n  -- NOTE: Parse query into command\r\n  -- \"search string  | glob1 , glob2, glob3 \"\r\n  -- trimmed        ^ ^     ^ ^      ^     ^\r\n  local make_live_cmd = function(query_str, init_globs)\r\n    local left, right = unpack(vim.split(query_str, \"|\"))\r\n    local pattern = trim_space_1(left, nil, true)\r\n    local globs = vim.split(trim_space_1(right or \"\", true, true), \" ?, ?\", { trimempty = true })\r\n    local combined_globs = {}\r\n    vim.list_extend(combined_globs, init_globs or {})\r\n    vim.list_extend(combined_globs, globs)\r\n    return rg_cmd(pattern, combined_globs), pattern, combined_globs\r\n  end\r\n\r\n  local make_source_name = function(globs)\r\n    globs = globs or {}\r\n    local globs_suffix = vim.tbl_isempty(globs) and \"\" or (\" | \" .. table.concat(globs, \",\"))\r\n    return string.format(\"Grep live (rg%s)\", globs_suffix)\r\n  end\r\n\r\n  local match_ticket\r\n  local process\r\n  local match = function(_, _, query)\r\n    pcall(vim.loop.process_kill, process)\r\n    if MiniPick.get_querytick() == set_items_opts.querytick then\r\n      return\r\n    end\r\n    if #query == 0 then\r\n      return MiniPick.set_picker_items({}, set_items_opts)\r\n    end\r\n    set_items_opts.querytick = MiniPick.get_querytick()\r\n    -- Create cmd\r\n    local cmd, _, globs = make_live_cmd(table.concat(query), local_opts.globs)\r\n    -- Only update when cmd changes\r\n    local cmd_id = table.concat(cmd)\r\n    if cmd_id == match_ticket then\r\n      return\r\n    end\r\n    match_ticket = cmd_id\r\n    -- Update source name\r\n    MiniPick.set_picker_opts({ source = { name = make_source_name(globs) } })\r\n    -- Update items\r\n    process = MiniPick.set_picker_items_from_cli(cmd, { set_items_opts = set_items_opts, spawn_opts = { cwd = cwd } })\r\n  end\r\n\r\n  return MiniPick.start(vim.tbl_deep_extend(\"force\", opts or {}, {\r\n    source = {\r\n      name = make_source_name(),\r\n      items = {},\r\n      match = match,\r\n      show = minipick_grep_show,\r\n    },\r\n  }))\r\nend\r\n```\r\n\r\n</details>",
+    "bodyHTML": "<p dir=\"auto\">This is an override of <a href=\"https://github.com/nvim-mini/mini.nvim/blob/6bd3a01aaf7d248aea1b78aacdd5d44bffa002c1/lua/mini/pick.lua#L1359-L1413\"><code class=\"notranslate\">MiniPick.builtin.grep_live</code></a> via <code class=\"notranslate\">MiniPick.registry.grep_live</code>.</p>\n<p dir=\"auto\">For easier navigation use <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"9241914\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/2169\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2169/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/2169\">#2169</a>.</p>\n<h2 dir=\"auto\">Glob mode (NEW!)</h2>\n<h3 dir=\"auto\">Description</h3>\n<markdown-accessiblity-table><table role=\"table\">\n<thead>\n<tr>\n<th>Pattern</th>\n<th>Globs</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/527112858-0f3218a0-4da3-4f8d-9f3f-a3c51b13f842.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjAsIm5iZiI6MTc5MzU1MjUyMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI3MTEyODU4LTBmMzIxOGEwLTRkYTMtNGY4ZC05ZjNmLWEzYzUxYjEzZjg0Mi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iODcwNmFlOWEzNDIyMWFjNDExMDlmYjU5YmNlMDUzOWQ3MDIxZjMzZTJlZDZhYmYyOTMyODliYmM4ODAyM2RmJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.izksSbA_iW1dCEDsk0q47SdXg8gAwIWJNONwDFZXN-Q\"><img width=\"1196\" height=\"651\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/527112858-0f3218a0-4da3-4f8d-9f3f-a3c51b13f842.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjAsIm5iZiI6MTc5MzU1MjUyMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI3MTEyODU4LTBmMzIxOGEwLTRkYTMtNGY4ZC05ZjNmLWEzYzUxYjEzZjg0Mi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1iODcwNmFlOWEzNDIyMWFjNDExMDlmYjU5YmNlMDUzOWQ3MDIxZjMzZTJlZDZhYmYyOTMyODliYmM4ODAyM2RmJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.izksSbA_iW1dCEDsk0q47SdXg8gAwIWJNONwDFZXN-Q\" style=\"max-width: 100%; height: auto; max-height: 651px;; aspect-ratio: 1196 / 651; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></td>\n<td><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/527113732-01bf2fc1-73d6-4e21-911a-478e76c60e4c.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjAsIm5iZiI6MTc5MzU1MjUyMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI3MTEzNzMyLTAxYmYyZmMxLTczZDYtNGUyMS05MTFhLTQ3OGU3NmM2MGU0Yy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mMzEwZmRjZmMxNTExZGMxMjA1ZmQwMzlkNmRiODgxYWUyYzg5N2U3YThiNGM5MDhiZTdkOGEwOTY2NzIxZWIzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.zVhwcAJ-wl2jb9LmVdulknQL_iUc9b4T_luYEcHV_tw\"><img width=\"1199\" height=\"650\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/527113732-01bf2fc1-73d6-4e21-911a-478e76c60e4c.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjAsIm5iZiI6MTc5MzU1MjUyMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI3MTEzNzMyLTAxYmYyZmMxLTczZDYtNGUyMS05MTFhLTQ3OGU3NmM2MGU0Yy5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1mMzEwZmRjZmMxNTExZGMxMjA1ZmQwMzlkNmRiODgxYWUyYzg5N2U3YThiNGM5MDhiZTdkOGEwOTY2NzIxZWIzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.zVhwcAJ-wl2jb9LmVdulknQL_iUc9b4T_luYEcHV_tw\" style=\"max-width: 100%; height: auto; max-height: 650px;; aspect-ratio: 1199 / 650; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></td>\n</tr>\n</tbody>\n</table></markdown-accessiblity-table>\n<p dir=\"auto\">The <code class=\"notranslate\">&lt;C-o&gt;</code> mapping is used to toggle a secondary mode that allows modifying multiple globs on the fly, rather than just adding them as in the default <code class=\"notranslate\">mini.nvim</code> behavior.</p>\n<h4 dir=\"auto\">Parsing notes</h4>\n<p dir=\"auto\">In <code class=\"notranslate\">glob_mode</code>, the query is split by spaces <code class=\"notranslate\">%s+</code>. If you need to include a space delimiter, you must escape it with a backslash <code class=\"notranslate\">\\</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"*glob1* *glob2* *glob3\\ \\ *\"><pre class=\"notranslate\"><span class=\"pl-k\">*</span><span class=\"pl-smi\">glob1</span><span class=\"pl-k\">*</span> <span class=\"pl-k\">*</span><span class=\"pl-smi\">glob2</span><span class=\"pl-k\">*</span> <span class=\"pl-k\">*</span><span class=\"pl-smi\">glob3</span>\\ \\ <span class=\"pl-k\">*</span></pre></div>\n<p dir=\"auto\">You can change the logic for parsing globs in the <code class=\"notranslate\">parse_globs</code> function. For example, instead of using a space (<code class=\"notranslate\"> </code>) as the separator, you can use a comma (<code class=\"notranslate\">,</code>) instead. For additional information, see <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"9246020\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/2171\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2171/hovercard?comment_id=15270327\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15270327\">#2171 (comment)</a>.</p>\n<h3 dir=\"auto\">Code</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniPick.registry.grep_live = function(local_opts, opts)\n  local_opts = vim.tbl_extend(&quot;keep&quot;, local_opts or {}, { globs = {} })\n  opts = vim.tbl_extend(&quot;keep&quot;, opts or {}, { source = {} })\n\n  local cwd = vim.fs.abspath(opts.source.cwd or vim.fn.getcwd())\n  local set_items_opts = { do_match = false, querytick = MiniPick.get_querytick() }\n\n  local rg_cmd = function(pattern, globs)\n    local cmd =\n      { &quot;rg&quot;, &quot;--column&quot;, &quot;--line-number&quot;, &quot;--no-heading&quot;, &quot;--field-match-separator&quot;, &quot;\\\\x00&quot;, &quot;--color=never&quot; }\n    for _, g in ipairs(globs) do\n      vim.list_extend(cmd, { &quot;--glob&quot;, g })\n    end\n    local case = vim.o.ignorecase and (vim.o.smartcase and &quot;smart-case&quot; or &quot;ignore-case&quot;) or &quot;case-sensitive&quot;\n    vim.list_extend(cmd, { &quot;--&quot; .. case })\n    vim.list_extend(cmd, { &quot;--&quot;, pattern })\n    return cmd\n  end\n\n  local parse_globs = function(query_str)\n    local escape = function(str)\n      return str:gsub(&quot;\\\\ &quot;, &quot;\\1&quot;)\n    end\n    local unescape = function(str)\n      return str:gsub(&quot;\\1&quot;, &quot;\\\\ &quot;)\n    end\n    local after_split = vim.split(escape(query_str), &quot;%s+&quot;, { trimempty = true })\n    return vim.tbl_map(unescape, after_split)\n  end\n\n  local glob_mode = false\n  local glob_query = {}\n  local pattern_query = {}\n\n  local query_globs = {}\n  local globs = {}\n\n  local process\n  local match = function(_, _, query)\n    pcall(vim.loop.process_kill, process)\n    if MiniPick.get_querytick() == set_items_opts.querytick then\n      return\n    end\n    if glob_mode then\n      glob_query = query\n      query_globs = parse_globs(table.concat(query))\n      globs = {}\n      vim.list_extend(globs, local_opts.globs)\n      vim.list_extend(globs, query_globs)\n    else\n      pattern_query = query\n    end\n    if vim.tbl_isempty(pattern_query) and vim.tbl_isempty(query_globs) then\n      return MiniPick.set_picker_items({}, set_items_opts)\n    end\n    set_items_opts.querytick = MiniPick.get_querytick()\n    local cmd = rg_cmd(table.concat(pattern_query), globs)\n    -- NOTE: You can update `source_name` here on `query` match\n    process = MiniPick.set_picker_items_from_cli(cmd, { set_items_opts = set_items_opts, spawn_opts = { cwd = cwd } })\n  end\n\n  local toggle_glob = function()\n    glob_mode = not glob_mode\n    if glob_mode then\n      MiniPick.set_picker_opts({ source = { name = &quot;Grep live (rg*)&quot; } })\n      -- WARN: After `MiniPick.set_picker_opts`\n      MiniPick.set_picker_query(glob_query)\n    else\n      local suffix = vim.tbl_isempty(globs) and &quot;&quot; or &quot; | &quot; .. table.concat(globs, &quot;, &quot;)\n      local source_name = string.format(&quot;Grep live (rg%s)&quot;, suffix)\n      MiniPick.set_picker_opts({ source = { name = source_name } })\n      MiniPick.set_picker_query(pattern_query)\n    end\n  end\n\n  local show_fn = MiniPick.config.source.show\n    or function(buf_id, items, query)\n      MiniPick.default_show(buf_id, items, query, { show_icons = true })\n    end\n\n  local show = function(buf, items, _)\n    show_fn(buf, items, pattern_query)\n  end\n\n  return MiniPick.start(vim.tbl_deep_extend(&quot;force&quot;, opts or {}, {\n    source = {\n      name = &quot;Grep live (rg)&quot;,\n      items = {},\n      match = match,\n      show = show,\n    },\n    mappings = {\n      toggle_glob = { char = &quot;&lt;C-o&gt;&quot;, func = toggle_glob },\n    },\n  }))\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">grep_live</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">or</span> {}, { <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> {} })\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {} })\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">abspath</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">source</span>.<span class=\"pl-e\">cwd</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>())\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">set_items_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">do_match</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">querytick</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_querytick</span>() }\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">rg_cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">globs</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span>\n      { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>rg<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--column<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--line-number<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--no-heading<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--field-match-separator<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\\</span>x00<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--color=never<span class=\"pl-pds\">\" </span></span>}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">g</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">globs</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--glob<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">g</span> })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">case</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">ignorecase</span> <span class=\"pl-k\">and</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">smartcase</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>smart-case<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ignore-case<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>case-sensitive<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">case</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">pattern</span> })\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">cmd</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">parse_globs</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">query_str</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">escape</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">str</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-en\">str</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\\</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\1</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">unescape</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">str</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-en\">str</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\1</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\\</span> <span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">after_split</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-c1\">escape</span>(<span class=\"pl-smi\">query_str</span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s+<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">trimempty</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-smi\">unescape</span>, <span class=\"pl-smi\">after_split</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">glob_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">glob_query</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pattern_query</span> <span class=\"pl-k\">=</span> {}\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">query_globs</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> {}\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">process</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">query</span>)\n    <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-e\">process_kill</span>, <span class=\"pl-smi\">process</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_querytick</span>() <span class=\"pl-k\">==</span> <span class=\"pl-smi\">set_items_opts</span>.<span class=\"pl-e\">querytick</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">glob_mode</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">glob_query</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">query</span>\n      <span class=\"pl-smi\">query_globs</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">parse_globs</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">query</span>))\n      <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> {}\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">globs</span>, <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">globs</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">globs</span>, <span class=\"pl-smi\">query_globs</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">pattern_query</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">query</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_isempty</span>(<span class=\"pl-smi\">pattern_query</span>) <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_isempty</span>(<span class=\"pl-smi\">query_globs</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_items</span>({}, <span class=\"pl-smi\">set_items_opts</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">set_items_opts</span>.<span class=\"pl-e\">querytick</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_querytick</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">rg_cmd</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">pattern_query</span>), <span class=\"pl-smi\">globs</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: You can update `source_name` here on `query` match</span>\n    <span class=\"pl-smi\">process</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_items_from_cli</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-smi\">set_items_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">set_items_opts</span>, <span class=\"pl-smi\">spawn_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> } })\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">toggle_glob</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">glob_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">glob_mode</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">glob_mode</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_opts</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Grep live (rg*)<span class=\"pl-pds\">\" </span></span>} })\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> WARN: After `MiniPick.set_picker_opts`</span>\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_query</span>(<span class=\"pl-smi\">glob_query</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">suffix</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_isempty</span>(<span class=\"pl-smi\">globs</span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> | <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">globs</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>, <span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">source_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Grep live (rg%s)<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">suffix</span>)\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_opts</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">source_name</span> } })\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_query</span>(<span class=\"pl-smi\">pattern_query</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">show_fn</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">source</span>.<span class=\"pl-e\">show</span>\n    <span class=\"pl-k\">or</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>)\n      <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, { <span class=\"pl-smi\">show_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n    <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">_</span>)\n    <span class=\"pl-c1\">show_fn</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">pattern_query</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Grep live (rg)<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {},\n      <span class=\"pl-smi\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">match</span>,\n      <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span>,\n    },\n    <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">toggle_glob</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-o&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">toggle_glob</span> },\n    },\n  }))\n<span class=\"pl-k\">end</span></pre></div>\n<h2 dir=\"auto\">Glob in the query</h2>\n<details><summary>Hide</summary>\n<h3 dir=\"auto\">Description</h3>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/526219663-36f626ba-1ac3-4f3a-9838-a659d4d31409.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjAsIm5iZiI6MTc5MzU1MjUyMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI2MjE5NjYzLTM2ZjYyNmJhLTFhYzMtNGYzYS05ODM4LWE2NTlkNGQzMTQwOS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0zN2JhZmMwMzQyMmYwYzQwYTUzYWEwZjAxNzhkZTllZGU4Y2MxZWQ2ZGFkMzk0ZmM0OWRhMjQ0MDUwNjBlM2JkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.J2g7oLh8_rYJGluFqbd5MI3vRli8sRrj8q5fiBWjQ34\"><img width=\"1197\" height=\"651\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/526219663-36f626ba-1ac3-4f3a-9838-a659d4d31409.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjAsIm5iZiI6MTc5MzU1MjUyMCwicGF0aCI6Ii8xMTk4NDUwNDUvNTI2MjE5NjYzLTM2ZjYyNmJhLTFhYzMtNGYzYS05ODM4LWE2NTlkNGQzMTQwOS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0zN2JhZmMwMzQyMmYwYzQwYTUzYWEwZjAxNzhkZTllZGU4Y2MxZWQ2ZGFkMzk0ZmM0OWRhMjQ0MDUwNjBlM2JkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.J2g7oLh8_rYJGluFqbd5MI3vRli8sRrj8q5fiBWjQ34\" style=\"max-width: 100%; height: auto; max-height: 651px;; aspect-ratio: 1197 / 651; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<p dir=\"auto\">Write globs directly inside the input instead of using <code class=\"notranslate\">&lt;C-o&gt;</code>, because it’s easier to visualize changes immediately:</p>\n<div class=\"highlight highlight-text-adblock notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-&gt; vim.print | plugins/**, *json\n   ^^^^^^^^^   ^^^^^^^^^^^^^^^^^\n   pattern     globs\"><pre class=\"notranslate\">-&gt; vim.print | plugins/<span class=\"pl-k\">**</span>, <span class=\"pl-k\">*</span>json\n   <span class=\"pl-k\">^^^^^^^^^</span>   <span class=\"pl-k\">^^^^^^^^^^^^^^^^^</span>\n   pattern     globs</pre></div>\n<h4 dir=\"auto\">Parsing notes</h4>\n<p dir=\"auto\">The trailing space at the end of the pattern is removed, so if you need a space in the pattern, use two spaces instead of one:</p>\n<div class=\"highlight highlight-text-adblock notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.print  |\n          ^ trimmed\"><pre class=\"notranslate\">vim.print  <span class=\"pl-k\">|</span>\n          <span class=\"pl-k\">^</span> trimmed</pre></div>\n<p dir=\"auto\">The globs pattern is split by commas <code class=\"notranslate\">,</code>, and empty globs are skipped. Also, each individual glob is trimmed by one space on both sides. Therefore, if you need an empty string at the start of the individual glob, use two spaces:</p>\n<div class=\"highlight highlight-text-adblock notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"| *glob1  , glob2 \n ^       ^ ^     ^ trimmed\"><pre class=\"notranslate\"><span class=\"pl-k\">|</span> <span class=\"pl-k\">*</span>glob1  , glob2 \n <span class=\"pl-k\">^</span>       <span class=\"pl-k\">^</span> <span class=\"pl-k\">^</span>     <span class=\"pl-k\">^</span> trimmed</pre></div>\n<h3 dir=\"auto\">Code</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniPick.registry.grep_live = function(local_opts, opts)\n  local_opts = vim.tbl_extend(&quot;keep&quot;, local_opts or {}, { globs = {} })\n  opts = vim.tbl_extend(&quot;keep&quot;, opts or {}, { source = {} })\n\n  local cwd = vim.fs.abspath(opts.source.cwd or vim.fn.getcwd())\n  local set_items_opts = { do_match = false, querytick = MiniPick.get_querytick() }\n\n  local rg_cmd = function(pattern, globs)\n    local cmd =\n      { &quot;rg&quot;, &quot;--column&quot;, &quot;--line-number&quot;, &quot;--no-heading&quot;, &quot;--field-match-separator&quot;, &quot;\\\\x00&quot;, &quot;--color=never&quot; }\n    for _, g in ipairs(globs) do\n      vim.list_extend(cmd, { &quot;--glob&quot;, g })\n    end\n    local case = vim.o.ignorecase and (vim.o.smartcase and &quot;smart-case&quot; or &quot;ignore-case&quot;) or &quot;case-sensitive&quot;\n    vim.list_extend(cmd, { &quot;--&quot; .. case })\n    vim.list_extend(cmd, { &quot;--&quot;, pattern })\n    return cmd\n  end\n\n  local trim_space_1 = function(str, l, r)\n    str = l and string.gsub(str, &quot;^ &quot;, &quot;&quot;) or str\n    str = r and string.gsub(str, &quot; $&quot;, &quot;&quot;) or str\n    return str\n  end\n\n  -- NOTE: Parse query into command\n  -- &quot;search string  | glob1 , glob2, glob3 &quot;\n  -- trimmed        ^ ^     ^ ^      ^     ^\n  local make_live_cmd = function(query_str, init_globs)\n    local left, right = unpack(vim.split(query_str, &quot;|&quot;))\n    local pattern = trim_space_1(left, nil, true)\n    local globs = vim.split(trim_space_1(right or &quot;&quot;, true, true), &quot; ?, ?&quot;, { trimempty = true })\n    local combined_globs = {}\n    vim.list_extend(combined_globs, init_globs or {})\n    vim.list_extend(combined_globs, globs)\n    return rg_cmd(pattern, combined_globs), pattern, combined_globs\n  end\n\n  local make_source_name = function(globs)\n    globs = globs or {}\n    local globs_suffix = vim.tbl_isempty(globs) and &quot;&quot; or (&quot; | &quot; .. table.concat(globs, &quot;,&quot;))\n    return string.format(&quot;Grep live (rg%s)&quot;, globs_suffix)\n  end\n\n  local match_ticket\n  local process\n  local match = function(_, _, query)\n    pcall(vim.loop.process_kill, process)\n    if MiniPick.get_querytick() == set_items_opts.querytick then\n      return\n    end\n    if #query == 0 then\n      return MiniPick.set_picker_items({}, set_items_opts)\n    end\n    set_items_opts.querytick = MiniPick.get_querytick()\n    -- Create cmd\n    local cmd, _, globs = make_live_cmd(table.concat(query), local_opts.globs)\n    -- Only update when cmd changes\n    local cmd_id = table.concat(cmd)\n    if cmd_id == match_ticket then\n      return\n    end\n    match_ticket = cmd_id\n    -- Update source name\n    MiniPick.set_picker_opts({ source = { name = make_source_name(globs) } })\n    -- Update items\n    process = MiniPick.set_picker_items_from_cli(cmd, { set_items_opts = set_items_opts, spawn_opts = { cwd = cwd } })\n  end\n\n  return MiniPick.start(vim.tbl_deep_extend(&quot;force&quot;, opts or {}, {\n    source = {\n      name = make_source_name(),\n      items = {},\n      match = match,\n      show = minipick_grep_show,\n    },\n  }))\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">grep_live</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">or</span> {}, { <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> {} })\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {} })\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">abspath</span>(<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">source</span>.<span class=\"pl-e\">cwd</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>())\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">set_items_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">do_match</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">querytick</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_querytick</span>() }\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">rg_cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">globs</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span>\n      { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>rg<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--column<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--line-number<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--no-heading<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--field-match-separator<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\\</span>x00<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--color=never<span class=\"pl-pds\">\" </span></span>}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">g</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">globs</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--glob<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">g</span> })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">case</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">ignorecase</span> <span class=\"pl-k\">and</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">smartcase</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>smart-case<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ignore-case<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>case-sensitive<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">case</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">pattern</span> })\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">cmd</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">trim_space_1</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">str</span>, <span class=\"pl-smi\">l</span>, <span class=\"pl-smi\">r</span>)\n    <span class=\"pl-smi\">str</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">l</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">string.gsub</span>(<span class=\"pl-smi\">str</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^ <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">str</span>\n    <span class=\"pl-smi\">str</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">string.gsub</span>(<span class=\"pl-smi\">str</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> $<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">str</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">str</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Parse query into command</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> \"search string  | glob1 , glob2, glob3 \"</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> trimmed        ^ ^     ^ ^      ^     ^</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">make_live_cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">query_str</span>, <span class=\"pl-smi\">init_globs</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">left</span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">unpack</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">query_str</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>|<span class=\"pl-pds\">\"</span></span>))\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">trim_space_1</span>(<span class=\"pl-smi\">left</span>, <span class=\"pl-c1\">nil</span>, <span class=\"pl-c1\">true</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-c1\">trim_space_1</span>(<span class=\"pl-smi\">right</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> ?, ?<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">trimempty</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">combined_globs</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">combined_globs</span>, <span class=\"pl-smi\">init_globs</span> <span class=\"pl-k\">or</span> {})\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">combined_globs</span>, <span class=\"pl-smi\">globs</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">rg_cmd</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">combined_globs</span>), <span class=\"pl-smi\">pattern</span>, <span class=\"pl-smi\">combined_globs</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">make_source_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">globs</span>)\n    <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">or</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">globs_suffix</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_isempty</span>(<span class=\"pl-smi\">globs</span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> (<span class=\"pl-s\"><span class=\"pl-pds\">\"</span> | <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">globs</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>,<span class=\"pl-pds\">\"</span></span>))\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Grep live (rg%s)<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">globs_suffix</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">match_ticket</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">process</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">query</span>)\n    <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-e\">process_kill</span>, <span class=\"pl-smi\">process</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_querytick</span>() <span class=\"pl-k\">==</span> <span class=\"pl-smi\">set_items_opts</span>.<span class=\"pl-e\">querytick</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">query</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_items</span>({}, <span class=\"pl-smi\">set_items_opts</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">set_items_opts</span>.<span class=\"pl-e\">querytick</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_querytick</span>()\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Create cmd</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">globs</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">make_live_cmd</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">query</span>), <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">globs</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Only update when cmd changes</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">cmd</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cmd_id</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">match_ticket</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">match_ticket</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cmd_id</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Update source name</span>\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_opts</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">make_source_name</span>(<span class=\"pl-smi\">globs</span>) } })\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Update items</span>\n    <span class=\"pl-smi\">process</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">set_picker_items_from_cli</span>(<span class=\"pl-smi\">cmd</span>, { <span class=\"pl-smi\">set_items_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">set_items_opts</span>, <span class=\"pl-smi\">spawn_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd</span> } })\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}, {\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">make_source_name</span>(),\n      <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {},\n      <span class=\"pl-smi\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">match</span>,\n      <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">minipick_grep_show</span>,\n    },\n  }))\n<span class=\"pl-k\">end</span></pre></div>\n</details>",
+    "bodyText": "This is an override of MiniPick.builtin.grep_live via MiniPick.registry.grep_live.\nFor easier navigation use #2169.\nGlob mode (NEW!)\nDescription\n\n\n\nPattern\nGlobs\n\n\n\n\n\n\n\n\n\nThe <C-o> mapping is used to toggle a secondary mode that allows modifying multiple globs on the fly, rather than just adding them as in the default mini.nvim behavior.\nParsing notes\nIn glob_mode, the query is split by spaces %s+. If you need to include a space delimiter, you must escape it with a backslash \\:\n*glob1* *glob2* *glob3\\ \\ *\nYou can change the logic for parsing globs in the parse_globs function. For example, instead of using a space ( ) as the separator, you can use a comma (,) instead. For additional information, see #2171 (comment).\nCode\nMiniPick.registry.grep_live = function(local_opts, opts)\n  local_opts = vim.tbl_extend(\"keep\", local_opts or {}, { globs = {} })\n  opts = vim.tbl_extend(\"keep\", opts or {}, { source = {} })\n\n  local cwd = vim.fs.abspath(opts.source.cwd or vim.fn.getcwd())\n  local set_items_opts = { do_match = false, querytick = MiniPick.get_querytick() }\n\n  local rg_cmd = function(pattern, globs)\n    local cmd =\n      { \"rg\", \"--column\", \"--line-number\", \"--no-heading\", \"--field-match-separator\", \"\\\\x00\", \"--color=never\" }\n    for _, g in ipairs(globs) do\n      vim.list_extend(cmd, { \"--glob\", g })\n    end\n    local case = vim.o.ignorecase and (vim.o.smartcase and \"smart-case\" or \"ignore-case\") or \"case-sensitive\"\n    vim.list_extend(cmd, { \"--\" .. case })\n    vim.list_extend(cmd, { \"--\", pattern })\n    return cmd\n  end\n\n  local parse_globs = function(query_str)\n    local escape = function(str)\n      return str:gsub(\"\\\\ \", \"\\1\")\n    end\n    local unescape = function(str)\n      return str:gsub(\"\\1\", \"\\\\ \")\n    end\n    local after_split = vim.split(escape(query_str), \"%s+\", { trimempty = true })\n    return vim.tbl_map(unescape, after_split)\n  end\n\n  local glob_mode = false\n  local glob_query = {}\n  local pattern_query = {}\n\n  local query_globs = {}\n  local globs = {}\n\n  local process\n  local match = function(_, _, query)\n    pcall(vim.loop.process_kill, process)\n    if MiniPick.get_querytick() == set_items_opts.querytick then\n      return\n    end\n    if glob_mode then\n      glob_query = query\n      query_globs = parse_globs(table.concat(query))\n      globs = {}\n      vim.list_extend(globs, local_opts.globs)\n      vim.list_extend(globs, query_globs)\n    else\n      pattern_query = query\n    end\n    if vim.tbl_isempty(pattern_query) and vim.tbl_isempty(query_globs) then\n      return MiniPick.set_picker_items({}, set_items_opts)\n    end\n    set_items_opts.querytick = MiniPick.get_querytick()\n    local cmd = rg_cmd(table.concat(pattern_query), globs)\n    -- NOTE: You can update `source_name` here on `query` match\n    process = MiniPick.set_picker_items_from_cli(cmd, { set_items_opts = set_items_opts, spawn_opts = { cwd = cwd } })\n  end\n\n  local toggle_glob = function()\n    glob_mode = not glob_mode\n    if glob_mode then\n      MiniPick.set_picker_opts({ source = { name = \"Grep live (rg*)\" } })\n      -- WARN: After `MiniPick.set_picker_opts`\n      MiniPick.set_picker_query(glob_query)\n    else\n      local suffix = vim.tbl_isempty(globs) and \"\" or \" | \" .. table.concat(globs, \", \")\n      local source_name = string.format(\"Grep live (rg%s)\", suffix)\n      MiniPick.set_picker_opts({ source = { name = source_name } })\n      MiniPick.set_picker_query(pattern_query)\n    end\n  end\n\n  local show_fn = MiniPick.config.source.show\n    or function(buf_id, items, query)\n      MiniPick.default_show(buf_id, items, query, { show_icons = true })\n    end\n\n  local show = function(buf, items, _)\n    show_fn(buf, items, pattern_query)\n  end\n\n  return MiniPick.start(vim.tbl_deep_extend(\"force\", opts or {}, {\n    source = {\n      name = \"Grep live (rg)\",\n      items = {},\n      match = match,\n      show = show,\n    },\n    mappings = {\n      toggle_glob = { char = \"<C-o>\", func = toggle_glob },\n    },\n  }))\nend\nGlob in the query\nHide\nDescription\n\nWrite globs directly inside the input instead of using <C-o>, because it’s easier to visualize changes immediately:\n-> vim.print | plugins/**, *json\n   ^^^^^^^^^   ^^^^^^^^^^^^^^^^^\n   pattern     globs\nParsing notes\nThe trailing space at the end of the pattern is removed, so if you need a space in the pattern, use two spaces instead of one:\nvim.print  |\n          ^ trimmed\nThe globs pattern is split by commas ,, and empty globs are skipped. Also, each individual glob is trimmed by one space on both sides. Therefore, if you need an empty string at the start of the individual glob, use two spaces:\n| *glob1  , glob2 \n ^       ^ ^     ^ trimmed\nCode\nMiniPick.registry.grep_live = function(local_opts, opts)\n  local_opts = vim.tbl_extend(\"keep\", local_opts or {}, { globs = {} })\n  opts = vim.tbl_extend(\"keep\", opts or {}, { source = {} })\n\n  local cwd = vim.fs.abspath(opts.source.cwd or vim.fn.getcwd())\n  local set_items_opts = { do_match = false, querytick = MiniPick.get_querytick() }\n\n  local rg_cmd = function(pattern, globs)\n    local cmd =\n      { \"rg\", \"--column\", \"--line-number\", \"--no-heading\", \"--field-match-separator\", \"\\\\x00\", \"--color=never\" }\n    for _, g in ipairs(globs) do\n      vim.list_extend(cmd, { \"--glob\", g })\n    end\n    local case = vim.o.ignorecase and (vim.o.smartcase and \"smart-case\" or \"ignore-case\") or \"case-sensitive\"\n    vim.list_extend(cmd, { \"--\" .. case })\n    vim.list_extend(cmd, { \"--\", pattern })\n    return cmd\n  end\n\n  local trim_space_1 = function(str, l, r)\n    str = l and string.gsub(str, \"^ \", \"\") or str\n    str = r and string.gsub(str, \" $\", \"\") or str\n    return str\n  end\n\n  -- NOTE: Parse query into command\n  -- \"search string  | glob1 , glob2, glob3 \"\n  -- trimmed        ^ ^     ^ ^      ^     ^\n  local make_live_cmd = function(query_str, init_globs)\n    local left, right = unpack(vim.split(query_str, \"|\"))\n    local pattern = trim_space_1(left, nil, true)\n    local globs = vim.split(trim_space_1(right or \"\", true, true), \" ?, ?\", { trimempty = true })\n    local combined_globs = {}\n    vim.list_extend(combined_globs, init_globs or {})\n    vim.list_extend(combined_globs, globs)\n    return rg_cmd(pattern, combined_globs), pattern, combined_globs\n  end\n\n  local make_source_name = function(globs)\n    globs = globs or {}\n    local globs_suffix = vim.tbl_isempty(globs) and \"\" or (\" | \" .. table.concat(globs, \",\"))\n    return string.format(\"Grep live (rg%s)\", globs_suffix)\n  end\n\n  local match_ticket\n  local process\n  local match = function(_, _, query)\n    pcall(vim.loop.process_kill, process)\n    if MiniPick.get_querytick() == set_items_opts.querytick then\n      return\n    end\n    if #query == 0 then\n      return MiniPick.set_picker_items({}, set_items_opts)\n    end\n    set_items_opts.querytick = MiniPick.get_querytick()\n    -- Create cmd\n    local cmd, _, globs = make_live_cmd(table.concat(query), local_opts.globs)\n    -- Only update when cmd changes\n    local cmd_id = table.concat(cmd)\n    if cmd_id == match_ticket then\n      return\n    end\n    match_ticket = cmd_id\n    -- Update source name\n    MiniPick.set_picker_opts({ source = { name = make_source_name(globs) } })\n    -- Update items\n    process = MiniPick.set_picker_items_from_cli(cmd, { set_items_opts = set_items_opts, spawn_opts = { cwd = cwd } })\n  end\n\n  return MiniPick.start(vim.tbl_deep_extend(\"force\", opts or {}, {\n    source = {\n      name = make_source_name(),\n      items = {},\n      match = match,\n      show = minipick_grep_show,\n    },\n  }))\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nLooks useful indeed. My problem with \"in query parsing\" of this sort of information is that this requires a design to ignore it. For example, to actually search for a `|` character.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">Looks useful indeed. My problem with \"in query parsing\" of this sort of information is that this requires a design to ignore it. For example, to actually search for a <code class=\"notranslate\">|</code> character.</p>",
+            "bodyText": "Thanks for sharing!\nLooks useful indeed. My problem with \"in query parsing\" of this sort of information is that this requires a design to ignore it. For example, to actually search for a | character.",
+            "createdAt": "2025-12-14T14:43:11Z",
+            "createdViaEmail": false,
+            "databaseId": 15251804,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A6Llc",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-12-14T14:43:11Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Indeed, very good point. I hadn’t thought about that. It seems like additional escaping might be needed.\r\n\r\nAs a side note, another approach is the `live`/`non-live` mode used by [snacks.nvim](https://github.com/folke/snacks.nvim/discussions/1990). It toggles between two sets of queries with different syntaxes: one is sent to the underlying tool, and the other is used for refining.\r\n\r\nI like the `snacks.nvim` approach because multiple refinements feel somewhat excessive.\r\n\r\nRelated discussions:\r\n\r\n- [What is `live` mode?](https://github.com/folke/snacks.nvim/discussions/1990#discussioncomment-13541046)\r\n- [An example of a complex query](https://github.com/folke/snacks.nvim/discussions/1949#discussioncomment-13390521)",
+                    "bodyHTML": "<p dir=\"auto\">Indeed, very good point. I hadn’t thought about that. It seems like additional escaping might be needed.</p>\n<p dir=\"auto\">As a side note, another approach is the <code class=\"notranslate\">live</code>/<code class=\"notranslate\">non-live</code> mode used by <a href=\"https://github.com/folke/snacks.nvim/discussions/1990\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/folke/snacks.nvim/discussions/1990/hovercard\">snacks.nvim</a>. It toggles between two sets of queries with different syntaxes: one is sent to the underlying tool, and the other is used for refining.</p>\n<p dir=\"auto\">I like the <code class=\"notranslate\">snacks.nvim</code> approach because multiple refinements feel somewhat excessive.</p>\n<p dir=\"auto\">Related discussions:</p>\n<ul dir=\"auto\">\n<li><a href=\"https://github.com/folke/snacks.nvim/discussions/1990#discussioncomment-13541046\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/folke/snacks.nvim/discussions/1990/hovercard?comment_id=13541046\">What is <code class=\"notranslate\">live</code> mode?</a></li>\n<li><a href=\"https://github.com/folke/snacks.nvim/discussions/1949#discussioncomment-13390521\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/folke/snacks.nvim/discussions/1949/hovercard?comment_id=13390521\">An example of a complex query</a></li>\n</ul>",
+                    "bodyText": "Indeed, very good point. I hadn’t thought about that. It seems like additional escaping might be needed.\nAs a side note, another approach is the live/non-live mode used by snacks.nvim. It toggles between two sets of queries with different syntaxes: one is sent to the underlying tool, and the other is used for refining.\nI like the snacks.nvim approach because multiple refinements feel somewhat excessive.\nRelated discussions:\n\nWhat is live mode?\nAn example of a complex query",
+                    "createdAt": "2025-12-14T15:07:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15251912,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6LnI",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-14T15:10:51Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-14T15:07:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15251804,
+                        "id": "DC_kwDOFoksYM4A6Llc",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251804"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251912",
+                    "updatedAt": "2025-12-14T15:10:51Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251912"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... because multiple refinements feel somewhat excessive.\r\n\r\nRefine is a source agnostic method which also works well with `grep_live`. And multiple refinements is not that uncommon, at least in my usage.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... because multiple refinements feel somewhat excessive.</p>\n</blockquote>\n<p dir=\"auto\">Refine is a source agnostic method which also works well with <code class=\"notranslate\">grep_live</code>. And multiple refinements is not that uncommon, at least in my usage.</p>",
+                    "bodyText": "... because multiple refinements feel somewhat excessive.\n\nRefine is a source agnostic method which also works well with grep_live. And multiple refinements is not that uncommon, at least in my usage.",
+                    "createdAt": "2025-12-14T15:40:45Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15252062,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6Lpe",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-14T15:40:45Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15251804,
+                        "id": "DC_kwDOFoksYM4A6Llc",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251804"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15252062",
+                    "updatedAt": "2025-12-14T15:40:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15252062"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Interesting. I treat it literally like a shell prompt: `fd (1) | rg (2)` is enough for me, since I don’t search large codebases. For me, the idea of using multiple refinements without a way to go back makes it a little uncomfortable.\r\n\r\nBy the way, `non-live` mode is also source agnostic, with the additional feature of searching by an `item` fields.",
+                    "bodyHTML": "<p dir=\"auto\">Interesting. I treat it literally like a shell prompt: <code class=\"notranslate\">fd (1) | rg (2)</code> is enough for me, since I don’t search large codebases. For me, the idea of using multiple refinements without a way to go back makes it a little uncomfortable.</p>\n<p dir=\"auto\">By the way, <code class=\"notranslate\">non-live</code> mode is also source agnostic, with the additional feature of searching by an <code class=\"notranslate\">item</code> fields.</p>",
+                    "bodyText": "Interesting. I treat it literally like a shell prompt: fd (1) | rg (2) is enough for me, since I don’t search large codebases. For me, the idea of using multiple refinements without a way to go back makes it a little uncomfortable.\nBy the way, non-live mode is also source agnostic, with the additional feature of searching by an item fields.",
+                    "createdAt": "2025-12-14T16:05:23Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15252174,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6LrO",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-14T16:11:17Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-14T16:05:23Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15251804,
+                        "id": "DC_kwDOFoksYM4A6Llc",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251804"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15252174",
+                    "updatedAt": "2025-12-14T16:11:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15252174"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251804",
+            "updatedAt": "2025-12-14T14:43:11Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15251804"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I've updated the code to handle escaping properly and changed the behavior to toggle glob mode with `<C-o>`. In this mode, the query is split by spaces (`%s+`), but single space can be explicitly escaped with `\\ ` if needed. Since the glob patterns support this, I simply pass the escaped spaces to the underlying command.\r\n\r\nAlternatively, the query *could* be split by commas (escaped as `\\,`). This approach is easier to follow since commas are much less common in file and folder names. The only downside is that we would lose the ability to visually separate glob patterns with spaces, as spaces would then be treated as part of the pattern. So, I’ve chosen spaces as the separator.",
+            "bodyHTML": "<p dir=\"auto\">I've updated the code to handle escaping properly and changed the behavior to toggle glob mode with <code class=\"notranslate\">&lt;C-o&gt;</code>. In this mode, the query is split by spaces (<code class=\"notranslate\">%s+</code>), but single space can be explicitly escaped with <code class=\"notranslate\">\\ </code> if needed. Since the glob patterns support this, I simply pass the escaped spaces to the underlying command.</p>\n<p dir=\"auto\">Alternatively, the query <em>could</em> be split by commas (escaped as <code class=\"notranslate\">\\,</code>). This approach is easier to follow since commas are much less common in file and folder names. The only downside is that we would lose the ability to visually separate glob patterns with spaces, as spaces would then be treated as part of the pattern. So, I’ve chosen spaces as the separator.</p>",
+            "bodyText": "I've updated the code to handle escaping properly and changed the behavior to toggle glob mode with <C-o>. In this mode, the query is split by spaces (%s+), but single space can be explicitly escaped with \\  if needed. Since the glob patterns support this, I simply pass the escaped spaces to the underlying command.\nAlternatively, the query could be split by commas (escaped as \\,). This approach is easier to follow since commas are much less common in file and folder names. The only downside is that we would lose the ability to visually separate glob patterns with spaces, as spaces would then be treated as part of the pattern. So, I’ve chosen spaces as the separator.",
+            "createdAt": "2025-12-16T15:01:46Z",
+            "createdViaEmail": false,
+            "databaseId": 15270327,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A6QG3",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-16T19:11:48Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-16T15:01:46Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15270327",
+            "updatedAt": "2025-12-16T19:11:48Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171#discussioncomment-15270327"
+        }
+    ],
+    "createdAt": "2025-12-14T14:32:49Z",
+    "createdViaEmail": false,
+    "databaseId": 9246020,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AjRVE",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-12-16T19:22:14Z",
+    "locked": false,
+    "number": 2171,
+    "poll": null,
+    "publishedAt": "2025-12-14T14:32:49Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2171",
+    "stateReason": null,
+    "title": "[mini.pick] Live grep - glob pattern mode",
+    "updatedAt": "2026-05-01T20:57:42Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2171"
+}

@@ -1,0 +1,548 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 17398132,
+        "id": "DC_kwDOFoksYM4BCXl0",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17398132"
+    },
+    "answerChosenAt": "2026-06-22T20:04:32Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/347552?v=4",
+        "login": "badosu",
+        "resourcePath": "/badosu",
+        "url": "https://github.com/badosu"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/347552?v=4",
+        "login": "badosu",
+        "resourcePath": "/badosu",
+        "url": "https://github.com/badosu"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.completion\r\n\r\n### Question\r\n\r\nIf I set `complete` empty, I have a weird interaction where in insert mode lots of literal `^N`s are inserted (equivalent to `<C-v><C-n>`).\r\n\r\nHas anybody observed this? Here's my [mini.completion](https://github.com/badosu/nvim/blob/31d231cda6423611b7cf98a0071d8fc8dcaa2de4/lua/plugin/completion.lua) config.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.completion</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">If I set <code class=\"notranslate\">complete</code> empty, I have a weird interaction where in insert mode lots of literal <code class=\"notranslate\">^N</code>s are inserted (equivalent to <code class=\"notranslate\">&lt;C-v&gt;&lt;C-n&gt;</code>).</p>\n<p dir=\"auto\">Has anybody observed this? Here's my <a href=\"https://github.com/badosu/nvim/blob/31d231cda6423611b7cf98a0071d8fc8dcaa2de4/lua/plugin/completion.lua\">mini.completion</a> config.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.completion\nQuestion\nIf I set complete empty, I have a weird interaction where in insert mode lots of literal ^Ns are inserted (equivalent to <C-v><C-n>).\nHas anybody observed this? Here's my mini.completion config.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-06-23T07:46:53Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/271960493?u=fa3c06027309968adae776302eb5f892de915ce7&v=4",
+                "login": "starkmarkus",
+                "resourcePath": "/starkmarkus",
+                "url": "https://github.com/starkmarkus"
+            },
+            "authorAssociation": "NONE",
+            "body": "Looking at the linked config, I think the important part is this commented section:\n\n```lua\n-- Trigger LSP completion directly to prevent buffer text fallback\n-- vim.api.nvim_create_autocmd(\"LspAttach\", {\n--   callback = function(args)\n--     vim.bo[args.buf].complete = \"\" -- disable words completion\n--   end,\n-- })\n```\n\nSo the goal is not just “empty complete for no reason”, but to prevent Neovim from falling back to buffer/keyword completion and use LSP completion only.\n\nThat goal makes sense, but I suspect complete = \"\" is too strong. mini.completion still uses Neovim’s built-in insert-completion mechanism, with omnifunc set to v:lua.MiniCompletion.completefunc_lsp in your config. If complete is empty, <C-n> / <C-p> can end up in an unusual state where completion is triggered but there are no normal completion sources configured. That may explain why literal ^N characters appear.\n\nInstead of clearing complete, I would try keeping only omni completion as the source:\n\n```lua\nvim.api.nvim_create_autocmd(\"LspAttach\", {\n  callback = function(args)\n    vim.bo[args.buf].complete = \"o\"\n  end,\n})\n```\n\nor test it manually:\n\n```vim\n:setlocal complete=o\n:verbose setlocal complete?\n:verbose setlocal omnifunc?\n```\n\nThis should keep <C-n> completion routed through omnifunc / MiniCompletion.completefunc_lsp, while avoiding the buffer-word fallback sources.\n\nSo my current guess is:\n\n* complete=\"\" disables too much and causes the weird literal ^N behavior.\n* complete=o is probably closer to what you want: LSP/omnifunc completion only.\n* The follow-up check would be whether complete=o removes buffer text fallback without producing literal control characters.\n\nIf complete=o still falls back to buffer words, then the next thing to inspect would be the exact <C-n> mappings / completeopt state, but I would try that before treating this as a mini.completion bug.",
+            "bodyHTML": "<p dir=\"auto\">Looking at the linked config, I think the important part is this commented section:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Trigger LSP completion directly to prevent buffer text fallback\n-- vim.api.nvim_create_autocmd(&quot;LspAttach&quot;, {\n--   callback = function(args)\n--     vim.bo[args.buf].complete = &quot;&quot; -- disable words completion\n--   end,\n-- })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Trigger LSP completion directly to prevent buffer text fallback</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> vim.api.nvim_create_autocmd(\"LspAttach\", {</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   callback = function(args)</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>     vim.bo[args.buf].complete = \"\" -- disable words completion</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span>   end,</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> })</span></pre></div>\n<p dir=\"auto\">So the goal is not just “empty complete for no reason”, but to prevent Neovim from falling back to buffer/keyword completion and use LSP completion only.</p>\n<p dir=\"auto\">That goal makes sense, but I suspect complete = \"\" is too strong. mini.completion still uses Neovim’s built-in insert-completion mechanism, with omnifunc set to v:lua.MiniCompletion.completefunc_lsp in your config. If complete is empty,  /  can end up in an unusual state where completion is triggered but there are no normal completion sources configured. That may explain why literal ^N characters appear.</p>\n<p dir=\"auto\">Instead of clearing complete, I would try keeping only omni completion as the source:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd(&quot;LspAttach&quot;, {\n  callback = function(args)\n    vim.bo[args.buf].complete = &quot;o&quot;\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>LspAttach<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">buf</span>].<span class=\"pl-e\">complete</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">or test it manually:</p>\n<div class=\"highlight highlight-source-viml notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\":setlocal complete=o\n:verbose setlocal complete?\n:verbose setlocal omnifunc?\"><pre class=\"notranslate\">:<span class=\"pl-c1\">setlocal</span> <span class=\"pl-c1\">complete</span><span class=\"pl-k\">=</span><span class=\"pl-c1\">o</span>\n:<span class=\"pl-c1\">verbose</span> <span class=\"pl-c1\">setlocal</span> <span class=\"pl-c1\">complete</span>?\n:<span class=\"pl-c1\">verbose</span> <span class=\"pl-c1\">setlocal</span> <span class=\"pl-c1\">omnifunc</span>?</pre></div>\n<p dir=\"auto\">This should keep  completion routed through omnifunc / MiniCompletion.completefunc_lsp, while avoiding the buffer-word fallback sources.</p>\n<p dir=\"auto\">So my current guess is:</p>\n<ul dir=\"auto\">\n<li>complete=\"\" disables too much and causes the weird literal ^N behavior.</li>\n<li>complete=o is probably closer to what you want: LSP/omnifunc completion only.</li>\n<li>The follow-up check would be whether complete=o removes buffer text fallback without producing literal control characters.</li>\n</ul>\n<p dir=\"auto\">If complete=o still falls back to buffer words, then the next thing to inspect would be the exact  mappings / completeopt state, but I would try that before treating this as a mini.completion bug.</p>",
+            "bodyText": "Looking at the linked config, I think the important part is this commented section:\n-- Trigger LSP completion directly to prevent buffer text fallback\n-- vim.api.nvim_create_autocmd(\"LspAttach\", {\n--   callback = function(args)\n--     vim.bo[args.buf].complete = \"\" -- disable words completion\n--   end,\n-- })\nSo the goal is not just “empty complete for no reason”, but to prevent Neovim from falling back to buffer/keyword completion and use LSP completion only.\nThat goal makes sense, but I suspect complete = \"\" is too strong. mini.completion still uses Neovim’s built-in insert-completion mechanism, with omnifunc set to v:lua.MiniCompletion.completefunc_lsp in your config. If complete is empty,  /  can end up in an unusual state where completion is triggered but there are no normal completion sources configured. That may explain why literal ^N characters appear.\nInstead of clearing complete, I would try keeping only omni completion as the source:\nvim.api.nvim_create_autocmd(\"LspAttach\", {\n  callback = function(args)\n    vim.bo[args.buf].complete = \"o\"\n  end,\n})\nor test it manually:\n:setlocal complete=o\n:verbose setlocal complete?\n:verbose setlocal omnifunc?\nThis should keep  completion routed through omnifunc / MiniCompletion.completefunc_lsp, while avoiding the buffer-word fallback sources.\nSo my current guess is:\n\ncomplete=\"\" disables too much and causes the weird literal ^N behavior.\ncomplete=o is probably closer to what you want: LSP/omnifunc completion only.\nThe follow-up check would be whether complete=o removes buffer text fallback without producing literal control characters.\n\nIf complete=o still falls back to buffer words, then the next thing to inspect would be the exact  mappings / completeopt state, but I would try that before treating this as a mini.completion bug.",
+            "createdAt": "2026-06-22T17:42:47Z",
+            "createdViaEmail": false,
+            "databaseId": 17397239,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BCXX3",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-06-22T17:42:47Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/347552?v=4",
+                        "login": "badosu",
+                        "resourcePath": "/badosu",
+                        "url": "https://github.com/badosu"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I see, so `complete=` would be expected to insert `^N` with mini.completion.\r\n\r\nI used `o` via the test suggested and it still provides buffer completion.\r\n\r\n`completeopt` is `menuone,noselect,fuzzy,nosort` and I didn't find any insert mode mapping that could have interfered.\r\n\r\nFWIW setting to a smaller source like `k` still shows `^N` sometimes.",
+                    "bodyHTML": "<p dir=\"auto\">I see, so <code class=\"notranslate\">complete=</code> would be expected to insert <code class=\"notranslate\">^N</code> with mini.completion.</p>\n<p dir=\"auto\">I used <code class=\"notranslate\">o</code> via the test suggested and it still provides buffer completion.</p>\n<p dir=\"auto\"><code class=\"notranslate\">completeopt</code> is <code class=\"notranslate\">menuone,noselect,fuzzy,nosort</code> and I didn't find any insert mode mapping that could have interfered.</p>\n<p dir=\"auto\">FWIW setting to a smaller source like <code class=\"notranslate\">k</code> still shows <code class=\"notranslate\">^N</code> sometimes.</p>",
+                    "bodyText": "I see, so complete= would be expected to insert ^N with mini.completion.\nI used o via the test suggested and it still provides buffer completion.\ncompleteopt is menuone,noselect,fuzzy,nosort and I didn't find any insert mode mapping that could have interfered.\nFWIW setting to a smaller source like k still shows ^N sometimes.",
+                    "createdAt": "2026-06-22T19:07:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17397961,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/347552?v=4",
+                        "login": "badosu",
+                        "resourcePath": "/badosu",
+                        "url": "https://github.com/badosu"
+                    },
+                    "id": "DC_kwDOFoksYM4BCXjJ",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-06-22T19:13:57Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-06-22T19:07:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 17397239,
+                        "id": "DC_kwDOFoksYM4BCXX3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397239"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397961",
+                    "updatedAt": "2026-06-22T19:13:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397961"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/271960493?u=fa3c06027309968adae776302eb5f892de915ce7&v=4",
+                        "login": "starkmarkus",
+                        "resourcePath": "/starkmarkus",
+                        "url": "https://github.com/starkmarkus"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Good point, then my previous guess was incomplete.\r\n\r\nIf `complete=o` still gives what looks like buffer completion, I think the more relevant part is probably `mini.completion`’s fallback behavior, not only the value of complete.\r\n\r\n`mini.completion` is a two-stage completion system:\r\n\r\n1. try LSP completion\r\n2. if there are no LSP candidates, run fallback_action\r\n\r\nand the default fallback action is:\r\n\r\nfallback_action = '<C-n>'\r\n\r\nSo even if your LSP setup is correct, when LSP returns no candidates, mini.completion can still fall back to Neovim’s built-in <C-n> completion. That would explain why you still see buffer-like completion with complete=o, and also why unusual complete values like complete=\"\" or complete=k can produce weird literal ^N behavior: the fallback is still trying to execute <C-n>.\r\n\r\nIf your goal is strict LSP-only completion, I would test disabling the fallback instead of trying to control it only through complete.\r\n\r\nSomething like this is worth trying:\r\n\r\n```\r\nrequire('mini.completion').setup({\r\n  lsp_completion = {\r\n    source_func = 'omnifunc',\r\n    auto_setup = false,\r\n  },\r\n  -- Disable built-in <C-n> fallback.\r\n  fallback_action = function() end,\r\n})\r\n```\r\n\r\nand keep the LSP attach part:\r\n\r\n```\r\nvim.api.nvim_create_autocmd('LspAttach', {\r\n  callback = function(args)\r\n    vim.bo[args.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'\r\n  end,\r\n})\r\n```\r\n\r\nThen I would test with a normal-ish complete value first, not an empty one:\r\n\r\n`:setlocal complete=.,w,b,u\r\n`\r\nor even:\r\n\r\n`:setlocal complete=o\r\n`\r\nThe key test is whether the issue disappears when fallback_action is disabled.\r\n\r\nSo my updated guess is:\r\n\r\ncomplete=\"\" is not the root feature you want.\r\nThe default fallback_action='<C-n>' is probably what you want to avoid.\r\nFor strict LSP-only behavior, disable or replace fallback_action.\r\n\r\nIf disabling `fallback_action` removes both the buffer fallback and the literal ^N, then this is likely expected behavior from the current two-stage design rather than an insert-mode mapping conflict.",
+                    "bodyHTML": "<p dir=\"auto\">Good point, then my previous guess was incomplete.</p>\n<p dir=\"auto\">If <code class=\"notranslate\">complete=o</code> still gives what looks like buffer completion, I think the more relevant part is probably <code class=\"notranslate\">mini.completion</code>’s fallback behavior, not only the value of complete.</p>\n<p dir=\"auto\"><code class=\"notranslate\">mini.completion</code> is a two-stage completion system:</p>\n<ol dir=\"auto\">\n<li>try LSP completion</li>\n<li>if there are no LSP candidates, run fallback_action</li>\n</ol>\n<p dir=\"auto\">and the default fallback action is:</p>\n<p dir=\"auto\">fallback_action = ''</p>\n<p dir=\"auto\">So even if your LSP setup is correct, when LSP returns no candidates, mini.completion can still fall back to Neovim’s built-in  completion. That would explain why you still see buffer-like completion with complete=o, and also why unusual complete values like complete=\"\" or complete=k can produce weird literal ^N behavior: the fallback is still trying to execute .</p>\n<p dir=\"auto\">If your goal is strict LSP-only completion, I would test disabling the fallback instead of trying to control it only through complete.</p>\n<p dir=\"auto\">Something like this is worth trying:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"require('mini.completion').setup({\n  lsp_completion = {\n    source_func = 'omnifunc',\n    auto_setup = false,\n  },\n  -- Disable built-in &lt;C-n&gt; fallback.\n  fallback_action = function() end,\n})\"><pre class=\"notranslate\"><code class=\"notranslate\">require('mini.completion').setup({\n  lsp_completion = {\n    source_func = 'omnifunc',\n    auto_setup = false,\n  },\n  -- Disable built-in &lt;C-n&gt; fallback.\n  fallback_action = function() end,\n})\n</code></pre></div>\n<p dir=\"auto\">and keep the LSP attach part:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd('LspAttach', {\n  callback = function(args)\n    vim.bo[args.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'\n  end,\n})\"><pre class=\"notranslate\"><code class=\"notranslate\">vim.api.nvim_create_autocmd('LspAttach', {\n  callback = function(args)\n    vim.bo[args.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'\n  end,\n})\n</code></pre></div>\n<p dir=\"auto\">Then I would test with a normal-ish complete value first, not an empty one:</p>\n<p dir=\"auto\"><code class=\"notranslate\">:setlocal complete=.,w,b,u </code><br>\nor even:</p>\n<p dir=\"auto\"><code class=\"notranslate\">:setlocal complete=o </code><br>\nThe key test is whether the issue disappears when fallback_action is disabled.</p>\n<p dir=\"auto\">So my updated guess is:</p>\n<p dir=\"auto\">complete=\"\" is not the root feature you want.<br>\nThe default fallback_action='' is probably what you want to avoid.<br>\nFor strict LSP-only behavior, disable or replace fallback_action.</p>\n<p dir=\"auto\">If disabling <code class=\"notranslate\">fallback_action</code> removes both the buffer fallback and the literal ^N, then this is likely expected behavior from the current two-stage design rather than an insert-mode mapping conflict.</p>",
+                    "bodyText": "Good point, then my previous guess was incomplete.\nIf complete=o still gives what looks like buffer completion, I think the more relevant part is probably mini.completion’s fallback behavior, not only the value of complete.\nmini.completion is a two-stage completion system:\n\ntry LSP completion\nif there are no LSP candidates, run fallback_action\n\nand the default fallback action is:\nfallback_action = ''\nSo even if your LSP setup is correct, when LSP returns no candidates, mini.completion can still fall back to Neovim’s built-in  completion. That would explain why you still see buffer-like completion with complete=o, and also why unusual complete values like complete=\"\" or complete=k can produce weird literal ^N behavior: the fallback is still trying to execute .\nIf your goal is strict LSP-only completion, I would test disabling the fallback instead of trying to control it only through complete.\nSomething like this is worth trying:\nrequire('mini.completion').setup({\n  lsp_completion = {\n    source_func = 'omnifunc',\n    auto_setup = false,\n  },\n  -- Disable built-in <C-n> fallback.\n  fallback_action = function() end,\n})\n\nand keep the LSP attach part:\nvim.api.nvim_create_autocmd('LspAttach', {\n  callback = function(args)\n    vim.bo[args.buf].omnifunc = 'v:lua.MiniCompletion.completefunc_lsp'\n  end,\n})\n\nThen I would test with a normal-ish complete value first, not an empty one:\n:setlocal complete=.,w,b,u \nor even:\n:setlocal complete=o \nThe key test is whether the issue disappears when fallback_action is disabled.\nSo my updated guess is:\ncomplete=\"\" is not the root feature you want.\nThe default fallback_action='' is probably what you want to avoid.\nFor strict LSP-only behavior, disable or replace fallback_action.\nIf disabling fallback_action removes both the buffer fallback and the literal ^N, then this is likely expected behavior from the current two-stage design rather than an insert-mode mapping conflict.",
+                    "createdAt": "2026-06-22T19:26:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17398132,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BCXl0",
+                    "includesCreatedEdit": false,
+                    "isAnswer": true,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-06-22T19:26:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 17397239,
+                        "id": "DC_kwDOFoksYM4BCXX3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397239"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17398132",
+                    "updatedAt": "2026-06-22T19:26:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17398132"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/347552?v=4",
+                        "login": "badosu",
+                        "resourcePath": "/badosu",
+                        "url": "https://github.com/badosu"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Setting `fallback_action` to empty func or empty string definitely fixes it and achieves my desired behavior. Thank you!",
+                    "bodyHTML": "<p dir=\"auto\">Setting <code class=\"notranslate\">fallback_action</code> to empty func or empty string definitely fixes it and achieves my desired behavior. Thank you!</p>",
+                    "bodyText": "Setting fallback_action to empty func or empty string definitely fixes it and achieves my desired behavior. Thank you!",
+                    "createdAt": "2026-06-22T20:04:59Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17398425,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BCXqZ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-06-22T20:04:59Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 17397239,
+                        "id": "DC_kwDOFoksYM4BCXX3",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397239"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17398425",
+                    "updatedAt": "2026-06-22T20:04:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17398425"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397239",
+            "updatedAt": "2026-06-22T17:42:47Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17397239"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Indeed, this is working as expected because 'mini.completion' here tries two things in succession: ask LSP server(s) about completion data, perform fallback action if there is none. The default fallback action is emulating `<C-n>` press, which shows completion based on sources in 'complete' option. And if 'complete' is empty, pressing `<C-n>` indeed inserts `^N` character (i.e. `\\14`). This is the behavior without 'mini.completion'.\r\n\r\nTo disable fallback completion locally to buffer, set `vim.b.minicompletion_config = { fallback_action = '' }`.",
+            "bodyHTML": "<p dir=\"auto\">Indeed, this is working as expected because 'mini.completion' here tries two things in succession: ask LSP server(s) about completion data, perform fallback action if there is none. The default fallback action is emulating <code class=\"notranslate\">&lt;C-n&gt;</code> press, which shows completion based on sources in 'complete' option. And if 'complete' is empty, pressing <code class=\"notranslate\">&lt;C-n&gt;</code> indeed inserts <code class=\"notranslate\">^N</code> character (i.e. <code class=\"notranslate\">\\14</code>). This is the behavior without 'mini.completion'.</p>\n<p dir=\"auto\">To disable fallback completion locally to buffer, set <code class=\"notranslate\">vim.b.minicompletion_config = { fallback_action = '' }</code>.</p>",
+            "bodyText": "Indeed, this is working as expected because 'mini.completion' here tries two things in succession: ask LSP server(s) about completion data, perform fallback action if there is none. The default fallback action is emulating <C-n> press, which shows completion based on sources in 'complete' option. And if 'complete' is empty, pressing <C-n> indeed inserts ^N character (i.e. \\14). This is the behavior without 'mini.completion'.\nTo disable fallback completion locally to buffer, set vim.b.minicompletion_config = { fallback_action = '' }.",
+            "createdAt": "2026-06-23T07:46:53Z",
+            "createdViaEmail": false,
+            "databaseId": 17403935,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BCZAf",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-06-23T07:46:53Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17403935",
+            "updatedAt": "2026-06-23T07:46:53Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474#discussioncomment-17403935"
+        }
+    ],
+    "createdAt": "2026-06-22T09:36:25Z",
+    "createdViaEmail": false,
+    "databaseId": 10299151,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/347552?v=4",
+        "login": "badosu",
+        "resourcePath": "/badosu",
+        "url": "https://github.com/badosu"
+    },
+    "id": "D_kwDOFoksYM4AnScP",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-06-23T14:33:37Z",
+    "locked": false,
+    "number": 2474,
+    "poll": null,
+    "publishedAt": "2026-06-22T09:36:25Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2474",
+    "stateReason": "RESOLVED",
+    "title": "[mini.completion] Weird interaction with empty complete opt",
+    "updatedAt": "2026-06-23T14:33:37Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2474"
+}

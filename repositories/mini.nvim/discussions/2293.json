@@ -1,0 +1,783 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/4627919?u=e171501bf5b9787517bc42b5eb9ba1320cff4dc4&v=4",
+        "login": "somnam",
+        "resourcePath": "/somnam",
+        "url": "https://github.com/somnam"
+    },
+    "authorAssociation": "NONE",
+    "body": "Since using `mini.pick` I've missed having the preview pane visible next to the picker - it shows more context and helps me to narrow down the search faster (or maybe I'm just too used to it 😅). This is an attempt at implementing this feature.\r\n\r\n**Features**:\r\n* layout orientation `horizontal`, `vertical` (defaulting to `vertical`)\r\n* preview to results list ratio (defaulting to 0.6)\r\n* scroll preview up / down (defaulting to `<S-Up>` / `<S-Down>`)\r\n* toggle preview (defaulting to `<Tab>`)\r\n\r\nPreview content is wrapped by default, eliminating the need to scroll preview left or right.\r\n\r\n<details>\r\n<summary>Code</summary>\r\n\r\n```lua\r\nlocal preview = (function()\r\n  local config = { orientation = \"vertical\", ratio = 0.6 }\r\n  local state = { win_id = nil, buf_id = nil, last_item = nil, is_hidden = false }\r\n  local cache = { win_config = {} }\r\n  local scroll_map = { up = \"<C-b>\", down = \"<C-f>\", left = \"zH\", right = \"zL\" }\r\n\r\n  local function reset()\r\n    state.win_id = nil\r\n    state.buf_id = nil\r\n    state.last_item = nil\r\n    state.is_hidden = false\r\n    cache.win_config = {}\r\n  end\r\n\r\n  local function has_win() return state.win_id ~= nil and vim.api.nvim_win_is_valid(state.win_id) end\r\n\r\n  local function create_buf()\r\n    state.buf_id = vim.api.nvim_create_buf(false, true)\r\n    vim.api.nvim_buf_set_name(state.buf_id, \"minipick://\" .. state.buf_id .. \"/preview\")\r\n    vim.bo[state.buf_id].bufhidden = \"wipe\"\r\n    vim.bo[state.buf_id].matchpairs = \"\"\r\n    vim.b[state.buf_id].minicursorword_disable = true\r\n    vim.b[state.buf_id].miniindentscope_disable = true\r\n  end\r\n\r\n  local function create_win(win_config)\r\n    win_config.style = \"minimal\"\r\n    state.win_id = vim.api.nvim_open_win(state.buf_id, false, win_config)\r\n    vim.wo[state.win_id].foldenable = false\r\n    vim.wo[state.win_id].foldmethod = \"manual\"\r\n    vim.wo[state.win_id].linebreak = true\r\n    vim.wo[state.win_id].scrolloff = 0\r\n    vim.wo[state.win_id].winhighlight = \"NormalFloat:MiniPickNormal,FloatBorder:MiniPickBorder\"\r\n    vim.wo[state.win_id].wrap = true\r\n  end\r\n\r\n  local function close_buf()\r\n    pcall(vim.api.nvim_buf_delete, state.buf_id, { force = true })\r\n    state.buf_id = nil\r\n  end\r\n\r\n  local function close_win()\r\n    if has_win() then\r\n      pcall(vim.api.nvim_win_close, state.win_id, true)\r\n    end\r\n    state.win_id = nil\r\n  end\r\n\r\n  local function close()\r\n    close_win()\r\n    close_buf()\r\n    state.last_item = nil\r\n  end\r\n\r\n  ---@param item table | nil\r\n  local function show_preview(item)\r\n    if item ~= nil then\r\n      local preview_func = MiniPick.get_picker_opts().source.preview\r\n      pcall(preview_func, state.buf_id, item)\r\n    else\r\n      vim.api.nvim_buf_set_lines(state.buf_id, 0, -1, false, {})\r\n    end\r\n  end\r\n\r\n  local function compute_border_size(border)\r\n    local n = type(border) == \"table\" and #border or 0\r\n    if n == 0 then\r\n      return 2\r\n    elseif config.orientation == \"vertical\" then\r\n      return ((border[3 % n + 1] == \"\" and 0 or 1) + (border[7 % n + 1] == \"\" and 0 or 1))\r\n    else\r\n      return ((border[1 % n + 1] == \"\" and 0 or 1) + (border[5 % n + 1] == \"\" and 0 or 1))\r\n    end\r\n  end\r\n\r\n  local function compute_layout(window_config, preview_config)\r\n    local preview_ratio = config.ratio\r\n    local border_size = compute_border_size(window_config.border)\r\n\r\n    if config.orientation == \"vertical\" then\r\n      local preview_size = math.floor(preview_ratio * (window_config.width + border_size))\r\n      local preview_width = math.max(1, preview_size - border_size)\r\n      local main_width = math.max(1, window_config.width - preview_width - border_size)\r\n      window_config.width = main_width\r\n      preview_config.width = preview_width\r\n      preview_config.col = window_config.col + (main_width + border_size)\r\n    else\r\n      local preview_size = math.floor(preview_ratio * (window_config.height + border_size))\r\n      local preview_height = math.max(1, preview_size - border_size)\r\n      local main_height = math.max(1, window_config.height - preview_height - border_size)\r\n      window_config.height = main_height\r\n      preview_config.height = preview_height\r\n      if window_config.anchor == \"SW\" then\r\n        window_config.row = window_config.row - (preview_height + border_size)\r\n      else\r\n        preview_config.row = window_config.row + (main_height + border_size)\r\n      end\r\n    end\r\n  end\r\n\r\n  local function setup(opts) config = vim.tbl_deep_extend(\"force\", config, opts or {}) end\r\n\r\n  local function scroll(direction)\r\n    if not has_win() then\r\n      return\r\n    end\r\n    local keys = vim.api.nvim_replace_termcodes(scroll_map[direction], true, true, true)\r\n    vim.api.nvim_win_call(state.win_id, function() vim.cmd(\"normal! \" .. keys) end)\r\n  end\r\n\r\n  local function cache_win_config()\r\n    local picker_state = MiniPick.get_picker_state()\r\n    if not (picker_state.windows and picker_state.windows.main) then\r\n      return\r\n    end\r\n    local window_config = vim.api.nvim_win_get_config(picker_state.windows.main)\r\n    local keys = { \"anchor\", \"border\", \"col\", \"height\", \"relative\", \"row\", \"width\", \"zindex\" }\r\n    for _, key in ipairs(keys) do\r\n      cache.win_config[key] = window_config[key]\r\n    end\r\n  end\r\n\r\n  local function update()\r\n    if state.is_hidden then\r\n      close()\r\n      return\r\n    end\r\n\r\n    local picker_state = MiniPick.get_picker_state()\r\n    if not (picker_state.windows and picker_state.windows.main) then\r\n      return\r\n    end\r\n\r\n    local window_config = vim.deepcopy(cache.win_config)\r\n    local preview_config = vim.deepcopy(cache.win_config)\r\n    compute_layout(window_config, preview_config)\r\n\r\n    vim.api.nvim_win_set_config(picker_state.windows.main, window_config)\r\n\r\n    if not has_win() then\r\n      create_buf()\r\n      create_win(preview_config)\r\n    else\r\n      vim.api.nvim_win_set_config(state.win_id, preview_config)\r\n    end\r\n\r\n    local current_item = MiniPick.get_picker_matches().current\r\n    if current_item ~= state.last_item then\r\n      state.last_item = current_item\r\n      create_buf()\r\n      vim.api.nvim_win_set_buf(state.win_id, state.buf_id)\r\n      show_preview(current_item)\r\n    end\r\n  end\r\n\r\n  local function toggle()\r\n    MiniPick.refresh()\r\n    state.is_hidden = not state.is_hidden\r\n    update()\r\n  end\r\n\r\n  local function stop()\r\n    close()\r\n    reset()\r\n  end\r\n\r\n  -- Update preview on picker refresh\r\n  local mini_pick = require(\"mini.pick\")\r\n  local mini_pick_refresh = mini_pick.refresh\r\n  mini_pick.refresh = function()\r\n    mini_pick_refresh()\r\n    if mini_pick.is_picker_active() then\r\n      cache_win_config()\r\n      vim.schedule(update)\r\n    end\r\n  end\r\n\r\n  return {\r\n    setup = setup,\r\n    scroll = scroll,\r\n    cache_win_config = cache_win_config,\r\n    update = update,\r\n    toggle = toggle,\r\n    stop = stop,\r\n  }\r\nend)()\r\n\r\nlocal group = vim.api.nvim_create_augroup(\"UserMiniPick\", { clear = true })\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniPickStart\",\r\n  group = group,\r\n  callback = function()\r\n    preview.cache_win_config()\r\n    preview.update()\r\n  end,\r\n})\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniPickMatch\",\r\n  group = group,\r\n  callback = function() vim.schedule(preview.update) end,\r\n})\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniPickStop\",\r\n  group = group,\r\n  callback = preview.stop,\r\n})\r\n\r\n---@param keys string\r\nlocal function feedkeys(keys)\r\n  keys = vim.api.nvim_replace_termcodes(keys, true, true, true)\r\n  vim.api.nvim_feedkeys(keys, \"n\", true)\r\nend\r\n\r\nMiniDeps.now(function()\r\n  require(\"mini.pick\").setup({\r\n    mappings = {\r\n      move_down_arrow = {\r\n        char = \"<Down>\",\r\n        func = function()\r\n          feedkeys(\"<C-n>\")\r\n          vim.schedule(preview.update)\r\n        end,\r\n      },\r\n      move_up_arrow = {\r\n        char = \"<Up>\",\r\n        func = function()\r\n          feedkeys(\"<C-p>\")\r\n          vim.schedule(preview.update)\r\n        end,\r\n      },\r\n      scroll_side_preview_down = {\r\n        char = \"<S-Down>\",\r\n        func = function() preview.scroll(\"down\") end,\r\n      },\r\n      scroll_side_preview_up = { char = \"<S-Up>\", func = function() preview.scroll(\"up\") end },\r\n      toggle_preview = \"\",\r\n      toggle_side_preview = { char = \"<Tab>\", func = preview.toggle },\r\n    },\r\n    window = {\r\n      config = function()\r\n        local height = math.floor(0.8 * vim.o.lines)\r\n        local width = math.floor(0.8 * vim.o.columns)\r\n        return { height = height, width = width }\r\n      end,\r\n    },\r\n  })\r\nend)\r\n```\r\n\r\n</details>\r\n\r\nVertical layout:\r\n\r\n  <img width=\"100%\" alt=\"Screenshot From 2026-03-03 19-11-32\" src=\"https://github.com/user-attachments/assets/de9cafc0-949f-4cbf-b79a-e2f6bd38de94\" />\r\n\r\nHorizontal layout:\r\n\r\n<details>\r\n<summary>setup</summary>\r\n\r\n```lua\r\n  preview.setup({ orientation = \"horizontal\" })\r\n```\r\n</details>\r\n\r\n  <img width=\"100%\" alt=\"Screenshot From 2026-03-03 19-11-54\" src=\"https://github.com/user-attachments/assets/5f6bb155-d857-48b7-a59b-07f931bc3b8e\" />",
+    "bodyHTML": "<p dir=\"auto\">Since using <code class=\"notranslate\">mini.pick</code> I've missed having the preview pane visible next to the picker - it shows more context and helps me to narrow down the search faster (or maybe I'm just too used to it 😅). This is an attempt at implementing this feature.</p>\n<p dir=\"auto\"><strong>Features</strong>:</p>\n<ul dir=\"auto\">\n<li>layout orientation <code class=\"notranslate\">horizontal</code>, <code class=\"notranslate\">vertical</code> (defaulting to <code class=\"notranslate\">vertical</code>)</li>\n<li>preview to results list ratio (defaulting to 0.6)</li>\n<li>scroll preview up / down (defaulting to <code class=\"notranslate\">&lt;S-Up&gt;</code> / <code class=\"notranslate\">&lt;S-Down&gt;</code>)</li>\n<li>toggle preview (defaulting to <code class=\"notranslate\">&lt;Tab&gt;</code>)</li>\n</ul>\n<p dir=\"auto\">Preview content is wrapped by default, eliminating the need to scroll preview left or right.</p>\n<details>\n<summary>Code</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local preview = (function()\n  local config = { orientation = &quot;vertical&quot;, ratio = 0.6 }\n  local state = { win_id = nil, buf_id = nil, last_item = nil, is_hidden = false }\n  local cache = { win_config = {} }\n  local scroll_map = { up = &quot;&lt;C-b&gt;&quot;, down = &quot;&lt;C-f&gt;&quot;, left = &quot;zH&quot;, right = &quot;zL&quot; }\n\n  local function reset()\n    state.win_id = nil\n    state.buf_id = nil\n    state.last_item = nil\n    state.is_hidden = false\n    cache.win_config = {}\n  end\n\n  local function has_win() return state.win_id ~= nil and vim.api.nvim_win_is_valid(state.win_id) end\n\n  local function create_buf()\n    state.buf_id = vim.api.nvim_create_buf(false, true)\n    vim.api.nvim_buf_set_name(state.buf_id, &quot;minipick://&quot; .. state.buf_id .. &quot;/preview&quot;)\n    vim.bo[state.buf_id].bufhidden = &quot;wipe&quot;\n    vim.bo[state.buf_id].matchpairs = &quot;&quot;\n    vim.b[state.buf_id].minicursorword_disable = true\n    vim.b[state.buf_id].miniindentscope_disable = true\n  end\n\n  local function create_win(win_config)\n    win_config.style = &quot;minimal&quot;\n    state.win_id = vim.api.nvim_open_win(state.buf_id, false, win_config)\n    vim.wo[state.win_id].foldenable = false\n    vim.wo[state.win_id].foldmethod = &quot;manual&quot;\n    vim.wo[state.win_id].linebreak = true\n    vim.wo[state.win_id].scrolloff = 0\n    vim.wo[state.win_id].winhighlight = &quot;NormalFloat:MiniPickNormal,FloatBorder:MiniPickBorder&quot;\n    vim.wo[state.win_id].wrap = true\n  end\n\n  local function close_buf()\n    pcall(vim.api.nvim_buf_delete, state.buf_id, { force = true })\n    state.buf_id = nil\n  end\n\n  local function close_win()\n    if has_win() then\n      pcall(vim.api.nvim_win_close, state.win_id, true)\n    end\n    state.win_id = nil\n  end\n\n  local function close()\n    close_win()\n    close_buf()\n    state.last_item = nil\n  end\n\n  ---@param item table | nil\n  local function show_preview(item)\n    if item ~= nil then\n      local preview_func = MiniPick.get_picker_opts().source.preview\n      pcall(preview_func, state.buf_id, item)\n    else\n      vim.api.nvim_buf_set_lines(state.buf_id, 0, -1, false, {})\n    end\n  end\n\n  local function compute_border_size(border)\n    local n = type(border) == &quot;table&quot; and #border or 0\n    if n == 0 then\n      return 2\n    elseif config.orientation == &quot;vertical&quot; then\n      return ((border[3 % n + 1] == &quot;&quot; and 0 or 1) + (border[7 % n + 1] == &quot;&quot; and 0 or 1))\n    else\n      return ((border[1 % n + 1] == &quot;&quot; and 0 or 1) + (border[5 % n + 1] == &quot;&quot; and 0 or 1))\n    end\n  end\n\n  local function compute_layout(window_config, preview_config)\n    local preview_ratio = config.ratio\n    local border_size = compute_border_size(window_config.border)\n\n    if config.orientation == &quot;vertical&quot; then\n      local preview_size = math.floor(preview_ratio * (window_config.width + border_size))\n      local preview_width = math.max(1, preview_size - border_size)\n      local main_width = math.max(1, window_config.width - preview_width - border_size)\n      window_config.width = main_width\n      preview_config.width = preview_width\n      preview_config.col = window_config.col + (main_width + border_size)\n    else\n      local preview_size = math.floor(preview_ratio * (window_config.height + border_size))\n      local preview_height = math.max(1, preview_size - border_size)\n      local main_height = math.max(1, window_config.height - preview_height - border_size)\n      window_config.height = main_height\n      preview_config.height = preview_height\n      if window_config.anchor == &quot;SW&quot; then\n        window_config.row = window_config.row - (preview_height + border_size)\n      else\n        preview_config.row = window_config.row + (main_height + border_size)\n      end\n    end\n  end\n\n  local function setup(opts) config = vim.tbl_deep_extend(&quot;force&quot;, config, opts or {}) end\n\n  local function scroll(direction)\n    if not has_win() then\n      return\n    end\n    local keys = vim.api.nvim_replace_termcodes(scroll_map[direction], true, true, true)\n    vim.api.nvim_win_call(state.win_id, function() vim.cmd(&quot;normal! &quot; .. keys) end)\n  end\n\n  local function cache_win_config()\n    local picker_state = MiniPick.get_picker_state()\n    if not (picker_state.windows and picker_state.windows.main) then\n      return\n    end\n    local window_config = vim.api.nvim_win_get_config(picker_state.windows.main)\n    local keys = { &quot;anchor&quot;, &quot;border&quot;, &quot;col&quot;, &quot;height&quot;, &quot;relative&quot;, &quot;row&quot;, &quot;width&quot;, &quot;zindex&quot; }\n    for _, key in ipairs(keys) do\n      cache.win_config[key] = window_config[key]\n    end\n  end\n\n  local function update()\n    if state.is_hidden then\n      close()\n      return\n    end\n\n    local picker_state = MiniPick.get_picker_state()\n    if not (picker_state.windows and picker_state.windows.main) then\n      return\n    end\n\n    local window_config = vim.deepcopy(cache.win_config)\n    local preview_config = vim.deepcopy(cache.win_config)\n    compute_layout(window_config, preview_config)\n\n    vim.api.nvim_win_set_config(picker_state.windows.main, window_config)\n\n    if not has_win() then\n      create_buf()\n      create_win(preview_config)\n    else\n      vim.api.nvim_win_set_config(state.win_id, preview_config)\n    end\n\n    local current_item = MiniPick.get_picker_matches().current\n    if current_item ~= state.last_item then\n      state.last_item = current_item\n      create_buf()\n      vim.api.nvim_win_set_buf(state.win_id, state.buf_id)\n      show_preview(current_item)\n    end\n  end\n\n  local function toggle()\n    MiniPick.refresh()\n    state.is_hidden = not state.is_hidden\n    update()\n  end\n\n  local function stop()\n    close()\n    reset()\n  end\n\n  -- Update preview on picker refresh\n  local mini_pick = require(&quot;mini.pick&quot;)\n  local mini_pick_refresh = mini_pick.refresh\n  mini_pick.refresh = function()\n    mini_pick_refresh()\n    if mini_pick.is_picker_active() then\n      cache_win_config()\n      vim.schedule(update)\n    end\n  end\n\n  return {\n    setup = setup,\n    scroll = scroll,\n    cache_win_config = cache_win_config,\n    update = update,\n    toggle = toggle,\n    stop = stop,\n  }\nend)()\n\nlocal group = vim.api.nvim_create_augroup(&quot;UserMiniPick&quot;, { clear = true })\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniPickStart&quot;,\n  group = group,\n  callback = function()\n    preview.cache_win_config()\n    preview.update()\n  end,\n})\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniPickMatch&quot;,\n  group = group,\n  callback = function() vim.schedule(preview.update) end,\n})\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniPickStop&quot;,\n  group = group,\n  callback = preview.stop,\n})\n\n---@param keys string\nlocal function feedkeys(keys)\n  keys = vim.api.nvim_replace_termcodes(keys, true, true, true)\n  vim.api.nvim_feedkeys(keys, &quot;n&quot;, true)\nend\n\nMiniDeps.now(function()\n  require(&quot;mini.pick&quot;).setup({\n    mappings = {\n      move_down_arrow = {\n        char = &quot;&lt;Down&gt;&quot;,\n        func = function()\n          feedkeys(&quot;&lt;C-n&gt;&quot;)\n          vim.schedule(preview.update)\n        end,\n      },\n      move_up_arrow = {\n        char = &quot;&lt;Up&gt;&quot;,\n        func = function()\n          feedkeys(&quot;&lt;C-p&gt;&quot;)\n          vim.schedule(preview.update)\n        end,\n      },\n      scroll_side_preview_down = {\n        char = &quot;&lt;S-Down&gt;&quot;,\n        func = function() preview.scroll(&quot;down&quot;) end,\n      },\n      scroll_side_preview_up = { char = &quot;&lt;S-Up&gt;&quot;, func = function() preview.scroll(&quot;up&quot;) end },\n      toggle_preview = &quot;&quot;,\n      toggle_side_preview = { char = &quot;&lt;Tab&gt;&quot;, func = preview.toggle },\n    },\n    window = {\n      config = function()\n        local height = math.floor(0.8 * vim.o.lines)\n        local width = math.floor(0.8 * vim.o.columns)\n        return { height = height, width = width }\n      end,\n    },\n  })\nend)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> (<span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">config</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">orientation</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vertical<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">ratio</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0.6</span> }\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">state</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">last_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">is_hidden</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> }\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cache</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">win_config</span> <span class=\"pl-k\">=</span> {} }\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">scroll_map</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">up</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-b&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">down</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-f&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>zH<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>zL<span class=\"pl-pds\">\" </span></span>}\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">reset</span>()\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">last_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">is_hidden</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n    <span class=\"pl-smi\">cache</span>.<span class=\"pl-e\">win_config</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">has_win</span>() <span class=\"pl-k\">return</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_is_valid</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>) <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">create_buf</span>()\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_buf</span>(<span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_name</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minipick://<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/preview<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>].<span class=\"pl-e\">bufhidden</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>wipe<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>].<span class=\"pl-e\">matchpairs</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>].<span class=\"pl-e\">minicursorword_disable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>].<span class=\"pl-e\">miniindentscope_disable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">create_win</span>(<span class=\"pl-smi\">win_config</span>)\n    <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">style</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minimal<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_open_win</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">win_config</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>].<span class=\"pl-e\">foldenable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>].<span class=\"pl-e\">foldmethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>manual<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>].<span class=\"pl-e\">linebreak</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>].<span class=\"pl-e\">scrolloff</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>].<span class=\"pl-e\">winhighlight</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>NormalFloat:MiniPickNormal,FloatBorder:MiniPickBorder<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">wo</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>].<span class=\"pl-e\">wrap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">close_buf</span>()\n    <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-e\">nvim_buf_delete</span>, <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>, { <span class=\"pl-smi\">force</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">close_win</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-c1\">has_win</span>() <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-e\">nvim_win_close</span>, <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-c1\">true</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">close</span>()\n    <span class=\"pl-c1\">close_win</span>()\n    <span class=\"pl-c1\">close_buf</span>()\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">last_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">item</span> <span class=\"pl-c1\">table </span><span class=\"pl-k\">| </span><span class=\"pl-c1\">nil</span></span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">show_preview</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_opts</span>().<span class=\"pl-e\">source</span>.<span class=\"pl-e\">preview</span>\n      <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">preview_func</span>, <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>, <span class=\"pl-smi\">item</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, {})\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">compute_border_size</span>(<span class=\"pl-smi\">border</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">border</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>table<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">border</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-c1\">2</span>\n    <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">config</span>.<span class=\"pl-e\">orientation</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vertical<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span> ((<span class=\"pl-smi\">border</span>[<span class=\"pl-c1\">3</span> <span class=\"pl-k\">%</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">border</span>[<span class=\"pl-c1\">7</span> <span class=\"pl-k\">%</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>))\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-k\">return</span> ((<span class=\"pl-smi\">border</span>[<span class=\"pl-c1\">1</span> <span class=\"pl-k\">%</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">border</span>[<span class=\"pl-c1\">5</span> <span class=\"pl-k\">%</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>))\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">compute_layout</span>(<span class=\"pl-smi\">window_config</span>, <span class=\"pl-smi\">preview_config</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_ratio</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">config</span>.<span class=\"pl-e\">ratio</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">border_size</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">compute_border_size</span>(<span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">border</span>)\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">config</span>.<span class=\"pl-e\">orientation</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vertical<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_size</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-smi\">preview_ratio</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">border_size</span>))\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">preview_size</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">border_size</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">main_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">preview_width</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">border_size</span>)\n      <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">main_width</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview_width</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">main_width</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">border_size</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_size</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-smi\">preview_ratio</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">border_size</span>))\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">preview_size</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">border_size</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">main_height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">preview_height</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">border_size</span>)\n      <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">main_height</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview_height</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">anchor</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>SW<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">-</span> (<span class=\"pl-smi\">preview_height</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">border_size</span>)\n      <span class=\"pl-k\">else</span>\n        <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">main_height</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">border_size</span>)\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup</span>(<span class=\"pl-smi\">opts</span>) <span class=\"pl-smi\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">config</span>, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {}) <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">scroll</span>(<span class=\"pl-smi\">direction</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">has_win</span>() <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-smi\">scroll_map</span>[<span class=\"pl-smi\">direction</span>], <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_call</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>normal! <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">keys</span>) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">cache_win_config</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">picker_state</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> (<span class=\"pl-smi\">picker_state</span>.<span class=\"pl-e\">windows</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">picker_state</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">main</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">window_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_config</span>(<span class=\"pl-smi\">picker_state</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">main</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>anchor<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>border<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>col<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>height<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>relative<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>row<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>width<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>zindex<span class=\"pl-pds\">\" </span></span>}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">key</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">keys</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-smi\">cache</span>.<span class=\"pl-e\">win_config</span>[<span class=\"pl-smi\">key</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">window_config</span>[<span class=\"pl-smi\">key</span>]\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">update</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">is_hidden</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">close</span>()\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">picker_state</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_state</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> (<span class=\"pl-smi\">picker_state</span>.<span class=\"pl-e\">windows</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">picker_state</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">main</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">window_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">deepcopy</span>(<span class=\"pl-smi\">cache</span>.<span class=\"pl-e\">win_config</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">deepcopy</span>(<span class=\"pl-smi\">cache</span>.<span class=\"pl-e\">win_config</span>)\n    <span class=\"pl-c1\">compute_layout</span>(<span class=\"pl-smi\">window_config</span>, <span class=\"pl-smi\">preview_config</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_config</span>(<span class=\"pl-smi\">picker_state</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">main</span>, <span class=\"pl-smi\">window_config</span>)\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">has_win</span>() <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">create_buf</span>()\n      <span class=\"pl-c1\">create_win</span>(<span class=\"pl-smi\">preview_config</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_config</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-smi\">preview_config</span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">current_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_matches</span>().<span class=\"pl-e\">current</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current_item</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">last_item</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">last_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">current_item</span>\n      <span class=\"pl-c1\">create_buf</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_buf</span>(<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">win_id</span>, <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">buf_id</span>)\n      <span class=\"pl-c1\">show_preview</span>(<span class=\"pl-smi\">current_item</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">toggle</span>()\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">refresh</span>()\n    <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">is_hidden</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">is_hidden</span>\n    <span class=\"pl-c1\">update</span>()\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">stop</span>()\n    <span class=\"pl-c1\">close</span>()\n    <span class=\"pl-c1\">reset</span>()\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Update preview on picker refresh</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_pick</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_pick_refresh</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mini_pick</span>.<span class=\"pl-e\">refresh</span>\n  <span class=\"pl-smi\">mini_pick</span>.<span class=\"pl-en\">refresh</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-c1\">mini_pick_refresh</span>()\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">mini_pick</span>.<span class=\"pl-c1\">is_picker_active</span>() <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">cache_win_config</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-smi\">update</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> {\n    <span class=\"pl-smi\">setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">setup</span>,\n    <span class=\"pl-smi\">scroll</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">scroll</span>,\n    <span class=\"pl-smi\">cache_win_config</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cache_win_config</span>,\n    <span class=\"pl-smi\">update</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">update</span>,\n    <span class=\"pl-smi\">toggle</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">toggle</span>,\n    <span class=\"pl-smi\">stop</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">stop</span>,\n  }\n<span class=\"pl-k\">end</span>)()\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>UserMiniPick<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickStart<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">group</span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">preview</span>.<span class=\"pl-c1\">cache_win_config</span>()\n    <span class=\"pl-smi\">preview</span>.<span class=\"pl-c1\">update</span>()\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickMatch<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">group</span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-smi\">preview</span>.<span class=\"pl-e\">update</span>) <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickStop<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">group</span>,\n  <span class=\"pl-smi\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview</span>.<span class=\"pl-e\">stop</span>,\n})\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">keys</span> <span class=\"pl-c1\">string</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">feedkeys</span>(<span class=\"pl-smi\">keys</span>)\n  <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_feedkeys</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">true</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">now</span>(<span class=\"pl-k\">function</span>()\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.pick<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({\n    <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">move_down_arrow</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Down&gt;<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n          <span class=\"pl-c1\">feedkeys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>)\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-smi\">preview</span>.<span class=\"pl-e\">update</span>)\n        <span class=\"pl-k\">end</span>,\n      },\n      <span class=\"pl-smi\">move_up_arrow</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Up&gt;<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n          <span class=\"pl-c1\">feedkeys</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-p&gt;<span class=\"pl-pds\">\"</span></span>)\n          <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-smi\">preview</span>.<span class=\"pl-e\">update</span>)\n        <span class=\"pl-k\">end</span>,\n      },\n      <span class=\"pl-smi\">scroll_side_preview_down</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;S-Down&gt;<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">preview</span>.<span class=\"pl-c1\">scroll</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>down<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span>,\n      },\n      <span class=\"pl-smi\">scroll_side_preview_up</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;S-Up&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-en\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">preview</span>.<span class=\"pl-c1\">scroll</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>up<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">end</span> },\n      <span class=\"pl-smi\">toggle_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">toggle_side_preview</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Tab&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview</span>.<span class=\"pl-e\">toggle</span> },\n    },\n    <span class=\"pl-smi\">window</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.8</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.8</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span>)\n        <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">height</span>, <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">width</span> }\n      <span class=\"pl-k\">end</span>,\n    },\n  })\n<span class=\"pl-k\">end</span>)</pre></div>\n</details>\n<p dir=\"auto\">Vertical layout:</p>\n  <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/4627919/557669236-de9cafc0-949f-4cbf-b79a-e2f6bd38de94.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1ODIsIm5iZiI6MTc5MzU1MjI4MiwicGF0aCI6Ii80NjI3OTE5LzU1NzY2OTIzNi1kZTljYWZjMC05NDlmLTRjYmYtYjc5YS1lMmY2YmQzOGRlOTQucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTY1ODAyWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9Y2VlMmMxZTIxYmNiNTUyYzJkZTc4MjBkZjA5MGVmZDYzOWViYjIzN2IzMzdjZmZiZTdhY2Q3OGE2NmZlYzAzYyZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.EEMrItBWDXn0jDeVfH5XnfAuWgPcSYdEiN2SsM3PnDc\"><img width=\"100%\" alt=\"Screenshot From 2026-03-03 19-11-32\" src=\"https://private-user-images.githubusercontent.com/4627919/557669236-de9cafc0-949f-4cbf-b79a-e2f6bd38de94.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1ODIsIm5iZiI6MTc5MzU1MjI4MiwicGF0aCI6Ii80NjI3OTE5LzU1NzY2OTIzNi1kZTljYWZjMC05NDlmLTRjYmYtYjc5YS1lMmY2YmQzOGRlOTQucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTY1ODAyWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9Y2VlMmMxZTIxYmNiNTUyYzJkZTc4MjBkZjA5MGVmZDYzOWViYjIzN2IzMzdjZmZiZTdhY2Q3OGE2NmZlYzAzYyZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.EEMrItBWDXn0jDeVfH5XnfAuWgPcSYdEiN2SsM3PnDc\" style=\"max-width: 100%;\"></a>\n<p dir=\"auto\">Horizontal layout:</p>\n<details>\n<summary>setup</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  preview.setup({ orientation = &quot;horizontal&quot; })\"><pre class=\"notranslate\">  <span class=\"pl-smi\">preview</span>.<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">orientation</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>horizontal<span class=\"pl-pds\">\" </span></span>})</pre></div>\n</details>\n  <a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/4627919/557669287-5f6bb155-d857-48b7-a59b-07f931bc3b8e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1ODIsIm5iZiI6MTc5MzU1MjI4MiwicGF0aCI6Ii80NjI3OTE5LzU1NzY2OTI4Ny01ZjZiYjE1NS1kODU3LTQ4YjctYTU5Yi0wN2Y5MzFiYzNiOGUucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTY1ODAyWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9Zjg4OTU1YTdlMjJiNGI0NTNhODI1M2RmMjkwNjczZmQ3NDIxMjM1ZDBhNDI5YTBlY2Y0ZTdiMzhmMDRlOTRiYSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.HMpc4G1nRKeXSiDmOtG5jfGxjnRLdvezqiagGCk4_2g\"><img width=\"100%\" alt=\"Screenshot From 2026-03-03 19-11-54\" src=\"https://private-user-images.githubusercontent.com/4627919/557669287-5f6bb155-d857-48b7-a59b-07f931bc3b8e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1ODIsIm5iZiI6MTc5MzU1MjI4MiwicGF0aCI6Ii80NjI3OTE5LzU1NzY2OTI4Ny01ZjZiYjE1NS1kODU3LTQ4YjctYTU5Yi0wN2Y5MzFiYzNiOGUucG5nP1gtQW16LUFsZ29yaXRobT1BV1M0LUhNQUMtU0hBMjU2JlgtQW16LUNyZWRlbnRpYWw9QUtJQVZDT0RZTFNBNTNQUUs0WkElMkYyMDI2MTEwMSUyRnVzLWVhc3QtMSUyRnMzJTJGYXdzNF9yZXF1ZXN0JlgtQW16LURhdGU9MjAyNjExMDFUMTY1ODAyWiZYLUFtei1FeHBpcmVzPTMwMCZYLUFtei1TaWduYXR1cmU9Zjg4OTU1YTdlMjJiNGI0NTNhODI1M2RmMjkwNjczZmQ3NDIxMjM1ZDBhNDI5YTBlY2Y0ZTdiMzhmMDRlOTRiYSZYLUFtei1TaWduZWRIZWFkZXJzPWhvc3QmcmVzcG9uc2UtY29udGVudC10eXBlPWltYWdlJTJGcG5nIn0.HMpc4G1nRKeXSiDmOtG5jfGxjnRLdvezqiagGCk4_2g\" style=\"max-width: 100%;\"></a>",
+    "bodyText": "Since using mini.pick I've missed having the preview pane visible next to the picker - it shows more context and helps me to narrow down the search faster (or maybe I'm just too used to it 😅). This is an attempt at implementing this feature.\nFeatures:\n\nlayout orientation horizontal, vertical (defaulting to vertical)\npreview to results list ratio (defaulting to 0.6)\nscroll preview up / down (defaulting to <S-Up> / <S-Down>)\ntoggle preview (defaulting to <Tab>)\n\nPreview content is wrapped by default, eliminating the need to scroll preview left or right.\n\nCode\nlocal preview = (function()\n  local config = { orientation = \"vertical\", ratio = 0.6 }\n  local state = { win_id = nil, buf_id = nil, last_item = nil, is_hidden = false }\n  local cache = { win_config = {} }\n  local scroll_map = { up = \"<C-b>\", down = \"<C-f>\", left = \"zH\", right = \"zL\" }\n\n  local function reset()\n    state.win_id = nil\n    state.buf_id = nil\n    state.last_item = nil\n    state.is_hidden = false\n    cache.win_config = {}\n  end\n\n  local function has_win() return state.win_id ~= nil and vim.api.nvim_win_is_valid(state.win_id) end\n\n  local function create_buf()\n    state.buf_id = vim.api.nvim_create_buf(false, true)\n    vim.api.nvim_buf_set_name(state.buf_id, \"minipick://\" .. state.buf_id .. \"/preview\")\n    vim.bo[state.buf_id].bufhidden = \"wipe\"\n    vim.bo[state.buf_id].matchpairs = \"\"\n    vim.b[state.buf_id].minicursorword_disable = true\n    vim.b[state.buf_id].miniindentscope_disable = true\n  end\n\n  local function create_win(win_config)\n    win_config.style = \"minimal\"\n    state.win_id = vim.api.nvim_open_win(state.buf_id, false, win_config)\n    vim.wo[state.win_id].foldenable = false\n    vim.wo[state.win_id].foldmethod = \"manual\"\n    vim.wo[state.win_id].linebreak = true\n    vim.wo[state.win_id].scrolloff = 0\n    vim.wo[state.win_id].winhighlight = \"NormalFloat:MiniPickNormal,FloatBorder:MiniPickBorder\"\n    vim.wo[state.win_id].wrap = true\n  end\n\n  local function close_buf()\n    pcall(vim.api.nvim_buf_delete, state.buf_id, { force = true })\n    state.buf_id = nil\n  end\n\n  local function close_win()\n    if has_win() then\n      pcall(vim.api.nvim_win_close, state.win_id, true)\n    end\n    state.win_id = nil\n  end\n\n  local function close()\n    close_win()\n    close_buf()\n    state.last_item = nil\n  end\n\n  ---@param item table | nil\n  local function show_preview(item)\n    if item ~= nil then\n      local preview_func = MiniPick.get_picker_opts().source.preview\n      pcall(preview_func, state.buf_id, item)\n    else\n      vim.api.nvim_buf_set_lines(state.buf_id, 0, -1, false, {})\n    end\n  end\n\n  local function compute_border_size(border)\n    local n = type(border) == \"table\" and #border or 0\n    if n == 0 then\n      return 2\n    elseif config.orientation == \"vertical\" then\n      return ((border[3 % n + 1] == \"\" and 0 or 1) + (border[7 % n + 1] == \"\" and 0 or 1))\n    else\n      return ((border[1 % n + 1] == \"\" and 0 or 1) + (border[5 % n + 1] == \"\" and 0 or 1))\n    end\n  end\n\n  local function compute_layout(window_config, preview_config)\n    local preview_ratio = config.ratio\n    local border_size = compute_border_size(window_config.border)\n\n    if config.orientation == \"vertical\" then\n      local preview_size = math.floor(preview_ratio * (window_config.width + border_size))\n      local preview_width = math.max(1, preview_size - border_size)\n      local main_width = math.max(1, window_config.width - preview_width - border_size)\n      window_config.width = main_width\n      preview_config.width = preview_width\n      preview_config.col = window_config.col + (main_width + border_size)\n    else\n      local preview_size = math.floor(preview_ratio * (window_config.height + border_size))\n      local preview_height = math.max(1, preview_size - border_size)\n      local main_height = math.max(1, window_config.height - preview_height - border_size)\n      window_config.height = main_height\n      preview_config.height = preview_height\n      if window_config.anchor == \"SW\" then\n        window_config.row = window_config.row - (preview_height + border_size)\n      else\n        preview_config.row = window_config.row + (main_height + border_size)\n      end\n    end\n  end\n\n  local function setup(opts) config = vim.tbl_deep_extend(\"force\", config, opts or {}) end\n\n  local function scroll(direction)\n    if not has_win() then\n      return\n    end\n    local keys = vim.api.nvim_replace_termcodes(scroll_map[direction], true, true, true)\n    vim.api.nvim_win_call(state.win_id, function() vim.cmd(\"normal! \" .. keys) end)\n  end\n\n  local function cache_win_config()\n    local picker_state = MiniPick.get_picker_state()\n    if not (picker_state.windows and picker_state.windows.main) then\n      return\n    end\n    local window_config = vim.api.nvim_win_get_config(picker_state.windows.main)\n    local keys = { \"anchor\", \"border\", \"col\", \"height\", \"relative\", \"row\", \"width\", \"zindex\" }\n    for _, key in ipairs(keys) do\n      cache.win_config[key] = window_config[key]\n    end\n  end\n\n  local function update()\n    if state.is_hidden then\n      close()\n      return\n    end\n\n    local picker_state = MiniPick.get_picker_state()\n    if not (picker_state.windows and picker_state.windows.main) then\n      return\n    end\n\n    local window_config = vim.deepcopy(cache.win_config)\n    local preview_config = vim.deepcopy(cache.win_config)\n    compute_layout(window_config, preview_config)\n\n    vim.api.nvim_win_set_config(picker_state.windows.main, window_config)\n\n    if not has_win() then\n      create_buf()\n      create_win(preview_config)\n    else\n      vim.api.nvim_win_set_config(state.win_id, preview_config)\n    end\n\n    local current_item = MiniPick.get_picker_matches().current\n    if current_item ~= state.last_item then\n      state.last_item = current_item\n      create_buf()\n      vim.api.nvim_win_set_buf(state.win_id, state.buf_id)\n      show_preview(current_item)\n    end\n  end\n\n  local function toggle()\n    MiniPick.refresh()\n    state.is_hidden = not state.is_hidden\n    update()\n  end\n\n  local function stop()\n    close()\n    reset()\n  end\n\n  -- Update preview on picker refresh\n  local mini_pick = require(\"mini.pick\")\n  local mini_pick_refresh = mini_pick.refresh\n  mini_pick.refresh = function()\n    mini_pick_refresh()\n    if mini_pick.is_picker_active() then\n      cache_win_config()\n      vim.schedule(update)\n    end\n  end\n\n  return {\n    setup = setup,\n    scroll = scroll,\n    cache_win_config = cache_win_config,\n    update = update,\n    toggle = toggle,\n    stop = stop,\n  }\nend)()\n\nlocal group = vim.api.nvim_create_augroup(\"UserMiniPick\", { clear = true })\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniPickStart\",\n  group = group,\n  callback = function()\n    preview.cache_win_config()\n    preview.update()\n  end,\n})\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniPickMatch\",\n  group = group,\n  callback = function() vim.schedule(preview.update) end,\n})\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniPickStop\",\n  group = group,\n  callback = preview.stop,\n})\n\n---@param keys string\nlocal function feedkeys(keys)\n  keys = vim.api.nvim_replace_termcodes(keys, true, true, true)\n  vim.api.nvim_feedkeys(keys, \"n\", true)\nend\n\nMiniDeps.now(function()\n  require(\"mini.pick\").setup({\n    mappings = {\n      move_down_arrow = {\n        char = \"<Down>\",\n        func = function()\n          feedkeys(\"<C-n>\")\n          vim.schedule(preview.update)\n        end,\n      },\n      move_up_arrow = {\n        char = \"<Up>\",\n        func = function()\n          feedkeys(\"<C-p>\")\n          vim.schedule(preview.update)\n        end,\n      },\n      scroll_side_preview_down = {\n        char = \"<S-Down>\",\n        func = function() preview.scroll(\"down\") end,\n      },\n      scroll_side_preview_up = { char = \"<S-Up>\", func = function() preview.scroll(\"up\") end },\n      toggle_preview = \"\",\n      toggle_side_preview = { char = \"<Tab>\", func = preview.toggle },\n    },\n    window = {\n      config = function()\n        local height = math.floor(0.8 * vim.o.lines)\n        local width = math.floor(0.8 * vim.o.columns)\n        return { height = height, width = width }\n      end,\n    },\n  })\nend)\n\nVertical layout:\n  \nHorizontal layout:\n\nsetup\n  preview.setup({ orientation = \"horizontal\" })",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 5,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nThe code itself doesn't look that big or complex as is, which is inspiring. And it can be made even more concise (as far as I can see from the first glance).\r\n\r\nThe only thing that caught my when looking at code was that I'd suggest to use `vim.api.nvim_input()` instead of `vim.api.nvim_feedkeys()`. This is usually closer to what it tries to achieve: just simulate a key press from the user. Otherwise looks very good!",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">The code itself doesn't look that big or complex as is, which is inspiring. And it can be made even more concise (as far as I can see from the first glance).</p>\n<p dir=\"auto\">The only thing that caught my when looking at code was that I'd suggest to use <code class=\"notranslate\">vim.api.nvim_input()</code> instead of <code class=\"notranslate\">vim.api.nvim_feedkeys()</code>. This is usually closer to what it tries to achieve: just simulate a key press from the user. Otherwise looks very good!</p>",
+            "bodyText": "Thanks for sharing!\nThe code itself doesn't look that big or complex as is, which is inspiring. And it can be made even more concise (as far as I can see from the first glance).\nThe only thing that caught my when looking at code was that I'd suggest to use vim.api.nvim_input() instead of vim.api.nvim_feedkeys(). This is usually closer to what it tries to achieve: just simulate a key press from the user. Otherwise looks very good!",
+            "createdAt": "2026-03-03T19:21:57Z",
+            "createdViaEmail": false,
+            "databaseId": 15988773,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A8_gl",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-03T19:21:57Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-15988773",
+            "updatedAt": "2026-03-03T19:21:57Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-15988773"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/4627919?u=e171501bf5b9787517bc42b5eb9ba1320cff4dc4&v=4",
+                "login": "somnam",
+                "resourcePath": "/somnam",
+                "url": "https://github.com/somnam"
+            },
+            "authorAssociation": "NONE",
+            "body": "> The only thing that caught my when looking at code was that I'd suggest to use vim.api.nvim_input() instead of vim.api.nvim_feedkeys().\r\n\r\nThanks for the feedback! This part is from a general config, where it's used for mappings like <M-\\*>, <C-\\*>, and these need nvim_feedkeys() to work, but for this snippet nvim_input() is probably enough.",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">The only thing that caught my when looking at code was that I'd suggest to use vim.api.nvim_input() instead of vim.api.nvim_feedkeys().</p>\n</blockquote>\n<p dir=\"auto\">Thanks for the feedback! This part is from a general config, where it's used for mappings like &lt;M-*&gt;, &lt;C-*&gt;, and these need nvim_feedkeys() to work, but for this snippet nvim_input() is probably enough.</p>",
+            "bodyText": "The only thing that caught my when looking at code was that I'd suggest to use vim.api.nvim_input() instead of vim.api.nvim_feedkeys().\n\nThanks for the feedback! This part is from a general config, where it's used for mappings like <M-*>, <C-*>, and these need nvim_feedkeys() to work, but for this snippet nvim_input() is probably enough.",
+            "createdAt": "2026-03-05T17:57:26Z",
+            "createdViaEmail": false,
+            "databaseId": 16013633,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/4627919?u=e171501bf5b9787517bc42b5eb9ba1320cff4dc4&v=4",
+                "login": "somnam",
+                "resourcePath": "/somnam",
+                "url": "https://github.com/somnam"
+            },
+            "id": "DC_kwDOFoksYM4A9FlB",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-05T17:57:54Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-03-05T17:57:26Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-16013633",
+            "updatedAt": "2026-03-05T17:57:54Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-16013633"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+                "login": "danielt812",
+                "resourcePath": "/danielt812",
+                "url": "https://github.com/danielt812"
+            },
+            "authorAssociation": "NONE",
+            "body": "This is really awesome! Here is a tweak to `compute_layout` if you want to switch the preview orientation dynamically based on the window width (useful if you use tmux splits or tiling window manager). \r\n\r\n```lua\r\n  local function compute_layout(window_config, preview_config)\r\n    local preview_ratio = 0.618\r\n    local padding = 2 -- I removed compute_border_size as I just use the default mini.pick provides (\"rounded\")\r\n    if window_config.width > 75 then -- horizontal preview when window is 75 columns or less\r\n      local preview_width = math.floor(preview_ratio * win_config.width)\r\n      local picker_width = win_config.width - preview_width - padding\r\n      win_config.width = picker_width\r\n      preview_config.width = preview_width\r\n      preview_config.col = win_config.col + picker_width + padding\r\n    else\r\n      local preview_height = math.floor(preview_ratio * win_config.height)\r\n      local picker_height = win_config.height - preview_height\r\n      preview_config.height = preview_height\r\n      win_config.height = picker_height\r\n      preview_config.row = win_config.row - picker_height - padding\r\n    end\r\n  end\r\n```",
+            "bodyHTML": "<p dir=\"auto\">This is really awesome! Here is a tweak to <code class=\"notranslate\">compute_layout</code> if you want to switch the preview orientation dynamically based on the window width (useful if you use tmux splits or tiling window manager).</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local function compute_layout(window_config, preview_config)\n    local preview_ratio = 0.618\n    local padding = 2 -- I removed compute_border_size as I just use the default mini.pick provides (&quot;rounded&quot;)\n    if window_config.width &gt; 75 then -- horizontal preview when window is 75 columns or less\n      local preview_width = math.floor(preview_ratio * win_config.width)\n      local picker_width = win_config.width - preview_width - padding\n      win_config.width = picker_width\n      preview_config.width = preview_width\n      preview_config.col = win_config.col + picker_width + padding\n    else\n      local preview_height = math.floor(preview_ratio * win_config.height)\n      local picker_height = win_config.height - preview_height\n      preview_config.height = preview_height\n      win_config.height = picker_height\n      preview_config.row = win_config.row - picker_height - padding\n    end\n  end\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">compute_layout</span>(<span class=\"pl-smi\">window_config</span>, <span class=\"pl-smi\">preview_config</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_ratio</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0.618</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">padding</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> I removed compute_border_size as I just use the default mini.pick provides (\"rounded\")</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">window_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">75</span> <span class=\"pl-k\">then</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> horizontal preview when window is 75 columns or less</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-smi\">preview_ratio</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">picker_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">preview_width</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">padding</span>\n      <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">picker_width</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview_width</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">picker_width</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">padding</span>\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">preview_height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-smi\">preview_ratio</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">picker_height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">preview_height</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview_height</span>\n      <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">picker_height</span>\n      <span class=\"pl-smi\">preview_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">win_config</span>.<span class=\"pl-e\">row</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">picker_height</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">padding</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "This is really awesome! Here is a tweak to compute_layout if you want to switch the preview orientation dynamically based on the window width (useful if you use tmux splits or tiling window manager).\n  local function compute_layout(window_config, preview_config)\n    local preview_ratio = 0.618\n    local padding = 2 -- I removed compute_border_size as I just use the default mini.pick provides (\"rounded\")\n    if window_config.width > 75 then -- horizontal preview when window is 75 columns or less\n      local preview_width = math.floor(preview_ratio * win_config.width)\n      local picker_width = win_config.width - preview_width - padding\n      win_config.width = picker_width\n      preview_config.width = preview_width\n      preview_config.col = win_config.col + picker_width + padding\n    else\n      local preview_height = math.floor(preview_ratio * win_config.height)\n      local picker_height = win_config.height - preview_height\n      preview_config.height = preview_height\n      win_config.height = picker_height\n      preview_config.row = win_config.row - picker_height - padding\n    end\n  end",
+            "createdAt": "2026-03-07T06:07:13Z",
+            "createdViaEmail": false,
+            "databaseId": 16030750,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+                "login": "danielt812",
+                "resourcePath": "/danielt812",
+                "url": "https://github.com/danielt812"
+            },
+            "id": "DC_kwDOFoksYM4A9Jwe",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-03-07T06:13:02Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-03-07T06:07:13Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-16030750",
+            "updatedAt": "2026-03-07T06:13:02Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-16030750"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/64461700?u=69ae9c68f5cb94755b87907d7573ed66e59ff8cd&v=4",
+                "login": "knownasnaffy",
+                "resourcePath": "/knownasnaffy",
+                "url": "https://github.com/knownasnaffy"
+            },
+            "authorAssociation": "NONE",
+            "body": "Noice, the preview works, just not for the active item. I'm guessing this is a me problem since no one else complained.\r\n\r\nI'm using MiniMax as a starting point with mostly keymaps and some plugin changes.\r\n\r\nThe preview window opens up empty, and changing the selection either via arrow keys or typing a query make the preview window show the contents of the last active item.\r\n\r\nWhile trying to debug this, I found out that adding a `vim.notify()` call inside the `update()` function makes it responsive as it should be. Guessing vim.notify updates/creates frames with it's popup window, I tried replacing `vim.notify` with `vim.cmd('redraw')` which didn't have any effect. Also tried using `vim.api.nvim__redraw()` but I was probably doing things wrong so that failed as well.",
+            "bodyHTML": "<p dir=\"auto\">Noice, the preview works, just not for the active item. I'm guessing this is a me problem since no one else complained.</p>\n<p dir=\"auto\">I'm using MiniMax as a starting point with mostly keymaps and some plugin changes.</p>\n<p dir=\"auto\">The preview window opens up empty, and changing the selection either via arrow keys or typing a query make the preview window show the contents of the last active item.</p>\n<p dir=\"auto\">While trying to debug this, I found out that adding a <code class=\"notranslate\">vim.notify()</code> call inside the <code class=\"notranslate\">update()</code> function makes it responsive as it should be. Guessing vim.notify updates/creates frames with it's popup window, I tried replacing <code class=\"notranslate\">vim.notify</code> with <code class=\"notranslate\">vim.cmd('redraw')</code> which didn't have any effect. Also tried using <code class=\"notranslate\">vim.api.nvim__redraw()</code> but I was probably doing things wrong so that failed as well.</p>",
+            "bodyText": "Noice, the preview works, just not for the active item. I'm guessing this is a me problem since no one else complained.\nI'm using MiniMax as a starting point with mostly keymaps and some plugin changes.\nThe preview window opens up empty, and changing the selection either via arrow keys or typing a query make the preview window show the contents of the last active item.\nWhile trying to debug this, I found out that adding a vim.notify() call inside the update() function makes it responsive as it should be. Guessing vim.notify updates/creates frames with it's popup window, I tried replacing vim.notify with vim.cmd('redraw') which didn't have any effect. Also tried using vim.api.nvim__redraw() but I was probably doing things wrong so that failed as well.",
+            "createdAt": "2026-05-26T08:01:27Z",
+            "createdViaEmail": false,
+            "databaseId": 17059194,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BBE16",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-05-26T08:01:27Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/64461700?u=69ae9c68f5cb94755b87907d7573ed66e59ff8cd&v=4",
+                        "login": "knownasnaffy",
+                        "resourcePath": "/knownasnaffy",
+                        "url": "https://github.com/knownasnaffy"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Checked out out MiniNotify and found this solution by luck -> add `vim.schedule(vim.cmd.redraw)` inside `update()`",
+                    "bodyHTML": "<p dir=\"auto\">Checked out out MiniNotify and found this solution by luck -&gt; add <code class=\"notranslate\">vim.schedule(vim.cmd.redraw)</code> inside <code class=\"notranslate\">update()</code></p>",
+                    "bodyText": "Checked out out MiniNotify and found this solution by luck -> add vim.schedule(vim.cmd.redraw) inside update()",
+                    "createdAt": "2026-05-26T08:26:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17059450,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BBE56",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-05-26T08:26:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 17059194,
+                        "id": "DC_kwDOFoksYM4BBE16",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17059194"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17059450",
+                    "updatedAt": "2026-05-26T08:26:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17059450"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/64461700?u=69ae9c68f5cb94755b87907d7573ed66e59ff8cd&v=4",
+                        "login": "knownasnaffy",
+                        "resourcePath": "/knownasnaffy",
+                        "url": "https://github.com/knownasnaffy"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Works with find files and live grep, find commits has even weirder behavior. It shows the last item's preview for a moment when the active item changes and then the preview window throws it's contents into the void.\r\n\r\nThe workaround I'm currently using: press right arrow after changing query or using navigation keybinds, it refreshes the preview window ig.",
+                    "bodyHTML": "<p dir=\"auto\">Works with find files and live grep, find commits has even weirder behavior. It shows the last item's preview for a moment when the active item changes and then the preview window throws it's contents into the void.</p>\n<p dir=\"auto\">The workaround I'm currently using: press right arrow after changing query or using navigation keybinds, it refreshes the preview window ig.</p>",
+                    "bodyText": "Works with find files and live grep, find commits has even weirder behavior. It shows the last item's preview for a moment when the active item changes and then the preview window throws it's contents into the void.\nThe workaround I'm currently using: press right arrow after changing query or using navigation keybinds, it refreshes the preview window ig.",
+                    "createdAt": "2026-05-26T15:46:18Z",
+                    "createdViaEmail": false,
+                    "databaseId": 17064583,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BBGKH",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-05-26T15:46:18Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 17059194,
+                        "id": "DC_kwDOFoksYM4BBE16",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17059194"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17064583",
+                    "updatedAt": "2026-05-26T15:46:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17064583"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17059194",
+            "updatedAt": "2026-05-26T08:01:27Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-17059194"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/74012027?u=1f64b3298194f1dc8008d946fd9f87de5410881f&v=4",
+                "login": "rejahn",
+                "resourcePath": "/rejahn",
+                "url": "https://github.com/rejahn"
+            },
+            "authorAssociation": "NONE",
+            "body": "@echasnovski @somnam any chance of seeing this happening in the near future? it looks great!",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/somnam/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/somnam\">@somnam</a> any chance of seeing this happening in the near future? it looks great!</p>",
+            "bodyText": "@echasnovski @somnam any chance of seeing this happening in the near future? it looks great!",
+            "createdAt": "2026-10-08T13:56:35Z",
+            "createdViaEmail": false,
+            "databaseId": 18817283,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BHyED",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-10-08T13:56:35Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "What exactly to see? Side-by-side preview is never planned as a part of 'mini.pick', I am afraid. The only planned visualization is the current \"single window\" approach.",
+                    "bodyHTML": "<p dir=\"auto\">What exactly to see? Side-by-side preview is never planned as a part of 'mini.pick', I am afraid. The only planned visualization is the current \"single window\" approach.</p>",
+                    "bodyText": "What exactly to see? Side-by-side preview is never planned as a part of 'mini.pick', I am afraid. The only planned visualization is the current \"single window\" approach.",
+                    "createdAt": "2026-10-08T14:46:03Z",
+                    "createdViaEmail": false,
+                    "databaseId": 18818192,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4BHySQ",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-10-08T14:46:03Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 18817283,
+                        "id": "DC_kwDOFoksYM4BHyED",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-18817283"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-18818192",
+                    "updatedAt": "2026-10-08T14:46:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-18818192"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2293#discussioncomment-18817283",
+            "updatedAt": "2026-10-08T13:56:35Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293#discussioncomment-18817283"
+        }
+    ],
+    "createdAt": "2026-03-03T18:45:40Z",
+    "createdViaEmail": false,
+    "databaseId": 9567416,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Akfy4",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2293,
+    "poll": null,
+    "publishedAt": "2026-03-03T18:45:40Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 2
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 4
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2293",
+    "stateReason": null,
+    "title": "[mini.pick] side-by-side preview",
+    "updatedAt": "2026-10-08T14:46:03Z",
+    "upvoteCount": 6,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2293"
+}

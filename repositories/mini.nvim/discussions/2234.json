@@ -1,0 +1,370 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+        "login": "danielt812",
+        "resourcePath": "/danielt812",
+        "url": "https://github.com/danielt812"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi, I would like to share how to create context-aware global snippets using `mini.snippets`.\r\n\r\n### Demo\r\n\r\nhttps://github.com/user-attachments/assets/1e2365b6-e602-4170-8b98-0c8e854ef410\r\n\r\n### Example `mini.snippets` setup:\r\n\r\n```lua\r\nlocal snippets = require(\"mini.snippets\")\r\n\r\nsnippets.setup({\r\n  snippets = {\r\n    snippets.gen_loader.from_file(\"~/.config/nvim/snippets/global.lua\"),\r\n  },\r\n})\r\n\r\nsnippets.start_lsp_server()\r\n```\r\n\r\n### Example `snippets/global.lua` file:\r\n\r\n```lua\r\nreturn {\r\n  function()\r\n    local cs = vim.bo.commentstring:gsub(\"%%s\", \"\"):gsub(\"%s*$\", \"\")\r\n\r\n    local filename = vim.fn.expand(\"%:t\")\r\n\r\n    local function is_git_repo()\r\n      return vim.fn.system(\"git rev-parse --is-inside-work-tree 2>/dev/null\"):match(\"true\") ~= nil\r\n    end\r\n\r\n    local function git_author_or_placeholder()\r\n      if not is_git_repo() then\r\n        return \"${2:Author}\"\r\n      end\r\n\r\n      local author = vim.fn.system(\"git config user.name\"):gsub(\"%s+$\", \"\")\r\n      if author == \"\" then\r\n        return \"${2:Author}\"\r\n      end\r\n\r\n      return author\r\n    end\r\n\r\n    local author = git_author_or_placeholder()\r\n\r\n    return {\r\n      {\r\n        -- stylua: ignore start\r\n        { prefix = \"fixme\", body = cs .. \" FIXME  ${1:describe the bug or needed fix}\",  desc = \"Create a fixme comment\" },\r\n        { prefix = \"hack\",  body = cs .. \" HACK  ${1:temporary workaround or solution}\", desc = \"Create a hack comment\" },\r\n        { prefix = \"info\",  body = cs .. \" INFO  ${1:relevant context or metadata}\",     desc = \"Create a info comment\" },\r\n        { prefix = \"link\",  body = cs .. \" LINK  ${1:href to issue or documentation}\",   desc = \"Create a link comment\" },\r\n        { prefix = \"note\",  body = cs .. \" NOTE  ${1:important detail}\",                 desc = \"Create a note comment\" },\r\n        { prefix = \"todo\",  body = cs .. \" TODO  ${1:describe the task or goal}\",        desc = \"Create a todo comment\" },\r\n        { prefix = \"warn\",  body = cs .. \" WARN  ${1:potential risk or edge case}\",      desc = \"Create a warn comment\" },\r\n        {\r\n          prefix = \"box\",\r\n          body = {\r\n            cs .. \" ┌──────────────────────────────────────┐\",\r\n            cs .. \" │ ${1:TITLE} │\",\r\n            cs .. \" └──────────────────────────────────────┘\",\r\n          },\r\n          desc = \"Create a boxed comment\",\r\n        },\r\n        {\r\n          prefix = \"section\",\r\n          body = cs .. \" ── ${1:Section name} ─────────────────────────────\",\r\n          desc = \"Create a section divider\",\r\n        },\r\n        {\r\n          prefix = \"header\",\r\n          body = {\r\n            cs .. \" ================================================\",\r\n            cs .. \" \" .. filename,\r\n            cs .. \"\",\r\n            cs .. \" Description: ${1:What this file does}\",\r\n            cs .. \" Author: \" .. author,\r\n            cs .. \" ================================================\",\r\n          },\r\n          desc = \"Create a file header\",\r\n        },\r\n        -- stylua: ignore end\r\n      },\r\n    }\r\n  end,\r\n}\r\n```\r\n\r\nWould love to hear if anyone else has fun ideas for context-aware snippets",
+    "bodyHTML": "<p dir=\"auto\">Hi, I would like to share how to create context-aware global snippets using <code class=\"notranslate\">mini.snippets</code>.</p>\n<h3 dir=\"auto\">Demo</h3>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">mini_snippets_context_demo.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/36260981/537776637-1e2365b6-e602-4170-8b98-0c8e854ef410.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NzUsIm5iZiI6MTc5MzU1MjQ3NSwicGF0aCI6Ii8zNjI2MDk4MS81Mzc3NzY2MzctMWUyMzY1YjYtZTYwMi00MTcwLThiOTgtMGM4ZTg1NGVmNDEwLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDExNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWIyNmY1ZDAyYjdiNzFmYmQ4ODQ4ODJjMDJlODA1ZmMzMmRkNjU4ZTc1YzM1NzUxN2FlZTU0ZjE1MDUyZGJjODImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.NLxD2aeuSYfOIRnDpeUBH6LZ7WWKWrxY_TzCSpzSq9M\" data-canonical-src=\"https://private-user-images.githubusercontent.com/36260981/537776637-1e2365b6-e602-4170-8b98-0c8e854ef410.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3NzUsIm5iZiI6MTc5MzU1MjQ3NSwicGF0aCI6Ii8zNjI2MDk4MS81Mzc3NzY2MzctMWUyMzY1YjYtZTYwMi00MTcwLThiOTgtMGM4ZTg1NGVmNDEwLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDExNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWIyNmY1ZDAyYjdiNzFmYmQ4ODQ4ODJjMDJlODA1ZmMzMmRkNjU4ZTc1YzM1NzUxN2FlZTU0ZjE1MDUyZGJjODImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.NLxD2aeuSYfOIRnDpeUBH6LZ7WWKWrxY_TzCSpzSq9M\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<h3 dir=\"auto\">Example <code class=\"notranslate\">mini.snippets</code> setup:</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local snippets = require(&quot;mini.snippets&quot;)\n\nsnippets.setup({\n  snippets = {\n    snippets.gen_loader.from_file(&quot;~/.config/nvim/snippets/global.lua&quot;),\n  },\n})\n\nsnippets.start_lsp_server()\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">snippets</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.snippets<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-smi\">snippets</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">snippets</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">snippets</span>.<span class=\"pl-e\">gen_loader</span>.<span class=\"pl-c1\">from_file</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>~/.config/nvim/snippets/global.lua<span class=\"pl-pds\">\"</span></span>),\n  },\n})\n\n<span class=\"pl-smi\">snippets</span>.<span class=\"pl-c1\">start_lsp_server</span>()</pre></div>\n<h3 dir=\"auto\">Example <code class=\"notranslate\">snippets/global.lua</code> file:</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"return {\n  function()\n    local cs = vim.bo.commentstring:gsub(&quot;%%s&quot;, &quot;&quot;):gsub(&quot;%s*$&quot;, &quot;&quot;)\n\n    local filename = vim.fn.expand(&quot;%:t&quot;)\n\n    local function is_git_repo()\n      return vim.fn.system(&quot;git rev-parse --is-inside-work-tree 2&gt;/dev/null&quot;):match(&quot;true&quot;) ~= nil\n    end\n\n    local function git_author_or_placeholder()\n      if not is_git_repo() then\n        return &quot;${2:Author}&quot;\n      end\n\n      local author = vim.fn.system(&quot;git config user.name&quot;):gsub(&quot;%s+$&quot;, &quot;&quot;)\n      if author == &quot;&quot; then\n        return &quot;${2:Author}&quot;\n      end\n\n      return author\n    end\n\n    local author = git_author_or_placeholder()\n\n    return {\n      {\n        -- stylua: ignore start\n        { prefix = &quot;fixme&quot;, body = cs .. &quot; FIXME  ${1:describe the bug or needed fix}&quot;,  desc = &quot;Create a fixme comment&quot; },\n        { prefix = &quot;hack&quot;,  body = cs .. &quot; HACK  ${1:temporary workaround or solution}&quot;, desc = &quot;Create a hack comment&quot; },\n        { prefix = &quot;info&quot;,  body = cs .. &quot; INFO  ${1:relevant context or metadata}&quot;,     desc = &quot;Create a info comment&quot; },\n        { prefix = &quot;link&quot;,  body = cs .. &quot; LINK  ${1:href to issue or documentation}&quot;,   desc = &quot;Create a link comment&quot; },\n        { prefix = &quot;note&quot;,  body = cs .. &quot; NOTE  ${1:important detail}&quot;,                 desc = &quot;Create a note comment&quot; },\n        { prefix = &quot;todo&quot;,  body = cs .. &quot; TODO  ${1:describe the task or goal}&quot;,        desc = &quot;Create a todo comment&quot; },\n        { prefix = &quot;warn&quot;,  body = cs .. &quot; WARN  ${1:potential risk or edge case}&quot;,      desc = &quot;Create a warn comment&quot; },\n        {\n          prefix = &quot;box&quot;,\n          body = {\n            cs .. &quot; ┌──────────────────────────────────────┐&quot;,\n            cs .. &quot; │ ${1:TITLE} │&quot;,\n            cs .. &quot; └──────────────────────────────────────┘&quot;,\n          },\n          desc = &quot;Create a boxed comment&quot;,\n        },\n        {\n          prefix = &quot;section&quot;,\n          body = cs .. &quot; ── ${1:Section name} ─────────────────────────────&quot;,\n          desc = &quot;Create a section divider&quot;,\n        },\n        {\n          prefix = &quot;header&quot;,\n          body = {\n            cs .. &quot; ================================================&quot;,\n            cs .. &quot; &quot; .. filename,\n            cs .. &quot;&quot;,\n            cs .. &quot; Description: ${1:What this file does}&quot;,\n            cs .. &quot; Author: &quot; .. author,\n            cs .. &quot; ================================================&quot;,\n          },\n          desc = &quot;Create a file header&quot;,\n        },\n        -- stylua: ignore end\n      },\n    }\n  end,\n}\"><pre class=\"notranslate\"><span class=\"pl-k\">return</span> {\n  <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-en\">commentstring</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%%s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>):<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s*$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">filename</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%:t<span class=\"pl-pds\">\"</span></span>)\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">is_git_repo</span>()\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git rev-parse --is-inside-work-tree 2&gt;/dev/null<span class=\"pl-pds\">\"</span></span>):<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>true<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">git_author_or_placeholder</span>()\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">is_git_repo</span>() <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>${2:Author}<span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">author</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git config user.name<span class=\"pl-pds\">\"</span></span>):<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s+$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">author</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>${2:Author}<span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">author</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">author</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">git_author_or_placeholder</span>()\n\n    <span class=\"pl-k\">return</span> {\n      {\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore start</span>\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fixme<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> FIXME  ${1:describe the bug or needed fix}<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a fixme comment<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>hack<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> HACK  ${1:temporary workaround or solution}<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a hack comment<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>info<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> INFO  ${1:relevant context or metadata}<span class=\"pl-pds\">\"</span></span>,     <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a info comment<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>link<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> LINK  ${1:href to issue or documentation}<span class=\"pl-pds\">\"</span></span>,   <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a link comment<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>note<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> NOTE  ${1:important detail}<span class=\"pl-pds\">\"</span></span>,                 <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a note comment<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>todo<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> TODO  ${1:describe the task or goal}<span class=\"pl-pds\">\"</span></span>,        <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a todo comment<span class=\"pl-pds\">\" </span></span>},\n        { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>warn<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> WARN  ${1:potential risk or edge case}<span class=\"pl-pds\">\"</span></span>,      <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a warn comment<span class=\"pl-pds\">\" </span></span>},\n        {\n          <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>box<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> {\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> ┌──────────────────────────────────────┐<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> │ ${1:TITLE} │<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> └──────────────────────────────────────┘<span class=\"pl-pds\">\"</span></span>,\n          },\n          <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a boxed comment<span class=\"pl-pds\">\"</span></span>,\n        },\n        {\n          <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>section<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> ── ${1:Section name} ─────────────────────────────<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a section divider<span class=\"pl-pds\">\"</span></span>,\n        },\n        {\n          <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>header<span class=\"pl-pds\">\"</span></span>,\n          <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> {\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> ================================================<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">filename</span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> Description: ${1:What this file does}<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> Author: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">author</span>,\n            <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> ================================================<span class=\"pl-pds\">\"</span></span>,\n          },\n          <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a file header<span class=\"pl-pds\">\"</span></span>,\n        },\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> stylua: ignore end</span>\n      },\n    }\n  <span class=\"pl-k\">end</span>,\n}</pre></div>\n<p dir=\"auto\">Would love to hear if anyone else has fun ideas for context-aware snippets</p>",
+    "bodyText": "Hi, I would like to share how to create context-aware global snippets using mini.snippets.\nDemo\n\n  \n    \n    \n\n    mini_snippets_context_demo.mp4\n    \n  \n\n  \n\n  \n\n\nExample mini.snippets setup:\nlocal snippets = require(\"mini.snippets\")\n\nsnippets.setup({\n  snippets = {\n    snippets.gen_loader.from_file(\"~/.config/nvim/snippets/global.lua\"),\n  },\n})\n\nsnippets.start_lsp_server()\nExample snippets/global.lua file:\nreturn {\n  function()\n    local cs = vim.bo.commentstring:gsub(\"%%s\", \"\"):gsub(\"%s*$\", \"\")\n\n    local filename = vim.fn.expand(\"%:t\")\n\n    local function is_git_repo()\n      return vim.fn.system(\"git rev-parse --is-inside-work-tree 2>/dev/null\"):match(\"true\") ~= nil\n    end\n\n    local function git_author_or_placeholder()\n      if not is_git_repo() then\n        return \"${2:Author}\"\n      end\n\n      local author = vim.fn.system(\"git config user.name\"):gsub(\"%s+$\", \"\")\n      if author == \"\" then\n        return \"${2:Author}\"\n      end\n\n      return author\n    end\n\n    local author = git_author_or_placeholder()\n\n    return {\n      {\n        -- stylua: ignore start\n        { prefix = \"fixme\", body = cs .. \" FIXME  ${1:describe the bug or needed fix}\",  desc = \"Create a fixme comment\" },\n        { prefix = \"hack\",  body = cs .. \" HACK  ${1:temporary workaround or solution}\", desc = \"Create a hack comment\" },\n        { prefix = \"info\",  body = cs .. \" INFO  ${1:relevant context or metadata}\",     desc = \"Create a info comment\" },\n        { prefix = \"link\",  body = cs .. \" LINK  ${1:href to issue or documentation}\",   desc = \"Create a link comment\" },\n        { prefix = \"note\",  body = cs .. \" NOTE  ${1:important detail}\",                 desc = \"Create a note comment\" },\n        { prefix = \"todo\",  body = cs .. \" TODO  ${1:describe the task or goal}\",        desc = \"Create a todo comment\" },\n        { prefix = \"warn\",  body = cs .. \" WARN  ${1:potential risk or edge case}\",      desc = \"Create a warn comment\" },\n        {\n          prefix = \"box\",\n          body = {\n            cs .. \" ┌──────────────────────────────────────┐\",\n            cs .. \" │ ${1:TITLE} │\",\n            cs .. \" └──────────────────────────────────────┘\",\n          },\n          desc = \"Create a boxed comment\",\n        },\n        {\n          prefix = \"section\",\n          body = cs .. \" ── ${1:Section name} ─────────────────────────────\",\n          desc = \"Create a section divider\",\n        },\n        {\n          prefix = \"header\",\n          body = {\n            cs .. \" ================================================\",\n            cs .. \" \" .. filename,\n            cs .. \"\",\n            cs .. \" Description: ${1:What this file does}\",\n            cs .. \" Author: \" .. author,\n            cs .. \" ================================================\",\n          },\n          desc = \"Create a file header\",\n        },\n        -- stylua: ignore end\n      },\n    }\n  end,\n}\nWould love to hear if anyone else has fun ideas for context-aware snippets",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "That's some very nice ideas! Thanks for sharing!\r\n\r\nThis is also related to #1225 and is something I'd recommend doing. One unfortunate drawback of using snippets here is inability to pre-align text in boxes (like for \"TITLE\" in the `box` snippet).\r\n\r\nI'd also suggest adjusting couple of things:\r\n\r\n- 'commentstring' can be not only `<left><space>%s`, but also `<left><space>%s<space><right>`. Like for example `/* %s */`.\r\n- Computing author inside function snippet is very expensive. It will execute *two* blocking system calls on *every snippet matching* (i.e. almost every typed word). I'd just compute author once (this should cover >90% of use cases, I'd say) before computing the function snippet. Reading with `gen_loader.from_file` by default caches its output, so the file contents will be executed once per session.\r\n- All currently present snippets only have a single tabstop. 'mini.snippets' relies on snippets also having final tabstop, so it automatically adds them at the end of the snippet text. Almost all snippets shared here don't really need one (maybe except \"boxes\", but that is a matter of taste). So I'd use `${0:...}` here.\r\n\r\n    Now, [there is a bit of ambiguity](https://github.com/microsoft/language-server-protocol/issues/2146) around whether final tabstop can have placeholder text. Luckily, 'mini.snippets' by default allows it and precisely for this sort of situation when it helps clarify the intent of the final placeholder.\r\n\r\nSo all in all here is something I'd do:\r\n\r\n```lua\r\nlocal author = vim.fn.executable('git') == 1 and vim.fn.system('git config user.name'):gsub('%s+$', '')\r\n  or vim.uv.os_get_passwd().username\r\n\r\nlocal special_comments = function(context)\r\n  local cs_left, cs_right = vim.bo[context.buf_id].commentstring:match('^(.*)%%s(.*)$')\r\n  if cs_left == nil then return {} end\r\n\r\n  -- Optional: adjust comment parts to always have inner padding\r\n  cs_left = cs_left:find('%s$') and cs_left or (cs_left .. ' ')\r\n  cs_right = cs_left:find('^%s') and cs_right or (' ' .. cs_right)\r\n\r\n  local wrap = function(s)\r\n    -- Optional: make it work nicer with blank lines\r\n    if s:match('^%s*$') then return (cs_left:gsub('%s*$', '') .. cs_right:gsub('^%s*', '')) end\r\n    return (string.format('%s%s%s', cs_left, s, cs_right):gsub('%s$', ''))\r\n  end\r\n\r\n  --stylua: ignore\r\n  return {\r\n    {\r\n      { prefix = \"fixme\", body = wrap(\"FIXME  ${0:describe the bug or needed fix}\"),  desc = \"Create a fixme comment\" },\r\n      { prefix = \"hack\",  body = wrap(\"HACK  ${0:temporary workaround or solution}\"), desc = \"Create a hack comment\" },\r\n      { prefix = \"info\",  body = wrap(\"INFO  ${0:relevant context or metadata}\"),     desc = \"Create a info comment\" },\r\n      { prefix = \"link\",  body = wrap(\"LINK  ${0:href to issue or documentation}\"),   desc = \"Create a link comment\" },\r\n      { prefix = \"note\",  body = wrap(\"NOTE  ${0:important detail}\"),                 desc = \"Create a note comment\" },\r\n      { prefix = \"todo\",  body = wrap(\"TODO  ${0:describe the task or goal}\"),        desc = \"Create a todo comment\" },\r\n      { prefix = \"warn\",  body = wrap(\"WARN  ${0:potential risk or edge case}\"),      desc = \"Create a warn comment\" },\r\n      {\r\n        prefix = \"box\",\r\n        body = {\r\n          wrap(\"┌──────────────────────────────────────┐\"),\r\n          wrap(\"│ ${0:TITLE} │\"),\r\n          wrap(\"└──────────────────────────────────────┘\"),\r\n        },\r\n        desc = \"Create a boxed comment\",\r\n      },\r\n      {\r\n        prefix = \"section\",\r\n        body = wrap(\"── ${0:Section name} ─────────────────────────────\"),\r\n        desc = \"Create a section divider\",\r\n      },\r\n      {\r\n        prefix = \"header\",\r\n        body = {\r\n          wrap(\"================================================\"),\r\n          wrap(\" \" .. vim.fn.expand('%:t')),\r\n          wrap(\"\"),\r\n          wrap(\"Description: ${0:What this file does}\"),\r\n          wrap(\"Author: \" .. author),\r\n          wrap(\"================================================\"),\r\n        },\r\n        desc = \"Create a file header\",\r\n      },\r\n    },\r\n  }\r\nend\r\n\r\nreturn { special_comments }\r\n```",
+            "bodyHTML": "<p dir=\"auto\">That's some very nice ideas! Thanks for sharing!</p>\n<p dir=\"auto\">This is also related to <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2530474865\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1225\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1225/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1225\">#1225</a> and is something I'd recommend doing. One unfortunate drawback of using snippets here is inability to pre-align text in boxes (like for \"TITLE\" in the <code class=\"notranslate\">box</code> snippet).</p>\n<p dir=\"auto\">I'd also suggest adjusting couple of things:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">'commentstring' can be not only <code class=\"notranslate\">&lt;left&gt;&lt;space&gt;%s</code>, but also <code class=\"notranslate\">&lt;left&gt;&lt;space&gt;%s&lt;space&gt;&lt;right&gt;</code>. Like for example <code class=\"notranslate\">/* %s */</code>.</p>\n</li>\n<li>\n<p dir=\"auto\">Computing author inside function snippet is very expensive. It will execute <em>two</em> blocking system calls on <em>every snippet matching</em> (i.e. almost every typed word). I'd just compute author once (this should cover &gt;90% of use cases, I'd say) before computing the function snippet. Reading with <code class=\"notranslate\">gen_loader.from_file</code> by default caches its output, so the file contents will be executed once per session.</p>\n</li>\n<li>\n<p dir=\"auto\">All currently present snippets only have a single tabstop. 'mini.snippets' relies on snippets also having final tabstop, so it automatically adds them at the end of the snippet text. Almost all snippets shared here don't really need one (maybe except \"boxes\", but that is a matter of taste). So I'd use <code class=\"notranslate\">${0:...}</code> here.</p>\n<p dir=\"auto\">Now, <a href=\"https://github.com/microsoft/language-server-protocol/issues/2146\" data-hovercard-type=\"issue\" data-hovercard-url=\"/microsoft/language-server-protocol/issues/2146/hovercard\">there is a bit of ambiguity</a> around whether final tabstop can have placeholder text. Luckily, 'mini.snippets' by default allows it and precisely for this sort of situation when it helps clarify the intent of the final placeholder.</p>\n</li>\n</ul>\n<p dir=\"auto\">So all in all here is something I'd do:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local author = vim.fn.executable('git') == 1 and vim.fn.system('git config user.name'):gsub('%s+$', '')\n  or vim.uv.os_get_passwd().username\n\nlocal special_comments = function(context)\n  local cs_left, cs_right = vim.bo[context.buf_id].commentstring:match('^(.*)%%s(.*)$')\n  if cs_left == nil then return {} end\n\n  -- Optional: adjust comment parts to always have inner padding\n  cs_left = cs_left:find('%s$') and cs_left or (cs_left .. ' ')\n  cs_right = cs_left:find('^%s') and cs_right or (' ' .. cs_right)\n\n  local wrap = function(s)\n    -- Optional: make it work nicer with blank lines\n    if s:match('^%s*$') then return (cs_left:gsub('%s*$', '') .. cs_right:gsub('^%s*', '')) end\n    return (string.format('%s%s%s', cs_left, s, cs_right):gsub('%s$', ''))\n  end\n\n  --stylua: ignore\n  return {\n    {\n      { prefix = &quot;fixme&quot;, body = wrap(&quot;FIXME  ${0:describe the bug or needed fix}&quot;),  desc = &quot;Create a fixme comment&quot; },\n      { prefix = &quot;hack&quot;,  body = wrap(&quot;HACK  ${0:temporary workaround or solution}&quot;), desc = &quot;Create a hack comment&quot; },\n      { prefix = &quot;info&quot;,  body = wrap(&quot;INFO  ${0:relevant context or metadata}&quot;),     desc = &quot;Create a info comment&quot; },\n      { prefix = &quot;link&quot;,  body = wrap(&quot;LINK  ${0:href to issue or documentation}&quot;),   desc = &quot;Create a link comment&quot; },\n      { prefix = &quot;note&quot;,  body = wrap(&quot;NOTE  ${0:important detail}&quot;),                 desc = &quot;Create a note comment&quot; },\n      { prefix = &quot;todo&quot;,  body = wrap(&quot;TODO  ${0:describe the task or goal}&quot;),        desc = &quot;Create a todo comment&quot; },\n      { prefix = &quot;warn&quot;,  body = wrap(&quot;WARN  ${0:potential risk or edge case}&quot;),      desc = &quot;Create a warn comment&quot; },\n      {\n        prefix = &quot;box&quot;,\n        body = {\n          wrap(&quot;┌──────────────────────────────────────┐&quot;),\n          wrap(&quot;│ ${0:TITLE} │&quot;),\n          wrap(&quot;└──────────────────────────────────────┘&quot;),\n        },\n        desc = &quot;Create a boxed comment&quot;,\n      },\n      {\n        prefix = &quot;section&quot;,\n        body = wrap(&quot;── ${0:Section name} ─────────────────────────────&quot;),\n        desc = &quot;Create a section divider&quot;,\n      },\n      {\n        prefix = &quot;header&quot;,\n        body = {\n          wrap(&quot;================================================&quot;),\n          wrap(&quot; &quot; .. vim.fn.expand('%:t')),\n          wrap(&quot;&quot;),\n          wrap(&quot;Description: ${0:What this file does}&quot;),\n          wrap(&quot;Author: &quot; .. author),\n          wrap(&quot;================================================&quot;),\n        },\n        desc = &quot;Create a file header&quot;,\n      },\n    },\n  }\nend\n\nreturn { special_comments }\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">author</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">executable</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>git<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>git config user.name<span class=\"pl-pds\">'</span></span>):<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s+$<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">os_get_passwd</span>().<span class=\"pl-e\">username</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">special_comments</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">context</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cs_left</span>, <span class=\"pl-smi\">cs_right</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">context</span>.<span class=\"pl-e\">buf_id</span>].<span class=\"pl-en\">commentstring</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^(.*)%%s(.*)$<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cs_left</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> {} <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Optional: adjust comment parts to always have inner padding</span>\n  <span class=\"pl-smi\">cs_left</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">cs_left</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s$<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-smi\">cs_left</span> <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">cs_left</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span> <span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-smi\">cs_right</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">cs_left</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^%s<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-smi\">cs_right</span> <span class=\"pl-k\">or</span> (<span class=\"pl-s\"><span class=\"pl-pds\">'</span> <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">cs_right</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">wrap</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">s</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Optional: make it work nicer with blank lines</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-en\">s</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^%s*$<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> (<span class=\"pl-en\">cs_left</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s*$<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-en\">cs_right</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^%s*<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>)) <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> (<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s%s%s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">cs_left</span>, <span class=\"pl-smi\">s</span>, <span class=\"pl-smi\">cs_right</span>):<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s$<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>))\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span>stylua: ignore</span>\n  <span class=\"pl-k\">return</span> {\n    {\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fixme<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FIXME  ${0:describe the bug or needed fix}<span class=\"pl-pds\">\"</span></span>),  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a fixme comment<span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>hack<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>HACK  ${0:temporary workaround or solution}<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a hack comment<span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>info<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>INFO  ${0:relevant context or metadata}<span class=\"pl-pds\">\"</span></span>),     <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a info comment<span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>link<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>LINK  ${0:href to issue or documentation}<span class=\"pl-pds\">\"</span></span>),   <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a link comment<span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>note<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>NOTE  ${0:important detail}<span class=\"pl-pds\">\"</span></span>),                 <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a note comment<span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>todo<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>TODO  ${0:describe the task or goal}<span class=\"pl-pds\">\"</span></span>),        <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a todo comment<span class=\"pl-pds\">\" </span></span>},\n      { <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>warn<span class=\"pl-pds\">\"</span></span>,  <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>WARN  ${0:potential risk or edge case}<span class=\"pl-pds\">\"</span></span>),      <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a warn comment<span class=\"pl-pds\">\" </span></span>},\n      {\n        <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>box<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>┌──────────────────────────────────────┐<span class=\"pl-pds\">\"</span></span>),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>│ ${0:TITLE} │<span class=\"pl-pds\">\"</span></span>),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>└──────────────────────────────────────┘<span class=\"pl-pds\">\"</span></span>),\n        },\n        <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a boxed comment<span class=\"pl-pds\">\"</span></span>,\n      },\n      {\n        <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>section<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>── ${0:Section name} ─────────────────────────────<span class=\"pl-pds\">\"</span></span>),\n        <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a section divider<span class=\"pl-pds\">\"</span></span>,\n      },\n      {\n        <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>header<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>================================================<span class=\"pl-pds\">\"</span></span>),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%:t<span class=\"pl-pds\">'</span></span>)),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Description: ${0:What this file does}<span class=\"pl-pds\">\"</span></span>),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Author: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">author</span>),\n          <span class=\"pl-c1\">wrap</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>================================================<span class=\"pl-pds\">\"</span></span>),\n        },\n        <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Create a file header<span class=\"pl-pds\">\"</span></span>,\n      },\n    },\n  }\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> { <span class=\"pl-smi\">special_comments</span> }</pre></div>",
+            "bodyText": "That's some very nice ideas! Thanks for sharing!\nThis is also related to #1225 and is something I'd recommend doing. One unfortunate drawback of using snippets here is inability to pre-align text in boxes (like for \"TITLE\" in the box snippet).\nI'd also suggest adjusting couple of things:\n\n\n'commentstring' can be not only <left><space>%s, but also <left><space>%s<space><right>. Like for example /* %s */.\n\n\nComputing author inside function snippet is very expensive. It will execute two blocking system calls on every snippet matching (i.e. almost every typed word). I'd just compute author once (this should cover >90% of use cases, I'd say) before computing the function snippet. Reading with gen_loader.from_file by default caches its output, so the file contents will be executed once per session.\n\n\nAll currently present snippets only have a single tabstop. 'mini.snippets' relies on snippets also having final tabstop, so it automatically adds them at the end of the snippet text. Almost all snippets shared here don't really need one (maybe except \"boxes\", but that is a matter of taste). So I'd use ${0:...} here.\nNow, there is a bit of ambiguity around whether final tabstop can have placeholder text. Luckily, 'mini.snippets' by default allows it and precisely for this sort of situation when it helps clarify the intent of the final placeholder.\n\n\nSo all in all here is something I'd do:\nlocal author = vim.fn.executable('git') == 1 and vim.fn.system('git config user.name'):gsub('%s+$', '')\n  or vim.uv.os_get_passwd().username\n\nlocal special_comments = function(context)\n  local cs_left, cs_right = vim.bo[context.buf_id].commentstring:match('^(.*)%%s(.*)$')\n  if cs_left == nil then return {} end\n\n  -- Optional: adjust comment parts to always have inner padding\n  cs_left = cs_left:find('%s$') and cs_left or (cs_left .. ' ')\n  cs_right = cs_left:find('^%s') and cs_right or (' ' .. cs_right)\n\n  local wrap = function(s)\n    -- Optional: make it work nicer with blank lines\n    if s:match('^%s*$') then return (cs_left:gsub('%s*$', '') .. cs_right:gsub('^%s*', '')) end\n    return (string.format('%s%s%s', cs_left, s, cs_right):gsub('%s$', ''))\n  end\n\n  --stylua: ignore\n  return {\n    {\n      { prefix = \"fixme\", body = wrap(\"FIXME  ${0:describe the bug or needed fix}\"),  desc = \"Create a fixme comment\" },\n      { prefix = \"hack\",  body = wrap(\"HACK  ${0:temporary workaround or solution}\"), desc = \"Create a hack comment\" },\n      { prefix = \"info\",  body = wrap(\"INFO  ${0:relevant context or metadata}\"),     desc = \"Create a info comment\" },\n      { prefix = \"link\",  body = wrap(\"LINK  ${0:href to issue or documentation}\"),   desc = \"Create a link comment\" },\n      { prefix = \"note\",  body = wrap(\"NOTE  ${0:important detail}\"),                 desc = \"Create a note comment\" },\n      { prefix = \"todo\",  body = wrap(\"TODO  ${0:describe the task or goal}\"),        desc = \"Create a todo comment\" },\n      { prefix = \"warn\",  body = wrap(\"WARN  ${0:potential risk or edge case}\"),      desc = \"Create a warn comment\" },\n      {\n        prefix = \"box\",\n        body = {\n          wrap(\"┌──────────────────────────────────────┐\"),\n          wrap(\"│ ${0:TITLE} │\"),\n          wrap(\"└──────────────────────────────────────┘\"),\n        },\n        desc = \"Create a boxed comment\",\n      },\n      {\n        prefix = \"section\",\n        body = wrap(\"── ${0:Section name} ─────────────────────────────\"),\n        desc = \"Create a section divider\",\n      },\n      {\n        prefix = \"header\",\n        body = {\n          wrap(\"================================================\"),\n          wrap(\" \" .. vim.fn.expand('%:t')),\n          wrap(\"\"),\n          wrap(\"Description: ${0:What this file does}\"),\n          wrap(\"Author: \" .. author),\n          wrap(\"================================================\"),\n        },\n        desc = \"Create a file header\",\n      },\n    },\n  }\nend\n\nreturn { special_comments }",
+            "createdAt": "2026-01-20T10:18:17Z",
+            "createdViaEmail": false,
+            "databaseId": 15547535,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A7TyP",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-01-20T10:18:17Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+                        "login": "danielt812",
+                        "resourcePath": "/danielt812",
+                        "url": "https://github.com/danielt812"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> This is also related to https://github.com/nvim-mini/mini.nvim/issues/1225 and is something I'd recommend doing. One unfortunate drawback of using snippets here is inability to pre-align text in boxes (like for \"TITLE\" in the box snippet).\r\n\r\nThat makes sense — this approach is definitely cleaner. I’ll switch to this instead of generating boxes via snippets, especially given the alignment limitations you mentioned.\r\n \r\n> 'commentstring' can be not only <left><space>%s, but also <left><space>%s<space><right>. Like for example /* %s */.\r\n\r\nGood catch - that was an oversight on my part. I wasn’t accounting for commentstrings with both left and right delimiters (HTML, XML, CSS, etc.).\r\n\r\n> Computing author inside function snippet is very expensive. It will execute two blocking system calls on every snippet matching (i.e. almost every typed word). I'd just compute author once (this should cover >90% of use cases, I'd say) before computing the function snippet. Reading with gen_loader.from_file by default caches its output, so the file contents will be executed once per session.\r\n\r\nThat makes sense. How do you determine how expensive a system call would be? I tried to find some resources on this, but didn’t have much luck. Is it mostly something you learn through trial and error or by writing your own benchmarks?\r\n\r\n> All currently present snippets only have a single tabstop. 'mini.snippets' relies on snippets also having final tabstop, so it automatically adds them at the end of the snippet text. Almost all snippets shared here don't really need one (maybe except \"boxes\", but that is a matter of taste). So I'd use ${0:...} here.\r\n\r\nGood point. I'll keep the final tabstop in mind next time I write snippet\r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">This is also related to <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2530474865\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1225\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1225/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1225\">#1225</a> and is something I'd recommend doing. One unfortunate drawback of using snippets here is inability to pre-align text in boxes (like for \"TITLE\" in the box snippet).</p>\n</blockquote>\n<p dir=\"auto\">That makes sense — this approach is definitely cleaner. I’ll switch to this instead of generating boxes via snippets, especially given the alignment limitations you mentioned.</p>\n<blockquote>\n<p dir=\"auto\">'commentstring' can be not only %s, but also %s. Like for example /* %s */.</p>\n</blockquote>\n<p dir=\"auto\">Good catch - that was an oversight on my part. I wasn’t accounting for commentstrings with both left and right delimiters (HTML, XML, CSS, etc.).</p>\n<blockquote>\n<p dir=\"auto\">Computing author inside function snippet is very expensive. It will execute two blocking system calls on every snippet matching (i.e. almost every typed word). I'd just compute author once (this should cover &gt;90% of use cases, I'd say) before computing the function snippet. Reading with gen_loader.from_file by default caches its output, so the file contents will be executed once per session.</p>\n</blockquote>\n<p dir=\"auto\">That makes sense. How do you determine how expensive a system call would be? I tried to find some resources on this, but didn’t have much luck. Is it mostly something you learn through trial and error or by writing your own benchmarks?</p>\n<blockquote>\n<p dir=\"auto\">All currently present snippets only have a single tabstop. 'mini.snippets' relies on snippets also having final tabstop, so it automatically adds them at the end of the snippet text. Almost all snippets shared here don't really need one (maybe except \"boxes\", but that is a matter of taste). So I'd use ${0:...} here.</p>\n</blockquote>\n<p dir=\"auto\">Good point. I'll keep the final tabstop in mind next time I write snippet</p>",
+                    "bodyText": "This is also related to #1225 and is something I'd recommend doing. One unfortunate drawback of using snippets here is inability to pre-align text in boxes (like for \"TITLE\" in the box snippet).\n\nThat makes sense — this approach is definitely cleaner. I’ll switch to this instead of generating boxes via snippets, especially given the alignment limitations you mentioned.\n\n'commentstring' can be not only %s, but also %s. Like for example /* %s */.\n\nGood catch - that was an oversight on my part. I wasn’t accounting for commentstrings with both left and right delimiters (HTML, XML, CSS, etc.).\n\nComputing author inside function snippet is very expensive. It will execute two blocking system calls on every snippet matching (i.e. almost every typed word). I'd just compute author once (this should cover >90% of use cases, I'd say) before computing the function snippet. Reading with gen_loader.from_file by default caches its output, so the file contents will be executed once per session.\n\nThat makes sense. How do you determine how expensive a system call would be? I tried to find some resources on this, but didn’t have much luck. Is it mostly something you learn through trial and error or by writing your own benchmarks?\n\nAll currently present snippets only have a single tabstop. 'mini.snippets' relies on snippets also having final tabstop, so it automatically adds them at the end of the snippet text. Almost all snippets shared here don't really need one (maybe except \"boxes\", but that is a matter of taste). So I'd use ${0:...} here.\n\nGood point. I'll keep the final tabstop in mind next time I write snippet",
+                    "createdAt": "2026-01-23T01:53:42Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15576177,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7axx",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-23T01:53:42Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15547535,
+                        "id": "DC_kwDOFoksYM4A7TyP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15547535"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15576177",
+                    "updatedAt": "2026-01-23T01:53:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15576177"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> That makes sense. How do you determine how expensive a system call would be? I tried to find some resources on this, but didn’t have much luck. Is it mostly something you learn through trial and error or by writing your own benchmarks?\r\n\r\nTo answer the question as is - yes, only by benchmarking.\r\n\r\nTo answer the original issue - it is the fact that `vim.fn.system` will be called \"... * _every snippet matching_ (i.e. almost every typed word) ...\". So however fast the `vim.fn.system` call is, the \"growth rates\" (O(1) one time, or O(n) for number of matching snippets) are very different here. If it can be avoided with reasonably similar and workable result, it is better to do so.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">That makes sense. How do you determine how expensive a system call would be? I tried to find some resources on this, but didn’t have much luck. Is it mostly something you learn through trial and error or by writing your own benchmarks?</p>\n</blockquote>\n<p dir=\"auto\">To answer the question as is - yes, only by benchmarking.</p>\n<p dir=\"auto\">To answer the original issue - it is the fact that <code class=\"notranslate\">vim.fn.system</code> will be called \"... * <em>every snippet matching</em> (i.e. almost every typed word) ...\". So however fast the <code class=\"notranslate\">vim.fn.system</code> call is, the \"growth rates\" (O(1) one time, or O(n) for number of matching snippets) are very different here. If it can be avoided with reasonably similar and workable result, it is better to do so.</p>",
+                    "bodyText": "That makes sense. How do you determine how expensive a system call would be? I tried to find some resources on this, but didn’t have much luck. Is it mostly something you learn through trial and error or by writing your own benchmarks?\n\nTo answer the question as is - yes, only by benchmarking.\nTo answer the original issue - it is the fact that vim.fn.system will be called \"... * every snippet matching (i.e. almost every typed word) ...\". So however fast the vim.fn.system call is, the \"growth rates\" (O(1) one time, or O(n) for number of matching snippets) are very different here. If it can be avoided with reasonably similar and workable result, it is better to do so.",
+                    "createdAt": "2026-01-23T12:06:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15580569,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7b2Z",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-23T12:06:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15547535,
+                        "id": "DC_kwDOFoksYM4A7TyP",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15547535"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15580569",
+                    "updatedAt": "2026-01-23T12:06:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15580569"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15547535",
+            "updatedAt": "2026-01-20T10:18:17Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2234#discussioncomment-15547535"
+        }
+    ],
+    "createdAt": "2026-01-19T23:31:52Z",
+    "createdViaEmail": false,
+    "databaseId": 9364648,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+        "login": "danielt812",
+        "resourcePath": "/danielt812",
+        "url": "https://github.com/danielt812"
+    },
+    "id": "D_kwDOFoksYM4AjuSo",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-01-20T00:09:38Z",
+    "locked": false,
+    "number": 2234,
+    "poll": null,
+    "publishedAt": "2026-01-19T23:31:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2234",
+    "stateReason": null,
+    "title": "[mini.snippets] Context aware global snippets",
+    "updatedAt": "2026-01-23T12:06:10Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2234"
+}

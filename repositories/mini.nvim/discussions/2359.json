@@ -1,0 +1,359 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1200609?v=4",
+        "login": "suy",
+        "resourcePath": "/suy",
+        "url": "https://github.com/suy"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hello!\r\n\r\nThank you all mini contributors. I'm enjoying switching to this plugin's many modules one by one, and retiring some old, mostly unmaintained VimScript code. I'm having a great time!\r\n\r\nHere is a humble suggestion that perhaps could help solve mini.jump2d's issue #354 even if partially (and also relates to #355).\r\n\r\nI've basically wanted to configure my usage of the plugin like this:\r\n\r\n```lua\r\nMiniJump2d = require('mini.jump2d')\r\nMiniJump2d.setup(MiniJump2d.builtin_opts.single_character)\r\n\r\n-- or with more details\r\nMiniJump2d.setup(vim.tbl_deep_extend('force',\r\n    MiniJump2d.builtin_opts.single_character,\r\n    {\r\n        mappings = { start_jumping = '<Leader>j' },\r\n        labels = 'asdfjkl;ghqwertyuiopzxcvbnm,',\r\n        allowed_windows = { current = true, not_current = false, },\r\n    }\r\n))\r\n```\r\n\r\nWhy? Well, on one hand, seemed more \"tidy\" and logical. On the other, I've seen that the plugin has this on its source:\r\n\r\n```lua\r\n  H.map('n', keymap, MiniJump2d.start, { desc = 'Start 2d jumping' })\r\n  H.map('x', keymap, MiniJump2d.start, { desc = 'Start 2d jumping' })\r\n  -- Use `<Cmd>...<CR>` to have proper dot-repeat\r\n  -- See https://github.com/neovim/neovim/issues/23406\r\n  -- TODO: use local functions if/when that issue is resolved\r\n  H.map('o', keymap, '<Cmd>lua MiniJump2d.start()<CR>', { desc = 'Start 2d jumping' })\r\n```\r\n\r\nSo, mapping all the modes myself seemed a bit worse. I'm not sure also of the nuance of this things, as operator pending mode is usually a thing that scares me a bit. :-)\r\n\r\nSo, the above configuration doesn't work out of the box, but it does work by applying this small patch:\r\n\r\n```diff\r\ndiff --git i/lua/mini/jump2d.lua w/lua/mini/jump2d.lua\r\nindex 633cb11d..6ac0c70d 100644\r\n--- i/lua/mini/jump2d.lua\r\n+++ w/lua/mini/jump2d.lua\r\n@@ -367,7 +367,7 @@ MiniJump2d.start = function(opts)\r\n   local before_start = (opts.hooks or {}).before_start\r\n     or ((vim.b.minijump2d_config or {}).hooks or {}).before_start\r\n     or MiniJump2d.config.hooks.before_start\r\n-  if before_start ~= nil then before_start() end\r\n+  if before_start ~= nil then before_start(opts) end\r\n \r\n   opts = H.get_config(opts)\r\n   opts.spotter = opts.spotter or MiniJump2d.default_spotter\r\n@@ -667,11 +667,12 @@ local function user_input_opts(input_fun)\r\n     allowed_lines = { blank = false, fold = false },\r\n   }\r\n \r\n-  local before_start = function()\r\n+  local before_start = function(options)\r\n     local input = input_fun()\r\n     -- Allow user to cancel input and not show any jumping spots\r\n     if input == nil then return end\r\n     res.spotter = MiniJump2d.gen_spotter.pattern(vim.pesc(input))\r\n+    if options then options.spotter = res.spotter end\r\n   end\r\n   res.hooks = { before_start = before_start }\r\n \r\n```\r\n\r\nI *think* this should be backwards compatible, as it is just adding a new parameter that did not exist.\r\n\r\nThoughts?\r\n\r\nThanks again!",
+    "bodyHTML": "<p dir=\"auto\">Hello!</p>\n<p dir=\"auto\">Thank you all mini contributors. I'm enjoying switching to this plugin's many modules one by one, and retiring some old, mostly unmaintained VimScript code. I'm having a great time!</p>\n<p dir=\"auto\">Here is a humble suggestion that perhaps could help solve mini.jump2d's issue <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1740571731\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/354\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/354/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/354\">#354</a> even if partially (and also relates to <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"1741255782\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/355\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/355/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/355\">#355</a>).</p>\n<p dir=\"auto\">I've basically wanted to configure my usage of the plugin like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniJump2d = require('mini.jump2d')\nMiniJump2d.setup(MiniJump2d.builtin_opts.single_character)\n\n-- or with more details\nMiniJump2d.setup(vim.tbl_deep_extend('force',\n    MiniJump2d.builtin_opts.single_character,\n    {\n        mappings = { start_jumping = '&lt;Leader&gt;j' },\n        labels = 'asdfjkl;ghqwertyuiopzxcvbnm,',\n        allowed_windows = { current = true, not_current = false, },\n    }\n))\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniJump2d</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.jump2d<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">single_character</span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> or with more details</span>\n<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>force<span class=\"pl-pds\">'</span></span>,\n    <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">single_character</span>,\n    {\n        <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">start_jumping</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Leader&gt;j<span class=\"pl-pds\">' </span></span>},\n        <span class=\"pl-smi\">labels</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>asdfjkl;ghqwertyuiopzxcvbnm,<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">allowed_windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">not_current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, },\n    }\n))</pre></div>\n<p dir=\"auto\">Why? Well, on one hand, seemed more \"tidy\" and logical. On the other, I've seen that the plugin has this on its source:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  H.map('n', keymap, MiniJump2d.start, { desc = 'Start 2d jumping' })\n  H.map('x', keymap, MiniJump2d.start, { desc = 'Start 2d jumping' })\n  -- Use `&lt;Cmd&gt;...&lt;CR&gt;` to have proper dot-repeat\n  -- See https://github.com/neovim/neovim/issues/23406\n  -- TODO: use local functions if/when that issue is resolved\n  H.map('o', keymap, '&lt;Cmd&gt;lua MiniJump2d.start()&lt;CR&gt;', { desc = 'Start 2d jumping' })\"><pre class=\"notranslate\">  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keymap</span>, <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">start</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Start 2d jumping<span class=\"pl-pds\">' </span></span>})\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keymap</span>, <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">start</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Start 2d jumping<span class=\"pl-pds\">' </span></span>})\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Use `&lt;Cmd&gt;...&lt;CR&gt;` to have proper dot-repeat</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> See https://github.com/neovim/neovim/issues/23406</span>\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> TODO: use local functions if/when that issue is resolved</span>\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">map</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">keymap</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Cmd&gt;lua MiniJump2d.start()&lt;CR&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Start 2d jumping<span class=\"pl-pds\">' </span></span>})</pre></div>\n<p dir=\"auto\">So, mapping all the modes myself seemed a bit worse. I'm not sure also of the nuance of this things, as operator pending mode is usually a thing that scares me a bit. :-)</p>\n<p dir=\"auto\">So, the above configuration doesn't work out of the box, but it does work by applying this small patch:</p>\n<div class=\"highlight highlight-source-diff notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"diff --git i/lua/mini/jump2d.lua w/lua/mini/jump2d.lua\nindex 633cb11d..6ac0c70d 100644\n--- i/lua/mini/jump2d.lua\n+++ w/lua/mini/jump2d.lua\n@@ -367,7 +367,7 @@ MiniJump2d.start = function(opts)\n   local before_start = (opts.hooks or {}).before_start\n     or ((vim.b.minijump2d_config or {}).hooks or {}).before_start\n     or MiniJump2d.config.hooks.before_start\n-  if before_start ~= nil then before_start() end\n+  if before_start ~= nil then before_start(opts) end\n \n   opts = H.get_config(opts)\n   opts.spotter = opts.spotter or MiniJump2d.default_spotter\n@@ -667,11 +667,12 @@ local function user_input_opts(input_fun)\n     allowed_lines = { blank = false, fold = false },\n   }\n \n-  local before_start = function()\n+  local before_start = function(options)\n     local input = input_fun()\n     -- Allow user to cancel input and not show any jumping spots\n     if input == nil then return end\n     res.spotter = MiniJump2d.gen_spotter.pattern(vim.pesc(input))\n+    if options then options.spotter = res.spotter end\n   end\n   res.hooks = { before_start = before_start }\n \"><pre class=\"notranslate\"><span class=\"pl-c1\">diff --git i/lua/mini/jump2d.lua w/lua/mini/jump2d.lua</span>\nindex 633cb11d..6ac0c70d 100644\n<span class=\"pl-md\">--- i/lua/mini/jump2d.lua</span>\n<span class=\"pl-mi1\">+++ w/lua/mini/jump2d.lua</span>\n<span class=\"pl-mdr\">@@ -367,7 +367,7 @@</span> MiniJump2d.start = function(opts)\n   local before_start = (opts.hooks or {}).before_start\n     or ((vim.b.minijump2d_config or {}).hooks or {}).before_start\n     or MiniJump2d.config.hooks.before_start\n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  if before_start ~= nil then before_start() end</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  if before_start ~= nil then before_start(opts) end</span>\n \n   opts = H.get_config(opts)\n   opts.spotter = opts.spotter or MiniJump2d.default_spotter\n<span class=\"pl-mdr\">@@ -667,11 +667,12 @@</span> local function user_input_opts(input_fun)\n     allowed_lines = { blank = false, fold = false },\n   }\n \n<span class=\"pl-md\"><span class=\"pl-md\">-</span>  local before_start = function()</span>\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>  local before_start = function(options)</span>\n     local input = input_fun()\n     -- Allow user to cancel input and not show any jumping spots\n     if input == nil then return end\n     res.spotter = MiniJump2d.gen_spotter.pattern(vim.pesc(input))\n<span class=\"pl-mi1\"><span class=\"pl-mi1\">+</span>    if options then options.spotter = res.spotter end</span>\n   end\n   res.hooks = { before_start = before_start }\n </pre></div>\n<p dir=\"auto\">I <em>think</em> this should be backwards compatible, as it is just adding a new parameter that did not exist.</p>\n<p dir=\"auto\">Thoughts?</p>\n<p dir=\"auto\">Thanks again!</p>",
+    "bodyText": "Hello!\nThank you all mini contributors. I'm enjoying switching to this plugin's many modules one by one, and retiring some old, mostly unmaintained VimScript code. I'm having a great time!\nHere is a humble suggestion that perhaps could help solve mini.jump2d's issue #354 even if partially (and also relates to #355).\nI've basically wanted to configure my usage of the plugin like this:\nMiniJump2d = require('mini.jump2d')\nMiniJump2d.setup(MiniJump2d.builtin_opts.single_character)\n\n-- or with more details\nMiniJump2d.setup(vim.tbl_deep_extend('force',\n    MiniJump2d.builtin_opts.single_character,\n    {\n        mappings = { start_jumping = '<Leader>j' },\n        labels = 'asdfjkl;ghqwertyuiopzxcvbnm,',\n        allowed_windows = { current = true, not_current = false, },\n    }\n))\nWhy? Well, on one hand, seemed more \"tidy\" and logical. On the other, I've seen that the plugin has this on its source:\n  H.map('n', keymap, MiniJump2d.start, { desc = 'Start 2d jumping' })\n  H.map('x', keymap, MiniJump2d.start, { desc = 'Start 2d jumping' })\n  -- Use `<Cmd>...<CR>` to have proper dot-repeat\n  -- See https://github.com/neovim/neovim/issues/23406\n  -- TODO: use local functions if/when that issue is resolved\n  H.map('o', keymap, '<Cmd>lua MiniJump2d.start()<CR>', { desc = 'Start 2d jumping' })\nSo, mapping all the modes myself seemed a bit worse. I'm not sure also of the nuance of this things, as operator pending mode is usually a thing that scares me a bit. :-)\nSo, the above configuration doesn't work out of the box, but it does work by applying this small patch:\ndiff --git i/lua/mini/jump2d.lua w/lua/mini/jump2d.lua\nindex 633cb11d..6ac0c70d 100644\n--- i/lua/mini/jump2d.lua\n+++ w/lua/mini/jump2d.lua\n@@ -367,7 +367,7 @@ MiniJump2d.start = function(opts)\n   local before_start = (opts.hooks or {}).before_start\n     or ((vim.b.minijump2d_config or {}).hooks or {}).before_start\n     or MiniJump2d.config.hooks.before_start\n-  if before_start ~= nil then before_start() end\n+  if before_start ~= nil then before_start(opts) end\n \n   opts = H.get_config(opts)\n   opts.spotter = opts.spotter or MiniJump2d.default_spotter\n@@ -667,11 +667,12 @@ local function user_input_opts(input_fun)\n     allowed_lines = { blank = false, fold = false },\n   }\n \n-  local before_start = function()\n+  local before_start = function(options)\n     local input = input_fun()\n     -- Allow user to cancel input and not show any jumping spots\n     if input == nil then return end\n     res.spotter = MiniJump2d.gen_spotter.pattern(vim.pesc(input))\n+    if options then options.spotter = res.spotter end\n   end\n   res.hooks = { before_start = before_start }\n \nI think this should be backwards compatible, as it is just adding a new parameter that did not exist.\nThoughts?\nThanks again!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-04-09T13:47:01Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Hi!\r\n\r\nThe suggested way of having custom ways to jump is to indeed create a mapping and use `MiniJump2d.start()` directly. As described [here](https://github.com/nvim-mini/mini.nvim/blob/2431902e78b76f435542d1e606f08475360068ca/doc/mini-jump2d.txt#L339-L340).\r\n\r\n> So, mapping all the modes myself seemed a bit worse.\r\n\r\nThat's not too bad and can be done relatively concisely. Here is what [I am using](https://github.com/echasnovski/nvim/blob/b7391abbe9a06c09322b7dd513c14c25286b59fd/plugin/30_mini.lua#L279-L285) right now in a wake of improving/rewriting 'mini.jump2d' (see #1818). I am fairly certain that those will be the new defaults (\"single_character\" variant as a default spotter).\r\n\r\nSo as there is a rewrite planned, things will (hopefully) be both more configurable and require less configuration to be good :).\r\n\r\n---\r\n\r\n> I'm not sure also of the nuance of this things, as operator pending mode is usually a thing that scares me a bit. :-)\r\n\r\nIt is not that scary when you get to know it :) It is a mode that activates after you start an operator (action that requires a target), like by pressing `d` or `c` or `y`, etc. This is usually followed by a textobject (like `i)`, `a\"`, etc.) or a motion (like `t)` or `e`). The 'mini.jump2d' is a jumping plugin, so creating an Operator-pending mode mapping for it would allow to have something like 1) press `d`; 2) initial the jump; 3) finish the jump -> all the text from the cursor to the jump is deleted.",
+            "bodyHTML": "<p dir=\"auto\">Hi!</p>\n<p dir=\"auto\">The suggested way of having custom ways to jump is to indeed create a mapping and use <code class=\"notranslate\">MiniJump2d.start()</code> directly. As described <a href=\"https://github.com/nvim-mini/mini.nvim/blob/2431902e78b76f435542d1e606f08475360068ca/doc/mini-jump2d.txt#L339-L340\">here</a>.</p>\n<blockquote>\n<p dir=\"auto\">So, mapping all the modes myself seemed a bit worse.</p>\n</blockquote>\n<p dir=\"auto\">That's not too bad and can be done relatively concisely. Here is what <a href=\"https://github.com/echasnovski/nvim/blob/b7391abbe9a06c09322b7dd513c14c25286b59fd/plugin/30_mini.lua#L279-L285\">I am using</a> right now in a wake of improving/rewriting 'mini.jump2d' (see <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a>). I am fairly certain that those will be the new defaults (\"single_character\" variant as a default spotter).</p>\n<p dir=\"auto\">So as there is a rewrite planned, things will (hopefully) be both more configurable and require less configuration to be good :).</p>\n<hr>\n<blockquote>\n<p dir=\"auto\">I'm not sure also of the nuance of this things, as operator pending mode is usually a thing that scares me a bit. :-)</p>\n</blockquote>\n<p dir=\"auto\">It is not that scary when you get to know it :) It is a mode that activates after you start an operator (action that requires a target), like by pressing <code class=\"notranslate\">d</code> or <code class=\"notranslate\">c</code> or <code class=\"notranslate\">y</code>, etc. This is usually followed by a textobject (like <code class=\"notranslate\">i)</code>, <code class=\"notranslate\">a\"</code>, etc.) or a motion (like <code class=\"notranslate\">t)</code> or <code class=\"notranslate\">e</code>). The 'mini.jump2d' is a jumping plugin, so creating an Operator-pending mode mapping for it would allow to have something like 1) press <code class=\"notranslate\">d</code>; 2) initial the jump; 3) finish the jump -&gt; all the text from the cursor to the jump is deleted.</p>",
+            "bodyText": "Hi!\nThe suggested way of having custom ways to jump is to indeed create a mapping and use MiniJump2d.start() directly. As described here.\n\nSo, mapping all the modes myself seemed a bit worse.\n\nThat's not too bad and can be done relatively concisely. Here is what I am using right now in a wake of improving/rewriting 'mini.jump2d' (see #1818). I am fairly certain that those will be the new defaults (\"single_character\" variant as a default spotter).\nSo as there is a rewrite planned, things will (hopefully) be both more configurable and require less configuration to be good :).\n\n\nI'm not sure also of the nuance of this things, as operator pending mode is usually a thing that scares me a bit. :-)\n\nIt is not that scary when you get to know it :) It is a mode that activates after you start an operator (action that requires a target), like by pressing d or c or y, etc. This is usually followed by a textobject (like i), a\", etc.) or a motion (like t) or e). The 'mini.jump2d' is a jumping plugin, so creating an Operator-pending mode mapping for it would allow to have something like 1) press d; 2) initial the jump; 3) finish the jump -> all the text from the cursor to the jump is deleted.",
+            "createdAt": "2026-04-09T13:47:01Z",
+            "createdViaEmail": false,
+            "databaseId": 16504146,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A-9VS",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-09T13:47:01Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/1200609?v=4",
+                        "login": "suy",
+                        "resourcePath": "/suy",
+                        "url": "https://github.com/suy"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you again. I've indeed seen the discussion on #1818 and others about future changes (I've decided to try jump2d now because of [yesterday's post on Reddit](https://www.reddit.com/r/neovim/comments/1sf7ucd/comment/oeygzi8/), so thanks for chiming in there).\r\n\r\nSince you are setting all the 3 modes at one in your config, I'll probably do something like that myself. I thought there was an issue about operator pending mode, given that comment in the source code.\r\n\r\nI'm maybe overthinking the whole deal. 🙃 \r\n\r\nThank you!",
+                    "bodyHTML": "<p dir=\"auto\">Thank you again. I've indeed seen the discussion on <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a> and others about future changes (I've decided to try jump2d now because of <a href=\"https://www.reddit.com/r/neovim/comments/1sf7ucd/comment/oeygzi8/\" rel=\"nofollow\">yesterday's post on Reddit</a>, so thanks for chiming in there).</p>\n<p dir=\"auto\">Since you are setting all the 3 modes at one in your config, I'll probably do something like that myself. I thought there was an issue about operator pending mode, given that comment in the source code.</p>\n<p dir=\"auto\">I'm maybe overthinking the whole deal. 🙃</p>\n<p dir=\"auto\">Thank you!</p>",
+                    "bodyText": "Thank you again. I've indeed seen the discussion on #1818 and others about future changes (I've decided to try jump2d now because of yesterday's post on Reddit, so thanks for chiming in there).\nSince you are setting all the 3 modes at one in your config, I'll probably do something like that myself. I thought there was an issue about operator pending mode, given that comment in the source code.\nI'm maybe overthinking the whole deal. 🙃\nThank you!",
+                    "createdAt": "2026-04-09T13:58:17Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16504263,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-9XH",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-09T13:58:17Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16504146,
+                        "id": "DC_kwDOFoksYM4A-9VS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504146"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504263",
+                    "updatedAt": "2026-04-09T13:58:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504263"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I thought there was an issue about operator pending mode, given that comment in the source code.\r\n\r\nThat code is very old and wasn't changed when it was supposed to. Mostly because \"it just works, so don't touch it\" :)",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I thought there was an issue about operator pending mode, given that comment in the source code.</p>\n</blockquote>\n<p dir=\"auto\">That code is very old and wasn't changed when it was supposed to. Mostly because \"it just works, so don't touch it\" :)</p>",
+                    "bodyText": "I thought there was an issue about operator pending mode, given that comment in the source code.\n\nThat code is very old and wasn't changed when it was supposed to. Mostly because \"it just works, so don't touch it\" :)",
+                    "createdAt": "2026-04-09T14:01:26Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16504296,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A-9Xo",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-04-09T14:01:26Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16504146,
+                        "id": "DC_kwDOFoksYM4A-9VS",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504146"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504296",
+                    "updatedAt": "2026-04-09T14:01:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504296"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504146",
+            "updatedAt": "2026-04-09T13:47:01Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2359#discussioncomment-16504146"
+        }
+    ],
+    "createdAt": "2026-04-09T13:09:38Z",
+    "createdViaEmail": false,
+    "databaseId": 9852332,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AllWs",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM70q7sq",
+                "name": "mini.jump2d"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2359,
+    "poll": null,
+    "publishedAt": "2026-04-09T13:09:38Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2359",
+    "stateReason": "RESOLVED",
+    "title": "Adding an \"options\" parameter to mini.jump2d's `before_start` hook",
+    "updatedAt": "2026-04-09T14:01:26Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2359"
+}

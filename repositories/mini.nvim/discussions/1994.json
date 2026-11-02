@@ -1,0 +1,1054 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "authorAssociation": "NONE",
+    "body": "I wrote a mini.pick picker for tree sitter symbols using locals queries from nvim-treesitter. I might or might not have taken a reference from fzf-lua for this 😏. Hope someone finds it useful. Also I apologize for pinging @echasnovski, but is there any chance this can be added as an official picker in mini.extra?\r\n```lua\r\n\tMiniPick.registry.treesitter_symbols = function(opts)\r\n\t\tlocal has_ts, _ = pcall(require, \"nvim-treesitter\")\r\n\t\tif not has_ts then\r\n\t\t\tvim.notify(\"Treesitter_symbols picker requires nvim-treesitter.\", vim.log.levels.ERROR)\r\n\t\t\treturn\r\n\t\tend\r\n\t\tlocal buf = vim.api.nvim_get_current_buf()\r\n\t\tif not vim.bo.filetype then\r\n\t\t\tvim.notify(\"Cannot determine filetype for current buffer.\", vim.log.levels.ERROR)\r\n\t\t\treturn\r\n\t\tend\r\n\t\tlocal lang = vim.treesitter.language.get_lang(vim.bo.filetype)\r\n\t\tif not lang then\r\n\t\t\tvim.notify(\"Cannot determine treesitter langugage for current buffer.\", vim.log.levels.ERROR)\r\n\t\t\treturn\r\n\t\tend\r\n\t\tlocal parser = vim.treesitter.get_parser(buf)\r\n\t\tif not parser then\r\n\t\t\tvim.notify(\"Cannot get parser for current buffer.\", vim.log.levels.ERROR)\r\n\t\t\treturn\r\n\t\tend\r\n\t\tparser:parse()\r\n\t\tlocal root = parser:trees()[1]:root()\r\n\t\tif not root then\r\n\t\t\tvim.notify(\"Cannot get tree root for current buffer.\", vim.log.levels.ERROR)\r\n\t\t\treturn\r\n\t\tend\r\n\t\tlocal locals_query = (vim.treesitter.query.get(lang, \"locals\"))\r\n\t\tif not locals_query then\r\n\t\t\tvim.notify(\"Cannot get locals queries for current buffer.\", vim.log.levels.ERROR)\r\n\t\t\treturn\r\n\t\tend\r\n\t\tlocal get = function(bufnr)\r\n\t\t\tlocal definitions = {}\r\n\t\t\tlocal scopes = {}\r\n\t\t\tlocal references = {}\r\n\t\t\tfor id, node, metadata in locals_query:iter_captures(root, bufnr) do\r\n\t\t\t\tlocal kind = locals_query.captures[id]\r\n\t\t\t\tlocal scope = \"local\"\r\n\t\t\t\tfor k, v in pairs(metadata) do\r\n\t\t\t\t\tif type(k) == \"string\" and vim.endswith(k, \"local.scope\") then\r\n\t\t\t\t\t\tscope = v\r\n\t\t\t\t\tend\r\n\t\t\t\tend\r\n\t\t\t\tif node and vim.startswith(kind, \"local.definition\") then\r\n\t\t\t\t\ttable.insert(definitions, { kind = kind, node = node, scope = scope })\r\n\t\t\t\tend\r\n\t\t\t\tif node and kind == \"local.scope\" then\r\n\t\t\t\t\ttable.insert(scopes, node)\r\n\t\t\t\tend\r\n\t\t\t\tif node and kind == \"local.reference\" then\r\n\t\t\t\t\ttable.insert(references, { kind = kind, node = node, scope = scope })\r\n\t\t\t\tend\r\n\t\t\tend\r\n\t\t\treturn definitions, references, scopes\r\n\t\tend\r\n\t\tlocal function recurse_local_nodes(local_def, accumulator, full_match, last_match)\r\n\t\t\tif type(local_def) ~= \"table\" then\r\n\t\t\t\treturn\r\n\t\t\tend\r\n\t\t\tif local_def.node then\r\n\t\t\t\taccumulator(local_def, local_def.node, full_match, last_match)\r\n\t\t\telse\r\n\t\t\t\tfor match_key, def in pairs(local_def) do\r\n\t\t\t\t\trecurse_local_nodes(\r\n\t\t\t\t\t\tdef,\r\n\t\t\t\t\t\taccumulator,\r\n\t\t\t\t\t\tfull_match and (full_match .. \".\" .. match_key) or match_key,\r\n\t\t\t\t\t\tmatch_key\r\n\t\t\t\t\t)\r\n\t\t\t\tend\r\n\t\t\tend\r\n\t\tend\r\n\t\tlocal get_local_nodes = function(local_def)\r\n\t\t\tlocal result = {}\r\n\t\t\trecurse_local_nodes(local_def, function(def, _, kind)\r\n\t\t\t\ttable.insert(result, vim.tbl_extend(\"keep\", { kind = kind }, def))\r\n\t\t\tend)\r\n\t\t\treturn result\r\n\t\tend\r\n\t\tlocal kind_map = {\r\n\t\t\tvar = \"variable\",\r\n\t\t\tparameter = \"typeparameter\",\r\n\t\t\tassociated = \"property\",\r\n\t\t}\r\n\t\tlocal entries = {}\r\n\t\tfor _, definition in ipairs(get(buf)) do\r\n\t\t\tlocal nodes = get_local_nodes(definition)\r\n\t\t\tfor _, node in ipairs(nodes) do\r\n\t\t\t\tif node.node then\r\n\t\t\t\t\tnode.kind = node.kind and node.kind:gsub(\".*%.\", \"\")\r\n\t\t\t\t\tlocal lnum, col, end_lnum, end_col = vim.treesitter.get_node_range(node.node)\r\n\t\t\t\t\tlocal node_text = vim.treesitter.get_node_text(node.node, buf)\r\n\t\t\t\t\tlocal node_kind = node.kind or \"\"\r\n\t\t\t\t\tnode_kind = kind_map[node_kind] or node_kind\r\n\t\t\t\t\tlocal icon, hl, _ = MiniIcons.get(\"lsp\", node_kind)\r\n\t\t\t\t\tentries[#entries + 1] = {\r\n\t\t\t\t\t\ttext = string.format(\"[%s %s] %s\", icon, node_kind, node_text),\r\n\t\t\t\t\t\thl = hl,\r\n\t\t\t\t\t\tbufnr = buf,\r\n\t\t\t\t\t\tlnum = lnum + 1,\r\n\t\t\t\t\t\tcol = col + 1,\r\n\t\t\t\t\t\tend_lnum = end_lnum + 1,\r\n\t\t\t\t\t\tend_col = end_col + 1,\r\n\t\t\t\t\t}\r\n\t\t\t\tend\r\n\t\t\tend\r\n\t\tend\r\n\t\tlocal mini_extra_namespace = vim.api.nvim_get_namespaces()[\"MiniExtraPickers\"]\r\n\t\tlocal show = function(buf_id, items_to_show, query)\r\n\t\t\tMiniPick.default_show(buf_id, items_to_show, query)\r\n\t\t\tvim.api.nvim_buf_clear_namespace(buf_id, mini_extra_namespace, 0, -1)\r\n\t\t\tfor i, item in ipairs(items_to_show) do\r\n\t\t\t\tvim.api.nvim_buf_set_extmark(\r\n\t\t\t\t\tbuf_id,\r\n\t\t\t\t\tmini_extra_namespace,\r\n\t\t\t\t\ti - 1,\r\n\t\t\t\t\t0,\r\n\t\t\t\t\t{ end_row = i, end_col = 0, hl_mode = \"blend\", hl_group = item.hl, priority = 199 }\r\n\t\t\t\t)\r\n\t\t\tend\r\n\t\tend\r\n\t\tMiniPick.start(\r\n\t\t\tvim.tbl_deep_extend(\r\n\t\t\t\t\"force\",\r\n\t\t\t\topts or {},\r\n\t\t\t\t{ source = { items = entries, name = \"Tree-sitter symbols\", show = show } }\r\n\t\t\t)\r\n\t\t)\r\n\tend\r\n```",
+    "bodyHTML": "<p dir=\"auto\">I wrote a mini.pick picker for tree sitter symbols using locals queries from nvim-treesitter. I might or might not have taken a reference from fzf-lua for this 😏. Hope someone finds it useful. Also I apologize for pinging <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, but is there any chance this can be added as an official picker in mini.extra?</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\tMiniPick.registry.treesitter_symbols = function(opts)\n\t\tlocal has_ts, _ = pcall(require, &quot;nvim-treesitter&quot;)\n\t\tif not has_ts then\n\t\t\tvim.notify(&quot;Treesitter_symbols picker requires nvim-treesitter.&quot;, vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal buf = vim.api.nvim_get_current_buf()\n\t\tif not vim.bo.filetype then\n\t\t\tvim.notify(&quot;Cannot determine filetype for current buffer.&quot;, vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal lang = vim.treesitter.language.get_lang(vim.bo.filetype)\n\t\tif not lang then\n\t\t\tvim.notify(&quot;Cannot determine treesitter langugage for current buffer.&quot;, vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal parser = vim.treesitter.get_parser(buf)\n\t\tif not parser then\n\t\t\tvim.notify(&quot;Cannot get parser for current buffer.&quot;, vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tparser:parse()\n\t\tlocal root = parser:trees()[1]:root()\n\t\tif not root then\n\t\t\tvim.notify(&quot;Cannot get tree root for current buffer.&quot;, vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal locals_query = (vim.treesitter.query.get(lang, &quot;locals&quot;))\n\t\tif not locals_query then\n\t\t\tvim.notify(&quot;Cannot get locals queries for current buffer.&quot;, vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal get = function(bufnr)\n\t\t\tlocal definitions = {}\n\t\t\tlocal scopes = {}\n\t\t\tlocal references = {}\n\t\t\tfor id, node, metadata in locals_query:iter_captures(root, bufnr) do\n\t\t\t\tlocal kind = locals_query.captures[id]\n\t\t\t\tlocal scope = &quot;local&quot;\n\t\t\t\tfor k, v in pairs(metadata) do\n\t\t\t\t\tif type(k) == &quot;string&quot; and vim.endswith(k, &quot;local.scope&quot;) then\n\t\t\t\t\t\tscope = v\n\t\t\t\t\tend\n\t\t\t\tend\n\t\t\t\tif node and vim.startswith(kind, &quot;local.definition&quot;) then\n\t\t\t\t\ttable.insert(definitions, { kind = kind, node = node, scope = scope })\n\t\t\t\tend\n\t\t\t\tif node and kind == &quot;local.scope&quot; then\n\t\t\t\t\ttable.insert(scopes, node)\n\t\t\t\tend\n\t\t\t\tif node and kind == &quot;local.reference&quot; then\n\t\t\t\t\ttable.insert(references, { kind = kind, node = node, scope = scope })\n\t\t\t\tend\n\t\t\tend\n\t\t\treturn definitions, references, scopes\n\t\tend\n\t\tlocal function recurse_local_nodes(local_def, accumulator, full_match, last_match)\n\t\t\tif type(local_def) ~= &quot;table&quot; then\n\t\t\t\treturn\n\t\t\tend\n\t\t\tif local_def.node then\n\t\t\t\taccumulator(local_def, local_def.node, full_match, last_match)\n\t\t\telse\n\t\t\t\tfor match_key, def in pairs(local_def) do\n\t\t\t\t\trecurse_local_nodes(\n\t\t\t\t\t\tdef,\n\t\t\t\t\t\taccumulator,\n\t\t\t\t\t\tfull_match and (full_match .. &quot;.&quot; .. match_key) or match_key,\n\t\t\t\t\t\tmatch_key\n\t\t\t\t\t)\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tlocal get_local_nodes = function(local_def)\n\t\t\tlocal result = {}\n\t\t\trecurse_local_nodes(local_def, function(def, _, kind)\n\t\t\t\ttable.insert(result, vim.tbl_extend(&quot;keep&quot;, { kind = kind }, def))\n\t\t\tend)\n\t\t\treturn result\n\t\tend\n\t\tlocal kind_map = {\n\t\t\tvar = &quot;variable&quot;,\n\t\t\tparameter = &quot;typeparameter&quot;,\n\t\t\tassociated = &quot;property&quot;,\n\t\t}\n\t\tlocal entries = {}\n\t\tfor _, definition in ipairs(get(buf)) do\n\t\t\tlocal nodes = get_local_nodes(definition)\n\t\t\tfor _, node in ipairs(nodes) do\n\t\t\t\tif node.node then\n\t\t\t\t\tnode.kind = node.kind and node.kind:gsub(&quot;.*%.&quot;, &quot;&quot;)\n\t\t\t\t\tlocal lnum, col, end_lnum, end_col = vim.treesitter.get_node_range(node.node)\n\t\t\t\t\tlocal node_text = vim.treesitter.get_node_text(node.node, buf)\n\t\t\t\t\tlocal node_kind = node.kind or &quot;&quot;\n\t\t\t\t\tnode_kind = kind_map[node_kind] or node_kind\n\t\t\t\t\tlocal icon, hl, _ = MiniIcons.get(&quot;lsp&quot;, node_kind)\n\t\t\t\t\tentries[#entries + 1] = {\n\t\t\t\t\t\ttext = string.format(&quot;[%s %s] %s&quot;, icon, node_kind, node_text),\n\t\t\t\t\t\thl = hl,\n\t\t\t\t\t\tbufnr = buf,\n\t\t\t\t\t\tlnum = lnum + 1,\n\t\t\t\t\t\tcol = col + 1,\n\t\t\t\t\t\tend_lnum = end_lnum + 1,\n\t\t\t\t\t\tend_col = end_col + 1,\n\t\t\t\t\t}\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tlocal mini_extra_namespace = vim.api.nvim_get_namespaces()[&quot;MiniExtraPickers&quot;]\n\t\tlocal show = function(buf_id, items_to_show, query)\n\t\t\tMiniPick.default_show(buf_id, items_to_show, query)\n\t\t\tvim.api.nvim_buf_clear_namespace(buf_id, mini_extra_namespace, 0, -1)\n\t\t\tfor i, item in ipairs(items_to_show) do\n\t\t\t\tvim.api.nvim_buf_set_extmark(\n\t\t\t\t\tbuf_id,\n\t\t\t\t\tmini_extra_namespace,\n\t\t\t\t\ti - 1,\n\t\t\t\t\t0,\n\t\t\t\t\t{ end_row = i, end_col = 0, hl_mode = &quot;blend&quot;, hl_group = item.hl, priority = 199 }\n\t\t\t\t)\n\t\t\tend\n\t\tend\n\t\tMiniPick.start(\n\t\t\tvim.tbl_deep_extend(\n\t\t\t\t&quot;force&quot;,\n\t\t\t\topts or {},\n\t\t\t\t{ source = { items = entries, name = &quot;Tree-sitter symbols&quot;, show = show } }\n\t\t\t)\n\t\t)\n\tend\"><pre class=\"notranslate\">\t<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">treesitter_symbols</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">opts</span>)\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">has_ts</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-c1\">require</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-treesitter<span class=\"pl-pds\">\"</span></span>)\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">has_ts</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Treesitter_symbols picker requires nvim-treesitter.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n\t\t\t<span class=\"pl-k\">return</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-e\">filetype</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Cannot determine filetype for current buffer.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n\t\t\t<span class=\"pl-k\">return</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">lang</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-e\">language</span>.<span class=\"pl-c1\">get_lang</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-e\">filetype</span>)\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">lang</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Cannot determine treesitter langugage for current buffer.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n\t\t\t<span class=\"pl-k\">return</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">parser</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-c1\">get_parser</span>(<span class=\"pl-smi\">buf</span>)\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">parser</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Cannot get parser for current buffer.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n\t\t\t<span class=\"pl-k\">return</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-en\">parser</span>:<span class=\"pl-c1\">parse</span>()\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">root</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">parser</span>:<span class=\"pl-c1\">trees</span>()[<span class=\"pl-c1\">1</span>]:<span class=\"pl-c1\">root</span>()\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">root</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Cannot get tree root for current buffer.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n\t\t\t<span class=\"pl-k\">return</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">locals_query</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-e\">query</span>.<span class=\"pl-c1\">get</span>(<span class=\"pl-smi\">lang</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>locals<span class=\"pl-pds\">\"</span></span>))\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">locals_query</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Cannot get locals queries for current buffer.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n\t\t\t<span class=\"pl-k\">return</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-en\">get</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">bufnr</span>)\n\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">definitions</span> <span class=\"pl-k\">=</span> {}\n\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">scopes</span> <span class=\"pl-k\">=</span> {}\n\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">references</span> <span class=\"pl-k\">=</span> {}\n\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">node</span>, <span class=\"pl-smi\">metadata</span> <span class=\"pl-k\">in</span> <span class=\"pl-en\">locals_query</span>:<span class=\"pl-c1\">iter_captures</span>(<span class=\"pl-smi\">root</span>, <span class=\"pl-smi\">bufnr</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">locals_query</span>.<span class=\"pl-e\">captures</span>[<span class=\"pl-smi\">id</span>]\n\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>local<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">k</span>, <span class=\"pl-smi\">v</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">metadata</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">k</span>) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">endswith</span>(<span class=\"pl-smi\">k</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>local.scope<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n\t\t\t\t\t\t<span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">v</span>\n\t\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">node</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">startswith</span>(<span class=\"pl-smi\">kind</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>local.definition<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n\t\t\t\t\t<span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">definitions</span>, { <span class=\"pl-smi\">kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">kind</span>, <span class=\"pl-smi\">node</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">node</span>, <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">scope</span> })\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">node</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">kind</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>local.scope<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n\t\t\t\t\t<span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">scopes</span>, <span class=\"pl-smi\">node</span>)\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">node</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">kind</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>local.reference<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n\t\t\t\t\t<span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">references</span>, { <span class=\"pl-smi\">kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">kind</span>, <span class=\"pl-smi\">node</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">node</span>, <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">scope</span> })\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">return</span> <span class=\"pl-smi\">definitions</span>, <span class=\"pl-smi\">references</span>, <span class=\"pl-smi\">scopes</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">recurse_local_nodes</span>(<span class=\"pl-smi\">local_def</span>, <span class=\"pl-smi\">accumulator</span>, <span class=\"pl-smi\">full_match</span>, <span class=\"pl-smi\">last_match</span>)\n\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">local_def</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>table<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n\t\t\t\t<span class=\"pl-k\">return</span>\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">local_def</span>.<span class=\"pl-e\">node</span> <span class=\"pl-k\">then</span>\n\t\t\t\t<span class=\"pl-c1\">accumulator</span>(<span class=\"pl-smi\">local_def</span>, <span class=\"pl-smi\">local_def</span>.<span class=\"pl-e\">node</span>, <span class=\"pl-smi\">full_match</span>, <span class=\"pl-smi\">last_match</span>)\n\t\t\t<span class=\"pl-k\">else</span>\n\t\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">match_key</span>, <span class=\"pl-smi\">def</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">local_def</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t\t<span class=\"pl-c1\">recurse_local_nodes</span>(\n\t\t\t\t\t\t<span class=\"pl-smi\">def</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">accumulator</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">full_match</span> <span class=\"pl-k\">and</span> (<span class=\"pl-smi\">full_match</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">match_key</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">match_key</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">match_key</span>\n\t\t\t\t\t)\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-en\">get_local_nodes</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_def</span>)\n\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> {}\n\t\t\t<span class=\"pl-c1\">recurse_local_nodes</span>(<span class=\"pl-smi\">local_def</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">def</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">kind</span>)\n\t\t\t\t<span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">result</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>keep<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">kind</span> }, <span class=\"pl-smi\">def</span>))\n\t\t\t<span class=\"pl-k\">end</span>)\n\t\t\t<span class=\"pl-k\">return</span> <span class=\"pl-smi\">result</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">kind_map</span> <span class=\"pl-k\">=</span> {\n\t\t\t<span class=\"pl-smi\">var</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>variable<span class=\"pl-pds\">\"</span></span>,\n\t\t\t<span class=\"pl-smi\">parameter</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>typeparameter<span class=\"pl-pds\">\"</span></span>,\n\t\t\t<span class=\"pl-smi\">associated</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>property<span class=\"pl-pds\">\"</span></span>,\n\t\t}\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">entries</span> <span class=\"pl-k\">=</span> {}\n\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">definition</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-c1\">get</span>(<span class=\"pl-smi\">buf</span>)) <span class=\"pl-k\">do</span>\n\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">nodes</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">get_local_nodes</span>(<span class=\"pl-smi\">definition</span>)\n\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">node</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">nodes</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">node</span>.<span class=\"pl-e\">node</span> <span class=\"pl-k\">then</span>\n\t\t\t\t\t<span class=\"pl-smi\">node</span>.<span class=\"pl-e\">kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">node</span>.<span class=\"pl-e\">kind</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">node</span>.<span class=\"pl-en\">kind</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.*%.<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">lnum</span>, <span class=\"pl-smi\">col</span>, <span class=\"pl-smi\">end_lnum</span>, <span class=\"pl-smi\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-c1\">get_node_range</span>(<span class=\"pl-smi\">node</span>.<span class=\"pl-e\">node</span>)\n\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">node_text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-c1\">get_node_text</span>(<span class=\"pl-smi\">node</span>.<span class=\"pl-e\">node</span>, <span class=\"pl-smi\">buf</span>)\n\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">node_kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">node</span>.<span class=\"pl-e\">kind</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>\n\t\t\t\t\t<span class=\"pl-smi\">node_kind</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">kind_map</span>[<span class=\"pl-smi\">node_kind</span>] <span class=\"pl-k\">or</span> <span class=\"pl-smi\">node_kind</span>\n\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">icon</span>, <span class=\"pl-smi\">hl</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniIcons</span>.<span class=\"pl-c1\">get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lsp<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">node_kind</span>)\n\t\t\t\t\t<span class=\"pl-smi\">entries</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">entries</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> {\n\t\t\t\t\t\t<span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[%s %s] %s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">icon</span>, <span class=\"pl-smi\">node_kind</span>, <span class=\"pl-smi\">node_text</span>),\n\t\t\t\t\t\t<span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hl</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">lnum</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">lnum</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">end_lnum</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">end_lnum</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>,\n\t\t\t\t\t\t<span class=\"pl-smi\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">end_col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>,\n\t\t\t\t\t}\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_extra_namespace</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_namespaces</span>()[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniExtraPickers<span class=\"pl-pds\">\"</span></span>]\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-en\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>)\n\t\t\t<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>)\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_clear_namespace</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">mini_extra_namespace</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>)\n\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items_to_show</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_extmark</span>(\n\t\t\t\t\t<span class=\"pl-smi\">buf_id</span>,\n\t\t\t\t\t<span class=\"pl-smi\">mini_extra_namespace</span>,\n\t\t\t\t\t<span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n\t\t\t\t\t<span class=\"pl-c1\">0</span>,\n\t\t\t\t\t{ <span class=\"pl-smi\">end_row</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">end_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">hl_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blend<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">hl_group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">hl</span>, <span class=\"pl-smi\">priority</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">199</span> }\n\t\t\t\t)\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>(\n\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(\n\t\t\t\t<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>,\n\t\t\t\t<span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {},\n\t\t\t\t{ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">entries</span>, <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Tree-sitter symbols<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span> } }\n\t\t\t)\n\t\t)\n\t<span class=\"pl-k\">end</span></pre></div>",
+    "bodyText": "I wrote a mini.pick picker for tree sitter symbols using locals queries from nvim-treesitter. I might or might not have taken a reference from fzf-lua for this 😏. Hope someone finds it useful. Also I apologize for pinging @echasnovski, but is there any chance this can be added as an official picker in mini.extra?\n\tMiniPick.registry.treesitter_symbols = function(opts)\n\t\tlocal has_ts, _ = pcall(require, \"nvim-treesitter\")\n\t\tif not has_ts then\n\t\t\tvim.notify(\"Treesitter_symbols picker requires nvim-treesitter.\", vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal buf = vim.api.nvim_get_current_buf()\n\t\tif not vim.bo.filetype then\n\t\t\tvim.notify(\"Cannot determine filetype for current buffer.\", vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal lang = vim.treesitter.language.get_lang(vim.bo.filetype)\n\t\tif not lang then\n\t\t\tvim.notify(\"Cannot determine treesitter langugage for current buffer.\", vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal parser = vim.treesitter.get_parser(buf)\n\t\tif not parser then\n\t\t\tvim.notify(\"Cannot get parser for current buffer.\", vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tparser:parse()\n\t\tlocal root = parser:trees()[1]:root()\n\t\tif not root then\n\t\t\tvim.notify(\"Cannot get tree root for current buffer.\", vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal locals_query = (vim.treesitter.query.get(lang, \"locals\"))\n\t\tif not locals_query then\n\t\t\tvim.notify(\"Cannot get locals queries for current buffer.\", vim.log.levels.ERROR)\n\t\t\treturn\n\t\tend\n\t\tlocal get = function(bufnr)\n\t\t\tlocal definitions = {}\n\t\t\tlocal scopes = {}\n\t\t\tlocal references = {}\n\t\t\tfor id, node, metadata in locals_query:iter_captures(root, bufnr) do\n\t\t\t\tlocal kind = locals_query.captures[id]\n\t\t\t\tlocal scope = \"local\"\n\t\t\t\tfor k, v in pairs(metadata) do\n\t\t\t\t\tif type(k) == \"string\" and vim.endswith(k, \"local.scope\") then\n\t\t\t\t\t\tscope = v\n\t\t\t\t\tend\n\t\t\t\tend\n\t\t\t\tif node and vim.startswith(kind, \"local.definition\") then\n\t\t\t\t\ttable.insert(definitions, { kind = kind, node = node, scope = scope })\n\t\t\t\tend\n\t\t\t\tif node and kind == \"local.scope\" then\n\t\t\t\t\ttable.insert(scopes, node)\n\t\t\t\tend\n\t\t\t\tif node and kind == \"local.reference\" then\n\t\t\t\t\ttable.insert(references, { kind = kind, node = node, scope = scope })\n\t\t\t\tend\n\t\t\tend\n\t\t\treturn definitions, references, scopes\n\t\tend\n\t\tlocal function recurse_local_nodes(local_def, accumulator, full_match, last_match)\n\t\t\tif type(local_def) ~= \"table\" then\n\t\t\t\treturn\n\t\t\tend\n\t\t\tif local_def.node then\n\t\t\t\taccumulator(local_def, local_def.node, full_match, last_match)\n\t\t\telse\n\t\t\t\tfor match_key, def in pairs(local_def) do\n\t\t\t\t\trecurse_local_nodes(\n\t\t\t\t\t\tdef,\n\t\t\t\t\t\taccumulator,\n\t\t\t\t\t\tfull_match and (full_match .. \".\" .. match_key) or match_key,\n\t\t\t\t\t\tmatch_key\n\t\t\t\t\t)\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tlocal get_local_nodes = function(local_def)\n\t\t\tlocal result = {}\n\t\t\trecurse_local_nodes(local_def, function(def, _, kind)\n\t\t\t\ttable.insert(result, vim.tbl_extend(\"keep\", { kind = kind }, def))\n\t\t\tend)\n\t\t\treturn result\n\t\tend\n\t\tlocal kind_map = {\n\t\t\tvar = \"variable\",\n\t\t\tparameter = \"typeparameter\",\n\t\t\tassociated = \"property\",\n\t\t}\n\t\tlocal entries = {}\n\t\tfor _, definition in ipairs(get(buf)) do\n\t\t\tlocal nodes = get_local_nodes(definition)\n\t\t\tfor _, node in ipairs(nodes) do\n\t\t\t\tif node.node then\n\t\t\t\t\tnode.kind = node.kind and node.kind:gsub(\".*%.\", \"\")\n\t\t\t\t\tlocal lnum, col, end_lnum, end_col = vim.treesitter.get_node_range(node.node)\n\t\t\t\t\tlocal node_text = vim.treesitter.get_node_text(node.node, buf)\n\t\t\t\t\tlocal node_kind = node.kind or \"\"\n\t\t\t\t\tnode_kind = kind_map[node_kind] or node_kind\n\t\t\t\t\tlocal icon, hl, _ = MiniIcons.get(\"lsp\", node_kind)\n\t\t\t\t\tentries[#entries + 1] = {\n\t\t\t\t\t\ttext = string.format(\"[%s %s] %s\", icon, node_kind, node_text),\n\t\t\t\t\t\thl = hl,\n\t\t\t\t\t\tbufnr = buf,\n\t\t\t\t\t\tlnum = lnum + 1,\n\t\t\t\t\t\tcol = col + 1,\n\t\t\t\t\t\tend_lnum = end_lnum + 1,\n\t\t\t\t\t\tend_col = end_col + 1,\n\t\t\t\t\t}\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\t\tlocal mini_extra_namespace = vim.api.nvim_get_namespaces()[\"MiniExtraPickers\"]\n\t\tlocal show = function(buf_id, items_to_show, query)\n\t\t\tMiniPick.default_show(buf_id, items_to_show, query)\n\t\t\tvim.api.nvim_buf_clear_namespace(buf_id, mini_extra_namespace, 0, -1)\n\t\t\tfor i, item in ipairs(items_to_show) do\n\t\t\t\tvim.api.nvim_buf_set_extmark(\n\t\t\t\t\tbuf_id,\n\t\t\t\t\tmini_extra_namespace,\n\t\t\t\t\ti - 1,\n\t\t\t\t\t0,\n\t\t\t\t\t{ end_row = i, end_col = 0, hl_mode = \"blend\", hl_group = item.hl, priority = 199 }\n\t\t\t\t)\n\t\t\tend\n\t\tend\n\t\tMiniPick.start(\n\t\t\tvim.tbl_deep_extend(\n\t\t\t\t\"force\",\n\t\t\t\topts or {},\n\t\t\t\t{ source = { items = entries, name = \"Tree-sitter symbols\", show = show } }\n\t\t\t)\n\t\t)\n\tend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\n> Also I apologize for pinging @echasnovski, but is there any chance this can be added as an official picker in mini.extra?\r\n\r\nThere is already a picker for [tree-sitter nodes](https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/doc/mini-extra.txt#L750). Would you mind elaborating (maybe with demo) about how this is different.\r\n\r\nBut I'd still say that this is unlikely to get into 'mini.extra'. Mostly because it seems to look similar to what a future 'mini.hierarchy' will do.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<blockquote>\n<p dir=\"auto\">Also I apologize for pinging <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, but is there any chance this can be added as an official picker in mini.extra?</p>\n</blockquote>\n<p dir=\"auto\">There is already a picker for <a href=\"https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/doc/mini-extra.txt#L750\">tree-sitter nodes</a>. Would you mind elaborating (maybe with demo) about how this is different.</p>\n<p dir=\"auto\">But I'd still say that this is unlikely to get into 'mini.extra'. Mostly because it seems to look similar to what a future 'mini.hierarchy' will do.</p>",
+            "bodyText": "Thanks for sharing!\n\nAlso I apologize for pinging @echasnovski, but is there any chance this can be added as an official picker in mini.extra?\n\nThere is already a picker for tree-sitter nodes. Would you mind elaborating (maybe with demo) about how this is different.\nBut I'd still say that this is unlikely to get into 'mini.extra'. Mostly because it seems to look similar to what a future 'mini.hierarchy' will do.",
+            "createdAt": "2025-09-09T16:58:07Z",
+            "createdViaEmail": false,
+            "databaseId": 14354151,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A2wbn",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-09-09T16:58:07Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 10,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "tree-sitter nodes does not print the node text as well right. There is no way of searching for something based on variable name. So I will have to go through all the variable declarations.\r\nThis picker print the variable names so that you can search for the exact variables using treesitter. Basically this is almost the equivalent of lsp buffer symbols picker but using treesitter instead of lsp.\r\n<img width=\"1903\" height=\"928\" alt=\"image\" src=\"https://github.com/user-attachments/assets/7d3ac86b-0088-49dd-af93-6a445b39d48e\" />\r\n",
+                    "bodyHTML": "<p dir=\"auto\">tree-sitter nodes does not print the node text as well right. There is no way of searching for something based on variable name. So I will have to go through all the variable declarations.<br>\nThis picker print the variable names so that you can search for the exact variables using treesitter. Basically this is almost the equivalent of lsp buffer symbols picker but using treesitter instead of lsp.<br>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/56352048/487397128-7d3ac86b-0088-49dd-af93-6a445b39d48e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MjYsIm5iZiI6MTc5MzU1MjYyNiwicGF0aCI6Ii81NjM1MjA0OC80ODczOTcxMjgtN2QzYWM4NmItMDA4OC00OWRkLWFmOTMtNmE0NDViMzlkNDhlLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDM0NlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTg3YjA1ZmVmNTAxZGNiMjdmYWViMWM0MmFiYjU5MTg5NTU3ZWJhMDU4NGRlZDMxOTM1MTI0OGJhMzQ3NTdjN2MmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.foHMLMZqcuBaQxmMwFJgR7IvtU07vvPjr-kRyx9Crrk\"><img width=\"1903\" height=\"928\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/56352048/487397128-7d3ac86b-0088-49dd-af93-6a445b39d48e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MjYsIm5iZiI6MTc5MzU1MjYyNiwicGF0aCI6Ii81NjM1MjA0OC80ODczOTcxMjgtN2QzYWM4NmItMDA4OC00OWRkLWFmOTMtNmE0NDViMzlkNDhlLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDM0NlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTg3YjA1ZmVmNTAxZGNiMjdmYWViMWM0MmFiYjU5MTg5NTU3ZWJhMDU4NGRlZDMxOTM1MTI0OGJhMzQ3NTdjN2MmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.foHMLMZqcuBaQxmMwFJgR7IvtU07vvPjr-kRyx9Crrk\" style=\"max-width: 100%; height: auto; max-height: 928px;; aspect-ratio: 1903 / 928; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></p>",
+                    "bodyText": "tree-sitter nodes does not print the node text as well right. There is no way of searching for something based on variable name. So I will have to go through all the variable declarations.\nThis picker print the variable names so that you can search for the exact variables using treesitter. Basically this is almost the equivalent of lsp buffer symbols picker but using treesitter instead of lsp.",
+                    "createdAt": "2025-09-09T17:03:38Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14354197,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "id": "DC_kwDOFoksYM4A2wcV",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-09T17:04:50Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-09T17:03:38Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354197",
+                    "updatedAt": "2025-09-09T17:04:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354197"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yeah, that sounds nice. But the fact that this depends on tree-sitter queries is a *pretty* big downside, at least for now. Maybe in the future something will change.",
+                    "bodyHTML": "<p dir=\"auto\">Yeah, that sounds nice. But the fact that this depends on tree-sitter queries is a <em>pretty</em> big downside, at least for now. Maybe in the future something will change.</p>",
+                    "bodyText": "Yeah, that sounds nice. But the fact that this depends on tree-sitter queries is a pretty big downside, at least for now. Maybe in the future something will change.",
+                    "createdAt": "2025-09-09T17:08:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14354245,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2wdF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-09T17:08:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354245",
+                    "updatedAt": "2025-09-09T17:08:54Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354245"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "The queries are from nvim-treesitter which is a must install plugin and it handles all the queries. Basically, the locals.scm file in each queries language folder is what is used in this snippet. Anyway, I had one more question about highlighting each entry using the hl group returned by MiniIcons.get. I could not find anything in the default_show documentation on how can I get each entry highlighted. Can you help me figure out how can I get the entries highlighted like in lsp symbols picker.",
+                    "bodyHTML": "<p dir=\"auto\">The queries are from nvim-treesitter which is a must install plugin and it handles all the queries. Basically, the locals.scm file in each queries language folder is what is used in this snippet. Anyway, I had one more question about highlighting each entry using the hl group returned by MiniIcons.get. I could not find anything in the default_show documentation on how can I get each entry highlighted. Can you help me figure out how can I get the entries highlighted like in lsp symbols picker.</p>",
+                    "bodyText": "The queries are from nvim-treesitter which is a must install plugin and it handles all the queries. Basically, the locals.scm file in each queries language folder is what is used in this snippet. Anyway, I had one more question about highlighting each entry using the hl group returned by MiniIcons.get. I could not find anything in the default_show documentation on how can I get each entry highlighted. Can you help me figure out how can I get the entries highlighted like in lsp symbols picker.",
+                    "createdAt": "2025-09-09T17:12:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14354282,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "id": "DC_kwDOFoksYM4A2wdq",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-09T17:13:37Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-09T17:12:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354282",
+                    "updatedAt": "2025-09-09T17:13:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354282"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I could not find anything in the default_show documentation on how can I get each entry highlighted. Can you help me figure out how can I get the entries highlighted like in lsp symbols picker.\r\n\r\nBasically:\r\n- Apply `MiniPick.default_show()`.\r\n- Clear all custom highlighting (from separate custom namespace) in the target buffer from previous `show` calls in the current picker session.\r\n- Add highlighting manually with `vim.api.nvim_buf_set_extmark()`.\r\n\r\nIf you want it to work like `:Pick lsp scope='document_symbol'`, then its source code should be the best guide:\r\n- [This part](https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1936-L1944) computes decoration data. It is [added once](https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1953) during item computation.\r\n- [Define custom `show`](https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1965-L1972).\r\n- [Use custom `show`](https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1993-L1994).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I could not find anything in the default_show documentation on how can I get each entry highlighted. Can you help me figure out how can I get the entries highlighted like in lsp symbols picker.</p>\n</blockquote>\n<p dir=\"auto\">Basically:</p>\n<ul dir=\"auto\">\n<li>Apply <code class=\"notranslate\">MiniPick.default_show()</code>.</li>\n<li>Clear all custom highlighting (from separate custom namespace) in the target buffer from previous <code class=\"notranslate\">show</code> calls in the current picker session.</li>\n<li>Add highlighting manually with <code class=\"notranslate\">vim.api.nvim_buf_set_extmark()</code>.</li>\n</ul>\n<p dir=\"auto\">If you want it to work like <code class=\"notranslate\">:Pick lsp scope='document_symbol'</code>, then its source code should be the best guide:</p>\n<ul dir=\"auto\">\n<li><a href=\"https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1936-L1944\">This part</a> computes decoration data. It is <a href=\"https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1953\">added once</a> during item computation.</li>\n<li><a href=\"https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1965-L1972\">Define custom <code class=\"notranslate\">show</code></a>.</li>\n<li><a href=\"https://github.com/nvim-mini/mini.nvim/blob/6bf9eccaf2a5395b254bc031f9812cf163ca4187/lua/mini/extra.lua#L1993-L1994\">Use custom <code class=\"notranslate\">show</code></a>.</li>\n</ul>",
+                    "bodyText": "I could not find anything in the default_show documentation on how can I get each entry highlighted. Can you help me figure out how can I get the entries highlighted like in lsp symbols picker.\n\nBasically:\n\nApply MiniPick.default_show().\nClear all custom highlighting (from separate custom namespace) in the target buffer from previous show calls in the current picker session.\nAdd highlighting manually with vim.api.nvim_buf_set_extmark().\n\nIf you want it to work like :Pick lsp scope='document_symbol', then its source code should be the best guide:\n\nThis part computes decoration data. It is added once during item computation.\nDefine custom show.\nUse custom show.",
+                    "createdAt": "2025-09-09T17:31:10Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14354431,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2wf_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-09T17:31:10Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354431",
+                    "updatedAt": "2025-09-09T17:31:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354431"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Echansnovski I just wanted to know if it is in scope of the default show to parse and render colors with out us setting watermarks.\r\nSo basically if the text field in source entries is provided like this \"%#MiniCyan# bla bla %#MiniPickNormal#\". It should highlight the entries with respective colors similar to statusline.",
+                    "bodyHTML": "<p dir=\"auto\">Echansnovski I just wanted to know if it is in scope of the default show to parse and render colors with out us setting watermarks.<br>\nSo basically if the text field in source entries is provided like this \"%#MiniCyan# bla bla %#MiniPickNormal#\". It should highlight the entries with respective colors similar to statusline.</p>",
+                    "bodyText": "Echansnovski I just wanted to know if it is in scope of the default show to parse and render colors with out us setting watermarks.\nSo basically if the text field in source entries is provided like this \"%#MiniCyan# bla bla %#MiniPickNormal#\". It should highlight the entries with respective colors similar to statusline.",
+                    "createdAt": "2025-09-09T18:24:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14354836,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "id": "DC_kwDOFoksYM4A2wmU",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-09T18:26:02Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-09T18:24:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354836",
+                    "updatedAt": "2025-09-09T18:26:02Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354836"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> So basically if the text field in source entries is provided like this \"%#MiniCyan# bla bla %#MiniPickNormal#\". It should highlight the entries with respective colors similar to statusline.\r\n\r\nThis is out of scope.\r\n\r\nThe suggested way to add custom highlighting is add it manually with extmarks. Probably after calling `default_show()`.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">So basically if the text field in source entries is provided like this \"%#MiniCyan# bla bla %#MiniPickNormal#\". It should highlight the entries with respective colors similar to statusline.</p>\n</blockquote>\n<p dir=\"auto\">This is out of scope.</p>\n<p dir=\"auto\">The suggested way to add custom highlighting is add it manually with extmarks. Probably after calling <code class=\"notranslate\">default_show()</code>.</p>",
+                    "bodyText": "So basically if the text field in source entries is provided like this \"%#MiniCyan# bla bla %#MiniPickNormal#\". It should highlight the entries with respective colors similar to statusline.\n\nThis is out of scope.\nThe suggested way to add custom highlighting is add it manually with extmarks. Probably after calling default_show().",
+                    "createdAt": "2025-09-09T18:42:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14354958,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A2woO",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-09T18:42:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354958",
+                    "updatedAt": "2025-09-09T18:42:46Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354958"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@echasnovski sorry for the ping. I just completed adding highlighting to the tree sitter symbols picker and updated the code in the above post. Thank you so much for briefing the locations to look for.",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> sorry for the ping. I just completed adding highlighting to the tree sitter symbols picker and updated the code in the above post. Thank you so much for briefing the locations to look for.</p>",
+                    "bodyText": "@echasnovski sorry for the ping. I just completed adding highlighting to the tree sitter symbols picker and updated the code in the above post. Thank you so much for briefing the locations to look for.",
+                    "createdAt": "2025-09-19T18:51:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14460237,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "id": "DC_kwDOFoksYM4A3KVN",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-19T18:51:43Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-19T18:51:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460237",
+                    "updatedAt": "2025-09-19T18:51:43Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460237"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Also I had a question regarding the mini.icons lsp icons. There seems to be no \"Parameter\" icon in LSP icons. Is it intentional?",
+                    "bodyHTML": "<p dir=\"auto\">Also I had a question regarding the mini.icons lsp icons. There seems to be no \"Parameter\" icon in LSP icons. Is it intentional?</p>",
+                    "bodyText": "Also I had a question regarding the mini.icons lsp icons. There seems to be no \"Parameter\" icon in LSP icons. Is it intentional?",
+                    "createdAt": "2025-09-19T18:53:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14460258,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3KVi",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-19T18:53:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460258",
+                    "updatedAt": "2025-09-19T18:53:58Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460258"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Also I had a question regarding the mini.icons lsp icons. There seems to be no \"Parameter\" icon in LSP icons. Is it intentional?\r\n\r\nIt is not a part of either [`SymbolKind`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#symbolKind) or [`CompletionItemKind`](https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItemKind). There is only `TypeParameter`, which is present.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Also I had a question regarding the mini.icons lsp icons. There seems to be no \"Parameter\" icon in LSP icons. Is it intentional?</p>\n</blockquote>\n<p dir=\"auto\">It is not a part of either <a href=\"https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#symbolKind\" rel=\"nofollow\"><code class=\"notranslate\">SymbolKind</code></a> or <a href=\"https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/#completionItemKind\" rel=\"nofollow\"><code class=\"notranslate\">CompletionItemKind</code></a>. There is only <code class=\"notranslate\">TypeParameter</code>, which is present.</p>",
+                    "bodyText": "Also I had a question regarding the mini.icons lsp icons. There seems to be no \"Parameter\" icon in LSP icons. Is it intentional?\n\nIt is not a part of either SymbolKind or CompletionItemKind. There is only TypeParameter, which is present.",
+                    "createdAt": "2025-09-19T19:20:29Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14460444,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3KYc",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-19T19:20:29Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460444",
+                    "updatedAt": "2025-09-19T19:20:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460444"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Ohh ok I get it now. Those were part of the LSP spec.",
+                    "bodyHTML": "<p dir=\"auto\">Ohh ok I get it now. Those were part of the LSP spec.</p>",
+                    "bodyText": "Ohh ok I get it now. Those were part of the LSP spec.",
+                    "createdAt": "2025-09-19T19:25:30Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14460482,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3KZC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-19T19:25:30Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14354151,
+                        "id": "DC_kwDOFoksYM4A2wbn",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460482",
+                    "updatedAt": "2025-09-19T19:25:31Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14460482"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151",
+            "updatedAt": "2025-09-09T16:58:09Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994#discussioncomment-14354151"
+        }
+    ],
+    "createdAt": "2025-09-09T16:09:14Z",
+    "createdViaEmail": false,
+    "databaseId": 8871830,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "id": "D_kwDOFoksYM4Ah1-W",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-09-19T18:49:44Z",
+    "locked": false,
+    "number": 1994,
+    "poll": null,
+    "publishedAt": "2025-09-09T16:09:14Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1994",
+    "stateReason": null,
+    "title": "[mini.pick] treesitter symbols picker using nvim-treesitter",
+    "updatedAt": "2025-09-19T19:25:30Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1994"
+}

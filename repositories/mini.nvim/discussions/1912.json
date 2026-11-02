@@ -1,0 +1,374 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13911067,
+        "id": "DC_kwDOFoksYM4A1EQb",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13911067"
+    },
+    "answerChosenAt": "2025-07-28T14:10:40Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/3255810?u=53444867648695413280048e765f65ff25e3ffc0&v=4",
+        "login": "n1ghtmare",
+        "resourcePath": "/n1ghtmare",
+        "url": "https://github.com/n1ghtmare"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.pick\n\n### Question\n\nHey folks, \r\n\r\nIs there a way to order the buffers by recency in the built-in picker somehow? Has anyone done that? In telescope it used to just work, not sure if it's just simple ordering by their Ids or something.\r\n\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.pick</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Hey folks,</p>\n<p dir=\"auto\">Is there a way to order the buffers by recency in the built-in picker somehow? Has anyone done that? In telescope it used to just work, not sure if it's just simple ordering by their Ids or something.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.pick\nQuestion\nHey folks,\nIs there a way to order the buffers by recency in the built-in picker somehow? Has anyone done that? In telescope it used to just work, not sure if it's just simple ordering by their Ids or something.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-07-28T14:10:35Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I vaguely remember it being asked somewhere here, but can not find it.\r\n\r\nThere is no built-in way to do it and requires writing custom source/picker. The reason for this is to limit complexity (both in implementation and configuration) and to reuse `:buffers` output directly (as it has some of the work done in filtering/sorting buffers and formatting their names).\r\n\r\nYou can have custom picker that sorts buffers by \"recency\" with something like this (use later with `:Pick my_buffers`):\r\n\r\n```lua\r\nrequire('mini.pick').setup()\r\nMiniPick.registry.my_buffers = function()\r\n  local items, cwd = {}, vim.fn.getcwd()\r\n  for _, buf_info in ipairs(vim.fn.getbufinfo()) do\r\n    if buf_info.listed == 1 then\r\n      local name = vim.fs.relpath(cwd, buf_info.name) or buf_info.name\r\n      table.insert(items, { text = name, bufnr = buf_info.bufnr, _lastused = buf_info.lastused })\r\n    end\r\n  end\r\n\r\n  table.sort(items, function(a, b) return a._lastused > b._lastused end)\r\n\r\n  local show = function(buf_id, items_to_show, query)\r\n    MiniPick.default_show(buf_id, items_to_show, query, { show_icons = true })\r\n  end\r\n  local opts = { source = { name = 'Buffers', items = items, show = show } }\r\n  return MiniPick.start(opts)\r\nend\r\n```",
+            "bodyHTML": "<p dir=\"auto\">I vaguely remember it being asked somewhere here, but can not find it.</p>\n<p dir=\"auto\">There is no built-in way to do it and requires writing custom source/picker. The reason for this is to limit complexity (both in implementation and configuration) and to reuse <code class=\"notranslate\">:buffers</code> output directly (as it has some of the work done in filtering/sorting buffers and formatting their names).</p>\n<p dir=\"auto\">You can have custom picker that sorts buffers by \"recency\" with something like this (use later with <code class=\"notranslate\">:Pick my_buffers</code>):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.pick').setup()\nMiniPick.registry.my_buffers = function()\n  local items, cwd = {}, vim.fn.getcwd()\n  for _, buf_info in ipairs(vim.fn.getbufinfo()) do\n    if buf_info.listed == 1 then\n      local name = vim.fs.relpath(cwd, buf_info.name) or buf_info.name\n      table.insert(items, { text = name, bufnr = buf_info.bufnr, _lastused = buf_info.lastused })\n    end\n  end\n\n  table.sort(items, function(a, b) return a._lastused &gt; b._lastused end)\n\n  local show = function(buf_id, items_to_show, query)\n    MiniPick.default_show(buf_id, items_to_show, query, { show_icons = true })\n  end\n  local opts = { source = { name = 'Buffers', items = items, show = show } }\n  return MiniPick.start(opts)\nend\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.pick<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>()\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">my_buffers</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> {}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">buf_info</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getbufinfo</span>()) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">buf_info</span>.<span class=\"pl-e\">listed</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fs</span>.<span class=\"pl-c1\">relpath</span>(<span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">buf_info</span>.<span class=\"pl-e\">name</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">buf_info</span>.<span class=\"pl-e\">name</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_info</span>.<span class=\"pl-e\">bufnr</span>, <span class=\"pl-smi\">_lastused</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_info</span>.<span class=\"pl-e\">lastused</span> })\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">a</span>.<span class=\"pl-e\">_lastused</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-smi\">b</span>.<span class=\"pl-e\">_lastused</span> <span class=\"pl-k\">end</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>)\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items_to_show</span>, <span class=\"pl-smi\">query</span>, { <span class=\"pl-smi\">show_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> })\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Buffers<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span> } }\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "I vaguely remember it being asked somewhere here, but can not find it.\nThere is no built-in way to do it and requires writing custom source/picker. The reason for this is to limit complexity (both in implementation and configuration) and to reuse :buffers output directly (as it has some of the work done in filtering/sorting buffers and formatting their names).\nYou can have custom picker that sorts buffers by \"recency\" with something like this (use later with :Pick my_buffers):\nrequire('mini.pick').setup()\nMiniPick.registry.my_buffers = function()\n  local items, cwd = {}, vim.fn.getcwd()\n  for _, buf_info in ipairs(vim.fn.getbufinfo()) do\n    if buf_info.listed == 1 then\n      local name = vim.fs.relpath(cwd, buf_info.name) or buf_info.name\n      table.insert(items, { text = name, bufnr = buf_info.bufnr, _lastused = buf_info.lastused })\n    end\n  end\n\n  table.sort(items, function(a, b) return a._lastused > b._lastused end)\n\n  local show = function(buf_id, items_to_show, query)\n    MiniPick.default_show(buf_id, items_to_show, query, { show_icons = true })\n  end\n  local opts = { source = { name = 'Buffers', items = items, show = show } }\n  return MiniPick.start(opts)\nend",
+            "createdAt": "2025-07-28T14:10:35Z",
+            "createdViaEmail": false,
+            "databaseId": 13911067,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A1EQb",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-07-28T14:10:35Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/3255810?u=53444867648695413280048e765f65ff25e3ffc0&v=4",
+                        "login": "n1ghtmare",
+                        "resourcePath": "/n1ghtmare",
+                        "url": "https://github.com/n1ghtmare"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you so much! This works exactly as I expect it to! IMO this should probably be the default of how this picker works, but I'm sure you have a good reason (i.e. to keep the plugin simple) to keep it this way, which I totally get. \r\n\r\nI really appreciate all the hard work you do, your plugins are amazing, I can't live without them!",
+                    "bodyHTML": "<p dir=\"auto\">Thank you so much! This works exactly as I expect it to! IMO this should probably be the default of how this picker works, but I'm sure you have a good reason (i.e. to keep the plugin simple) to keep it this way, which I totally get.</p>\n<p dir=\"auto\">I really appreciate all the hard work you do, your plugins are amazing, I can't live without them!</p>",
+                    "bodyText": "Thank you so much! This works exactly as I expect it to! IMO this should probably be the default of how this picker works, but I'm sure you have a good reason (i.e. to keep the plugin simple) to keep it this way, which I totally get.\nI really appreciate all the hard work you do, your plugins are amazing, I can't live without them!",
+                    "createdAt": "2025-07-31T06:05:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13942716,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A1L-8",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-31T06:05:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13911067,
+                        "id": "DC_kwDOFoksYM4A1EQb",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13911067"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13942716",
+                    "updatedAt": "2025-07-31T06:05:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13942716"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I really appreciate all the hard work you do, your plugins are amazing, I can't live without them!\r\n\r\nThank you for kind words. More feature coverage via new modules is planned in the future :)",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I really appreciate all the hard work you do, your plugins are amazing, I can't live without them!</p>\n</blockquote>\n<p dir=\"auto\">Thank you for kind words. More feature coverage via new modules is planned in the future :)</p>",
+                    "bodyText": "I really appreciate all the hard work you do, your plugins are amazing, I can't live without them!\n\nThank you for kind words. More feature coverage via new modules is planned in the future :)",
+                    "createdAt": "2025-07-31T07:52:39Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13943806,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A1MP-",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-07-31T07:52:39Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13911067,
+                        "id": "DC_kwDOFoksYM4A1EQb",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13911067"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13943806",
+                    "updatedAt": "2025-07-31T07:52:39Z",
+                    "upvoteCount": 1,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13943806"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13911067",
+            "updatedAt": "2025-07-28T14:10:37Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912#discussioncomment-13911067"
+        }
+    ],
+    "createdAt": "2025-07-28T09:55:32Z",
+    "createdViaEmail": false,
+    "databaseId": 8645908,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ag-0U",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1912,
+    "poll": null,
+    "publishedAt": "2025-07-28T09:55:32Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1912",
+    "stateReason": "RESOLVED",
+    "title": "Order buffers by recency in mini.pick",
+    "updatedAt": "2025-07-31T07:52:39Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1912"
+}

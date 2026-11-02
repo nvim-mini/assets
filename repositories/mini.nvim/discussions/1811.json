@@ -1,0 +1,291 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13209475,
+        "id": "DC_kwDOFoksYM4AyY-D",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1811#discussioncomment-13209475"
+    },
+    "answerChosenAt": "2025-05-20T16:57:18Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.starter\n\n### Question\n\n\r\nCurrently, for [each](https://github.com/echasnovski/mini.nvim/blob/18889a4993a2c6de64eb07f91e7ad8666793441a/lua/mini/starter.lua#L529) item in `v:oldfiles`, `mini.starter` determines if the file exists. However, the number of items actually displayed in the `recent files` section can be much lower. \r\n\r\nWorst case, `v:oldfiles` can contain 100 items, where `mini.starter` only displays 5 by default. On each startup, `mini.starter` would query unnecessarily for 95 items. \r\n\r\nThe code can be optimized:\r\n\r\n```lua\r\nMiniStarter.sections.recent_files = function(n, current_dir, show_path)\r\n  n = n or 5\r\n  if current_dir == nil then current_dir = false end\r\n\r\n  if show_path == nil then show_path = true end\r\n  if show_path == false then show_path = function() return '' end end\r\n  if show_path == true then\r\n    show_path = function(path) return string.format(' (%s)', vim.fn.fnamemodify(path, ':~:.')) end\r\n  end\r\n  if not vim.is_callable(show_path) then H.error('`show_path` should be boolean or callable.') end\r\n\r\n  return function()\r\n    local section = string.format('Recent files%s', current_dir and ' (current directory)' or '')\r\n    local sep = vim.loop.os_uname().sysname == 'Windows_NT' and [[%\\]] or '%/'\r\n    local cwd_pattern = '^' .. vim.pesc(vim.fn.getcwd()) .. sep\r\n\r\n    local n_added = 0\r\n    local files = vim.tbl_filter(function(f)\r\n      -- Return early if there are enough items in the list\r\n      if n_added == n then return false end\r\n\r\n      -- Use only actual readable files\r\n      local result = vim.fn.filereadable(f) == 1\r\n      if current_dir then\r\n        -- Filter files from current directory and its subdirectories\r\n        result = result and f:find(cwd_pattern) ~= nil\r\n      end\r\n      n_added = result and n_added + 1 or n_added\r\n      return result\r\n    end, vim.v.oldfiles or {})\r\n\r\n    if #files == 0 then\r\n      local text = current_dir and 'There are no recent files in current directory'\r\n        or 'There are no recent files (`v:oldfiles` is empty)'\r\n      return { { name = text, action = '', section = section } }\r\n    end\r\n\r\n    -- Create items\r\n    local items = {}\r\n    for _, f in ipairs(files) do\r\n      local name = vim.fn.fnamemodify(f, ':t') .. show_path(f)\r\n      table.insert(items, { action = function() H.edit(f) end, name = name, section = section })\r\n    end\r\n\r\n    return items\r\n  end\r\n\r\n```\r\nUsing the code above all tests pass.\r\n\r\nWould you allow a PR? If so, I'd also think that one message is sufficient in case the list is empty: `There are no recent files`\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.starter</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Currently, for <a href=\"https://github.com/echasnovski/mini.nvim/blob/18889a4993a2c6de64eb07f91e7ad8666793441a/lua/mini/starter.lua#L529\">each</a> item in <code class=\"notranslate\">v:oldfiles</code>, <code class=\"notranslate\">mini.starter</code> determines if the file exists. However, the number of items actually displayed in the <code class=\"notranslate\">recent files</code> section can be much lower.</p>\n<p dir=\"auto\">Worst case, <code class=\"notranslate\">v:oldfiles</code> can contain 100 items, where <code class=\"notranslate\">mini.starter</code> only displays 5 by default. On each startup, <code class=\"notranslate\">mini.starter</code> would query unnecessarily for 95 items.</p>\n<p dir=\"auto\">The code can be optimized:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"MiniStarter.sections.recent_files = function(n, current_dir, show_path)\n  n = n or 5\n  if current_dir == nil then current_dir = false end\n\n  if show_path == nil then show_path = true end\n  if show_path == false then show_path = function() return '' end end\n  if show_path == true then\n    show_path = function(path) return string.format(' (%s)', vim.fn.fnamemodify(path, ':~:.')) end\n  end\n  if not vim.is_callable(show_path) then H.error('`show_path` should be boolean or callable.') end\n\n  return function()\n    local section = string.format('Recent files%s', current_dir and ' (current directory)' or '')\n    local sep = vim.loop.os_uname().sysname == 'Windows_NT' and [[%\\]] or '%/'\n    local cwd_pattern = '^' .. vim.pesc(vim.fn.getcwd()) .. sep\n\n    local n_added = 0\n    local files = vim.tbl_filter(function(f)\n      -- Return early if there are enough items in the list\n      if n_added == n then return false end\n\n      -- Use only actual readable files\n      local result = vim.fn.filereadable(f) == 1\n      if current_dir then\n        -- Filter files from current directory and its subdirectories\n        result = result and f:find(cwd_pattern) ~= nil\n      end\n      n_added = result and n_added + 1 or n_added\n      return result\n    end, vim.v.oldfiles or {})\n\n    if #files == 0 then\n      local text = current_dir and 'There are no recent files in current directory'\n        or 'There are no recent files (`v:oldfiles` is empty)'\n      return { { name = text, action = '', section = section } }\n    end\n\n    -- Create items\n    local items = {}\n    for _, f in ipairs(files) do\n      local name = vim.fn.fnamemodify(f, ':t') .. show_path(f)\n      table.insert(items, { action = function() H.edit(f) end, name = name, section = section })\n    end\n\n    return items\n  end\n\"><pre class=\"notranslate\"><span class=\"pl-smi\">MiniStarter</span>.<span class=\"pl-e\">sections</span>.<span class=\"pl-en\">recent_files</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">n</span>, <span class=\"pl-smi\">current_dir</span>, <span class=\"pl-smi\">show_path</span>)\n  <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">5</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current_dir</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">current_dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">show_path</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">show_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">show_path</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">then</span> <span class=\"pl-en\">show_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">show_path</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">true</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-en\">show_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">path</span>) <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span> (%s)<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>:~:.<span class=\"pl-pds\">'</span></span>)) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">is_callable</span>(<span class=\"pl-smi\">show_path</span>) <span class=\"pl-k\">then</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">error</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>`show_path` should be boolean or callable.<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">section</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Recent files%s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">current_dir</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span> (current directory)<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">sep</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">os_uname</span>().<span class=\"pl-e\">sysname</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Windows_NT<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>%\\<span class=\"pl-pds\">]] </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%/<span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>^<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">pesc</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()) <span class=\"pl-k\">..</span> <span class=\"pl-smi\">sep</span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">n_added</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">f</span>)\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Return early if there are enough items in the list</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">n_added</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-c\"><span class=\"pl-c\">--</span> Use only actual readable files</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">filereadable</span>(<span class=\"pl-smi\">f</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current_dir</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> Filter files from current directory and its subdirectories</span>\n        <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">and</span> <span class=\"pl-en\">f</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-smi\">cwd_pattern</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span>\n      <span class=\"pl-k\">end</span>\n      <span class=\"pl-smi\">n_added</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">n_added</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">n_added</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">result</span>\n    <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">oldfiles</span> <span class=\"pl-k\">or</span> {})\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">files</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">current_dir</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>There are no recent files in current directory<span class=\"pl-pds\">'</span></span>\n        <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>There are no recent files (`v:oldfiles` is empty)<span class=\"pl-pds\">'</span></span>\n      <span class=\"pl-k\">return</span> { { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">text</span>, <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">section</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">section</span> } }\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Create items</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">f</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">files</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">f</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>:t<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-c1\">show_path</span>(<span class=\"pl-smi\">f</span>)\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, { <span class=\"pl-en\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">edit</span>(<span class=\"pl-smi\">f</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">section</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">section</span> })\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">items</span>\n  <span class=\"pl-k\">end</span>\n</pre></div>\n<p dir=\"auto\">Using the code above all tests pass.</p>\n<p dir=\"auto\">Would you allow a PR? If so, I'd also think that one message is sufficient in case the list is empty: <code class=\"notranslate\">There are no recent files</code></p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.starter\nQuestion\nCurrently, for each item in v:oldfiles, mini.starter determines if the file exists. However, the number of items actually displayed in the recent files section can be much lower.\nWorst case, v:oldfiles can contain 100 items, where mini.starter only displays 5 by default. On each startup, mini.starter would query unnecessarily for 95 items.\nThe code can be optimized:\nMiniStarter.sections.recent_files = function(n, current_dir, show_path)\n  n = n or 5\n  if current_dir == nil then current_dir = false end\n\n  if show_path == nil then show_path = true end\n  if show_path == false then show_path = function() return '' end end\n  if show_path == true then\n    show_path = function(path) return string.format(' (%s)', vim.fn.fnamemodify(path, ':~:.')) end\n  end\n  if not vim.is_callable(show_path) then H.error('`show_path` should be boolean or callable.') end\n\n  return function()\n    local section = string.format('Recent files%s', current_dir and ' (current directory)' or '')\n    local sep = vim.loop.os_uname().sysname == 'Windows_NT' and [[%\\]] or '%/'\n    local cwd_pattern = '^' .. vim.pesc(vim.fn.getcwd()) .. sep\n\n    local n_added = 0\n    local files = vim.tbl_filter(function(f)\n      -- Return early if there are enough items in the list\n      if n_added == n then return false end\n\n      -- Use only actual readable files\n      local result = vim.fn.filereadable(f) == 1\n      if current_dir then\n        -- Filter files from current directory and its subdirectories\n        result = result and f:find(cwd_pattern) ~= nil\n      end\n      n_added = result and n_added + 1 or n_added\n      return result\n    end, vim.v.oldfiles or {})\n\n    if #files == 0 then\n      local text = current_dir and 'There are no recent files in current directory'\n        or 'There are no recent files (`v:oldfiles` is empty)'\n      return { { name = text, action = '', section = section } }\n    end\n\n    -- Create items\n    local items = {}\n    for _, f in ipairs(files) do\n      local name = vim.fn.fnamemodify(f, ':t') .. show_path(f)\n      table.insert(items, { action = function() H.edit(f) end, name = name, section = section })\n    end\n\n    return items\n  end\n\nUsing the code above all tests pass.\nWould you allow a PR? If so, I'd also think that one message is sufficient in case the list is empty: There are no recent files",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-05-20T16:57:20Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> Worst case, `v:oldfiles` can contain 100 items, where `mini.starter` only displays 5 by default. On each startup, `mini.starter` would query unnecessarily for 95 items.\r\n\r\nI don't think it has huge impact, but can be optimized, yeah.\r\n\r\n> Would you allow a PR?\r\n\r\nSure. Just not with `tbl_filter`, but a regular `for ... do` which uses `break` if there are `n` readable files found.\r\n\r\n> If so, I'd also think that one message is sufficient in case the list is empty: `There are no recent files`\r\n\r\nI think preserving current different messages which show more info is less ambiguous and better here.\r\n\r\n",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">Worst case, <code class=\"notranslate\">v:oldfiles</code> can contain 100 items, where <code class=\"notranslate\">mini.starter</code> only displays 5 by default. On each startup, <code class=\"notranslate\">mini.starter</code> would query unnecessarily for 95 items.</p>\n</blockquote>\n<p dir=\"auto\">I don't think it has huge impact, but can be optimized, yeah.</p>\n<blockquote>\n<p dir=\"auto\">Would you allow a PR?</p>\n</blockquote>\n<p dir=\"auto\">Sure. Just not with <code class=\"notranslate\">tbl_filter</code>, but a regular <code class=\"notranslate\">for ... do</code> which uses <code class=\"notranslate\">break</code> if there are <code class=\"notranslate\">n</code> readable files found.</p>\n<blockquote>\n<p dir=\"auto\">If so, I'd also think that one message is sufficient in case the list is empty: <code class=\"notranslate\">There are no recent files</code></p>\n</blockquote>\n<p dir=\"auto\">I think preserving current different messages which show more info is less ambiguous and better here.</p>",
+            "bodyText": "Worst case, v:oldfiles can contain 100 items, where mini.starter only displays 5 by default. On each startup, mini.starter would query unnecessarily for 95 items.\n\nI don't think it has huge impact, but can be optimized, yeah.\n\nWould you allow a PR?\n\nSure. Just not with tbl_filter, but a regular for ... do which uses break if there are n readable files found.\n\nIf so, I'd also think that one message is sufficient in case the list is empty: There are no recent files\n\nI think preserving current different messages which show more info is less ambiguous and better here.",
+            "createdAt": "2025-05-20T12:41:01Z",
+            "createdViaEmail": false,
+            "databaseId": 13206535,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AyYQH",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-20T12:41:01Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "[PR](https://github.com/echasnovski/mini.nvim/pull/1815)",
+                    "bodyHTML": "<p dir=\"auto\"><a href=\"https://github.com/echasnovski/mini.nvim/pull/1815\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1815/hovercard\">PR</a></p>",
+                    "bodyText": "PR",
+                    "createdAt": "2025-05-20T16:48:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13209475,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AyY-D",
+                    "includesCreatedEdit": false,
+                    "isAnswer": true,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-20T16:48:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13206535,
+                        "id": "DC_kwDOFoksYM4AyYQH",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1811#discussioncomment-13206535"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1811#discussioncomment-13209475",
+                    "updatedAt": "2025-05-20T16:48:35Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1811#discussioncomment-13209475"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1811#discussioncomment-13206535",
+            "updatedAt": "2025-05-20T12:41:02Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1811#discussioncomment-13206535"
+        }
+    ],
+    "createdAt": "2025-05-20T12:25:19Z",
+    "createdViaEmail": false,
+    "databaseId": 8349778,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Af2hS",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7T7bmu",
+                "name": "mini.starter"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1811,
+    "poll": null,
+    "publishedAt": "2025-05-20T12:25:19Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1811",
+    "stateReason": "RESOLVED",
+    "title": "[mini.starter]: Optimize section recent files?",
+    "updatedAt": "2025-05-20T16:57:20Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1811"
+}

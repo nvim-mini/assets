@@ -1,0 +1,773 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "\r\nhttps://github.com/user-attachments/assets/0a5abaac-0d95-430f-9149-8336443fa5a4\r\n\r\n<details>\r\n\r\n<summary>Init.lua</summary>\r\n\r\n```lua\r\n---@diagnostic disable: undefined-global\r\nlocal function setup_deps(path_to_site)\r\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\r\n  if not vim.uv.fs_stat(mini_path) then\r\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\r\n    vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\r\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\r\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\r\n  end\r\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\r\nend\r\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\r\n\r\nlocal function setup_mini_autocompletion()\r\n  require(\"mini.snippets\").setup() -- only using lsp snippets...\r\n  require(\"mini.completion\").setup({ lsp_completion = { auto_setup = false, source_func = \"omnifunc\" } })\r\nend\r\n\r\nlocal function custom_on_attach(bufnr) vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\" end\r\n\r\nvim.o.completeopt = \"menuone,noselect,fuzzy\"\r\nvim.o.shortmess = \"CFOSWaco\"\r\nvim.g.mapleader = \" \"\r\nMiniDeps.now(function()\r\n  require(\"mini.notify\").setup()\r\n\r\n  setup_mini_autocompletion()\r\n\r\n  MiniDeps.add(\"neovim/nvim-lspconfig\")\r\n  vim.api.nvim_create_autocmd(\"LspAttach\", {\r\n    group = vim.api.nvim_create_augroup(\"my.lsp\", {}),\r\n    callback = function(args) custom_on_attach(args.buf) end,\r\n  })\r\n  vim.lsp.enable(\"rust_analyzer\")\r\nend)\r\n```\r\n\r\n</details>\r\n\r\n<details>\r\n\r\n<summary>Example code(rust)</summary>\r\n\r\n```rust\r\ntrait State {}\r\n\r\nstruct Dummy<State> {\r\n    d1: u32,\r\n    // d2:\r\n}\r\n\r\nfn main() {\r\n    println!(\"Hello world!\");\r\n}\r\n```\r\n</details>\r\n\r\n\r\nSometimes, using provided `fuzzy` matching does not result in optimal code completion.\r\nIn the video above, I am adding `PhantomData<State>` to the line containing `// d2:`.\r\n\r\nAs demonstrated, I need to type `State` completely before it shows at the top of the completion list. Apparently, `State` is a word used often inside core rust libraries ...)\r\n\r\nThe fuzzy-matching [part](https://github.com/Saghen/blink.cmp/blob/f233029f79312d1028cbf168a8eef3182bac5a4f/lua/blink/cmp/fuzzy/init.lua#L63) of `blink.cmp` uses a `frecency` and `proximity` bonus. As such, `State` becomes first in the completion list when I type `S`.\r\n\r\nI want to keep using `mini.completion` and wrote some [code](https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/mini/completion_blinked.lua#L1) to bridge `mini` with `blink.cmp`. The core idea is to override [process_items](https://github.com/echasnovski/mini.nvim/blob/088d67751584e4168f35bca89bad70ada7ea4636/doc/mini-completion.txt#L266), providing a custom function for [opts.filtersort](https://github.com/echasnovski/mini.nvim/blob/088d67751584e4168f35bca89bad70ada7ea4636/doc/mini-completion.txt#L375).\r\n\r\nI am [using](https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/config/coding/mini_completion.lua#L77) blink's fuzzy in the following way:\r\n\r\n```lua\r\n-- ...\r\nif Util.mini_completion_fuzzy_provider == \"blink\" then\r\n  require(\"ak.mini.completion_blinked\").setup()\r\n  opts.lsp_completion.process_items = function(items, base)\r\n    local opts = { filtersort = CompletionBlinked.fuzzy }\r\n    return MiniCompletion.default_process_items(items, base, opts)\r\n  end\r\nend\r\nrequire(\"mini.completion\").setup(opts)\r\n-- ...\r\n\r\n```\r\n\r\n\r\n",
+    "bodyHTML": "<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">mini_completion_blinked.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/439114760-0a5abaac-0d95-430f-9149-8336443fa5a4.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwNDAsIm5iZiI6MTc5MzU1Mjc0MCwicGF0aCI6Ii81ODM3MDQzMy80MzkxMTQ3NjAtMGE1YWJhYWMtMGQ5NS00MzBmLTkxNDktODMzNjQ0M2ZhNWE0Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDU0MFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTdjZjYwMDIxZTY2MjllNjdhZGEwZjczNGFmNGRlMzNjMjJjMzZhNzMxMTJiOGRmOWUwZTU3MGFlMTE4YjlkZjImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.0o4fJ2_Hi9r9bf3uBKhFKlpWGP8mWfAv9LzvHc5LoIU\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/439114760-0a5abaac-0d95-430f-9149-8336443fa5a4.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwNDAsIm5iZiI6MTc5MzU1Mjc0MCwicGF0aCI6Ii81ODM3MDQzMy80MzkxMTQ3NjAtMGE1YWJhYWMtMGQ5NS00MzBmLTkxNDktODMzNjQ0M2ZhNWE0Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDU0MFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTdjZjYwMDIxZTY2MjllNjdhZGEwZjczNGFmNGRlMzNjMjJjMzZhNzMxMTJiOGRmOWUwZTU3MGFlMTE4YjlkZjImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.0o4fJ2_Hi9r9bf3uBKhFKlpWGP8mWfAv9LzvHc5LoIU\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<details>\n<summary>Init.lua</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. &quot;pack/deps/start/mini.nvim&quot;\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo &quot;Installing `mini.nvim`&quot; | redraw')\n    vim.fn.system({ &quot;git&quot;, &quot;clone&quot;, &quot;--filter=blob:none&quot;, &quot;https://github.com/echasnovski/mini.nvim&quot;, mini_path })\n    vim.cmd(&quot;packadd mini.nvim | helptags ALL&quot;)\n    vim.cmd('echo &quot;Installed `mini.nvim`&quot; | redraw')\n  end\n  require(&quot;mini.deps&quot;).setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(&quot;data&quot;) .. &quot;/site/&quot;)\n\nlocal function setup_mini_autocompletion()\n  require(&quot;mini.snippets&quot;).setup() -- only using lsp snippets...\n  require(&quot;mini.completion&quot;).setup({ lsp_completion = { auto_setup = false, source_func = &quot;omnifunc&quot; } })\nend\n\nlocal function custom_on_attach(bufnr) vim.bo[bufnr].omnifunc = &quot;v:lua.MiniCompletion.completefunc_lsp&quot; end\n\nvim.o.completeopt = &quot;menuone,noselect,fuzzy&quot;\nvim.o.shortmess = &quot;CFOSWaco&quot;\nvim.g.mapleader = &quot; &quot;\nMiniDeps.now(function()\n  require(&quot;mini.notify&quot;).setup()\n\n  setup_mini_autocompletion()\n\n  MiniDeps.add(&quot;neovim/nvim-lspconfig&quot;)\n  vim.api.nvim_create_autocmd(&quot;LspAttach&quot;, {\n    group = vim.api.nvim_create_augroup(&quot;my.lsp&quot;, {}),\n    callback = function(args) custom_on_attach(args.buf) end,\n  })\n  vim.lsp.enable(&quot;rust_analyzer&quot;)\nend)\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">undefined-global</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_deps</span>(<span class=\"pl-smi\">path_to_site</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mini_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>pack/deps/start/mini.nvim<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">mini_path</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installing `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>git<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>clone<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--filter=blob:none<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>https://github.com/echasnovski/mini.nvim<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">mini_path</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>packadd mini.nvim | helptags ALL<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>echo \"Installed `mini.nvim`\" | redraw<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.deps<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">path_to_site</span> } })\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">setup_deps</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>/site/<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">setup_mini_autocompletion</span>()\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.snippets<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> only using lsp snippets...</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.completion<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">lsp_completion</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">auto_setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">source_func</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>omnifunc<span class=\"pl-pds\">\" </span></span>} })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">custom_on_attach</span>(<span class=\"pl-smi\">bufnr</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">bufnr</span>].<span class=\"pl-e\">omnifunc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>v:lua.MiniCompletion.completefunc_lsp<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">completeopt</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>menuone,noselect,fuzzy<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">shortmess</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>CFOSWaco<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">mapleader</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">now</span>(<span class=\"pl-k\">function</span>()\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.notify<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n\n  <span class=\"pl-c1\">setup_mini_autocompletion</span>()\n\n  <span class=\"pl-smi\">MiniDeps</span>.<span class=\"pl-c1\">add</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>neovim/nvim-lspconfig<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>LspAttach<span class=\"pl-pds\">\"</span></span>, {\n    <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>my.lsp<span class=\"pl-pds\">\"</span></span>, {}),\n    <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>) <span class=\"pl-c1\">custom_on_attach</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">buf</span>) <span class=\"pl-k\">end</span>,\n  })\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">enable</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>rust_analyzer<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span>)</pre></div>\n</details>\n<details>\n<summary>Example code(rust)</summary>\n<div class=\"highlight highlight-source-rust notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"trait State {}\n\nstruct Dummy&lt;State&gt; {\n    d1: u32,\n    // d2:\n}\n\nfn main() {\n    println!(&quot;Hello world!&quot;);\n}\"><pre class=\"notranslate\"><span class=\"pl-k\">trait</span> <span class=\"pl-smi\">State</span> <span class=\"pl-kos\">{</span><span class=\"pl-kos\">}</span>\n\n<span class=\"pl-k\">struct</span> <span class=\"pl-smi\">Dummy</span><span class=\"pl-kos\">&lt;</span><span class=\"pl-smi\">State</span><span class=\"pl-kos\">&gt;</span> <span class=\"pl-kos\">{</span>\n    <span class=\"pl-c1\">d1</span><span class=\"pl-kos\">:</span> <span class=\"pl-smi\">u32</span><span class=\"pl-kos\">,</span>\n    <span class=\"pl-c\">// d2:</span>\n<span class=\"pl-kos\">}</span>\n\n<span class=\"pl-k\">fn</span> <span class=\"pl-en\">main</span><span class=\"pl-kos\">(</span><span class=\"pl-kos\">)</span> <span class=\"pl-kos\">{</span>\n    <span class=\"pl-en\">println</span><span class=\"pl-en\">!</span><span class=\"pl-kos\">(</span><span class=\"pl-s\">\"Hello world!\"</span><span class=\"pl-kos\">)</span><span class=\"pl-kos\">;</span>\n<span class=\"pl-kos\">}</span></pre></div>\n</details>\n<p dir=\"auto\">Sometimes, using provided <code class=\"notranslate\">fuzzy</code> matching does not result in optimal code completion.<br>\nIn the video above, I am adding <code class=\"notranslate\">PhantomData&lt;State&gt;</code> to the line containing <code class=\"notranslate\">// d2:</code>.</p>\n<p dir=\"auto\">As demonstrated, I need to type <code class=\"notranslate\">State</code> completely before it shows at the top of the completion list. Apparently, <code class=\"notranslate\">State</code> is a word used often inside core rust libraries ...)</p>\n<p dir=\"auto\">The fuzzy-matching <a href=\"https://github.com/Saghen/blink.cmp/blob/f233029f79312d1028cbf168a8eef3182bac5a4f/lua/blink/cmp/fuzzy/init.lua#L63\">part</a> of <code class=\"notranslate\">blink.cmp</code> uses a <code class=\"notranslate\">frecency</code> and <code class=\"notranslate\">proximity</code> bonus. As such, <code class=\"notranslate\">State</code> becomes first in the completion list when I type <code class=\"notranslate\">S</code>.</p>\n<p dir=\"auto\">I want to keep using <code class=\"notranslate\">mini.completion</code> and wrote some <a href=\"https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/mini/completion_blinked.lua#L1\">code</a> to bridge <code class=\"notranslate\">mini</code> with <code class=\"notranslate\">blink.cmp</code>. The core idea is to override <a href=\"https://github.com/echasnovski/mini.nvim/blob/088d67751584e4168f35bca89bad70ada7ea4636/doc/mini-completion.txt#L266\">process_items</a>, providing a custom function for <a href=\"https://github.com/echasnovski/mini.nvim/blob/088d67751584e4168f35bca89bad70ada7ea4636/doc/mini-completion.txt#L375\">opts.filtersort</a>.</p>\n<p dir=\"auto\">I am <a href=\"https://github.com/abeldekat/nvim_pde/blob/603c86b11188a9605e7acbdfeb9b52429c8bc868/lua/ak/config/coding/mini_completion.lua#L77\">using</a> blink's fuzzy in the following way:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- ...\nif Util.mini_completion_fuzzy_provider == &quot;blink&quot; then\n  require(&quot;ak.mini.completion_blinked&quot;).setup()\n  opts.lsp_completion.process_items = function(items, base)\n    local opts = { filtersort = CompletionBlinked.fuzzy }\n    return MiniCompletion.default_process_items(items, base, opts)\n  end\nend\nrequire(&quot;mini.completion&quot;).setup(opts)\n-- ...\n\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n<span class=\"pl-k\">if</span> <span class=\"pl-smi\">Util</span>.<span class=\"pl-e\">mini_completion_fuzzy_provider</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n  <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ak.mini.completion_blinked<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>()\n  <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">lsp_completion</span>.<span class=\"pl-en\">process_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">filtersort</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">CompletionBlinked</span>.<span class=\"pl-e\">fuzzy</span> }\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniCompletion</span>.<span class=\"pl-c1\">default_process_items</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.completion<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> ...</span>\n</pre></div>",
+    "bodyText": "mini_completion_blinked.mp4\n    \n  \n\n  \n\n  \n\n\n\nInit.lua\n---@diagnostic disable: undefined-global\nlocal function setup_deps(path_to_site)\n  local mini_path = path_to_site .. \"pack/deps/start/mini.nvim\"\n  if not vim.uv.fs_stat(mini_path) then\n    vim.cmd('echo \"Installing `mini.nvim`\" | redraw')\n    vim.fn.system({ \"git\", \"clone\", \"--filter=blob:none\", \"https://github.com/echasnovski/mini.nvim\", mini_path })\n    vim.cmd(\"packadd mini.nvim | helptags ALL\")\n    vim.cmd('echo \"Installed `mini.nvim`\" | redraw')\n  end\n  require(\"mini.deps\").setup({ path = { package = path_to_site } })\nend\nsetup_deps(vim.fn.stdpath(\"data\") .. \"/site/\")\n\nlocal function setup_mini_autocompletion()\n  require(\"mini.snippets\").setup() -- only using lsp snippets...\n  require(\"mini.completion\").setup({ lsp_completion = { auto_setup = false, source_func = \"omnifunc\" } })\nend\n\nlocal function custom_on_attach(bufnr) vim.bo[bufnr].omnifunc = \"v:lua.MiniCompletion.completefunc_lsp\" end\n\nvim.o.completeopt = \"menuone,noselect,fuzzy\"\nvim.o.shortmess = \"CFOSWaco\"\nvim.g.mapleader = \" \"\nMiniDeps.now(function()\n  require(\"mini.notify\").setup()\n\n  setup_mini_autocompletion()\n\n  MiniDeps.add(\"neovim/nvim-lspconfig\")\n  vim.api.nvim_create_autocmd(\"LspAttach\", {\n    group = vim.api.nvim_create_augroup(\"my.lsp\", {}),\n    callback = function(args) custom_on_attach(args.buf) end,\n  })\n  vim.lsp.enable(\"rust_analyzer\")\nend)\n\n\nExample code(rust)\ntrait State {}\n\nstruct Dummy<State> {\n    d1: u32,\n    // d2:\n}\n\nfn main() {\n    println!(\"Hello world!\");\n}\n\nSometimes, using provided fuzzy matching does not result in optimal code completion.\nIn the video above, I am adding PhantomData<State> to the line containing // d2:.\nAs demonstrated, I need to type State completely before it shows at the top of the completion list. Apparently, State is a word used often inside core rust libraries ...)\nThe fuzzy-matching part of blink.cmp uses a frecency and proximity bonus. As such, State becomes first in the completion list when I type S.\nI want to keep using mini.completion and wrote some code to bridge mini with blink.cmp. The core idea is to override process_items, providing a custom function for opts.filtersort.\nI am using blink's fuzzy in the following way:\n-- ...\nif Util.mini_completion_fuzzy_provider == \"blink\" then\n  require(\"ak.mini.completion_blinked\").setup()\n  opts.lsp_completion.process_items = function(items, base)\n    local opts = { filtersort = CompletionBlinked.fuzzy }\n    return MiniCompletion.default_process_items(items, base, opts)\n  end\nend\nrequire(\"mini.completion\").setup(opts)\n-- ...",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "> Sometimes, using provided `fuzzy` matching does not result in optimal code completion. In the video above, I am adding `PhantomData<State>` to the line containing `// d2:`.\r\n> \r\n> As demonstrated, I need to type `State` completely before it shows at the top of the completion list. Apparently, `State` is a word used often inside core rust libraries ...)\r\n\r\nYes, this is because there is a high bonus in built-in Vim's fuzzy matching for camel case word start. It also seems to favor matches at the end and not the start.\r\n\r\nThis was addressed in neovim/neovim#32953, which unfortunately is a Neovim>=0.12 only. So `filtersort` with `vim.fn.matchfuzzy(items, base, { camelcase = false })` should behave more reasonable here. So something like this:\r\n\r\n```lua\r\nlocal lsp_get_filterword = function(x) return x.filterText or x.label end\r\nlocal filtersort = function(items, base)\r\n  if base == '' then return vim.deepcopy(items) end\r\n  return vim.fn.matchfuzzy(items, base, { text_cb = lsp_get_filterword, camelcase = false })\r\nend\r\nlocal process_opts = { filtersort = filtersort }\r\nlocal process_items = function(items, base) return MiniCompletion.default_process_items(items, base, process_opts) end\r\nrequire('mini.completion').setup({ lsp_completion = { process_items = process_items } })\r\n```\r\n\r\nThe problem with using this as default is because it will work only if LSP server always returns `isIncomplete = true`, in which case `process_items` will be responsible for filtering and sorting after each key press. Some (most?) servers might return `isIncomplete = false` when there all possible candidates are returned. In this case built-in fuzzy matching takes over and it will sort similar to `camelcase = true`, which will be not quite intuitive.\r\n\r\nUnfortunately, currently there is no way to tweak built-in fuzzy completion behavior (beyond just enabling that). Maybe @glepnir can help with that :eyes:?",
+            "bodyHTML": "<blockquote>\n<p dir=\"auto\">Sometimes, using provided <code class=\"notranslate\">fuzzy</code> matching does not result in optimal code completion. In the video above, I am adding <code class=\"notranslate\">PhantomData&lt;State&gt;</code> to the line containing <code class=\"notranslate\">// d2:</code>.</p>\n<p dir=\"auto\">As demonstrated, I need to type <code class=\"notranslate\">State</code> completely before it shows at the top of the completion list. Apparently, <code class=\"notranslate\">State</code> is a word used often inside core rust libraries ...)</p>\n</blockquote>\n<p dir=\"auto\">Yes, this is because there is a high bonus in built-in Vim's fuzzy matching for camel case word start. It also seems to favor matches at the end and not the start.</p>\n<p dir=\"auto\">This was addressed in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2927525412\" data-permission-text=\"Title is private\" data-url=\"https://github.com/neovim/neovim/issues/32953\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/neovim/neovim/pull/32953/hovercard\" href=\"https://github.com/neovim/neovim/pull/32953\">neovim/neovim#32953</a>, which unfortunately is a Neovim&gt;=0.12 only. So <code class=\"notranslate\">filtersort</code> with <code class=\"notranslate\">vim.fn.matchfuzzy(items, base, { camelcase = false })</code> should behave more reasonable here. So something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local lsp_get_filterword = function(x) return x.filterText or x.label end\nlocal filtersort = function(items, base)\n  if base == '' then return vim.deepcopy(items) end\n  return vim.fn.matchfuzzy(items, base, { text_cb = lsp_get_filterword, camelcase = false })\nend\nlocal process_opts = { filtersort = filtersort }\nlocal process_items = function(items, base) return MiniCompletion.default_process_items(items, base, process_opts) end\nrequire('mini.completion').setup({ lsp_completion = { process_items = process_items } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">lsp_get_filterword</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">x</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">x</span>.<span class=\"pl-e\">filterText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">x</span>.<span class=\"pl-e\">label</span> <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">filtersort</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">base</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">deepcopy</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">matchfuzzy</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>, { <span class=\"pl-smi\">text_cb</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">lsp_get_filterword</span>, <span class=\"pl-smi\">camelcase</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n<span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">process_opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">filtersort</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">filtersort</span> }\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">process_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniCompletion</span>.<span class=\"pl-c1\">default_process_items</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">base</span>, <span class=\"pl-smi\">process_opts</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.completion<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">lsp_completion</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">process_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">process_items</span> } })</pre></div>\n<p dir=\"auto\">The problem with using this as default is because it will work only if LSP server always returns <code class=\"notranslate\">isIncomplete = true</code>, in which case <code class=\"notranslate\">process_items</code> will be responsible for filtering and sorting after each key press. Some (most?) servers might return <code class=\"notranslate\">isIncomplete = false</code> when there all possible candidates are returned. In this case built-in fuzzy matching takes over and it will sort similar to <code class=\"notranslate\">camelcase = true</code>, which will be not quite intuitive.</p>\n<p dir=\"auto\">Unfortunately, currently there is no way to tweak built-in fuzzy completion behavior (beyond just enabling that). Maybe <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/glepnir/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/glepnir\">@glepnir</a> can help with that 👀?</p>",
+            "bodyText": "Sometimes, using provided fuzzy matching does not result in optimal code completion. In the video above, I am adding PhantomData<State> to the line containing // d2:.\nAs demonstrated, I need to type State completely before it shows at the top of the completion list. Apparently, State is a word used often inside core rust libraries ...)\n\nYes, this is because there is a high bonus in built-in Vim's fuzzy matching for camel case word start. It also seems to favor matches at the end and not the start.\nThis was addressed in neovim/neovim#32953, which unfortunately is a Neovim>=0.12 only. So filtersort with vim.fn.matchfuzzy(items, base, { camelcase = false }) should behave more reasonable here. So something like this:\nlocal lsp_get_filterword = function(x) return x.filterText or x.label end\nlocal filtersort = function(items, base)\n  if base == '' then return vim.deepcopy(items) end\n  return vim.fn.matchfuzzy(items, base, { text_cb = lsp_get_filterword, camelcase = false })\nend\nlocal process_opts = { filtersort = filtersort }\nlocal process_items = function(items, base) return MiniCompletion.default_process_items(items, base, process_opts) end\nrequire('mini.completion').setup({ lsp_completion = { process_items = process_items } })\nThe problem with using this as default is because it will work only if LSP server always returns isIncomplete = true, in which case process_items will be responsible for filtering and sorting after each key press. Some (most?) servers might return isIncomplete = false when there all possible candidates are returned. In this case built-in fuzzy matching takes over and it will sort similar to camelcase = true, which will be not quite intuitive.\nUnfortunately, currently there is no way to tweak built-in fuzzy completion behavior (beyond just enabling that). Maybe @glepnir can help with that 👀?",
+            "createdAt": "2025-04-30T08:30:36Z",
+            "createdViaEmail": false,
+            "databaseId": 12990137,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Axja5",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-30T08:30:36Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 5,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/41671631?u=05da364cc07dc4b85b72d30878825d561769dd04&v=4",
+                        "login": "glepnir",
+                        "resourcePath": "/glepnir",
+                        "url": "https://github.com/glepnir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "https://github.com/vim/vim/commit/9d2b7275589bd3f712debdb2f5b0468ce160f415 This commit implements a new algorithm. Continuous matches from the beginning with more than three scores will exceed the camelback. But I finally withdrew this default behavior. Recently I'm thinking that maybe I should add it back. Emm, what is the effect of `isInComplete`? This means that the current result is incomplete. Subsequent input will still send a completion request and get the result. So you can get the current prefix and then fuzzy it with the new result?",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"commit-link\" data-hovercard-type=\"commit\" data-hovercard-url=\"https://github.com/vim/vim/commit/9d2b7275589bd3f712debdb2f5b0468ce160f415/hovercard\" href=\"https://github.com/vim/vim/commit/9d2b7275589bd3f712debdb2f5b0468ce160f415\">vim/vim@<tt>9d2b727</tt></a> This commit implements a new algorithm. Continuous matches from the beginning with more than three scores will exceed the camelback. But I finally withdrew this default behavior. Recently I'm thinking that maybe I should add it back. Emm, what is the effect of <code class=\"notranslate\">isInComplete</code>? This means that the current result is incomplete. Subsequent input will still send a completion request and get the result. So you can get the current prefix and then fuzzy it with the new result?</p>",
+                    "bodyText": "vim/vim@9d2b727 This commit implements a new algorithm. Continuous matches from the beginning with more than three scores will exceed the camelback. But I finally withdrew this default behavior. Recently I'm thinking that maybe I should add it back. Emm, what is the effect of isInComplete? This means that the current result is incomplete. Subsequent input will still send a completion request and get the result. So you can get the current prefix and then fuzzy it with the new result?",
+                    "createdAt": "2025-04-30T08:45:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12990295,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxjdX",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-30T08:45:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12990137,
+                        "id": "DC_kwDOFoksYM4Axja5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990295",
+                    "updatedAt": "2025-04-30T08:45:29Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990295"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> [vim/vim@9d2b727](https://github.com/vim/vim/commit/9d2b7275589bd3f712debdb2f5b0468ce160f415) This commit implements a new algorithm. Continuous matches from the beginning with more than three scores will exceed the camelback. But I finally withdrew this default behavior. Recently I'm thinking that maybe I should add it back.\r\n\r\nI was thinking more about the possible ways for the user to control fuzzy matching in the \"true\" ins-completion-menu. For example, with 'completeopt=menuone,fuzzy' pressing `<C-n>` will still have high preference for camel case at the end instead of start. And as far as I understand, there is no way for user to control that, right?\r\n\r\n> Emm, what is the effect of `isInComplete`? This means that the current result is incomplete. Subsequent input will still send a completion request and get the result. So you can get the current prefix and then fuzzy it with the new result?\r\n\r\nThat's more a 'mini.completion' thing. For `isIncomplete = true` it is possible to adjust `camelcase = false` behavior after the next key press, because indeed fuzzy matching will eventually go through `vim.fn.matchfuzzy()`. But for `isIncomplete = false` the next key press will use built-in fuzzy matching (as this is more performant and less code in 'mini.completion') which can not be adjusted to have `camelcase = false` like behavior.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\"><a href=\"https://github.com/vim/vim/commit/9d2b7275589bd3f712debdb2f5b0468ce160f415\">vim/vim@9d2b727</a> This commit implements a new algorithm. Continuous matches from the beginning with more than three scores will exceed the camelback. But I finally withdrew this default behavior. Recently I'm thinking that maybe I should add it back.</p>\n</blockquote>\n<p dir=\"auto\">I was thinking more about the possible ways for the user to control fuzzy matching in the \"true\" ins-completion-menu. For example, with 'completeopt=menuone,fuzzy' pressing <code class=\"notranslate\">&lt;C-n&gt;</code> will still have high preference for camel case at the end instead of start. And as far as I understand, there is no way for user to control that, right?</p>\n<blockquote>\n<p dir=\"auto\">Emm, what is the effect of <code class=\"notranslate\">isInComplete</code>? This means that the current result is incomplete. Subsequent input will still send a completion request and get the result. So you can get the current prefix and then fuzzy it with the new result?</p>\n</blockquote>\n<p dir=\"auto\">That's more a 'mini.completion' thing. For <code class=\"notranslate\">isIncomplete = true</code> it is possible to adjust <code class=\"notranslate\">camelcase = false</code> behavior after the next key press, because indeed fuzzy matching will eventually go through <code class=\"notranslate\">vim.fn.matchfuzzy()</code>. But for <code class=\"notranslate\">isIncomplete = false</code> the next key press will use built-in fuzzy matching (as this is more performant and less code in 'mini.completion') which can not be adjusted to have <code class=\"notranslate\">camelcase = false</code> like behavior.</p>",
+                    "bodyText": "vim/vim@9d2b727 This commit implements a new algorithm. Continuous matches from the beginning with more than three scores will exceed the camelback. But I finally withdrew this default behavior. Recently I'm thinking that maybe I should add it back.\n\nI was thinking more about the possible ways for the user to control fuzzy matching in the \"true\" ins-completion-menu. For example, with 'completeopt=menuone,fuzzy' pressing <C-n> will still have high preference for camel case at the end instead of start. And as far as I understand, there is no way for user to control that, right?\n\nEmm, what is the effect of isInComplete? This means that the current result is incomplete. Subsequent input will still send a completion request and get the result. So you can get the current prefix and then fuzzy it with the new result?\n\nThat's more a 'mini.completion' thing. For isIncomplete = true it is possible to adjust camelcase = false behavior after the next key press, because indeed fuzzy matching will eventually go through vim.fn.matchfuzzy(). But for isIncomplete = false the next key press will use built-in fuzzy matching (as this is more performant and less code in 'mini.completion') which can not be adjusted to have camelcase = false like behavior.",
+                    "createdAt": "2025-04-30T08:53:14Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12990384,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axjew",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-30T08:53:14Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12990137,
+                        "id": "DC_kwDOFoksYM4Axja5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990384",
+                    "updatedAt": "2025-04-30T08:53:15Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990384"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/41671631?u=05da364cc07dc4b85b72d30878825d561769dd04&v=4",
+                        "login": "glepnir",
+                        "resourcePath": "/glepnir",
+                        "url": "https://github.com/glepnir"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "yes. builds the match array, fuzzy sorts by score. there is no way to control the fuzzy behavior here. But I added cot+=nosort before. If the result returned by lsp is sorted by sort text, the result of fuzzy will not be sorted here and the original order will be used.",
+                    "bodyHTML": "<p dir=\"auto\">yes. builds the match array, fuzzy sorts by score. there is no way to control the fuzzy behavior here. But I added cot+=nosort before. If the result returned by lsp is sorted by sort text, the result of fuzzy will not be sorted here and the original order will be used.</p>",
+                    "bodyText": "yes. builds the match array, fuzzy sorts by score. there is no way to control the fuzzy behavior here. But I added cot+=nosort before. If the result returned by lsp is sorted by sort text, the result of fuzzy will not be sorted here and the original order will be used.",
+                    "createdAt": "2025-04-30T09:04:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12990552,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxjhY",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-30T09:04:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12990137,
+                        "id": "DC_kwDOFoksYM4Axja5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990552",
+                    "updatedAt": "2025-04-30T09:05:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990552"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> But I added cot+=nosort before. If the result returned by lsp is sorted by sort text, the result of fuzzy will not be sorted here and the original order will be used.\r\n\r\nOh, hmm... That's actually a good idea that I didn't of before. Thanks! I'll experiment a bit.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">But I added cot+=nosort before. If the result returned by lsp is sorted by sort text, the result of fuzzy will not be sorted here and the original order will be used.</p>\n</blockquote>\n<p dir=\"auto\">Oh, hmm... That's actually a good idea that I didn't of before. Thanks! I'll experiment a bit.</p>",
+                    "bodyText": "But I added cot+=nosort before. If the result returned by lsp is sorted by sort text, the result of fuzzy will not be sorted here and the original order will be used.\n\nOh, hmm... That's actually a good idea that I didn't of before. Thanks! I'll experiment a bit.",
+                    "createdAt": "2025-04-30T09:24:06Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12990842,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axjl6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-30T09:24:06Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12990137,
+                        "id": "DC_kwDOFoksYM4Axja5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990842",
+                    "updatedAt": "2025-04-30T09:24:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990842"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thank you both for the replies.\r\n\r\nWhen using `camelcase = false`, the letters to type become `Sta`, which is indeed an improvement. The rust `lsp` apparently always returns `isIncomplete = true`, as process_items is invoked on each character.",
+                    "bodyHTML": "<p dir=\"auto\">Thank you both for the replies.</p>\n<p dir=\"auto\">When using <code class=\"notranslate\">camelcase = false</code>, the letters to type become <code class=\"notranslate\">Sta</code>, which is indeed an improvement. The rust <code class=\"notranslate\">lsp</code> apparently always returns <code class=\"notranslate\">isIncomplete = true</code>, as process_items is invoked on each character.</p>",
+                    "bodyText": "Thank you both for the replies.\nWhen using camelcase = false, the letters to type become Sta, which is indeed an improvement. The rust lsp apparently always returns isIncomplete = true, as process_items is invoked on each character.",
+                    "createdAt": "2025-05-02T13:23:08Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13014222,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxpTO",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-02T13:23:08Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12990137,
+                        "id": "DC_kwDOFoksYM4Axja5",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13014222",
+                    "updatedAt": "2025-05-02T13:23:09Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13014222"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137",
+            "updatedAt": "2025-04-30T08:30:37Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-12990137"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The latest `main` (after a9e4cb303ea6269ecab92c0276baf9d04370c492) should now work better in this case. Only on Neovim>=0.12, I am afraid, as it introduced `camelcase = false`. Plus there is also a [suggestion to add \"nosort\" in 'completeopt' together with \"fuzzy\"](https://github.com/echasnovski/mini.nvim/blob/a9e4cb303ea6269ecab92c0276baf9d04370c492/doc/mini-completion.txt#L88-L89). Thanks @glepnir for the hint!\r\n\r\nI think the initial reason for this \"Show and tell\" should be resolved, but this might still benefit from being open as it has non-trivial set up for using custom fuzzy matching algorithm. Although I do indeed find it perplexing to have two completion engines installed and used.",
+            "bodyHTML": "<p dir=\"auto\">The latest <code class=\"notranslate\">main</code> (after <a class=\"commit-link\" data-hovercard-type=\"commit\" data-hovercard-url=\"https://github.com/nvim-mini/mini.nvim/commit/a9e4cb303ea6269ecab92c0276baf9d04370c492/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/commit/a9e4cb303ea6269ecab92c0276baf9d04370c492\"><tt>a9e4cb3</tt></a>) should now work better in this case. Only on Neovim&gt;=0.12, I am afraid, as it introduced <code class=\"notranslate\">camelcase = false</code>. Plus there is also a <a href=\"https://github.com/echasnovski/mini.nvim/blob/a9e4cb303ea6269ecab92c0276baf9d04370c492/doc/mini-completion.txt#L88-L89\">suggestion to add \"nosort\" in 'completeopt' together with \"fuzzy\"</a>. Thanks <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/glepnir/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/glepnir\">@glepnir</a> for the hint!</p>\n<p dir=\"auto\">I think the initial reason for this \"Show and tell\" should be resolved, but this might still benefit from being open as it has non-trivial set up for using custom fuzzy matching algorithm. Although I do indeed find it perplexing to have two completion engines installed and used.</p>",
+            "bodyText": "The latest main (after a9e4cb3) should now work better in this case. Only on Neovim>=0.12, I am afraid, as it introduced camelcase = false. Plus there is also a suggestion to add \"nosort\" in 'completeopt' together with \"fuzzy\". Thanks @glepnir for the hint!\nI think the initial reason for this \"Show and tell\" should be resolved, but this might still benefit from being open as it has non-trivial set up for using custom fuzzy matching algorithm. Although I do indeed find it perplexing to have two completion engines installed and used.",
+            "createdAt": "2025-05-09T10:10:18Z",
+            "createdViaEmail": false,
+            "databaseId": 13087245,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Ax7IN",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-09T10:10:18Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... should now work better in this case.\r\n\r\nThanks! Very nice!\r\n\r\n> Although I do indeed find it perplexing to have two completion engines installed and used.\r\n\r\nYes, I understand. I consider this a proof of concept where the concept unfortunately is not very useful...).  I do still have `blink` installed to sometimes compare the completion results. \r\n\r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... should now work better in this case.</p>\n</blockquote>\n<p dir=\"auto\">Thanks! Very nice!</p>\n<blockquote>\n<p dir=\"auto\">Although I do indeed find it perplexing to have two completion engines installed and used.</p>\n</blockquote>\n<p dir=\"auto\">Yes, I understand. I consider this a proof of concept where the concept unfortunately is not very useful...).  I do still have <code class=\"notranslate\">blink</code> installed to sometimes compare the completion results.</p>",
+                    "bodyText": "... should now work better in this case.\n\nThanks! Very nice!\n\nAlthough I do indeed find it perplexing to have two completion engines installed and used.\n\nYes, I understand. I consider this a proof of concept where the concept unfortunately is not very useful...).  I do still have blink installed to sometimes compare the completion results.",
+                    "createdAt": "2025-05-09T14:53:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13092758,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ax8eW",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-09T14:53:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13087245,
+                        "id": "DC_kwDOFoksYM4Ax7IN",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13087245"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13092758",
+                    "updatedAt": "2025-05-09T14:53:08Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13092758"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13087245",
+            "updatedAt": "2025-05-09T10:10:18Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771#discussioncomment-13087245"
+        }
+    ],
+    "createdAt": "2025-04-30T07:51:11Z",
+    "createdViaEmail": false,
+    "databaseId": 8263521,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Afhdh",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1771,
+    "poll": null,
+    "publishedAt": "2025-04-30T07:51:11Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1771",
+    "stateReason": null,
+    "title": "[mini.completion] Fuzzy matching with blink.cmp algorithm",
+    "updatedAt": "2025-05-09T15:04:28Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1771"
+}

@@ -1,0 +1,545 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "### About\r\n\r\nhttps://github.com/user-attachments/assets/4b750896-e00e-4357-966d-b4fff2539008\r\n\r\nRelated:\r\n- [Reddit: Remove outer indentation with mini.indentscope](https://www.reddit.com/r/neovim/comments/1i8eyyq/remove_outer_indentation_with_miniindentscope)\r\n- [Neovim discussions: Show and Tell](https://github.com/neovim/neovim/discussions/34221)\r\n\r\n### Unscope\r\n\r\nThe most useful use case here is unscoping (deleting around a scope, `dS`). If you want to keep your config lightweight, just change your keymap to this:\r\n\r\n```lua\r\nvim.keymap.set(\"n\", \"grs\", function() -- dS\r\n  vim.cmd(\"sil norm \" .. string.rep(\"[i\", vim.v.count - 1) .. \"viiy']vaiopgv<\")\r\nend, { desc = \"Unscope\" })\r\n```\r\n\r\n### All-in\r\n\r\nSince Neovim doesn’t support multi-cursor editing or multiple independent selections, we can’t just select a range and let an operator handle everything at once. Each operation has to be implemented separately.\r\n\r\n<details><summary>Version 1</summary>\r\n\r\n```lua\r\nvim.keymap.set(\"o\", \"S\", function()\r\n  if not vim.list_contains({ \"d\", \"c\", \"y\", \"g@\" }, vim.v.operator) then\r\n    return\r\n  end\r\n\r\n  local scope = MiniIndentscope.get_scope(nil, math.huge)\r\n  for _ = 2, vim.v.count1 do\r\n    scope = MiniIndentscope.get_scope(scope.border.top, math.huge)\r\n  end\r\n\r\n  if scope.border.indent < 0 then\r\n    return\r\n  end\r\n\r\n  local change = function(from, to, with)\r\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, with)\r\n  end\r\n\r\n  local dedent = function(from, to)\r\n    local count = scope.body.indent - scope.border.indent\r\n    local lines = vim.api.nvim_buf_get_lines(0, from - 1, to, false)\r\n    for i, ln in ipairs(lines) do\r\n      local indent\r\n      indent = vim.fn.indent(from - 1 + i)\r\n      indent = math.max(0, indent - count)\r\n      lines[i] = vim.text.indent(indent, ln, { expandtab = 1 })\r\n    end\r\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, lines)\r\n  end\r\n\r\n  local select = function(from, to)\r\n    vim.api.nvim_win_set_cursor(0, { from, 0 })\r\n    vim.cmd(\"norm! V\")\r\n    vim.api.nvim_win_set_cursor(0, { to, 0 })\r\n  end\r\n\r\n  local border, body = scope.border, scope.body\r\n  local inner_lines = vim.api.nvim_buf_get_lines(0, body.top - 1, body.bottom, false)\r\n\r\n  if vim.list_contains({ \"y\", \"d\", \"c\" }, vim.v.operator) then\r\n    local copy = {}\r\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, border.top - 1, body.top - 1, false))\r\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, body.bottom, border.bottom, false))\r\n    -- NOTE: `setreg` doesn't work inside `vim.keymap.set(\"o\")`\r\n    vim.schedule(function()\r\n      vim.fn.setreg(vim.v.register, table.concat(copy, \"\\n\"), \"l\")\r\n    end)\r\n  end\r\n\r\n  if vim.v.operator == \"y\" then\r\n    return\r\n  end\r\n\r\n  if vim.v.operator == \"d\" then\r\n    change(border.top, border.bottom, inner_lines)\r\n    dedent(border.top, border.top + #inner_lines - 1)\r\n    -- HACK: defer cursor to avoid visual selection\r\n    vim.schedule(function()\r\n      MiniIndentscope.move_cursor(\"top\", true, scope)\r\n    end)\r\n  end\r\n\r\n  if vim.v.operator == \"c\" then\r\n    table.insert(inner_lines, 1, \"\")\r\n    change(border.top, border.bottom, inner_lines)\r\n    dedent(border.top + 1, border.top + #inner_lines - 1)\r\n    select(border.top, body.top - 1)\r\n  end\r\n\r\n  if vim.v.operator == \"g@\" then\r\n    require(\"vim._comment\").toggle_lines(border.top, body.top - 1)\r\n    require(\"vim._comment\").toggle_lines(body.bottom + 1, border.bottom)\r\n  end\r\nend, { desc = \"Border scope operator\" })\r\n```\r\n\r\n</details>\r\n\r\n<details open><summary>Version 2 (+fixes)</summary>\r\n\r\n```lua\r\nvim.keymap.set(\"o\", \"S\", function()\r\n  if not vim.list_contains({ \"d\", \"c\", \"y\", \"g@\" }, vim.v.operator) then\r\n    return\r\n  end\r\n  if vim.v.operator == 'g@' and not vim.o.operatorfunc:find(\"vim._comment\") then\r\n    return\r\n  end\r\n\r\n  local scope = MiniIndentscope.get_scope(nil, math.huge)\r\n  for _ = 2, vim.v.count1 do\r\n    scope = MiniIndentscope.get_scope(scope.border.top, math.huge)\r\n  end\r\n  if scope.border.indent < 0 then\r\n    return\r\n  end\r\n\r\n  local change = function(from, to, with)\r\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, with)\r\n  end\r\n  local dedent = function(from, to)\r\n    vim.cmd(string.format('silent %s,%s <', from, to))\r\n  end\r\n  local cursor = vim.api.nvim_win_get_cursor(0)\r\n  local select = function(from, to)\r\n    if from == false then\r\n      vim.api.nvim_win_set_cursor(0, cursor)\r\n      return\r\n    end\r\n    vim.api.nvim_win_set_cursor(0, { from, 0 })\r\n    vim.cmd [[norm! V]]\r\n    vim.api.nvim_win_set_cursor(0, { to, 0 })\r\n  end\r\n\r\n  local border, body = scope.border, scope.body\r\n  local inner_lines = vim.api.nvim_buf_get_lines(0, body.top - 1, body.bottom, false)\r\n\r\n  if vim.v.operator == \"g@\" then\r\n    require(\"vim._comment\").toggle_lines(border.top, body.top - 1)\r\n    require(\"vim._comment\").toggle_lines(body.bottom + 1, border.bottom)\r\n    return\r\n  end\r\n\r\n  if vim.list_contains({ \"y\", \"d\", \"c\" }, vim.v.operator) then\r\n    local copy = {}\r\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, border.top - 1, body.top - 1, false))\r\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, body.bottom, border.bottom, false))\r\n    -- NOTE: `setreg` doesn't work inside `vim.keymap.set(\"o\")`\r\n    vim.schedule(function()\r\n      vim.fn.setreg(vim.v.register, table.concat(copy, \"\\n\"), \"l\")\r\n    end)\r\n  end\r\n  if vim.v.operator == \"y\" then\r\n    return\r\n  end\r\n\r\n  if vim.v.operator == \"d\" then\r\n    change(border.top, border.bottom, inner_lines)\r\n    dedent(border.top, border.top + #inner_lines - 1)\r\n    select(false)\r\n    -- HACK: defer cursor to avoid visual selection\r\n    vim.schedule(function()\r\n      MiniIndentscope.move_cursor(\"top\", true, scope)\r\n    end)\r\n  end\r\n\r\n  if vim.v.operator == \"c\" then\r\n    table.insert(inner_lines, 1, \"\")\r\n    change(border.top, border.bottom, inner_lines)\r\n    dedent(border.top + 1, border.top + #inner_lines - 1)\r\n    select(border.top, body.top - 1)\r\n  end\r\nend, { desc = \"Border scope textobject\" })\r\n```\r\n\r\n</details>",
+    "bodyHTML": "<h3 dir=\"auto\">About</h3>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">mini-indent.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/119845045/478802994-4b750896-e00e-4357-966d-b4fff2539008.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NTMsIm5iZiI6MTc5MzU1MjU1MywicGF0aCI6Ii8xMTk4NDUwNDUvNDc4ODAyOTk0LTRiNzUwODk2LWUwMGUtNDM1Ny05NjZkLWI0ZmZmMjUzOTAwOC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wMjg1NGVlZWM5YzYyYWRjYzI0ZjRiNTI1NjVkZmM4NWE3MTdlZDJiYzI4ZTkwYjNjMWNmNTk3OWRmOGJkNmY0JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.E8dXfHvwDAlNTEdc7cgEizwJVBcQg_a9NVSSd9bjbxE\" data-canonical-src=\"https://private-user-images.githubusercontent.com/119845045/478802994-4b750896-e00e-4357-966d-b4fff2539008.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4NTMsIm5iZiI6MTc5MzU1MjU1MywicGF0aCI6Ii8xMTk4NDUwNDUvNDc4ODAyOTk0LTRiNzUwODk2LWUwMGUtNDM1Ny05NjZkLWI0ZmZmMjUzOTAwOC5tcDQ_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAyMzNaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wMjg1NGVlZWM5YzYyYWRjYzI0ZjRiNTI1NjVkZmM4NWE3MTdlZDJiYzI4ZTkwYjNjMWNmNTk3OWRmOGJkNmY0JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZtcDQifQ.E8dXfHvwDAlNTEdc7cgEizwJVBcQg_a9NVSSd9bjbxE\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">Related:</p>\n<ul dir=\"auto\">\n<li><a href=\"https://www.reddit.com/r/neovim/comments/1i8eyyq/remove_outer_indentation_with_miniindentscope\" rel=\"nofollow\">Reddit: Remove outer indentation with mini.indentscope</a></li>\n<li><a href=\"https://github.com/neovim/neovim/discussions/34221\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/neovim/neovim/discussions/34221/hovercard\">Neovim discussions: Show and Tell</a></li>\n</ul>\n<h3 dir=\"auto\">Unscope</h3>\n<p dir=\"auto\">The most useful use case here is unscoping (deleting around a scope, <code class=\"notranslate\">dS</code>). If you want to keep your config lightweight, just change your keymap to this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;n&quot;, &quot;grs&quot;, function() -- dS\n  vim.cmd(&quot;sil norm &quot; .. string.rep(&quot;[i&quot;, vim.v.count - 1) .. &quot;viiy']vaiopgv&lt;&quot;)\nend, { desc = &quot;Unscope&quot; })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>grs<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> dS</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>sil norm <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">string.rep</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">count</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>viiy']vaiopgv&lt;<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Unscope<span class=\"pl-pds\">\" </span></span>})</pre></div>\n<h3 dir=\"auto\">All-in</h3>\n<p dir=\"auto\">Since Neovim doesn’t support multi-cursor editing or multiple independent selections, we can’t just select a range and let an operator handle everything at once. Each operation has to be implemented separately.</p>\n<details><summary>Version 1</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;o&quot;, &quot;S&quot;, function()\n  if not vim.list_contains({ &quot;d&quot;, &quot;c&quot;, &quot;y&quot;, &quot;g@&quot; }, vim.v.operator) then\n    return\n  end\n\n  local scope = MiniIndentscope.get_scope(nil, math.huge)\n  for _ = 2, vim.v.count1 do\n    scope = MiniIndentscope.get_scope(scope.border.top, math.huge)\n  end\n\n  if scope.border.indent &lt; 0 then\n    return\n  end\n\n  local change = function(from, to, with)\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, with)\n  end\n\n  local dedent = function(from, to)\n    local count = scope.body.indent - scope.border.indent\n    local lines = vim.api.nvim_buf_get_lines(0, from - 1, to, false)\n    for i, ln in ipairs(lines) do\n      local indent\n      indent = vim.fn.indent(from - 1 + i)\n      indent = math.max(0, indent - count)\n      lines[i] = vim.text.indent(indent, ln, { expandtab = 1 })\n    end\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, lines)\n  end\n\n  local select = function(from, to)\n    vim.api.nvim_win_set_cursor(0, { from, 0 })\n    vim.cmd(&quot;norm! V&quot;)\n    vim.api.nvim_win_set_cursor(0, { to, 0 })\n  end\n\n  local border, body = scope.border, scope.body\n  local inner_lines = vim.api.nvim_buf_get_lines(0, body.top - 1, body.bottom, false)\n\n  if vim.list_contains({ &quot;y&quot;, &quot;d&quot;, &quot;c&quot; }, vim.v.operator) then\n    local copy = {}\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, border.top - 1, body.top - 1, false))\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, body.bottom, border.bottom, false))\n    -- NOTE: `setreg` doesn't work inside `vim.keymap.set(&quot;o&quot;)`\n    vim.schedule(function()\n      vim.fn.setreg(vim.v.register, table.concat(copy, &quot;\\n&quot;), &quot;l&quot;)\n    end)\n  end\n\n  if vim.v.operator == &quot;y&quot; then\n    return\n  end\n\n  if vim.v.operator == &quot;d&quot; then\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top, border.top + #inner_lines - 1)\n    -- HACK: defer cursor to avoid visual selection\n    vim.schedule(function()\n      MiniIndentscope.move_cursor(&quot;top&quot;, true, scope)\n    end)\n  end\n\n  if vim.v.operator == &quot;c&quot; then\n    table.insert(inner_lines, 1, &quot;&quot;)\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top + 1, border.top + #inner_lines - 1)\n    select(border.top, body.top - 1)\n  end\n\n  if vim.v.operator == &quot;g@&quot; then\n    require(&quot;vim._comment&quot;).toggle_lines(border.top, body.top - 1)\n    require(&quot;vim._comment&quot;).toggle_lines(body.bottom + 1, border.bottom)\n  end\nend, { desc = &quot;Border scope operator&quot; })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>S<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_contains</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>d<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>c<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>y<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g@<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniIndentscope</span>.<span class=\"pl-c1\">get_scope</span>(<span class=\"pl-c1\">nil</span>, <span class=\"pl-c1\">math.huge</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">count1</span> <span class=\"pl-k\">do</span>\n    <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniIndentscope</span>.<span class=\"pl-c1\">get_scope</span>(<span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-c1\">math.huge</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>.<span class=\"pl-e\">indent</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">change</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-smi\">with</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">from</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">with</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">dedent</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">count</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">body</span>.<span class=\"pl-e\">indent</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>.<span class=\"pl-e\">indent</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">from</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-c1\">false</span>)\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">ln</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">lines</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">indent</span>\n      <span class=\"pl-smi\">indent</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">indent</span>(<span class=\"pl-smi\">from</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">i</span>)\n      <span class=\"pl-smi\">indent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">indent</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">count</span>)\n      <span class=\"pl-smi\">lines</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">text</span>.<span class=\"pl-c1\">indent</span>(<span class=\"pl-smi\">indent</span>, <span class=\"pl-smi\">ln</span>, { <span class=\"pl-smi\">expandtab</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">from</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">lines</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">select</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">from</span>, <span class=\"pl-c1\">0</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>norm! V<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">to</span>, <span class=\"pl-c1\">0</span> })\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">border</span>, <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>, <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">body</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">inner_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-c1\">false</span>)\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_contains</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>y<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>d<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>c<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">copy</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">copy</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>))\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">copy</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-c1\">false</span>))\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: `setreg` doesn't work inside `vim.keymap.set(\"o\")`</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">setreg</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">register</span>, <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">copy</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>y<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>d<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">change</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-smi\">inner_lines</span>)\n    <span class=\"pl-c1\">dedent</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">inner_lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> HACK: defer cursor to avoid visual selection</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">MiniIndentscope</span>.<span class=\"pl-c1\">move_cursor</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>top<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">scope</span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>c<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">inner_lines</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-c1\">change</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-smi\">inner_lines</span>)\n    <span class=\"pl-c1\">dedent</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">inner_lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-c1\">select</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g@<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim._comment<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">toggle_lines</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim._comment<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">toggle_lines</span>(<span class=\"pl-smi\">body</span>.<span class=\"pl-e\">bottom</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Border scope operator<span class=\"pl-pds\">\" </span></span>})</pre></div>\n</details>\n<details open=\"\"><summary>Version 2 (+fixes)</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;o&quot;, &quot;S&quot;, function()\n  if not vim.list_contains({ &quot;d&quot;, &quot;c&quot;, &quot;y&quot;, &quot;g@&quot; }, vim.v.operator) then\n    return\n  end\n  if vim.v.operator == 'g@' and not vim.o.operatorfunc:find(&quot;vim._comment&quot;) then\n    return\n  end\n\n  local scope = MiniIndentscope.get_scope(nil, math.huge)\n  for _ = 2, vim.v.count1 do\n    scope = MiniIndentscope.get_scope(scope.border.top, math.huge)\n  end\n  if scope.border.indent &lt; 0 then\n    return\n  end\n\n  local change = function(from, to, with)\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, with)\n  end\n  local dedent = function(from, to)\n    vim.cmd(string.format('silent %s,%s &lt;', from, to))\n  end\n  local cursor = vim.api.nvim_win_get_cursor(0)\n  local select = function(from, to)\n    if from == false then\n      vim.api.nvim_win_set_cursor(0, cursor)\n      return\n    end\n    vim.api.nvim_win_set_cursor(0, { from, 0 })\n    vim.cmd [[norm! V]]\n    vim.api.nvim_win_set_cursor(0, { to, 0 })\n  end\n\n  local border, body = scope.border, scope.body\n  local inner_lines = vim.api.nvim_buf_get_lines(0, body.top - 1, body.bottom, false)\n\n  if vim.v.operator == &quot;g@&quot; then\n    require(&quot;vim._comment&quot;).toggle_lines(border.top, body.top - 1)\n    require(&quot;vim._comment&quot;).toggle_lines(body.bottom + 1, border.bottom)\n    return\n  end\n\n  if vim.list_contains({ &quot;y&quot;, &quot;d&quot;, &quot;c&quot; }, vim.v.operator) then\n    local copy = {}\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, border.top - 1, body.top - 1, false))\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, body.bottom, border.bottom, false))\n    -- NOTE: `setreg` doesn't work inside `vim.keymap.set(&quot;o&quot;)`\n    vim.schedule(function()\n      vim.fn.setreg(vim.v.register, table.concat(copy, &quot;\\n&quot;), &quot;l&quot;)\n    end)\n  end\n  if vim.v.operator == &quot;y&quot; then\n    return\n  end\n\n  if vim.v.operator == &quot;d&quot; then\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top, border.top + #inner_lines - 1)\n    select(false)\n    -- HACK: defer cursor to avoid visual selection\n    vim.schedule(function()\n      MiniIndentscope.move_cursor(&quot;top&quot;, true, scope)\n    end)\n  end\n\n  if vim.v.operator == &quot;c&quot; then\n    table.insert(inner_lines, 1, &quot;&quot;)\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top + 1, border.top + #inner_lines - 1)\n    select(border.top, body.top - 1)\n  end\nend, { desc = &quot;Border scope textobject&quot; })\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>o<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>S<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_contains</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>d<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>c<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>y<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g@<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>g@<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-en\">operatorfunc</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim._comment<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniIndentscope</span>.<span class=\"pl-c1\">get_scope</span>(<span class=\"pl-c1\">nil</span>, <span class=\"pl-c1\">math.huge</span>)\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">count1</span> <span class=\"pl-k\">do</span>\n    <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniIndentscope</span>.<span class=\"pl-c1\">get_scope</span>(<span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-c1\">math.huge</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>.<span class=\"pl-e\">indent</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">change</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-smi\">with</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">from</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">with</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">dedent</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>silent %s,%s &lt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>))\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cursor</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-c1\">0</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">select</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">from</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">cursor</span>)\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">from</span>, <span class=\"pl-c1\">0</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>norm! V<span class=\"pl-pds\">]]</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">to</span>, <span class=\"pl-c1\">0</span> })\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">border</span>, <span class=\"pl-smi\">body</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">border</span>, <span class=\"pl-smi\">scope</span>.<span class=\"pl-e\">body</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">inner_lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-c1\">false</span>)\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>g@<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim._comment<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">toggle_lines</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vim._comment<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">toggle_lines</span>(<span class=\"pl-smi\">body</span>.<span class=\"pl-e\">bottom</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_contains</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>y<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>d<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>c<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span>) <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">copy</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">copy</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>))\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_extend</span>(<span class=\"pl-smi\">copy</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-c1\">false</span>))\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: `setreg` doesn't work inside `vim.keymap.set(\"o\")`</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">setreg</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">register</span>, <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">copy</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>l<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>y<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>d<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">change</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-smi\">inner_lines</span>)\n    <span class=\"pl-c1\">dedent</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">inner_lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">false</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> HACK: defer cursor to avoid visual selection</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">MiniIndentscope</span>.<span class=\"pl-c1\">move_cursor</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>top<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">scope</span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">operator</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>c<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">inner_lines</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-c1\">change</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">bottom</span>, <span class=\"pl-smi\">inner_lines</span>)\n    <span class=\"pl-c1\">dedent</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">inner_lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n    <span class=\"pl-c1\">select</span>(<span class=\"pl-smi\">border</span>.<span class=\"pl-e\">top</span>, <span class=\"pl-smi\">body</span>.<span class=\"pl-e\">top</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Border scope textobject<span class=\"pl-pds\">\" </span></span>})</pre></div>\n</details>",
+    "bodyText": "About\n\n  \n    \n    \n\n    mini-indent.mp4\n    \n  \n\n  \n\n  \n\n\nRelated:\n\nReddit: Remove outer indentation with mini.indentscope\nNeovim discussions: Show and Tell\n\nUnscope\nThe most useful use case here is unscoping (deleting around a scope, dS). If you want to keep your config lightweight, just change your keymap to this:\nvim.keymap.set(\"n\", \"grs\", function() -- dS\n  vim.cmd(\"sil norm \" .. string.rep(\"[i\", vim.v.count - 1) .. \"viiy']vaiopgv<\")\nend, { desc = \"Unscope\" })\nAll-in\nSince Neovim doesn’t support multi-cursor editing or multiple independent selections, we can’t just select a range and let an operator handle everything at once. Each operation has to be implemented separately.\nVersion 1\nvim.keymap.set(\"o\", \"S\", function()\n  if not vim.list_contains({ \"d\", \"c\", \"y\", \"g@\" }, vim.v.operator) then\n    return\n  end\n\n  local scope = MiniIndentscope.get_scope(nil, math.huge)\n  for _ = 2, vim.v.count1 do\n    scope = MiniIndentscope.get_scope(scope.border.top, math.huge)\n  end\n\n  if scope.border.indent < 0 then\n    return\n  end\n\n  local change = function(from, to, with)\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, with)\n  end\n\n  local dedent = function(from, to)\n    local count = scope.body.indent - scope.border.indent\n    local lines = vim.api.nvim_buf_get_lines(0, from - 1, to, false)\n    for i, ln in ipairs(lines) do\n      local indent\n      indent = vim.fn.indent(from - 1 + i)\n      indent = math.max(0, indent - count)\n      lines[i] = vim.text.indent(indent, ln, { expandtab = 1 })\n    end\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, lines)\n  end\n\n  local select = function(from, to)\n    vim.api.nvim_win_set_cursor(0, { from, 0 })\n    vim.cmd(\"norm! V\")\n    vim.api.nvim_win_set_cursor(0, { to, 0 })\n  end\n\n  local border, body = scope.border, scope.body\n  local inner_lines = vim.api.nvim_buf_get_lines(0, body.top - 1, body.bottom, false)\n\n  if vim.list_contains({ \"y\", \"d\", \"c\" }, vim.v.operator) then\n    local copy = {}\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, border.top - 1, body.top - 1, false))\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, body.bottom, border.bottom, false))\n    -- NOTE: `setreg` doesn't work inside `vim.keymap.set(\"o\")`\n    vim.schedule(function()\n      vim.fn.setreg(vim.v.register, table.concat(copy, \"\\n\"), \"l\")\n    end)\n  end\n\n  if vim.v.operator == \"y\" then\n    return\n  end\n\n  if vim.v.operator == \"d\" then\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top, border.top + #inner_lines - 1)\n    -- HACK: defer cursor to avoid visual selection\n    vim.schedule(function()\n      MiniIndentscope.move_cursor(\"top\", true, scope)\n    end)\n  end\n\n  if vim.v.operator == \"c\" then\n    table.insert(inner_lines, 1, \"\")\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top + 1, border.top + #inner_lines - 1)\n    select(border.top, body.top - 1)\n  end\n\n  if vim.v.operator == \"g@\" then\n    require(\"vim._comment\").toggle_lines(border.top, body.top - 1)\n    require(\"vim._comment\").toggle_lines(body.bottom + 1, border.bottom)\n  end\nend, { desc = \"Border scope operator\" })\n\nVersion 2 (+fixes)\nvim.keymap.set(\"o\", \"S\", function()\n  if not vim.list_contains({ \"d\", \"c\", \"y\", \"g@\" }, vim.v.operator) then\n    return\n  end\n  if vim.v.operator == 'g@' and not vim.o.operatorfunc:find(\"vim._comment\") then\n    return\n  end\n\n  local scope = MiniIndentscope.get_scope(nil, math.huge)\n  for _ = 2, vim.v.count1 do\n    scope = MiniIndentscope.get_scope(scope.border.top, math.huge)\n  end\n  if scope.border.indent < 0 then\n    return\n  end\n\n  local change = function(from, to, with)\n    vim.api.nvim_buf_set_lines(0, from - 1, to, false, with)\n  end\n  local dedent = function(from, to)\n    vim.cmd(string.format('silent %s,%s <', from, to))\n  end\n  local cursor = vim.api.nvim_win_get_cursor(0)\n  local select = function(from, to)\n    if from == false then\n      vim.api.nvim_win_set_cursor(0, cursor)\n      return\n    end\n    vim.api.nvim_win_set_cursor(0, { from, 0 })\n    vim.cmd [[norm! V]]\n    vim.api.nvim_win_set_cursor(0, { to, 0 })\n  end\n\n  local border, body = scope.border, scope.body\n  local inner_lines = vim.api.nvim_buf_get_lines(0, body.top - 1, body.bottom, false)\n\n  if vim.v.operator == \"g@\" then\n    require(\"vim._comment\").toggle_lines(border.top, body.top - 1)\n    require(\"vim._comment\").toggle_lines(body.bottom + 1, border.bottom)\n    return\n  end\n\n  if vim.list_contains({ \"y\", \"d\", \"c\" }, vim.v.operator) then\n    local copy = {}\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, border.top - 1, body.top - 1, false))\n    vim.list_extend(copy, vim.api.nvim_buf_get_lines(0, body.bottom, border.bottom, false))\n    -- NOTE: `setreg` doesn't work inside `vim.keymap.set(\"o\")`\n    vim.schedule(function()\n      vim.fn.setreg(vim.v.register, table.concat(copy, \"\\n\"), \"l\")\n    end)\n  end\n  if vim.v.operator == \"y\" then\n    return\n  end\n\n  if vim.v.operator == \"d\" then\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top, border.top + #inner_lines - 1)\n    select(false)\n    -- HACK: defer cursor to avoid visual selection\n    vim.schedule(function()\n      MiniIndentscope.move_cursor(\"top\", true, scope)\n    end)\n  end\n\n  if vim.v.operator == \"c\" then\n    table.insert(inner_lines, 1, \"\")\n    change(border.top, border.bottom, inner_lines)\n    dedent(border.top + 1, border.top + #inner_lines - 1)\n    select(border.top, body.top - 1)\n  end\nend, { desc = \"Border scope textobject\" })",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing. There are couple of issues I noticed:\r\n- The `dedent` function will force replace tab indentation into spaces. This is usually a big issue. An alternative is to manually compute target indent space based on the actual leading whitespace. Or use `:<` command (as [done in 'mini.surround'](https://github.com/echasnovski/mini.nvim/blob/5d938b3a078a7eeae23ba9f04f180066ab8bd9ef/lua/mini/surround.lua#L2090-L2093)).\r\n- The `vim.v.operator == \"g@\"` check is true for *any* custom operator, not only `gc`. One way to hard-code the action only for specific operator is to [check 'operatorfunc'](https://github.com/echasnovski/mini.nvim/blob/5d938b3a078a7eeae23ba9f04f180066ab8bd9ef/lua/mini/ai.lua#L1094-L1095), but that might be brittle.\r\n- The \"o\" (Operator-pending) mode mappings do not represent operators. They are motions (acts from cursor to some place; usually also work in Normal and Visual mode) or textobjects (computes and selects a region regardless of the cursor position). So the better description is \"Border scope textobjet\".",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing. There are couple of issues I noticed:</p>\n<ul dir=\"auto\">\n<li>The <code class=\"notranslate\">dedent</code> function will force replace tab indentation into spaces. This is usually a big issue. An alternative is to manually compute target indent space based on the actual leading whitespace. Or use <code class=\"notranslate\">:&lt;</code> command (as <a href=\"https://github.com/echasnovski/mini.nvim/blob/5d938b3a078a7eeae23ba9f04f180066ab8bd9ef/lua/mini/surround.lua#L2090-L2093\">done in 'mini.surround'</a>).</li>\n<li>The <code class=\"notranslate\">vim.v.operator == \"g@\"</code> check is true for <em>any</em> custom operator, not only <code class=\"notranslate\">gc</code>. One way to hard-code the action only for specific operator is to <a href=\"https://github.com/echasnovski/mini.nvim/blob/5d938b3a078a7eeae23ba9f04f180066ab8bd9ef/lua/mini/ai.lua#L1094-L1095\">check 'operatorfunc'</a>, but that might be brittle.</li>\n<li>The \"o\" (Operator-pending) mode mappings do not represent operators. They are motions (acts from cursor to some place; usually also work in Normal and Visual mode) or textobjects (computes and selects a region regardless of the cursor position). So the better description is \"Border scope textobjet\".</li>\n</ul>",
+            "bodyText": "Thanks for sharing. There are couple of issues I noticed:\n\nThe dedent function will force replace tab indentation into spaces. This is usually a big issue. An alternative is to manually compute target indent space based on the actual leading whitespace. Or use :< command (as done in 'mini.surround').\nThe vim.v.operator == \"g@\" check is true for any custom operator, not only gc. One way to hard-code the action only for specific operator is to check 'operatorfunc', but that might be brittle.\nThe \"o\" (Operator-pending) mode mappings do not represent operators. They are motions (acts from cursor to some place; usually also work in Normal and Visual mode) or textobjects (computes and selects a region regardless of the cursor position). So the better description is \"Border scope textobjet\".",
+            "createdAt": "2025-08-18T09:49:24Z",
+            "createdViaEmail": false,
+            "databaseId": 14138907,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A174b",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-08-18T09:49:24Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thank you for the feedback, I always appreciate it.\r\n\r\n~~I’ve used `<` to dedent before, and it works well, but it moves the cursor (which isn’t a big deal since it can be restored) and also changes the cursor position in a way that prevents `u` from bringing me back to the previous spot after undo.~~ Your shift function works in a different way.\r\n\r\nAlso, thanks for pointing out 2 and 3.\r\n\r\nYour codebase is always a great source of inspiration and good practices 😆",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for the feedback, I always appreciate it.</p>\n<p dir=\"auto\"><del>I’ve used <code class=\"notranslate\">&lt;</code> to dedent before, and it works well, but it moves the cursor (which isn’t a big deal since it can be restored) and also changes the cursor position in a way that prevents <code class=\"notranslate\">u</code> from bringing me back to the previous spot after undo.</del> Your shift function works in a different way.</p>\n<p dir=\"auto\">Also, thanks for pointing out 2 and 3.</p>\n<p dir=\"auto\">Your codebase is always a great source of inspiration and good practices 😆</p>",
+                    "bodyText": "Thank you for the feedback, I always appreciate it.\nI’ve used < to dedent before, and it works well, but it moves the cursor (which isn’t a big deal since it can be restored) and also changes the cursor position in a way that prevents u from bringing me back to the previous spot after undo. Your shift function works in a different way.\nAlso, thanks for pointing out 2 and 3.\nYour codebase is always a great source of inspiration and good practices 😆",
+                    "createdAt": "2025-08-18T10:52:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14139403,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A18AL",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-08-18T14:50:23Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-08-18T10:52:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14138907,
+                        "id": "DC_kwDOFoksYM4A174b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14138907"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14139403",
+                    "updatedAt": "2025-08-18T14:50:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14139403"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Honestly, I only use it for unscoping (`dS`), so rather than having such a long keymap, it makes more sense to keep it simple:\r\n\r\n```lua\r\nvim.keymap.set(\"n\", \"grs\", function()\r\n  vim.cmd(\"sil norm \" .. string.rep(\"[i\", vim.v.count - 1) .. \"viiy']vaiopgv<\")\r\nend , {})\r\n```\r\n\r\nI also tried using an `expr` keymap, but it triggers highlighting with `vim.hl.on_yank()` and internally respects `v:count`, which can be a bit misleading in this case.",
+                    "bodyHTML": "<p dir=\"auto\">Honestly, I only use it for unscoping (<code class=\"notranslate\">dS</code>), so rather than having such a long keymap, it makes more sense to keep it simple:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set(&quot;n&quot;, &quot;grs&quot;, function()\n  vim.cmd(&quot;sil norm &quot; .. string.rep(&quot;[i&quot;, vim.v.count - 1) .. &quot;viiy']vaiopgv&lt;&quot;)\nend , {})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>grs<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>sil norm <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">string.rep</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[i<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">count</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>viiy']vaiopgv&lt;<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span> , {})</pre></div>\n<p dir=\"auto\">I also tried using an <code class=\"notranslate\">expr</code> keymap, but it triggers highlighting with <code class=\"notranslate\">vim.hl.on_yank()</code> and internally respects <code class=\"notranslate\">v:count</code>, which can be a bit misleading in this case.</p>",
+                    "bodyText": "Honestly, I only use it for unscoping (dS), so rather than having such a long keymap, it makes more sense to keep it simple:\nvim.keymap.set(\"n\", \"grs\", function()\n  vim.cmd(\"sil norm \" .. string.rep(\"[i\", vim.v.count - 1) .. \"viiy']vaiopgv<\")\nend , {})\nI also tried using an expr keymap, but it triggers highlighting with vim.hl.on_yank() and internally respects v:count, which can be a bit misleading in this case.",
+                    "createdAt": "2025-11-16T09:34:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14980567,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5JXX",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-11-17T19:27:05Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-16T09:34:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14138907,
+                        "id": "DC_kwDOFoksYM4A174b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14138907"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14980567",
+                    "updatedAt": "2025-11-17T19:27:05Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14980567"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "If this keymap got a little reworked, I think it’d be a good fit for MinMax.",
+                    "bodyHTML": "<p dir=\"auto\">If this keymap got a little reworked, I think it’d be a good fit for MinMax.</p>",
+                    "bodyText": "If this keymap got a little reworked, I think it’d be a good fit for MinMax.",
+                    "createdAt": "2025-11-16T16:24:22Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14982260,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A5Jx0",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-11-16T16:25:08Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-16T16:24:22Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14138907,
+                        "id": "DC_kwDOFoksYM4A174b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14138907"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14982260",
+                    "updatedAt": "2025-11-16T16:25:08Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14982260"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> If this keymap got a little reworked, I think it’d be a good fit for MinMax.\r\n\r\nNo, sorry, I don't think so. It might be useful sometimes, but (at least for me) it doesn't come close to \"move argument left-right\" (which are the only mappings that don't directly come from 'mini.nvim' module).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">If this keymap got a little reworked, I think it’d be a good fit for MinMax.</p>\n</blockquote>\n<p dir=\"auto\">No, sorry, I don't think so. It might be useful sometimes, but (at least for me) it doesn't come close to \"move argument left-right\" (which are the only mappings that don't directly come from 'mini.nvim' module).</p>",
+                    "bodyText": "If this keymap got a little reworked, I think it’d be a good fit for MinMax.\n\nNo, sorry, I don't think so. It might be useful sometimes, but (at least for me) it doesn't come close to \"move argument left-right\" (which are the only mappings that don't directly come from 'mini.nvim' module).",
+                    "createdAt": "2025-11-16T16:43:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14982362,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A5Jza",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-11-16T16:43:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14138907,
+                        "id": "DC_kwDOFoksYM4A174b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14138907"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14982362",
+                    "updatedAt": "2025-11-16T16:43:48Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14982362"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14138907",
+            "updatedAt": "2025-08-18T09:49:24Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951#discussioncomment-14138907"
+        }
+    ],
+    "createdAt": "2025-08-17T20:01:09Z",
+    "createdViaEmail": false,
+    "databaseId": 8748309,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AhX0V",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7jpP9L",
+                "name": "mini.indentscope"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-11-16T17:01:46Z",
+    "locked": false,
+    "number": 1951,
+    "poll": null,
+    "publishedAt": "2025-08-17T20:01:09Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1951",
+    "stateReason": null,
+    "title": "Unscope: delete/change/yank around indentation scope",
+    "updatedAt": "2025-11-16T17:01:46Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1951"
+}

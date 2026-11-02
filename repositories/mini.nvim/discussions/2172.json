@@ -1,0 +1,463 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/61903799?u=b7c9ce118d960178c5a323a82a6955a1a5e244d2&v=4",
+        "login": "Vsein",
+        "resourcePath": "/Vsein",
+        "url": "https://github.com/Vsein"
+    },
+    "authorAssociation": "NONE",
+    "body": "Initially [posted on reddit](https://www.reddit.com/r/neovim/comments/1pmallh/a_small_wrapper_function_for_minijump2d_that/), posted here by @echasnovski's suggesion\r\n\r\nRelated: #1818\r\n\r\nFeatures:\r\n\r\n- [x] Perform an action and return: copy Words `;y`, words `;w`, lines `yl`, paragraphs `yp`, contents of parenthesis `;(`, quotes `;'` `;\"`, brackets `;{` `;[` , also things like delete a paragraph `dp`\r\n- [x] Perform an action and stay: change a Word `;c` \r\n- [x] Complicated actions: delete current N line(s), replace with N lines starting from a hinted line `rl`\r\n- [x] (optionally) some bindings may take counts (i.e. yank multiple lines from a distance), adjusted with `repeatable = true`\r\n- [x] The jump doesn't make the cursor flicker from one place to another\r\n\r\nEasily extendable for any remote operations, just come up with keymaps that don't conflict with your existing ones\r\n\r\nKnown issues:\r\n\r\n- [ ] Since jumping back in my function depends on marks, if you delete the line that you were at, the jump breaks and you stay at a new place\r\n- [ ] If you have two tabs open of the same file, the jump back won't happen\r\n- [ ] Sometimes copying contents of ' \" [ ( doesn't work as expected, because of unclosed brackets\r\n\r\n\r\nhttps://github.com/user-attachments/assets/f116085f-5dfc-4757-9aa6-dc46aeb92ff1\r\n\r\nThe contents of [this](https://gist.github.com/Vsein/ac7f4615a4042d3f79d5a03be65429de) gist:\r\n```lua\r\n{ -- A sample lazy.nvim import, modify if you use a different plugin manager\r\n  'nvim-mini/mini.nvim',\r\n  -- 'echasnovski/mini.nvim', -- if you haven't migrated to the new path yet\r\n  config = function()\r\n\r\n    -- Setup and settings which play well with the extended functionality\r\n    require('mini.jump2d').setup {\r\n      view = {\r\n        n_steps_ahead = 3,\r\n      },\r\n      allowed_lines = {\r\n        blank = false,\r\n      },\r\n    }\r\n\r\n    -- The function itself, copy only the below part if you already have mini.jump2d configured\r\n    local custom_2d_jump = function(opts)\r\n      vim.opt.scrolloff = 0\r\n      local count = opts.repeatable and vim.v.count1 or 1\r\n      if opts.preaction then\r\n        vim.cmd('normal! ' .. count .. opts.preaction)\r\n      end\r\n      if opts.mark then\r\n        vim.cmd('normal! m' .. opts.mark)\r\n      end\r\n      local bufnr = vim.api.nvim_get_current_buf()\r\n      MiniJump2d.start {\r\n        labels = opts.homerow and 'asdfghjkl' or 'alksdjfgheivbcmnopqrtuwxyz',\r\n        spotter = opts.spotter,\r\n        hooks = {\r\n          after_jump = function()\r\n            if opts.end_in_insert then\r\n              vim.api.nvim_feedkeys(count .. opts.action, 'n', true)\r\n            else\r\n              if opts.norepeat_action then\r\n                vim.cmd('normal! ' .. opts.norepeat_action)\r\n              end\r\n              vim.cmd('normal! ' .. count .. opts.action)\r\n              if opts.action2 then\r\n                vim.cmd('normal! ' .. count .. opts.action2)\r\n              end\r\n              if opts.mark then\r\n                local cur_bufnr = vim.api.nvim_get_current_buf()\r\n                if cur_bufnr ~= bufnr then\r\n                  local keys = vim.api.nvim_replace_termcodes('<C-w><C-p>', true, false, true)\r\n                  vim.api.nvim_feedkeys(keys, 'n', true)\r\n                else\r\n                  vim.cmd('normal! `' .. opts.mark)\r\n                  if opts.afteraction then\r\n                    vim.cmd('normal! ' .. opts.afteraction)\r\n                  end\r\n                end\r\n              end\r\n            end\r\n            vim.opt.scrolloff = 10\r\n          end,\r\n        },\r\n      }\r\n    end\r\n\r\n    -- Here are various uses that I thought of, ordered by my subjective perception of\r\n    -- their usefuleness/complexity, modify keybindings as you see fit\r\n\r\n    -- Oh and btw, you can make a function take a count, you'll see how it can be useful\r\n    -- Those functions are set up with `repeatable = true`\r\n\r\n    -- Copying a Word (yiW) without moving your cursor there\r\n    -- I use this at least every hour\r\n    vim.keymap.set('n', ';y', function()\r\n      custom_2d_jump {\r\n        mark = 'w',\r\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s][^%s]+',\r\n        action = 'yiW',\r\n      }\r\n    end)\r\n\r\n    -- Yank an entire line (see how counts may come in handy?)\r\n    vim.keymap.set('n', 'yl', function()\r\n      custom_2d_jump {\r\n        mark = 'l',\r\n        repeatable = true,\r\n        homerow = true,\r\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\r\n        action = 'yy',\r\n      }\r\n    end)\r\n\r\n    -- Yank a paragraph\r\n    vim.keymap.set('n', 'yp', function()\r\n      custom_2d_jump {\r\n        mark = 'p',\r\n        repeatable = true,\r\n        homerow = true,\r\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\r\n        action = 'yip',\r\n      }\r\n    end)\r\n\r\n    -- Yank a word (yiw)\r\n    vim.keymap.set('n', ';w', function()\r\n      custom_2d_jump {\r\n        mark = 'w',\r\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s%p]+',\r\n        action = 'yiw',\r\n      }\r\n    end)\r\n\r\n    -- Below is just a bunch of functions for yanking contents of parenthesis/brackets/quotes\r\n\r\n    vim.keymap.set('n', \";'\", function()\r\n      custom_2d_jump {\r\n        mark = 'q',\r\n        spotter = MiniJump2d.gen_spotter.pattern \"'.[^']\",\r\n        action = \"yi'\",\r\n      }\r\n    end)\r\n\r\n    vim.keymap.set('n', ';\"', function()\r\n      custom_2d_jump {\r\n        mark = 'q',\r\n        spotter = MiniJump2d.gen_spotter.pattern '\".[^\"]',\r\n        action = 'yi\"',\r\n      }\r\n    end)\r\n\r\n    vim.keymap.set('n', ';(', function()\r\n      custom_2d_jump {\r\n        mark = 'b',\r\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%(', MiniJump2d.gen_spotter.pattern '%)'),\r\n        action = 'yi(',\r\n      }\r\n    end)\r\n\r\n    vim.keymap.set('n', ';{', function()\r\n      custom_2d_jump {\r\n        mark = 'c',\r\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%{', MiniJump2d.gen_spotter.pattern '%}'),\r\n        action = 'yi{',\r\n      }\r\n    end)\r\n\r\n    vim.keymap.set('n', ';[', function()\r\n      custom_2d_jump {\r\n        mark = 'b',\r\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%[', MiniJump2d.gen_spotter.pattern '%]'),\r\n        action = 'yi[',\r\n      }\r\n    end)\r\n\r\n    -- Keymaps below are for changing stuff\r\n\r\n    -- Jump and do ciW on a word\r\n    vim.keymap.set('n', ';c', function()\r\n      custom_2d_jump {\r\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s][^%s]+',\r\n        action = 'ciW',\r\n        end_in_insert = true,\r\n      }\r\n    end)\r\n\r\n   -- Delete a paragraph\r\n    vim.keymap.set('n', 'dp', function()\r\n      custom_2d_jump {\r\n        mark = 'd',\r\n        repeatable = true,\r\n        homerow = true,\r\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\r\n        action = 'dip',\r\n      }\r\n    end)\r\n\r\n    -- This here is for changing the line you currently hover at,\r\n    -- with a line that you jump to. And then return to where you were in the first place\r\n    --\r\n    -- Somewhat complicated, I know, but I hope it helps you come up with a\r\n    -- useful keymap or two that you're tired of typing out manually :)\r\n    vim.keymap.set('n', 'rl', function()\r\n      custom_2d_jump {\r\n        mark = 'l',\r\n        repeatable = true,\r\n        homerow = true,\r\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\r\n        preaction = 'dd',\r\n        norepeat_action = 'P',\r\n        action = 'j',\r\n        action2 = 'dd',\r\n        afteraction = 'P',\r\n      }\r\n    end)\r\n  end,\r\n}\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Initially <a href=\"https://www.reddit.com/r/neovim/comments/1pmallh/a_small_wrapper_function_for_minijump2d_that/\" rel=\"nofollow\">posted on reddit</a>, posted here by <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>'s suggesion</p>\n<p dir=\"auto\">Related: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a></p>\n<p dir=\"auto\">Features:</p>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Perform an action and return: copy Words <code class=\"notranslate\">;y</code>, words <code class=\"notranslate\">;w</code>, lines <code class=\"notranslate\">yl</code>, paragraphs <code class=\"notranslate\">yp</code>, contents of parenthesis <code class=\"notranslate\">;(</code>, quotes <code class=\"notranslate\">;'</code> <code class=\"notranslate\">;\"</code>, brackets <code class=\"notranslate\">;{</code> <code class=\"notranslate\">;[</code> , also things like delete a paragraph <code class=\"notranslate\">dp</code></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Perform an action and stay: change a Word <code class=\"notranslate\">;c</code></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Complicated actions: delete current N line(s), replace with N lines starting from a hinted line <code class=\"notranslate\">rl</code></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> (optionally) some bindings may take counts (i.e. yank multiple lines from a distance), adjusted with <code class=\"notranslate\">repeatable = true</code></li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> The jump doesn't make the cursor flicker from one place to another</li>\n</ul>\n<p dir=\"auto\">Easily extendable for any remote operations, just come up with keymaps that don't conflict with your existing ones</p>\n<p dir=\"auto\">Known issues:</p>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Incomplete task\"> Since jumping back in my function depends on marks, if you delete the line that you were at, the jump breaks and you stay at a new place</li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Incomplete task\"> If you have two tabs open of the same file, the jump back won't happen</li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Incomplete task\"> Sometimes copying contents of ' \" [ ( doesn't work as expected, because of unclosed brackets</li>\n</ul>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">mini-jump2d_remote-operations.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/61903799/526305864-f116085f-5dfc-4757-9aa6-dc46aeb92ff1.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjQsIm5iZiI6MTc5MzU1MjUyNCwicGF0aCI6Ii82MTkwMzc5OS81MjYzMDU4NjQtZjExNjA4NWYtNWRmYy00NzU3LTlhYTYtZGM0NmFlYjkyZmYxLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDIwNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTZiYjIyYWM1YmVlYjlmNjEwNDU1MjFlNjM5OWMyYzAxNWM0NWE4ZjFlYzNkMDY4YzliYzU0ODQyZjQ5NmZmNzkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.tXN49cWSjWXMDIf2en_U507RjAYn-W4tJCbH8p0P3_Y\" data-canonical-src=\"https://private-user-images.githubusercontent.com/61903799/526305864-f116085f-5dfc-4757-9aa6-dc46aeb92ff1.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MjQsIm5iZiI6MTc5MzU1MjUyNCwicGF0aCI6Ii82MTkwMzc5OS81MjYzMDU4NjQtZjExNjA4NWYtNWRmYy00NzU3LTlhYTYtZGM0NmFlYjkyZmYxLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDIwNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTZiYjIyYWM1YmVlYjlmNjEwNDU1MjFlNjM5OWMyYzAxNWM0NWE4ZjFlYzNkMDY4YzliYzU0ODQyZjQ5NmZmNzkmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.tXN49cWSjWXMDIf2en_U507RjAYn-W4tJCbH8p0P3_Y\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">The contents of <a href=\"https://gist.github.com/Vsein/ac7f4615a4042d3f79d5a03be65429de\">this</a> gist:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{ -- A sample lazy.nvim import, modify if you use a different plugin manager\n  'nvim-mini/mini.nvim',\n  -- 'echasnovski/mini.nvim', -- if you haven't migrated to the new path yet\n  config = function()\n\n    -- Setup and settings which play well with the extended functionality\n    require('mini.jump2d').setup {\n      view = {\n        n_steps_ahead = 3,\n      },\n      allowed_lines = {\n        blank = false,\n      },\n    }\n\n    -- The function itself, copy only the below part if you already have mini.jump2d configured\n    local custom_2d_jump = function(opts)\n      vim.opt.scrolloff = 0\n      local count = opts.repeatable and vim.v.count1 or 1\n      if opts.preaction then\n        vim.cmd('normal! ' .. count .. opts.preaction)\n      end\n      if opts.mark then\n        vim.cmd('normal! m' .. opts.mark)\n      end\n      local bufnr = vim.api.nvim_get_current_buf()\n      MiniJump2d.start {\n        labels = opts.homerow and 'asdfghjkl' or 'alksdjfgheivbcmnopqrtuwxyz',\n        spotter = opts.spotter,\n        hooks = {\n          after_jump = function()\n            if opts.end_in_insert then\n              vim.api.nvim_feedkeys(count .. opts.action, 'n', true)\n            else\n              if opts.norepeat_action then\n                vim.cmd('normal! ' .. opts.norepeat_action)\n              end\n              vim.cmd('normal! ' .. count .. opts.action)\n              if opts.action2 then\n                vim.cmd('normal! ' .. count .. opts.action2)\n              end\n              if opts.mark then\n                local cur_bufnr = vim.api.nvim_get_current_buf()\n                if cur_bufnr ~= bufnr then\n                  local keys = vim.api.nvim_replace_termcodes('&lt;C-w&gt;&lt;C-p&gt;', true, false, true)\n                  vim.api.nvim_feedkeys(keys, 'n', true)\n                else\n                  vim.cmd('normal! `' .. opts.mark)\n                  if opts.afteraction then\n                    vim.cmd('normal! ' .. opts.afteraction)\n                  end\n                end\n              end\n            end\n            vim.opt.scrolloff = 10\n          end,\n        },\n      }\n    end\n\n    -- Here are various uses that I thought of, ordered by my subjective perception of\n    -- their usefuleness/complexity, modify keybindings as you see fit\n\n    -- Oh and btw, you can make a function take a count, you'll see how it can be useful\n    -- Those functions are set up with `repeatable = true`\n\n    -- Copying a Word (yiW) without moving your cursor there\n    -- I use this at least every hour\n    vim.keymap.set('n', ';y', function()\n      custom_2d_jump {\n        mark = 'w',\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s][^%s]+',\n        action = 'yiW',\n      }\n    end)\n\n    -- Yank an entire line (see how counts may come in handy?)\n    vim.keymap.set('n', 'yl', function()\n      custom_2d_jump {\n        mark = 'l',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        action = 'yy',\n      }\n    end)\n\n    -- Yank a paragraph\n    vim.keymap.set('n', 'yp', function()\n      custom_2d_jump {\n        mark = 'p',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        action = 'yip',\n      }\n    end)\n\n    -- Yank a word (yiw)\n    vim.keymap.set('n', ';w', function()\n      custom_2d_jump {\n        mark = 'w',\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s%p]+',\n        action = 'yiw',\n      }\n    end)\n\n    -- Below is just a bunch of functions for yanking contents of parenthesis/brackets/quotes\n\n    vim.keymap.set('n', &quot;;'&quot;, function()\n      custom_2d_jump {\n        mark = 'q',\n        spotter = MiniJump2d.gen_spotter.pattern &quot;'.[^']&quot;,\n        action = &quot;yi'&quot;,\n      }\n    end)\n\n    vim.keymap.set('n', ';&quot;', function()\n      custom_2d_jump {\n        mark = 'q',\n        spotter = MiniJump2d.gen_spotter.pattern '&quot;.[^&quot;]',\n        action = 'yi&quot;',\n      }\n    end)\n\n    vim.keymap.set('n', ';(', function()\n      custom_2d_jump {\n        mark = 'b',\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%(', MiniJump2d.gen_spotter.pattern '%)'),\n        action = 'yi(',\n      }\n    end)\n\n    vim.keymap.set('n', ';{', function()\n      custom_2d_jump {\n        mark = 'c',\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%{', MiniJump2d.gen_spotter.pattern '%}'),\n        action = 'yi{',\n      }\n    end)\n\n    vim.keymap.set('n', ';[', function()\n      custom_2d_jump {\n        mark = 'b',\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%[', MiniJump2d.gen_spotter.pattern '%]'),\n        action = 'yi[',\n      }\n    end)\n\n    -- Keymaps below are for changing stuff\n\n    -- Jump and do ciW on a word\n    vim.keymap.set('n', ';c', function()\n      custom_2d_jump {\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s][^%s]+',\n        action = 'ciW',\n        end_in_insert = true,\n      }\n    end)\n\n   -- Delete a paragraph\n    vim.keymap.set('n', 'dp', function()\n      custom_2d_jump {\n        mark = 'd',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        action = 'dip',\n      }\n    end)\n\n    -- This here is for changing the line you currently hover at,\n    -- with a line that you jump to. And then return to where you were in the first place\n    --\n    -- Somewhat complicated, I know, but I hope it helps you come up with a\n    -- useful keymap or two that you're tired of typing out manually :)\n    vim.keymap.set('n', 'rl', function()\n      custom_2d_jump {\n        mark = 'l',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        preaction = 'dd',\n        norepeat_action = 'P',\n        action = 'j',\n        action2 = 'dd',\n        afteraction = 'P',\n      }\n    end)\n  end,\n}\"><pre class=\"notranslate\">{ <span class=\"pl-c\"><span class=\"pl-c\">--</span> A sample lazy.nvim import, modify if you use a different plugin manager</span>\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>nvim-mini/mini.nvim<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> 'echasnovski/mini.nvim', -- if you haven't migrated to the new path yet</span>\n  <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Setup and settings which play well with the extended functionality</span>\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.jump2d<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span> {\n      <span class=\"pl-smi\">view</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">n_steps_ahead</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">3</span>,\n      },\n      <span class=\"pl-smi\">allowed_lines</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">blank</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n      },\n    }\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> The function itself, copy only the below part if you already have mini.jump2d configured</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">custom_2d_jump</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">opts</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">opt</span>.<span class=\"pl-e\">scrolloff</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">count</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">repeatable</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">count1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">preaction</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">count</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">preaction</span>)\n      <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">mark</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! m<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">mark</span>)\n      <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n      <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-c1\">start</span> {\n        <span class=\"pl-smi\">labels</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">homerow</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>asdfghjkl<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>alksdjfgheivbcmnopqrtuwxyz<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">spotter</span>,\n        <span class=\"pl-smi\">hooks</span> <span class=\"pl-k\">=</span> {\n          <span class=\"pl-en\">after_jump</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n            <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">end_in_insert</span> <span class=\"pl-k\">then</span>\n              <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_feedkeys</span>(<span class=\"pl-smi\">count</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">action</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>)\n            <span class=\"pl-k\">else</span>\n              <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">norepeat_action</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">norepeat_action</span>)\n              <span class=\"pl-k\">end</span>\n              <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">count</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">action</span>)\n              <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">action2</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">count</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">action2</span>)\n              <span class=\"pl-k\">end</span>\n              <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">mark</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cur_bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n                <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cur_bufnr</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">then</span>\n                  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-w&gt;&lt;C-p&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n                  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_feedkeys</span>(<span class=\"pl-smi\">keys</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>)\n                <span class=\"pl-k\">else</span>\n                  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! `<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">mark</span>)\n                  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">afteraction</span> <span class=\"pl-k\">then</span>\n                    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>normal! <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">afteraction</span>)\n                  <span class=\"pl-k\">end</span>\n                <span class=\"pl-k\">end</span>\n              <span class=\"pl-k\">end</span>\n            <span class=\"pl-k\">end</span>\n            <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">opt</span>.<span class=\"pl-e\">scrolloff</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">10</span>\n          <span class=\"pl-k\">end</span>,\n        },\n      }\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Here are various uses that I thought of, ordered by my subjective perception of</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> their usefuleness/complexity, modify keybindings as you see fit</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Oh and btw, you can make a function take a count, you'll see how it can be useful</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Those functions are set up with `repeatable = true`</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Copying a Word (yiW) without moving your cursor there</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> I use this at least every hour</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;y<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>w<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%s][^%s]+<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yiW<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Yank an entire line (see how counts may come in handy?)</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yl<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">repeatable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">homerow</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">line_start</span>.<span class=\"pl-e\">spotter</span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yy<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Yank a paragraph</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yp<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>p<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">repeatable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">homerow</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">line_start</span>.<span class=\"pl-e\">spotter</span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yip<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Yank a word (yiw)</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;w<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>w<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%s%p]+<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yiw<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Below is just a bunch of functions for yanking contents of parenthesis/brackets/quotes</span>\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>;'<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>'.[^']<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>yi'<span class=\"pl-pds\">\"</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;\"<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>q<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\".[^\"]<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yi\"<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;(<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>b<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">union</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%(<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%)<span class=\"pl-pds\">'</span></span>),\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yi(<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;{<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>c<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">union</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%{<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%}<span class=\"pl-pds\">'</span></span>),\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yi{<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;[<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>b<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">union</span>(<span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%[<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%]<span class=\"pl-pds\">'</span></span>),\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>yi[<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Keymaps below are for changing stuff</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Jump and do ciW on a word</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;c<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">gen_spotter</span>.<span class=\"pl-c1\">pattern</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>[^%s][^%s]+<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>ciW<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">end_in_insert</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n   <span class=\"pl-c\"><span class=\"pl-c\">--</span> Delete a paragraph</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>dp<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>d<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">repeatable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">homerow</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">line_start</span>.<span class=\"pl-e\">spotter</span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>dip<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> This here is for changing the line you currently hover at,</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> with a line that you jump to. And then return to where you were in the first place</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Somewhat complicated, I know, but I hope it helps you come up with a</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> useful keymap or two that you're tired of typing out manually :)</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>rl<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">custom_2d_jump</span> {\n        <span class=\"pl-smi\">mark</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">repeatable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">homerow</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n        <span class=\"pl-smi\">spotter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniJump2d</span>.<span class=\"pl-e\">builtin_opts</span>.<span class=\"pl-e\">line_start</span>.<span class=\"pl-e\">spotter</span>,\n        <span class=\"pl-smi\">preaction</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>dd<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">norepeat_action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>P<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>j<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">action2</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>dd<span class=\"pl-pds\">'</span></span>,\n        <span class=\"pl-smi\">afteraction</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>P<span class=\"pl-pds\">'</span></span>,\n      }\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>,\n}</pre></div>",
+    "bodyText": "Initially posted on reddit, posted here by @echasnovski's suggesion\nRelated: #1818\nFeatures:\n\n Perform an action and return: copy Words ;y, words ;w, lines yl, paragraphs yp, contents of parenthesis ;(, quotes ;' ;\", brackets ;{ ;[ , also things like delete a paragraph dp\n Perform an action and stay: change a Word ;c\n Complicated actions: delete current N line(s), replace with N lines starting from a hinted line rl\n (optionally) some bindings may take counts (i.e. yank multiple lines from a distance), adjusted with repeatable = true\n The jump doesn't make the cursor flicker from one place to another\n\nEasily extendable for any remote operations, just come up with keymaps that don't conflict with your existing ones\nKnown issues:\n\n Since jumping back in my function depends on marks, if you delete the line that you were at, the jump breaks and you stay at a new place\n If you have two tabs open of the same file, the jump back won't happen\n Sometimes copying contents of ' \" [ ( doesn't work as expected, because of unclosed brackets\n\n\n  \n    \n    \n\n    mini-jump2d_remote-operations.mp4\n    \n  \n\n  \n\n  \n\n\nThe contents of this gist:\n{ -- A sample lazy.nvim import, modify if you use a different plugin manager\n  'nvim-mini/mini.nvim',\n  -- 'echasnovski/mini.nvim', -- if you haven't migrated to the new path yet\n  config = function()\n\n    -- Setup and settings which play well with the extended functionality\n    require('mini.jump2d').setup {\n      view = {\n        n_steps_ahead = 3,\n      },\n      allowed_lines = {\n        blank = false,\n      },\n    }\n\n    -- The function itself, copy only the below part if you already have mini.jump2d configured\n    local custom_2d_jump = function(opts)\n      vim.opt.scrolloff = 0\n      local count = opts.repeatable and vim.v.count1 or 1\n      if opts.preaction then\n        vim.cmd('normal! ' .. count .. opts.preaction)\n      end\n      if opts.mark then\n        vim.cmd('normal! m' .. opts.mark)\n      end\n      local bufnr = vim.api.nvim_get_current_buf()\n      MiniJump2d.start {\n        labels = opts.homerow and 'asdfghjkl' or 'alksdjfgheivbcmnopqrtuwxyz',\n        spotter = opts.spotter,\n        hooks = {\n          after_jump = function()\n            if opts.end_in_insert then\n              vim.api.nvim_feedkeys(count .. opts.action, 'n', true)\n            else\n              if opts.norepeat_action then\n                vim.cmd('normal! ' .. opts.norepeat_action)\n              end\n              vim.cmd('normal! ' .. count .. opts.action)\n              if opts.action2 then\n                vim.cmd('normal! ' .. count .. opts.action2)\n              end\n              if opts.mark then\n                local cur_bufnr = vim.api.nvim_get_current_buf()\n                if cur_bufnr ~= bufnr then\n                  local keys = vim.api.nvim_replace_termcodes('<C-w><C-p>', true, false, true)\n                  vim.api.nvim_feedkeys(keys, 'n', true)\n                else\n                  vim.cmd('normal! `' .. opts.mark)\n                  if opts.afteraction then\n                    vim.cmd('normal! ' .. opts.afteraction)\n                  end\n                end\n              end\n            end\n            vim.opt.scrolloff = 10\n          end,\n        },\n      }\n    end\n\n    -- Here are various uses that I thought of, ordered by my subjective perception of\n    -- their usefuleness/complexity, modify keybindings as you see fit\n\n    -- Oh and btw, you can make a function take a count, you'll see how it can be useful\n    -- Those functions are set up with `repeatable = true`\n\n    -- Copying a Word (yiW) without moving your cursor there\n    -- I use this at least every hour\n    vim.keymap.set('n', ';y', function()\n      custom_2d_jump {\n        mark = 'w',\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s][^%s]+',\n        action = 'yiW',\n      }\n    end)\n\n    -- Yank an entire line (see how counts may come in handy?)\n    vim.keymap.set('n', 'yl', function()\n      custom_2d_jump {\n        mark = 'l',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        action = 'yy',\n      }\n    end)\n\n    -- Yank a paragraph\n    vim.keymap.set('n', 'yp', function()\n      custom_2d_jump {\n        mark = 'p',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        action = 'yip',\n      }\n    end)\n\n    -- Yank a word (yiw)\n    vim.keymap.set('n', ';w', function()\n      custom_2d_jump {\n        mark = 'w',\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s%p]+',\n        action = 'yiw',\n      }\n    end)\n\n    -- Below is just a bunch of functions for yanking contents of parenthesis/brackets/quotes\n\n    vim.keymap.set('n', \";'\", function()\n      custom_2d_jump {\n        mark = 'q',\n        spotter = MiniJump2d.gen_spotter.pattern \"'.[^']\",\n        action = \"yi'\",\n      }\n    end)\n\n    vim.keymap.set('n', ';\"', function()\n      custom_2d_jump {\n        mark = 'q',\n        spotter = MiniJump2d.gen_spotter.pattern '\".[^\"]',\n        action = 'yi\"',\n      }\n    end)\n\n    vim.keymap.set('n', ';(', function()\n      custom_2d_jump {\n        mark = 'b',\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%(', MiniJump2d.gen_spotter.pattern '%)'),\n        action = 'yi(',\n      }\n    end)\n\n    vim.keymap.set('n', ';{', function()\n      custom_2d_jump {\n        mark = 'c',\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%{', MiniJump2d.gen_spotter.pattern '%}'),\n        action = 'yi{',\n      }\n    end)\n\n    vim.keymap.set('n', ';[', function()\n      custom_2d_jump {\n        mark = 'b',\n        spotter = MiniJump2d.gen_spotter.union(MiniJump2d.gen_spotter.pattern '%[', MiniJump2d.gen_spotter.pattern '%]'),\n        action = 'yi[',\n      }\n    end)\n\n    -- Keymaps below are for changing stuff\n\n    -- Jump and do ciW on a word\n    vim.keymap.set('n', ';c', function()\n      custom_2d_jump {\n        spotter = MiniJump2d.gen_spotter.pattern '[^%s][^%s]+',\n        action = 'ciW',\n        end_in_insert = true,\n      }\n    end)\n\n   -- Delete a paragraph\n    vim.keymap.set('n', 'dp', function()\n      custom_2d_jump {\n        mark = 'd',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        action = 'dip',\n      }\n    end)\n\n    -- This here is for changing the line you currently hover at,\n    -- with a line that you jump to. And then return to where you were in the first place\n    --\n    -- Somewhat complicated, I know, but I hope it helps you come up with a\n    -- useful keymap or two that you're tired of typing out manually :)\n    vim.keymap.set('n', 'rl', function()\n      custom_2d_jump {\n        mark = 'l',\n        repeatable = true,\n        homerow = true,\n        spotter = MiniJump2d.builtin_opts.line_start.spotter,\n        preaction = 'dd',\n        norepeat_action = 'P',\n        action = 'j',\n        action2 = 'dd',\n        afteraction = 'P',\n      }\n    end)\n  end,\n}",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI'll copy some relevant parts from Reddit comments:\r\n\r\n> There is an #1818 with the plans to redesign the whole 'mini.jump2d' experience. Although it is powerful already, some things I would have made differently now. The \"remote operations\" are accounted there by a dedicated `<BS>` \"jumping id\". So this would be easier to do (jump - act - jump with `<BS>`), but not as smooth as this, though.\r\n> \r\n> Maaaaybe, I'll end up dedicating an extra mapping for the \"remote operation\"... Not yet sure.\r\n\r\n> \"Remote operations\" is pretty established already, I would say. Here are the solutions in other \"jumping plugins\":\r\n> \r\n> - https://github.com/ggandor/leap-spooky.nvim (remote operations)\r\n> - https://github.com/folke/flash.nvim?tab=readme-ov-file#-features (remote actions)\r\n> \r\n> > `<BS>` motion sounds useful, though I remember trying to do something similar with `<C-o>` initially\r\n> \r\n> `<C-o>` doesn't *quite* work if there is the same buffer shown in split. So there needs to be 'mini.jump2d' specific \"jump to previous location\" style of jumping.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I'll copy some relevant parts from Reddit comments:</p>\n<blockquote>\n<p dir=\"auto\">There is an <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3083118846\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1818\" data-hovercard-type=\"issue\" data-hovercard-url=\"/nvim-mini/mini.nvim/issues/1818/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/issues/1818\">#1818</a> with the plans to redesign the whole 'mini.jump2d' experience. Although it is powerful already, some things I would have made differently now. The \"remote operations\" are accounted there by a dedicated <code class=\"notranslate\">&lt;BS&gt;</code> \"jumping id\". So this would be easier to do (jump - act - jump with <code class=\"notranslate\">&lt;BS&gt;</code>), but not as smooth as this, though.</p>\n<p dir=\"auto\">Maaaaybe, I'll end up dedicating an extra mapping for the \"remote operation\"... Not yet sure.</p>\n</blockquote>\n<blockquote>\n<p dir=\"auto\">\"Remote operations\" is pretty established already, I would say. Here are the solutions in other \"jumping plugins\":</p>\n<ul dir=\"auto\">\n<li><a href=\"https://github.com/ggandor/leap-spooky.nvim\">https://github.com/ggandor/leap-spooky.nvim</a> (remote operations)</li>\n<li><a href=\"https://github.com/folke/flash.nvim?tab=readme-ov-file#-features\">https://github.com/folke/flash.nvim?tab=readme-ov-file#-features</a> (remote actions)</li>\n</ul>\n<blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;BS&gt;</code> motion sounds useful, though I remember trying to do something similar with <code class=\"notranslate\">&lt;C-o&gt;</code> initially</p>\n</blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">&lt;C-o&gt;</code> doesn't <em>quite</em> work if there is the same buffer shown in split. So there needs to be 'mini.jump2d' specific \"jump to previous location\" style of jumping.</p>\n</blockquote>",
+            "bodyText": "Thanks for sharing!\nI'll copy some relevant parts from Reddit comments:\n\nThere is an #1818 with the plans to redesign the whole 'mini.jump2d' experience. Although it is powerful already, some things I would have made differently now. The \"remote operations\" are accounted there by a dedicated <BS> \"jumping id\". So this would be easier to do (jump - act - jump with <BS>), but not as smooth as this, though.\nMaaaaybe, I'll end up dedicating an extra mapping for the \"remote operation\"... Not yet sure.\n\n\n\"Remote operations\" is pretty established already, I would say. Here are the solutions in other \"jumping plugins\":\n\nhttps://github.com/ggandor/leap-spooky.nvim (remote operations)\nhttps://github.com/folke/flash.nvim?tab=readme-ov-file#-features (remote actions)\n\n\n<BS> motion sounds useful, though I remember trying to do something similar with <C-o> initially\n\n<C-o> doesn't quite work if there is the same buffer shown in split. So there needs to be 'mini.jump2d' specific \"jump to previous location\" style of jumping.",
+            "createdAt": "2025-12-14T15:43:55Z",
+            "createdViaEmail": false,
+            "databaseId": 15252073,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4A6Lpp",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-12-14T15:44:20Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-12-14T15:43:55Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Sorry, as always, a stupid question from me. Is this not possible?\r\n\r\n```\r\n1. MiniJump2d.start_remote()\r\n2. aa (jump keys)\r\n3. diw (any action keys)\r\n4. tries to automatically jump back\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Sorry, as always, a stupid question from me. Is this not possible?</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"1. MiniJump2d.start_remote()\n2. aa (jump keys)\n3. diw (any action keys)\n4. tries to automatically jump back\"><pre class=\"notranslate\"><code class=\"notranslate\">1. MiniJump2d.start_remote()\n2. aa (jump keys)\n3. diw (any action keys)\n4. tries to automatically jump back\n</code></pre></div>",
+                    "bodyText": "Sorry, as always, a stupid question from me. Is this not possible?\n1. MiniJump2d.start_remote()\n2. aa (jump keys)\n3. diw (any action keys)\n4. tries to automatically jump back",
+                    "createdAt": "2025-12-14T20:05:55Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15253189,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6L7F",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-14T20:31:30Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-14T20:05:55Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15252073,
+                        "id": "DC_kwDOFoksYM4A6Lpp",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15252073"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15253189",
+                    "updatedAt": "2025-12-14T20:31:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15253189"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "It might be possible. But the problem is figuring out the contents of `start_remote()` so that it works reliably under all (common) circumstances.",
+                    "bodyHTML": "<p dir=\"auto\">It might be possible. But the problem is figuring out the contents of <code class=\"notranslate\">start_remote()</code> so that it works reliably under all (common) circumstances.</p>",
+                    "bodyText": "It might be possible. But the problem is figuring out the contents of start_remote() so that it works reliably under all (common) circumstances.",
+                    "createdAt": "2025-12-14T20:53:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15253391,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6L-P",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-14T20:53:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15252073,
+                        "id": "DC_kwDOFoksYM4A6Lpp",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15252073"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15253391",
+                    "updatedAt": "2025-12-14T20:53:54Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15253391"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "I’m not sure if this works the way I’m describing it, but I hope it makes sense.\r\n\r\nI’d try creating a `ModeChanged` autocmd to detect when an operator-pending keymap changes the mode, and then simply jump back to a mark. The idea is to create a kind of mode that automatically jumps back right after an operator-pending keymap is used.\r\n\r\nEven if this is possible, I’m guessing some actions won’t go through this path, so in those cases we could just jump back manually with a key press. ~~In this imaginary mode, I’m also not sure what to do if someone wants to perform multiple actions in a row, maybe auto-jump can be canceled.~~ Maybe something like `start_remote({ back_on_operator = true })`, but it could also be done with monkey patching as well.",
+                    "bodyHTML": "<p dir=\"auto\">I’m not sure if this works the way I’m describing it, but I hope it makes sense.</p>\n<p dir=\"auto\">I’d try creating a <code class=\"notranslate\">ModeChanged</code> autocmd to detect when an operator-pending keymap changes the mode, and then simply jump back to a mark. The idea is to create a kind of mode that automatically jumps back right after an operator-pending keymap is used.</p>\n<p dir=\"auto\">Even if this is possible, I’m guessing some actions won’t go through this path, so in those cases we could just jump back manually with a key press. <del>In this imaginary mode, I’m also not sure what to do if someone wants to perform multiple actions in a row, maybe auto-jump can be canceled.</del> Maybe something like <code class=\"notranslate\">start_remote({ back_on_operator = true })</code>, but it could also be done with monkey patching as well.</p>",
+                    "bodyText": "I’m not sure if this works the way I’m describing it, but I hope it makes sense.\nI’d try creating a ModeChanged autocmd to detect when an operator-pending keymap changes the mode, and then simply jump back to a mark. The idea is to create a kind of mode that automatically jumps back right after an operator-pending keymap is used.\nEven if this is possible, I’m guessing some actions won’t go through this path, so in those cases we could just jump back manually with a key press. In this imaginary mode, I’m also not sure what to do if someone wants to perform multiple actions in a row, maybe auto-jump can be canceled. Maybe something like start_remote({ back_on_operator = true }), but it could also be done with monkey patching as well.",
+                    "createdAt": "2025-12-14T21:26:00Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15253494,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6L_2",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-14T21:57:34Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-12-14T21:26:00Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15252073,
+                        "id": "DC_kwDOFoksYM4A6Lpp",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15252073"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15253494",
+                    "updatedAt": "2025-12-14T21:57:34Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15253494"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15252073",
+            "updatedAt": "2025-12-14T15:44:20Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172#discussioncomment-15252073"
+        }
+    ],
+    "createdAt": "2025-12-14T15:18:14Z",
+    "createdViaEmail": false,
+    "databaseId": 9246105,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AjRWZ",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM70q7sq",
+                "name": "mini.jump2d"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2172,
+    "poll": null,
+    "publishedAt": "2025-12-14T15:18:14Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 2
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2172",
+    "stateReason": null,
+    "title": "[mini.jump2d] Remote operations (yy, yiW, yp, y'  etc)",
+    "updatedAt": "2025-12-14T21:40:54Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2172"
+}

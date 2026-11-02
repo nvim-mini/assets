@@ -1,0 +1,376 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 6131778,
+        "id": "DC_kwDOFoksYM4AXZBC",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/361#discussioncomment-6131778"
+    },
+    "answerChosenAt": "2023-06-09T10:47:35Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/2420181?v=4",
+        "login": "icyrainz",
+        "resourcePath": "/icyrainz",
+        "url": "https://github.com/icyrainz"
+    },
+    "authorAssociation": "NONE",
+    "body": "As title, google sheet CSV format would put each column data as is if there is no comma inside and will wrap the column data inside double quote to differentiate with legitimate delimiter.\r\n\r\nI have gone through the help file but could not a way to do this. Not sure if the plugin supports this capability or not.\r\n```\r\nCol1,Col2,Col2\r\nData1,Data2,Data3\r\n\"Data1WithComma,OtherSide\",Data2,Data3\r\n```\r\ngAip,\r\n-> The first column of the second entry should be `\"Data1WithComma,OtherSide\"` and not `\"Data1WithComma`",
+    "bodyHTML": "<p dir=\"auto\">As title, google sheet CSV format would put each column data as is if there is no comma inside and will wrap the column data inside double quote to differentiate with legitimate delimiter.</p>\n<p dir=\"auto\">I have gone through the help file but could not a way to do this. Not sure if the plugin supports this capability or not.</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"Col1,Col2,Col2\nData1,Data2,Data3\n&quot;Data1WithComma,OtherSide&quot;,Data2,Data3\"><pre class=\"notranslate\"><code class=\"notranslate\">Col1,Col2,Col2\nData1,Data2,Data3\n\"Data1WithComma,OtherSide\",Data2,Data3\n</code></pre></div>\n<p dir=\"auto\">gAip,<br>\n-&gt; The first column of the second entry should be <code class=\"notranslate\">\"Data1WithComma,OtherSide\"</code> and not <code class=\"notranslate\">\"Data1WithComma</code></p>",
+    "bodyText": "As title, google sheet CSV format would put each column data as is if there is no comma inside and will wrap the column data inside double quote to differentiate with legitimate delimiter.\nI have gone through the help file but could not a way to do this. Not sure if the plugin supports this capability or not.\nCol1,Col2,Col2\nData1,Data2,Data3\n\"Data1WithComma,OtherSide\",Data2,Data3\n\ngAip,\n-> The first column of the second entry should be \"Data1WithComma,OtherSide\" and not \"Data1WithComma",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2023-06-09T07:33:23Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "**Edit**: Somewhat ignore this answer. There **is** a better built-in interactive way.\r\n\r\nThis question is relevant to me too, as I do quite frequently work with .csv files. But I don't think I found a way to organically fit this type of separator ignore into **interactive** mode of 'mini.align'.\r\n\r\nThere are two approaches here I can recommend:\r\n- Manually filter out separators which you don't want to include. For your example it would be `gAip,` followed by `f` (built-in \"filter\" modifier) and typing `not (row == 3 and col == 1)` and `<CR>` (`<Enter>`). This will add `filter` pre-justify step which will exclude one separator from aligning.\r\n- Write custom modifier which splits by commas not inside quotes. I had time and was curious and here is what I ended up with:\r\n    ```lua\r\n    local split_csv_row = function(row_string)\r\n      -- Compute \"forbidden\" spans\r\n      local forbidden = {}\r\n      local add_to_forbidden = function(l, r) table.insert(forbidden, { from = l + 1, to = r }) end\r\n\r\n      row_string:gsub(\"()%b''()\", add_to_forbidden)\r\n      row_string:gsub('()%b\"\"()', add_to_forbidden)\r\n\r\n      -- Compute all comma positions which are not inside forbidden spans\r\n      local commas = {}\r\n      row_string:gsub('%,()', function(r)\r\n        for _, span in ipairs(forbidden) do\r\n          if span.from <= r and r <= span.to then return end\r\n        end\r\n        table.insert(commas, r - 1)\r\n      end)\r\n\r\n      -- Split\r\n      local n = #commas\r\n      if n == 0 then return { row_string } end\r\n\r\n      local res = { row_string:sub(1, commas[1]) }\r\n      for i = 1, n - 1 do\r\n        table.insert(res, row_string:sub(commas[i] + 1, commas[i + 1]))\r\n      end\r\n      table.insert(res, row_string:sub(commas[n] + 1))\r\n\r\n      return res\r\n    end\r\n\r\n    local split_csv_step = require('mini.align').new_step(\r\n      'csv-row',\r\n      function(strings, _) return vim.tbl_map(split_csv_row, strings) end\r\n    )\r\n\r\n    require('mini.align').setup({\r\n      modifiers = {\r\n        c = function(steps, opts)\r\n          steps.split = split_csv_step\r\n          opts.split_pattern = '\"csv-row\"'\r\n        end,\r\n      },\r\n    })\r\n    ```\r\n    Now you can `gAip` followed by `c` and it should split by commas ignoring spans inside `''` and `\"\"`.\r\n    Please note, that this is not thoroughly tested and might need extra tweaks, but seems to work in the cases I tried.",
+            "bodyHTML": "<p dir=\"auto\"><strong>Edit</strong>: Somewhat ignore this answer. There <strong>is</strong> a better built-in interactive way.</p>\n<p dir=\"auto\">This question is relevant to me too, as I do quite frequently work with .csv files. But I don't think I found a way to organically fit this type of separator ignore into <strong>interactive</strong> mode of 'mini.align'.</p>\n<p dir=\"auto\">There are two approaches here I can recommend:</p>\n<ul dir=\"auto\">\n<li>Manually filter out separators which you don't want to include. For your example it would be <code class=\"notranslate\">gAip,</code> followed by <code class=\"notranslate\">f</code> (built-in \"filter\" modifier) and typing <code class=\"notranslate\">not (row == 3 and col == 1)</code> and <code class=\"notranslate\">&lt;CR&gt;</code> (<code class=\"notranslate\">&lt;Enter&gt;</code>). This will add <code class=\"notranslate\">filter</code> pre-justify step which will exclude one separator from aligning.</li>\n<li>Write custom modifier which splits by commas not inside quotes. I had time and was curious and here is what I ended up with:\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local split_csv_row = function(row_string)\n  -- Compute &quot;forbidden&quot; spans\n  local forbidden = {}\n  local add_to_forbidden = function(l, r) table.insert(forbidden, { from = l + 1, to = r }) end\n\n  row_string:gsub(&quot;()%b''()&quot;, add_to_forbidden)\n  row_string:gsub('()%b&quot;&quot;()', add_to_forbidden)\n\n  -- Compute all comma positions which are not inside forbidden spans\n  local commas = {}\n  row_string:gsub('%,()', function(r)\n    for _, span in ipairs(forbidden) do\n      if span.from &lt;= r and r &lt;= span.to then return end\n    end\n    table.insert(commas, r - 1)\n  end)\n\n  -- Split\n  local n = #commas\n  if n == 0 then return { row_string } end\n\n  local res = { row_string:sub(1, commas[1]) }\n  for i = 1, n - 1 do\n    table.insert(res, row_string:sub(commas[i] + 1, commas[i + 1]))\n  end\n  table.insert(res, row_string:sub(commas[n] + 1))\n\n  return res\nend\n\nlocal split_csv_step = require('mini.align').new_step(\n  'csv-row',\n  function(strings, _) return vim.tbl_map(split_csv_row, strings) end\n)\n\nrequire('mini.align').setup({\n  modifiers = {\n    c = function(steps, opts)\n      steps.split = split_csv_step\n      opts.split_pattern = '&quot;csv-row&quot;'\n    end,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">split_csv_row</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">row_string</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Compute \"forbidden\" spans</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">forbidden</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">add_to_forbidden</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">l</span>, <span class=\"pl-smi\">r</span>) <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">forbidden</span>, { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">l</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">r</span> }) <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-en\">row_string</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>()%b''()<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">add_to_forbidden</span>)\n  <span class=\"pl-en\">row_string</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>()%b\"\"()<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">add_to_forbidden</span>)\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Compute all comma positions which are not inside forbidden spans</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">commas</span> <span class=\"pl-k\">=</span> {}\n  <span class=\"pl-en\">row_string</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%,()<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">r</span>)\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">span</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">forbidden</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">span</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-smi\">r</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">r</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-smi\">span</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">commas</span>, <span class=\"pl-smi\">r</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">end</span>)\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Split</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">commas</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">row_string</span> } <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> { <span class=\"pl-en\">row_string</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">commas</span>[<span class=\"pl-c1\">1</span>]) }\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">n</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">do</span>\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-en\">row_string</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-smi\">commas</span>[<span class=\"pl-smi\">i</span>] <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">commas</span>[<span class=\"pl-smi\">i</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>]))\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, <span class=\"pl-en\">row_string</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-smi\">commas</span>[<span class=\"pl-smi\">n</span>] <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>))\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">split_csv_step</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.align<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">new_step</span>(\n  <span class=\"pl-s\"><span class=\"pl-pds\">'</span>csv-row<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">strings</span>, <span class=\"pl-smi\">_</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-smi\">split_csv_row</span>, <span class=\"pl-smi\">strings</span>) <span class=\"pl-k\">end</span>\n)\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.align<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">modifiers</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-en\">c</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">steps</span>, <span class=\"pl-smi\">opts</span>)\n      <span class=\"pl-smi\">steps</span>.<span class=\"pl-e\">split</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">split_csv_step</span>\n      <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">split_pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"csv-row\"<span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-k\">end</span>,\n  },\n})</pre></div>\nNow you can <code class=\"notranslate\">gAip</code> followed by <code class=\"notranslate\">c</code> and it should split by commas ignoring spans inside <code class=\"notranslate\">''</code> and <code class=\"notranslate\">\"\"</code>.<br>\nPlease note, that this is not thoroughly tested and might need extra tweaks, but seems to work in the cases I tried.</li>\n</ul>",
+            "bodyText": "Edit: Somewhat ignore this answer. There is a better built-in interactive way.\nThis question is relevant to me too, as I do quite frequently work with .csv files. But I don't think I found a way to organically fit this type of separator ignore into interactive mode of 'mini.align'.\nThere are two approaches here I can recommend:\n\nManually filter out separators which you don't want to include. For your example it would be gAip, followed by f (built-in \"filter\" modifier) and typing not (row == 3 and col == 1) and <CR> (<Enter>). This will add filter pre-justify step which will exclude one separator from aligning.\nWrite custom modifier which splits by commas not inside quotes. I had time and was curious and here is what I ended up with:\nlocal split_csv_row = function(row_string)\n  -- Compute \"forbidden\" spans\n  local forbidden = {}\n  local add_to_forbidden = function(l, r) table.insert(forbidden, { from = l + 1, to = r }) end\n\n  row_string:gsub(\"()%b''()\", add_to_forbidden)\n  row_string:gsub('()%b\"\"()', add_to_forbidden)\n\n  -- Compute all comma positions which are not inside forbidden spans\n  local commas = {}\n  row_string:gsub('%,()', function(r)\n    for _, span in ipairs(forbidden) do\n      if span.from <= r and r <= span.to then return end\n    end\n    table.insert(commas, r - 1)\n  end)\n\n  -- Split\n  local n = #commas\n  if n == 0 then return { row_string } end\n\n  local res = { row_string:sub(1, commas[1]) }\n  for i = 1, n - 1 do\n    table.insert(res, row_string:sub(commas[i] + 1, commas[i + 1]))\n  end\n  table.insert(res, row_string:sub(commas[n] + 1))\n\n  return res\nend\n\nlocal split_csv_step = require('mini.align').new_step(\n  'csv-row',\n  function(strings, _) return vim.tbl_map(split_csv_row, strings) end\n)\n\nrequire('mini.align').setup({\n  modifiers = {\n    c = function(steps, opts)\n      steps.split = split_csv_step\n      opts.split_pattern = '\"csv-row\"'\n    end,\n  },\n})\nNow you can gAip followed by c and it should split by commas ignoring spans inside '' and \"\".\nPlease note, that this is not thoroughly tested and might need extra tweaks, but seems to work in the cases I tried.",
+            "createdAt": "2023-06-09T07:33:23Z",
+            "createdViaEmail": false,
+            "databaseId": 6130036,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4AXYl0",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2023-06-09T10:40:23Z",
+            "minimizedReason": null,
+            "publishedAt": "2023-06-09T07:33:23Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/361#discussioncomment-6130036",
+            "updatedAt": "2023-06-09T10:40:23Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/361#discussioncomment-6130036"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Apparently, I forgot how my modules work :disappointed: \r\n\r\nThere is an `i` modifier (for `ignore`) that does just that: adds matches inside `\"\"` to be ignored. So you can `gAip` followed by `,` to set separator **and** followed by `i` to add \"ignore\" pre-split step.\r\n\r\nIf you want to ignore inside both `''` and `\"\"`, you can customize `i` modifier like so:\r\n\r\n```lua\r\nlocal align = require('mini.align')\r\nalign.setup({\r\n  modifiers = {\r\n    i = function(steps, _) table.insert(steps.pre_split, align.gen_step.ignore_split({ '\".-\"', \"'.-'\" })) end,\r\n  },\r\n})\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Apparently, I forgot how my modules work 😞</p>\n<p dir=\"auto\">There is an <code class=\"notranslate\">i</code> modifier (for <code class=\"notranslate\">ignore</code>) that does just that: adds matches inside <code class=\"notranslate\">\"\"</code> to be ignored. So you can <code class=\"notranslate\">gAip</code> followed by <code class=\"notranslate\">,</code> to set separator <strong>and</strong> followed by <code class=\"notranslate\">i</code> to add \"ignore\" pre-split step.</p>\n<p dir=\"auto\">If you want to ignore inside both <code class=\"notranslate\">''</code> and <code class=\"notranslate\">\"\"</code>, you can customize <code class=\"notranslate\">i</code> modifier like so:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local align = require('mini.align')\nalign.setup({\n  modifiers = {\n    i = function(steps, _) table.insert(steps.pre_split, align.gen_step.ignore_split({ '&quot;.-&quot;', &quot;'.-'&quot; })) end,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">align</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.align<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-smi\">align</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">modifiers</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-en\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">steps</span>, <span class=\"pl-smi\">_</span>) <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">steps</span>.<span class=\"pl-e\">pre_split</span>, <span class=\"pl-smi\">align</span>.<span class=\"pl-e\">gen_step</span>.<span class=\"pl-c1\">ignore_split</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\".-\"<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>'.-'<span class=\"pl-pds\">\" </span></span>})) <span class=\"pl-k\">end</span>,\n  },\n})</pre></div>",
+            "bodyText": "Apparently, I forgot how my modules work 😞\nThere is an i modifier (for ignore) that does just that: adds matches inside \"\" to be ignored. So you can gAip followed by , to set separator and followed by i to add \"ignore\" pre-split step.\nIf you want to ignore inside both '' and \"\", you can customize i modifier like so:\nlocal align = require('mini.align')\nalign.setup({\n  modifiers = {\n    i = function(steps, _) table.insert(steps.pre_split, align.gen_step.ignore_split({ '\".-\"', \"'.-'\" })) end,\n  },\n})",
+            "createdAt": "2023-06-09T10:47:33Z",
+            "createdViaEmail": false,
+            "databaseId": 6131778,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AXZBC",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2023-06-09T10:47:33Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/2420181?v=4",
+                        "login": "icyrainz",
+                        "resourcePath": "/icyrainz",
+                        "url": "https://github.com/icyrainz"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for the quick response. Works like a charm.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the quick response. Works like a charm.</p>",
+                    "bodyText": "Thanks for the quick response. Works like a charm.",
+                    "createdAt": "2023-06-10T01:46:59Z",
+                    "createdViaEmail": false,
+                    "databaseId": 6137845,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AXaf1",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2023-06-10T01:46:59Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 6131778,
+                        "id": "DC_kwDOFoksYM4AXZBC",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/361#discussioncomment-6131778"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/361#discussioncomment-6137845",
+                    "updatedAt": "2023-06-10T01:47:00Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/361#discussioncomment-6137845"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/361#discussioncomment-6131778",
+            "updatedAt": "2023-06-09T10:47:33Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/361#discussioncomment-6131778"
+        }
+    ],
+    "createdAt": "2023-06-09T05:42:52Z",
+    "createdViaEmail": false,
+    "databaseId": 5280347,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/2420181?v=4",
+        "login": "icyrainz",
+        "resourcePath": "/icyrainz",
+        "url": "https://github.com/icyrainz"
+    },
+    "id": "D_kwDOFoksYM4AUJJb",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABFT_L1w",
+                "name": "mini.align"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2023-06-09T05:44:53Z",
+    "locked": false,
+    "number": 361,
+    "poll": null,
+    "publishedAt": "2023-06-09T05:42:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/361",
+    "stateReason": "RESOLVED",
+    "title": "[Help] Mini.align - How to ignore delimiter if it's inside double quotes",
+    "updatedAt": "2023-06-10T01:47:00Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/361"
+}

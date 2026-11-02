@@ -1,0 +1,304 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13431514,
+        "id": "DC_kwDOFoksYM4AzPLa",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1852#discussioncomment-13431514"
+    },
+    "answerChosenAt": "2025-06-12T13:11:07Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/19394616?v=4",
+        "login": "AceCodePt",
+        "resourcePath": "/AceCodePt",
+        "url": "https://github.com/AceCodePt"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/19394616?v=4",
+        "login": "AceCodePt",
+        "resourcePath": "/AceCodePt",
+        "url": "https://github.com/AceCodePt"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.completion, mini.snippets\r\n\r\n### Question\r\n\r\nI tried to have the mini completion work together and be toggled on <C-j>\r\nHowever even after overriding the mapping <C-j> is hijacked by snippets.\r\nAfter pressing <C-j> I'm met with -> \r\n```\r\n(mini.snippets) No snippets in context:\r\n{\r\n   buf_id = 2,\r\n   lang = \"lua\"\r\n}\r\n```\r\n\r\nHere is my config with lazy and mini:\r\n\r\n```lua\r\n\t{\r\n\t\t\"echasnovski/mini.completion\",\r\n\t\tversion = \"*\",\r\n\t\tdependencies = {\r\n\t\t\t{\r\n\t\t\t\t\"echasnovski/mini.snippets\",\r\n\t\t\t\tversion = \"*\",\r\n\t\t\t\topts = function(mod)\r\n\t\t\t\t\tlocal gen_loader = require(mod.name).gen_loader\r\n\t\t\t\t\treturn {\r\n\t\t\t\t\t\t{\r\n\t\t\t\t\t\t\t-- Array of snippets and loaders (see |MiniSnippets.config| for details).\r\n\t\t\t\t\t\t\t-- Nothing is defined by default. Add manually to have snippets to match.\r\n\t\t\t\t\t\t\tsnippets = {\r\n\t\t\t\t\t\t\t\t-- gen_loader.from_file(\"~/.config/nvim/snippets/package.json\"),\r\n\t\t\t\t\t\t\t\tgen_loader.from_lang(),\r\n\t\t\t\t\t\t\t},\r\n\r\n\t\t\t\t\t\t\t-- Module mappings. Use `''` (empty string) to disable one.\r\n\t\t\t\t\t\t\tmappings = { expand = \"\", jump_next = \"\", jump_prev = \"\" },\r\n\r\n\t\t\t\t\t\t\t-- Functions describing snippet expansion. If `nil`, default values\r\n\t\t\t\t\t\t\t-- are `MiniSnippets.default_<field>()`.\r\n\t\t\t\t\t\t\texpand = {\r\n\t\t\t\t\t\t\t\t-- Resolve raw config snippets at context\r\n\t\t\t\t\t\t\t\tprepare = nil,\r\n\t\t\t\t\t\t\t\t-- Match resolved snippets at cursor position\r\n\t\t\t\t\t\t\t\tmatch = nil,\r\n\t\t\t\t\t\t\t\t-- Possibly choose among matched snippets\r\n\t\t\t\t\t\t\t\tselect = nil,\r\n\t\t\t\t\t\t\t\t-- Insert selected snippet\r\n\t\t\t\t\t\t\t\tinsert = nil,\r\n\t\t\t\t\t\t\t},\r\n\t\t\t\t\t\t},\r\n\t\t\t\t\t}\r\n\t\t\t\tend,\r\n\t\t\t},\r\n\t\t},\r\n\t\tkeys = {\r\n\t\t\t{ \"<C-j>\", \"<C-n>\", mode = { \"i\" }, expr = false },\r\n\t\t\t{ \"<C-k>\", \"<C-p>\", mode = { \"i\" }, expr = false },\r\n\t\t},\r\n\t\topts = {\r\n\t\t\t-- Delay (debounce type, in ms) between certain Neovim event and action.\r\n\t\t\t-- This can be used to (virtually) disable certain automatic actions by\r\n\t\t\t-- setting very high delay time (like 10^7).\r\n\t\t\tdelay = { completion = 100, info = 100, signature = 50 },\r\n\r\n\t\t\t-- Configuration for action windows:\r\n\t\t\t-- - `height` and `width` are maximum dimensions.\r\n\t\t\t-- - `border` defines border (as in `nvim_open_win()`; default \"single\").\r\n\t\t\twindow = {\r\n\t\t\t\tinfo = { height = 25, width = 80, border = nil },\r\n\t\t\t\tsignature = { height = 25, width = 80, border = nil },\r\n\t\t\t},\r\n\r\n\t\t\t-- Way of how module does LSP completion\r\n\t\t\tlsp_completion = {\r\n\t\t\t\t-- `source_func` should be one of 'completefunc' or 'omnifunc'.\r\n\t\t\t\tsource_func = \"completefunc\",\r\n\r\n\t\t\t\t-- `auto_setup` should be boolean indicating if LSP completion is set up\r\n\t\t\t\t-- on every `BufEnter` event.\r\n\t\t\t\tauto_setup = true,\r\n\r\n\t\t\t\t-- A function which takes LSP 'textDocument/completion' response items\r\n\t\t\t\t-- (each with `client_id` field for item's server) and word to complete.\r\n\t\t\t\t-- Output should be a table of the same nature as input. Common use case\r\n\t\t\t\t-- is custom filter/sort. Default: `default_process_items`\r\n\t\t\t\tprocess_items = nil,\r\n\r\n\t\t\t\t-- A function which takes a snippet as string and inserts it at cursor.\r\n\t\t\t\t-- Default: `default_snippet_insert` which tries to use 'mini.snippets'\r\n\t\t\t\t-- and falls back to `vim.snippet.expand` (on Neovim>=0.10).\r\n\t\t\t\tsnippet_insert = nil,\r\n\t\t\t},\r\n\r\n\t\t\t-- Fallback action as function/string. Executed in Insert mode.\r\n\t\t\t-- To use built-in completion (`:h ins-completion`), set its mapping as\r\n\t\t\t-- string. Example: set '<C-x><C-l>' for 'whole lines' completion.\r\n\t\t\tfallback_action = \"<C-n>\",\r\n\r\n\t\t\t-- Module mappings. Use `''` (empty string) to disable one. Some of them\r\n\t\t\t-- might conflict with system mappings.\r\n\t\t\tmappings = {\r\n\t\t\t\t-- Force two-step/fallback completions\r\n\t\t\t\tforce_twostep = \"<C-Space>\",\r\n\t\t\t\tforce_fallback = \"<A-Space>\",\r\n\r\n\t\t\t\t-- Scroll info/signature window down/up. When overriding, check for\r\n\t\t\t\t-- conflicts with built-in keys for popup menu (like `<C-u>`/`<C-o>`\r\n\t\t\t\t-- for 'completefunc'/'omnifunc' source function; or `<C-n>`/`<C-p>`).\r\n\t\t\t\tscroll_down = \"<C-f>\",\r\n\t\t\t\tscroll_up = \"<C-b>\",\r\n\t\t\t},\r\n\t\t},\r\n\t},\r\n```",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.completion, mini.snippets</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I tried to have the mini completion work together and be toggled on <br>\nHowever even after overriding the mapping  is hijacked by snippets.<br>\nAfter pressing  I'm met with -&gt;</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"(mini.snippets) No snippets in context:\n{\n   buf_id = 2,\n   lang = &quot;lua&quot;\n}\"><pre class=\"notranslate\"><code class=\"notranslate\">(mini.snippets) No snippets in context:\n{\n   buf_id = 2,\n   lang = \"lua\"\n}\n</code></pre></div>\n<p dir=\"auto\">Here is my config with lazy and mini:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\t{\n\t\t&quot;echasnovski/mini.completion&quot;,\n\t\tversion = &quot;*&quot;,\n\t\tdependencies = {\n\t\t\t{\n\t\t\t\t&quot;echasnovski/mini.snippets&quot;,\n\t\t\t\tversion = &quot;*&quot;,\n\t\t\t\topts = function(mod)\n\t\t\t\t\tlocal gen_loader = require(mod.name).gen_loader\n\t\t\t\t\treturn {\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\t-- Array of snippets and loaders (see |MiniSnippets.config| for details).\n\t\t\t\t\t\t\t-- Nothing is defined by default. Add manually to have snippets to match.\n\t\t\t\t\t\t\tsnippets = {\n\t\t\t\t\t\t\t\t-- gen_loader.from_file(&quot;~/.config/nvim/snippets/package.json&quot;),\n\t\t\t\t\t\t\t\tgen_loader.from_lang(),\n\t\t\t\t\t\t\t},\n\n\t\t\t\t\t\t\t-- Module mappings. Use `''` (empty string) to disable one.\n\t\t\t\t\t\t\tmappings = { expand = &quot;&quot;, jump_next = &quot;&quot;, jump_prev = &quot;&quot; },\n\n\t\t\t\t\t\t\t-- Functions describing snippet expansion. If `nil`, default values\n\t\t\t\t\t\t\t-- are `MiniSnippets.default_&lt;field&gt;()`.\n\t\t\t\t\t\t\texpand = {\n\t\t\t\t\t\t\t\t-- Resolve raw config snippets at context\n\t\t\t\t\t\t\t\tprepare = nil,\n\t\t\t\t\t\t\t\t-- Match resolved snippets at cursor position\n\t\t\t\t\t\t\t\tmatch = nil,\n\t\t\t\t\t\t\t\t-- Possibly choose among matched snippets\n\t\t\t\t\t\t\t\tselect = nil,\n\t\t\t\t\t\t\t\t-- Insert selected snippet\n\t\t\t\t\t\t\t\tinsert = nil,\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t},\n\t\t\t\t\t}\n\t\t\t\tend,\n\t\t\t},\n\t\t},\n\t\tkeys = {\n\t\t\t{ &quot;&lt;C-j&gt;&quot;, &quot;&lt;C-n&gt;&quot;, mode = { &quot;i&quot; }, expr = false },\n\t\t\t{ &quot;&lt;C-k&gt;&quot;, &quot;&lt;C-p&gt;&quot;, mode = { &quot;i&quot; }, expr = false },\n\t\t},\n\t\topts = {\n\t\t\t-- Delay (debounce type, in ms) between certain Neovim event and action.\n\t\t\t-- This can be used to (virtually) disable certain automatic actions by\n\t\t\t-- setting very high delay time (like 10^7).\n\t\t\tdelay = { completion = 100, info = 100, signature = 50 },\n\n\t\t\t-- Configuration for action windows:\n\t\t\t-- - `height` and `width` are maximum dimensions.\n\t\t\t-- - `border` defines border (as in `nvim_open_win()`; default &quot;single&quot;).\n\t\t\twindow = {\n\t\t\t\tinfo = { height = 25, width = 80, border = nil },\n\t\t\t\tsignature = { height = 25, width = 80, border = nil },\n\t\t\t},\n\n\t\t\t-- Way of how module does LSP completion\n\t\t\tlsp_completion = {\n\t\t\t\t-- `source_func` should be one of 'completefunc' or 'omnifunc'.\n\t\t\t\tsource_func = &quot;completefunc&quot;,\n\n\t\t\t\t-- `auto_setup` should be boolean indicating if LSP completion is set up\n\t\t\t\t-- on every `BufEnter` event.\n\t\t\t\tauto_setup = true,\n\n\t\t\t\t-- A function which takes LSP 'textDocument/completion' response items\n\t\t\t\t-- (each with `client_id` field for item's server) and word to complete.\n\t\t\t\t-- Output should be a table of the same nature as input. Common use case\n\t\t\t\t-- is custom filter/sort. Default: `default_process_items`\n\t\t\t\tprocess_items = nil,\n\n\t\t\t\t-- A function which takes a snippet as string and inserts it at cursor.\n\t\t\t\t-- Default: `default_snippet_insert` which tries to use 'mini.snippets'\n\t\t\t\t-- and falls back to `vim.snippet.expand` (on Neovim&gt;=0.10).\n\t\t\t\tsnippet_insert = nil,\n\t\t\t},\n\n\t\t\t-- Fallback action as function/string. Executed in Insert mode.\n\t\t\t-- To use built-in completion (`:h ins-completion`), set its mapping as\n\t\t\t-- string. Example: set '&lt;C-x&gt;&lt;C-l&gt;' for 'whole lines' completion.\n\t\t\tfallback_action = &quot;&lt;C-n&gt;&quot;,\n\n\t\t\t-- Module mappings. Use `''` (empty string) to disable one. Some of them\n\t\t\t-- might conflict with system mappings.\n\t\t\tmappings = {\n\t\t\t\t-- Force two-step/fallback completions\n\t\t\t\tforce_twostep = &quot;&lt;C-Space&gt;&quot;,\n\t\t\t\tforce_fallback = &quot;&lt;A-Space&gt;&quot;,\n\n\t\t\t\t-- Scroll info/signature window down/up. When overriding, check for\n\t\t\t\t-- conflicts with built-in keys for popup menu (like `&lt;C-u&gt;`/`&lt;C-o&gt;`\n\t\t\t\t-- for 'completefunc'/'omnifunc' source function; or `&lt;C-n&gt;`/`&lt;C-p&gt;`).\n\t\t\t\tscroll_down = &quot;&lt;C-f&gt;&quot;,\n\t\t\t\tscroll_up = &quot;&lt;C-b&gt;&quot;,\n\t\t\t},\n\t\t},\n\t},\"><pre class=\"notranslate\">\t{\n\t\t<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>echasnovski/mini.completion<span class=\"pl-pds\">\"</span></span>,\n\t\t<span class=\"pl-smi\">version</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>*<span class=\"pl-pds\">\"</span></span>,\n\t\t<span class=\"pl-smi\">dependencies</span> <span class=\"pl-k\">=</span> {\n\t\t\t{\n\t\t\t\t<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>echasnovski/mini.snippets<span class=\"pl-pds\">\"</span></span>,\n\t\t\t\t<span class=\"pl-smi\">version</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>*<span class=\"pl-pds\">\"</span></span>,\n\t\t\t\t<span class=\"pl-en\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">mod</span>)\n\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">gen_loader</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-smi\">mod</span>.<span class=\"pl-e\">name</span>).<span class=\"pl-e\">gen_loader</span>\n\t\t\t\t\t<span class=\"pl-k\">return</span> {\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Array of snippets and loaders (see |MiniSnippets.config| for details).</span>\n\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Nothing is defined by default. Add manually to have snippets to match.</span>\n\t\t\t\t\t\t\t<span class=\"pl-smi\">snippets</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> gen_loader.from_file(\"~/.config/nvim/snippets/package.json\"),</span>\n\t\t\t\t\t\t\t\t<span class=\"pl-smi\">gen_loader</span>.<span class=\"pl-c1\">from_lang</span>(),\n\t\t\t\t\t\t\t},\n\n\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Module mappings. Use `''` (empty string) to disable one.</span>\n\t\t\t\t\t\t\t<span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">expand</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">jump_next</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">jump_prev</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>},\n\n\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Functions describing snippet expansion. If `nil`, default values</span>\n\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> are `MiniSnippets.default_&lt;field&gt;()`.</span>\n\t\t\t\t\t\t\t<span class=\"pl-smi\">expand</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Resolve raw config snippets at context</span>\n\t\t\t\t\t\t\t\t<span class=\"pl-smi\">prepare</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n\t\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Match resolved snippets at cursor position</span>\n\t\t\t\t\t\t\t\t<span class=\"pl-smi\">match</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n\t\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Possibly choose among matched snippets</span>\n\t\t\t\t\t\t\t\t<span class=\"pl-smi\">select</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n\t\t\t\t\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Insert selected snippet</span>\n\t\t\t\t\t\t\t\t<span class=\"pl-smi\">insert</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t},\n\t\t\t\t\t}\n\t\t\t\t<span class=\"pl-k\">end</span>,\n\t\t\t},\n\t\t},\n\t\t<span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> {\n\t\t\t{ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-j&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> },\n\t\t\t{ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-k&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-p&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">expr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> },\n\t\t},\n\t\t<span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Delay (debounce type, in ms) between certain Neovim event and action.</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> This can be used to (virtually) disable certain automatic actions by</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> setting very high delay time (like 10^7).</span>\n\t\t\t<span class=\"pl-smi\">delay</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">completion</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">100</span>, <span class=\"pl-smi\">info</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">100</span>, <span class=\"pl-smi\">signature</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">50</span> },\n\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Configuration for action windows:</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> - `height` and `width` are maximum dimensions.</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> - `border` defines border (as in `nvim_open_win()`; default \"single\").</span>\n\t\t\t<span class=\"pl-smi\">window</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t<span class=\"pl-smi\">info</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">25</span>, <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">80</span>, <span class=\"pl-smi\">border</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> },\n\t\t\t\t<span class=\"pl-smi\">signature</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">25</span>, <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">80</span>, <span class=\"pl-smi\">border</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> },\n\t\t\t},\n\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Way of how module does LSP completion</span>\n\t\t\t<span class=\"pl-smi\">lsp_completion</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> `source_func` should be one of 'completefunc' or 'omnifunc'.</span>\n\t\t\t\t<span class=\"pl-smi\">source_func</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>completefunc<span class=\"pl-pds\">\"</span></span>,\n\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> `auto_setup` should be boolean indicating if LSP completion is set up</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> on every `BufEnter` event.</span>\n\t\t\t\t<span class=\"pl-smi\">auto_setup</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> A function which takes LSP 'textDocument/completion' response items</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> (each with `client_id` field for item's server) and word to complete.</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Output should be a table of the same nature as input. Common use case</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> is custom filter/sort. Default: `default_process_items`</span>\n\t\t\t\t<span class=\"pl-smi\">process_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> A function which takes a snippet as string and inserts it at cursor.</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Default: `default_snippet_insert` which tries to use 'mini.snippets'</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> and falls back to `vim.snippet.expand` (on Neovim&gt;=0.10).</span>\n\t\t\t\t<span class=\"pl-smi\">snippet_insert</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>,\n\t\t\t},\n\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Fallback action as function/string. Executed in Insert mode.</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> To use built-in completion (`:h ins-completion`), set its mapping as</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> string. Example: set '&lt;C-x&gt;&lt;C-l&gt;' for 'whole lines' completion.</span>\n\t\t\t<span class=\"pl-smi\">fallback_action</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-n&gt;<span class=\"pl-pds\">\"</span></span>,\n\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Module mappings. Use `''` (empty string) to disable one. Some of them</span>\n\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> might conflict with system mappings.</span>\n\t\t\t<span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Force two-step/fallback completions</span>\n\t\t\t\t<span class=\"pl-smi\">force_twostep</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-Space&gt;<span class=\"pl-pds\">\"</span></span>,\n\t\t\t\t<span class=\"pl-smi\">force_fallback</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;A-Space&gt;<span class=\"pl-pds\">\"</span></span>,\n\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> Scroll info/signature window down/up. When overriding, check for</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> conflicts with built-in keys for popup menu (like `&lt;C-u&gt;`/`&lt;C-o&gt;`</span>\n\t\t\t\t<span class=\"pl-c\"><span class=\"pl-c\">--</span> for 'completefunc'/'omnifunc' source function; or `&lt;C-n&gt;`/`&lt;C-p&gt;`).</span>\n\t\t\t\t<span class=\"pl-smi\">scroll_down</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-f&gt;<span class=\"pl-pds\">\"</span></span>,\n\t\t\t\t<span class=\"pl-smi\">scroll_up</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-b&gt;<span class=\"pl-pds\">\"</span></span>,\n\t\t\t},\n\t\t},\n\t},</pre></div>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.completion, mini.snippets\nQuestion\nI tried to have the mini completion work together and be toggled on \nHowever even after overriding the mapping  is hijacked by snippets.\nAfter pressing  I'm met with ->\n(mini.snippets) No snippets in context:\n{\n   buf_id = 2,\n   lang = \"lua\"\n}\n\nHere is my config with lazy and mini:\n\t{\n\t\t\"echasnovski/mini.completion\",\n\t\tversion = \"*\",\n\t\tdependencies = {\n\t\t\t{\n\t\t\t\t\"echasnovski/mini.snippets\",\n\t\t\t\tversion = \"*\",\n\t\t\t\topts = function(mod)\n\t\t\t\t\tlocal gen_loader = require(mod.name).gen_loader\n\t\t\t\t\treturn {\n\t\t\t\t\t\t{\n\t\t\t\t\t\t\t-- Array of snippets and loaders (see |MiniSnippets.config| for details).\n\t\t\t\t\t\t\t-- Nothing is defined by default. Add manually to have snippets to match.\n\t\t\t\t\t\t\tsnippets = {\n\t\t\t\t\t\t\t\t-- gen_loader.from_file(\"~/.config/nvim/snippets/package.json\"),\n\t\t\t\t\t\t\t\tgen_loader.from_lang(),\n\t\t\t\t\t\t\t},\n\n\t\t\t\t\t\t\t-- Module mappings. Use `''` (empty string) to disable one.\n\t\t\t\t\t\t\tmappings = { expand = \"\", jump_next = \"\", jump_prev = \"\" },\n\n\t\t\t\t\t\t\t-- Functions describing snippet expansion. If `nil`, default values\n\t\t\t\t\t\t\t-- are `MiniSnippets.default_<field>()`.\n\t\t\t\t\t\t\texpand = {\n\t\t\t\t\t\t\t\t-- Resolve raw config snippets at context\n\t\t\t\t\t\t\t\tprepare = nil,\n\t\t\t\t\t\t\t\t-- Match resolved snippets at cursor position\n\t\t\t\t\t\t\t\tmatch = nil,\n\t\t\t\t\t\t\t\t-- Possibly choose among matched snippets\n\t\t\t\t\t\t\t\tselect = nil,\n\t\t\t\t\t\t\t\t-- Insert selected snippet\n\t\t\t\t\t\t\t\tinsert = nil,\n\t\t\t\t\t\t\t},\n\t\t\t\t\t\t},\n\t\t\t\t\t}\n\t\t\t\tend,\n\t\t\t},\n\t\t},\n\t\tkeys = {\n\t\t\t{ \"<C-j>\", \"<C-n>\", mode = { \"i\" }, expr = false },\n\t\t\t{ \"<C-k>\", \"<C-p>\", mode = { \"i\" }, expr = false },\n\t\t},\n\t\topts = {\n\t\t\t-- Delay (debounce type, in ms) between certain Neovim event and action.\n\t\t\t-- This can be used to (virtually) disable certain automatic actions by\n\t\t\t-- setting very high delay time (like 10^7).\n\t\t\tdelay = { completion = 100, info = 100, signature = 50 },\n\n\t\t\t-- Configuration for action windows:\n\t\t\t-- - `height` and `width` are maximum dimensions.\n\t\t\t-- - `border` defines border (as in `nvim_open_win()`; default \"single\").\n\t\t\twindow = {\n\t\t\t\tinfo = { height = 25, width = 80, border = nil },\n\t\t\t\tsignature = { height = 25, width = 80, border = nil },\n\t\t\t},\n\n\t\t\t-- Way of how module does LSP completion\n\t\t\tlsp_completion = {\n\t\t\t\t-- `source_func` should be one of 'completefunc' or 'omnifunc'.\n\t\t\t\tsource_func = \"completefunc\",\n\n\t\t\t\t-- `auto_setup` should be boolean indicating if LSP completion is set up\n\t\t\t\t-- on every `BufEnter` event.\n\t\t\t\tauto_setup = true,\n\n\t\t\t\t-- A function which takes LSP 'textDocument/completion' response items\n\t\t\t\t-- (each with `client_id` field for item's server) and word to complete.\n\t\t\t\t-- Output should be a table of the same nature as input. Common use case\n\t\t\t\t-- is custom filter/sort. Default: `default_process_items`\n\t\t\t\tprocess_items = nil,\n\n\t\t\t\t-- A function which takes a snippet as string and inserts it at cursor.\n\t\t\t\t-- Default: `default_snippet_insert` which tries to use 'mini.snippets'\n\t\t\t\t-- and falls back to `vim.snippet.expand` (on Neovim>=0.10).\n\t\t\t\tsnippet_insert = nil,\n\t\t\t},\n\n\t\t\t-- Fallback action as function/string. Executed in Insert mode.\n\t\t\t-- To use built-in completion (`:h ins-completion`), set its mapping as\n\t\t\t-- string. Example: set '<C-x><C-l>' for 'whole lines' completion.\n\t\t\tfallback_action = \"<C-n>\",\n\n\t\t\t-- Module mappings. Use `''` (empty string) to disable one. Some of them\n\t\t\t-- might conflict with system mappings.\n\t\t\tmappings = {\n\t\t\t\t-- Force two-step/fallback completions\n\t\t\t\tforce_twostep = \"<C-Space>\",\n\t\t\t\tforce_fallback = \"<A-Space>\",\n\n\t\t\t\t-- Scroll info/signature window down/up. When overriding, check for\n\t\t\t\t-- conflicts with built-in keys for popup menu (like `<C-u>`/`<C-o>`\n\t\t\t\t-- for 'completefunc'/'omnifunc' source function; or `<C-n>`/`<C-p>`).\n\t\t\t\tscroll_down = \"<C-f>\",\n\t\t\t\tscroll_up = \"<C-b>\",\n\t\t\t},\n\t\t},\n\t},",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-06-11T10:12:22Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The `mappings = { expand = \"\", jump_next = \"\", jump_prev = \"\" }` is indeed the correct way to have 'mini.snippets' not automatically create its mappings (including default `<C-j>` for to expand mappings).\r\n\r\nIt looks like the `opts` function for 'mini.snippets' config returns incorrect data: it returns `{ { ..., mappings = {} } }` (i.e. array with single config element) when it should return config table directly. Remove extra `{` / `}` nesting and it should work.\r\n\r\nAnd if you want `<C-j>` to have 'mini.completion' force its completion, set `force_twostep = \"<C-j>\"`.",
+            "bodyHTML": "<p dir=\"auto\">The <code class=\"notranslate\">mappings = { expand = \"\", jump_next = \"\", jump_prev = \"\" }</code> is indeed the correct way to have 'mini.snippets' not automatically create its mappings (including default <code class=\"notranslate\">&lt;C-j&gt;</code> for to expand mappings).</p>\n<p dir=\"auto\">It looks like the <code class=\"notranslate\">opts</code> function for 'mini.snippets' config returns incorrect data: it returns <code class=\"notranslate\">{ { ..., mappings = {} } }</code> (i.e. array with single config element) when it should return config table directly. Remove extra <code class=\"notranslate\">{</code> / <code class=\"notranslate\">}</code> nesting and it should work.</p>\n<p dir=\"auto\">And if you want <code class=\"notranslate\">&lt;C-j&gt;</code> to have 'mini.completion' force its completion, set <code class=\"notranslate\">force_twostep = \"&lt;C-j&gt;\"</code>.</p>",
+            "bodyText": "The mappings = { expand = \"\", jump_next = \"\", jump_prev = \"\" } is indeed the correct way to have 'mini.snippets' not automatically create its mappings (including default <C-j> for to expand mappings).\nIt looks like the opts function for 'mini.snippets' config returns incorrect data: it returns { { ..., mappings = {} } } (i.e. array with single config element) when it should return config table directly. Remove extra { / } nesting and it should work.\nAnd if you want <C-j> to have 'mini.completion' force its completion, set force_twostep = \"<C-j>\".",
+            "createdAt": "2025-06-11T10:12:22Z",
+            "createdViaEmail": false,
+            "databaseId": 13431514,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4AzPLa",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2025-06-11T10:13:40Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-06-11T10:12:22Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1852#discussioncomment-13431514",
+            "updatedAt": "2025-06-11T10:13:40Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1852#discussioncomment-13431514"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/19394616?v=4",
+                "login": "AceCodePt",
+                "resourcePath": "/AceCodePt",
+                "url": "https://github.com/AceCodePt"
+            },
+            "authorAssociation": "NONE",
+            "body": "@echasnovski Thanks!\r\nThat was it.\r\n",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Thanks!<br>\nThat was it.</p>",
+            "bodyText": "@echasnovski Thanks!\nThat was it.",
+            "createdAt": "2025-06-12T13:11:19Z",
+            "createdViaEmail": false,
+            "databaseId": 13446514,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AzS1y",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-12T13:11:19Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1852#discussioncomment-13446514",
+            "updatedAt": "2025-06-12T13:11:20Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1852#discussioncomment-13446514"
+        }
+    ],
+    "createdAt": "2025-06-11T09:54:43Z",
+    "createdViaEmail": false,
+    "databaseId": 8440895,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "id": "D_kwDOFoksYM4AgMw_",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1u2I",
+                "name": "mini.completion"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": "2025-06-11T10:08:32Z",
+    "locked": false,
+    "number": 1852,
+    "poll": null,
+    "publishedAt": "2025-06-11T09:54:43Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1852",
+    "stateReason": "RESOLVED",
+    "title": "How can I map <c-j> to be completion instead of snippet",
+    "updatedAt": "2025-06-12T13:11:19Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1852"
+}

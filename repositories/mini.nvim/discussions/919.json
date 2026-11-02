@@ -1,0 +1,364 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "Here are two of my favorite hues thus far.\r\n\r\n### Deep Purple\r\n\r\n```lua\r\nlocal hues = require(\"mini.hues\")\r\nvim.g.colors_name = \"minihues-purple\"\r\nlocal opts = {\r\n  accent = \"azure\",\r\n  background = \"#151025\",\r\n  foreground = \"#c0c8cb\",\r\n}\r\nhues.setup(opts)\r\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\r\n```\r\n<img width=\"2560\" alt=\"Screenshot 2024-05-28 at 8 07 55 AM\" src=\"https://github.com/echasnovski/mini.nvim/assets/747855/d081eb4b-8fef-48c0-887b-fa76a64b1209\">\r\n\r\n### Olive\r\n\r\n```lua\r\nlocal hues = require(\"mini.hues\")\r\nvim.g.colors_name = \"minihues-olive\"\r\nlocal opts = {\r\n  accent = \"green\",\r\n  background = \"#18271a\",\r\n  foreground = \"#c2c9c3\",\r\n}\r\nhues.setup(opts)\r\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\r\n```\r\n<img width=\"2560\" alt=\"Screenshot 2024-05-28 at 8 07 02 AM\" src=\"https://github.com/echasnovski/mini.nvim/assets/747855/7617b67a-c2e6-478f-8a72-3b814102f3f2\">\r\n\r\n## Persisting random themes\r\n\r\nI sometimes generate a random hue that I really like—such as the olive one from above:\r\n\r\n```lua\r\nlocal hues = require(\"mini.hues\")\r\nmath.randomseed(vim.loop.hrtime())\r\nlocal base_colors = hues.gen_random_base_colors()\r\nlocal opts = {\r\n  background = base_colors.background,\r\n  foreground = base_colors.foreground,\r\n  saturation = vim.o.background == \"dark\" and \"medium\" or \"high\",\r\n  accent = \"azure\",\r\n}\r\nhues.setup(opts)\r\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\r\nvim.g.colors_name = \"minihues-myrandomhue\"\r\n```\r\n\r\nWhen I find one that I like, I want to be able to persist it for future use, so I wrote an exporter that will generate a new colorscheme with my custom highlights as well as a matching wezterm colorscheme (because you are a monster if your terminal and neovim themes aren't in sync 😄 ).\r\n\r\n<img width=\"792\" alt=\"Screenshot 2024-05-28 at 8 14 58 AM\" src=\"https://github.com/echasnovski/mini.nvim/assets/747855/a45b2923-50f5-4a10-b177-2bbf08fe868a\">\r\n<img width=\"792\" alt=\"Screenshot 2024-05-28 at 8 15 08 AM\" src=\"https://github.com/echasnovski/mini.nvim/assets/747855/a3bb2539-3978-4ae8-a322-c8ef6033b0cf\">\r\n\r\nMy exporter opens two buffers with the rendered themes in case I want to edit them before saving. Typically I want to change the accent color based on the hue. The wezterm config is specific to a [dynamic configuration selector](https://github.com/wez/wezterm/discussions/5435) I recently wrote for my own wezterm setup that allows me to dynamically fuzzy select fonts, colorschemes, etc ...\r\n\r\n```lua\r\nlocal M = {}\r\nlocal H = {}\r\n\r\nM.export_minihues_theme = function()\r\n  local ok, theme_name = pcall(vim.fn.input, {\r\n    prompt = \"Enter name for color scheme: minihues-\",\r\n    cancelreturn = false,\r\n  })\r\n  if not ok or theme_name == false then\r\n    return nil\r\n  end\r\n  local filename = \"minihues-\" .. theme_name\r\n  local p = require(\"mini.hues\").make_palette({})\r\n  H.render(H.minihues_path(filename), H.minihues_template, filename, vim.inspect(H.minihues_opts(p)))\r\n  vim.cmd(\"split\")\r\n  local display_name = \"MiniHues \" .. theme_name:gsub(\"^%l\", string.upper)\r\n  H.render(H.wezterm_path(filename), H.wezterm_template, display_name, vim.inspect(H.wezterm_opts(p)))\r\nend\r\n\r\nH.wezterm_path = function(theme_name)\r\n  local dir = os.getenv(\"WEZTERM_CONFIG_DIR\")\r\n  return string.format(\"%s/colorschemes/%s.lua\", dir, theme_name)\r\nend\r\n\r\nH.minihues_path = function(theme_name)\r\n  local dir = string.format(\"~/.config/%s/colors\", os.getenv(\"NVIM_APPNAME\") or \"nvim\")\r\n  return string.format(\"%s/%s.lua\", dir, theme_name)\r\nend\r\n\r\nH.render = function(filename, template, ...)\r\n  local rendered = string.format(template, ...)\r\n  vim.cmd(string.format(\"edit %s\", filename))\r\n  vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(rendered, \"\\n\"))\r\nend\r\n\r\nH.minihues_template = [[local hues = require(\"mini.hues\")\r\nvim.g.colors_name = \"%s\"\r\nlocal opts = %s\r\nhues.setup(opts)\r\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\r\n]]\r\n\r\nH.wezterm_template = [[local M = {}\r\nlocal name = \"%s\"\r\n\r\nM.init = function()\r\n  return name\r\nend\r\n\r\nM.activate = function(config)\r\n  config.color_schemes = config.color_schemes or {}\r\n  config.color_schemes[name] = %s\r\n  config.color_scheme = name\r\nend\r\n\r\nreturn M\r\n]]\r\n\r\nH.minihues_opts = function(p)\r\n  return {\r\n    background = p.bg,\r\n    foreground = p.fg,\r\n    accent = \"azure\",\r\n  }\r\nend\r\n\r\nH.wezterm_opts = function(p)\r\n  return {\r\n    foreground = p.fg,\r\n    background = p.bg,\r\n    cursor_bg = p.azure,\r\n    cursor_fg = p.azure_bg,\r\n    cursor_border = p.azure,\r\n    selection_bg = p.bg_mid2,\r\n    scrollbar_thumb = p.bg_mid,\r\n    split = p.bg_mid2,\r\n    ansi = {\r\n      p.bg_mid,\r\n      p.red,\r\n      p.green,\r\n      p.yellow,\r\n      p.azure,\r\n      p.purple,\r\n      p.cyan,\r\n      p.fg_mid2,\r\n    },\r\n    brights = {\r\n      p.bg_mid2,\r\n      p.red,\r\n      p.green,\r\n      p.yellow,\r\n      p.azure,\r\n      p.purple,\r\n      p.cyan,\r\n      p.fg_mid,\r\n    },\r\n    indexed = { [136] = p.orange },\r\n    compose_cursor = p.orange,\r\n    copy_mode_active_highlight_bg = { Color = p.bg },\r\n    copy_mode_active_highlight_fg = { Color = p.fg_mid },\r\n    copy_mode_inactive_highlight_bg = { Color = p.green },\r\n    copy_mode_inactive_highlight_fg = { Color = p.bg },\r\n    quick_select_label_fg = { Color = p.bg },\r\n    quick_select_label_bg = { Color = p.orange },\r\n    quick_select_match_bg = { Color = p.bg_mid },\r\n    quick_select_match_fg = { Color = p.azure },\r\n  }\r\nend\r\n\r\nreturn M\r\n```\r\n",
+    "bodyHTML": "<p dir=\"auto\">Here are two of my favorite hues thus far.</p>\n<h3 dir=\"auto\">Deep Purple</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local hues = require(&quot;mini.hues&quot;)\nvim.g.colors_name = &quot;minihues-purple&quot;\nlocal opts = {\n  accent = &quot;azure&quot;,\n  background = &quot;#151025&quot;,\n  foreground = &quot;#c0c8cb&quot;,\n}\nhues.setup(opts)\nrequire(&quot;plugins.mini.hues&quot;).apply_custom_highlights(opts)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">hues</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hues<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minihues-purple<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">accent</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>azure<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#151025<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">foreground</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#c0c8cb<span class=\"pl-pds\">\"</span></span>,\n}\n<span class=\"pl-smi\">hues</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>plugins.mini.hues<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">apply_custom_highlights</span>(<span class=\"pl-smi\">opts</span>)</pre></div>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/334409903-d081eb4b-8fef-48c0-887b-fa76a64b1209.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDA5OTAzLWQwODFlYjRiLThmZWYtNDhjMC04ODdiLWZhNzZhNjRiMTIwOS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03ZDIyODljNDZmOTAyZmI4MDY3Nzc5NWE5MWM3ZDMyMzljNzQzOTgxZjk1MmM3MmYxNGNmYTBmMmY2ZWI5ZDUyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.1WbNWdEFRMGvgp5kVmzGoGiZTr_4BsEJ9udxKe5hiD4\"><img width=\"2000\" alt=\"Screenshot 2024-05-28 at 8 07 55 AM\" src=\"https://private-user-images.githubusercontent.com/747855/334409903-d081eb4b-8fef-48c0-887b-fa76a64b1209.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDA5OTAzLWQwODFlYjRiLThmZWYtNDhjMC04ODdiLWZhNzZhNjRiMTIwOS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03ZDIyODljNDZmOTAyZmI4MDY3Nzc5NWE5MWM3ZDMyMzljNzQzOTgxZjk1MmM3MmYxNGNmYTBmMmY2ZWI5ZDUyJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.1WbNWdEFRMGvgp5kVmzGoGiZTr_4BsEJ9udxKe5hiD4\" style=\"max-width: 100%;\"></a>\n<h3 dir=\"auto\">Olive</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local hues = require(&quot;mini.hues&quot;)\nvim.g.colors_name = &quot;minihues-olive&quot;\nlocal opts = {\n  accent = &quot;green&quot;,\n  background = &quot;#18271a&quot;,\n  foreground = &quot;#c2c9c3&quot;,\n}\nhues.setup(opts)\nrequire(&quot;plugins.mini.hues&quot;).apply_custom_highlights(opts)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">hues</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hues<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minihues-olive<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">accent</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>green<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#18271a<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">foreground</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>#c2c9c3<span class=\"pl-pds\">\"</span></span>,\n}\n<span class=\"pl-smi\">hues</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>plugins.mini.hues<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">apply_custom_highlights</span>(<span class=\"pl-smi\">opts</span>)</pre></div>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/334410116-7617b67a-c2e6-478f-8a72-3b814102f3f2.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDEwMTE2LTc2MTdiNjdhLWMyZTYtNDc4Zi04YTcyLTNiODE0MTAyZjNmMi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05MDgxNjY4MjVmYWIxNmI4MWM4YWE3MTJmM2RiYzQ3MjYwOGE5ZjllMDM3MDVmOTdhODMyZDc0MjgxZjc0NzRkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.UmtS48ybFAXgiek-d_Z4UN_gyAaxsmRFhCjPew6ce6o\"><img width=\"2000\" alt=\"Screenshot 2024-05-28 at 8 07 02 AM\" src=\"https://private-user-images.githubusercontent.com/747855/334410116-7617b67a-c2e6-478f-8a72-3b814102f3f2.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDEwMTE2LTc2MTdiNjdhLWMyZTYtNDc4Zi04YTcyLTNiODE0MTAyZjNmMi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT05MDgxNjY4MjVmYWIxNmI4MWM4YWE3MTJmM2RiYzQ3MjYwOGE5ZjllMDM3MDVmOTdhODMyZDc0MjgxZjc0NzRkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.UmtS48ybFAXgiek-d_Z4UN_gyAaxsmRFhCjPew6ce6o\" style=\"max-width: 100%;\"></a>\n<h2 dir=\"auto\">Persisting random themes</h2>\n<p dir=\"auto\">I sometimes generate a random hue that I really like—such as the olive one from above:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local hues = require(&quot;mini.hues&quot;)\nmath.randomseed(vim.loop.hrtime())\nlocal base_colors = hues.gen_random_base_colors()\nlocal opts = {\n  background = base_colors.background,\n  foreground = base_colors.foreground,\n  saturation = vim.o.background == &quot;dark&quot; and &quot;medium&quot; or &quot;high&quot;,\n  accent = &quot;azure&quot;,\n}\nhues.setup(opts)\nrequire(&quot;plugins.mini.hues&quot;).apply_custom_highlights(opts)\nvim.g.colors_name = &quot;minihues-myrandomhue&quot;\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">hues</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hues<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-c1\">math.randomseed</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">loop</span>.<span class=\"pl-c1\">hrtime</span>())\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">base_colors</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hues</span>.<span class=\"pl-c1\">gen_random_base_colors</span>()\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">base_colors</span>.<span class=\"pl-e\">background</span>,\n  <span class=\"pl-smi\">foreground</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">base_colors</span>.<span class=\"pl-e\">foreground</span>,\n  <span class=\"pl-smi\">saturation</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">background</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>dark<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>medium<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>high<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">accent</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>azure<span class=\"pl-pds\">\"</span></span>,\n}\n<span class=\"pl-smi\">hues</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>plugins.mini.hues<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">apply_custom_highlights</span>(<span class=\"pl-smi\">opts</span>)\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minihues-myrandomhue<span class=\"pl-pds\">\"</span></span></pre></div>\n<p dir=\"auto\">When I find one that I like, I want to be able to persist it for future use, so I wrote an exporter that will generate a new colorscheme with my custom highlights as well as a matching wezterm colorscheme (because you are a monster if your terminal and neovim themes aren't in sync 😄 ).</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/334417306-a45b2923-50f5-4a10-b177-2bbf08fe868a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDE3MzA2LWE0NWIyOTIzLTUwZjUtNGExMC1iMTc3LTJiYmYwOGZlODY4YS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wNTBlNjllMjViNGQxODQxNDI5ZTJjYjA2NzFiOTg5ZWI1NzRjOTcxOGVhNTVlNDgxMzdiNmFiNTk3MWIzYmVkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.cD85t9GSxUhKcrNq6piWfNnx6xW84ztnljc6joghN1A\"><img width=\"792\" alt=\"Screenshot 2024-05-28 at 8 14 58 AM\" src=\"https://private-user-images.githubusercontent.com/747855/334417306-a45b2923-50f5-4a10-b177-2bbf08fe868a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDE3MzA2LWE0NWIyOTIzLTUwZjUtNGExMC1iMTc3LTJiYmYwOGZlODY4YS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wNTBlNjllMjViNGQxODQxNDI5ZTJjYjA2NzFiOTg5ZWI1NzRjOTcxOGVhNTVlNDgxMzdiNmFiNTk3MWIzYmVkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.cD85t9GSxUhKcrNq6piWfNnx6xW84ztnljc6joghN1A\" style=\"max-width: 100%;\"></a>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/334417359-a3bb2539-3978-4ae8-a322-c8ef6033b0cf.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDE3MzU5LWEzYmIyNTM5LTM5NzgtNGFlOC1hMzIyLWM4ZWY2MDMzYjBjZi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1hMGE0MzhmM2I2M2YyNTlhMTg4ZTJkMjFmYTMxMTM0Y2U0NDJlMTc4OWU0NDdiY2JmOTMyMDJkZjM0ZmQ5N2FhJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.uHI703Z7O4jX7CnVjPinBeaDb69r3BDdDWf6B_fgyyk\"><img width=\"792\" alt=\"Screenshot 2024-05-28 at 8 15 08 AM\" src=\"https://private-user-images.githubusercontent.com/747855/334417359-a3bb2539-3978-4ae8-a322-c8ef6033b0cf.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0ODIsIm5iZiI6MTc5MzU1MzE4MiwicGF0aCI6Ii83NDc4NTUvMzM0NDE3MzU5LWEzYmIyNTM5LTM5NzgtNGFlOC1hMzIyLWM4ZWY2MDMzYjBjZi5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzEzMDJaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT1hMGE0MzhmM2I2M2YyNTlhMTg4ZTJkMjFmYTMxMTM0Y2U0NDJlMTc4OWU0NDdiY2JmOTMyMDJkZjM0ZmQ5N2FhJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.uHI703Z7O4jX7CnVjPinBeaDb69r3BDdDWf6B_fgyyk\" style=\"max-width: 100%;\"></a>\n<p dir=\"auto\">My exporter opens two buffers with the rendered themes in case I want to edit them before saving. Typically I want to change the accent color based on the hue. The wezterm config is specific to a <a href=\"https://github.com/wez/wezterm/discussions/5435\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/wezterm/wezterm/discussions/5435/hovercard\">dynamic configuration selector</a> I recently wrote for my own wezterm setup that allows me to dynamically fuzzy select fonts, colorschemes, etc ...</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local M = {}\nlocal H = {}\n\nM.export_minihues_theme = function()\n  local ok, theme_name = pcall(vim.fn.input, {\n    prompt = &quot;Enter name for color scheme: minihues-&quot;,\n    cancelreturn = false,\n  })\n  if not ok or theme_name == false then\n    return nil\n  end\n  local filename = &quot;minihues-&quot; .. theme_name\n  local p = require(&quot;mini.hues&quot;).make_palette({})\n  H.render(H.minihues_path(filename), H.minihues_template, filename, vim.inspect(H.minihues_opts(p)))\n  vim.cmd(&quot;split&quot;)\n  local display_name = &quot;MiniHues &quot; .. theme_name:gsub(&quot;^%l&quot;, string.upper)\n  H.render(H.wezterm_path(filename), H.wezterm_template, display_name, vim.inspect(H.wezterm_opts(p)))\nend\n\nH.wezterm_path = function(theme_name)\n  local dir = os.getenv(&quot;WEZTERM_CONFIG_DIR&quot;)\n  return string.format(&quot;%s/colorschemes/%s.lua&quot;, dir, theme_name)\nend\n\nH.minihues_path = function(theme_name)\n  local dir = string.format(&quot;~/.config/%s/colors&quot;, os.getenv(&quot;NVIM_APPNAME&quot;) or &quot;nvim&quot;)\n  return string.format(&quot;%s/%s.lua&quot;, dir, theme_name)\nend\n\nH.render = function(filename, template, ...)\n  local rendered = string.format(template, ...)\n  vim.cmd(string.format(&quot;edit %s&quot;, filename))\n  vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(rendered, &quot;\\n&quot;))\nend\n\nH.minihues_template = [[local hues = require(&quot;mini.hues&quot;)\nvim.g.colors_name = &quot;%s&quot;\nlocal opts = %s\nhues.setup(opts)\nrequire(&quot;plugins.mini.hues&quot;).apply_custom_highlights(opts)\n]]\n\nH.wezterm_template = [[local M = {}\nlocal name = &quot;%s&quot;\n\nM.init = function()\n  return name\nend\n\nM.activate = function(config)\n  config.color_schemes = config.color_schemes or {}\n  config.color_schemes[name] = %s\n  config.color_scheme = name\nend\n\nreturn M\n]]\n\nH.minihues_opts = function(p)\n  return {\n    background = p.bg,\n    foreground = p.fg,\n    accent = &quot;azure&quot;,\n  }\nend\n\nH.wezterm_opts = function(p)\n  return {\n    foreground = p.fg,\n    background = p.bg,\n    cursor_bg = p.azure,\n    cursor_fg = p.azure_bg,\n    cursor_border = p.azure,\n    selection_bg = p.bg_mid2,\n    scrollbar_thumb = p.bg_mid,\n    split = p.bg_mid2,\n    ansi = {\n      p.bg_mid,\n      p.red,\n      p.green,\n      p.yellow,\n      p.azure,\n      p.purple,\n      p.cyan,\n      p.fg_mid2,\n    },\n    brights = {\n      p.bg_mid2,\n      p.red,\n      p.green,\n      p.yellow,\n      p.azure,\n      p.purple,\n      p.cyan,\n      p.fg_mid,\n    },\n    indexed = { [136] = p.orange },\n    compose_cursor = p.orange,\n    copy_mode_active_highlight_bg = { Color = p.bg },\n    copy_mode_active_highlight_fg = { Color = p.fg_mid },\n    copy_mode_inactive_highlight_bg = { Color = p.green },\n    copy_mode_inactive_highlight_fg = { Color = p.bg },\n    quick_select_label_fg = { Color = p.bg },\n    quick_select_label_bg = { Color = p.orange },\n    quick_select_match_bg = { Color = p.bg_mid },\n    quick_select_match_fg = { Color = p.azure },\n  }\nend\n\nreturn M\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">M</span> <span class=\"pl-k\">=</span> {}\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">export_minihues_theme</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">ok</span>, <span class=\"pl-smi\">theme_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">pcall</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-e\">input</span>, {\n    <span class=\"pl-smi\">prompt</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Enter name for color scheme: minihues-<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-smi\">cancelreturn</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>,\n  })\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">ok</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">theme_name</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">false</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">filename</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minihues-<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">theme_name</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">p</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hues<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">make_palette</span>({})\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">render</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">minihues_path</span>(<span class=\"pl-smi\">filename</span>), <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">minihues_template</span>, <span class=\"pl-smi\">filename</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">inspect</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">minihues_opts</span>(<span class=\"pl-smi\">p</span>)))\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>split<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">display_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHues <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-en\">theme_name</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%l<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">string.upper</span>)\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">render</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">wezterm_path</span>(<span class=\"pl-smi\">filename</span>), <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">wezterm_template</span>, <span class=\"pl-smi\">display_name</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">inspect</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">wezterm_opts</span>(<span class=\"pl-smi\">p</span>)))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">wezterm_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">theme_name</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">os.getenv</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>WEZTERM_CONFIG_DIR<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s/colorschemes/%s.lua<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">dir</span>, <span class=\"pl-smi\">theme_name</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">minihues_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">theme_name</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">dir</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>~/.config/%s/colors<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">os.getenv</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>NVIM_APPNAME<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s/%s.lua<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">dir</span>, <span class=\"pl-smi\">theme_name</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">render</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">filename</span>, <span class=\"pl-smi\">template</span>, ...)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">rendered</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-smi\">template</span>, <span class=\"pl-c1\">...</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>edit %s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">filename</span>))\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">rendered</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">minihues_template</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>local hues = require(\"mini.hues\")</span>\n<span class=\"pl-s\">vim.g.colors_name = \"%s\"</span>\n<span class=\"pl-s\">local opts = %s</span>\n<span class=\"pl-s\">hues.setup(opts)</span>\n<span class=\"pl-s\">require(\"plugins.mini.hues\").apply_custom_highlights(opts)</span>\n<span class=\"pl-s\"><span class=\"pl-pds\">]]</span></span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">wezterm_template</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">[[</span>local M = {}</span>\n<span class=\"pl-s\">local name = \"%s\"</span>\n<span class=\"pl-s\"></span>\n<span class=\"pl-s\">M.init = function()</span>\n<span class=\"pl-s\">  return name</span>\n<span class=\"pl-s\">end</span>\n<span class=\"pl-s\"></span>\n<span class=\"pl-s\">M.activate = function(config)</span>\n<span class=\"pl-s\">  config.color_schemes = config.color_schemes or {}</span>\n<span class=\"pl-s\">  config.color_schemes[name] = %s</span>\n<span class=\"pl-s\">  config.color_scheme = name</span>\n<span class=\"pl-s\">end</span>\n<span class=\"pl-s\"></span>\n<span class=\"pl-s\">return M</span>\n<span class=\"pl-s\"><span class=\"pl-pds\">]]</span></span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">minihues_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">p</span>)\n  <span class=\"pl-k\">return</span> {\n    <span class=\"pl-smi\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg</span>,\n    <span class=\"pl-smi\">foreground</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">fg</span>,\n    <span class=\"pl-smi\">accent</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>azure<span class=\"pl-pds\">\"</span></span>,\n  }\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">wezterm_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">p</span>)\n  <span class=\"pl-k\">return</span> {\n    <span class=\"pl-smi\">foreground</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">fg</span>,\n    <span class=\"pl-smi\">background</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg</span>,\n    <span class=\"pl-smi\">cursor_bg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">azure</span>,\n    <span class=\"pl-smi\">cursor_fg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">azure_bg</span>,\n    <span class=\"pl-smi\">cursor_border</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">azure</span>,\n    <span class=\"pl-smi\">selection_bg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg_mid2</span>,\n    <span class=\"pl-smi\">scrollbar_thumb</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg_mid</span>,\n    <span class=\"pl-smi\">split</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg_mid2</span>,\n    <span class=\"pl-smi\">ansi</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg_mid</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">red</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">green</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">yellow</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">azure</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">purple</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">cyan</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">fg_mid2</span>,\n    },\n    <span class=\"pl-smi\">brights</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg_mid2</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">red</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">green</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">yellow</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">azure</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">purple</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">cyan</span>,\n      <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">fg_mid</span>,\n    },\n    <span class=\"pl-smi\">indexed</span> <span class=\"pl-k\">=</span> { [<span class=\"pl-c1\">136</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">orange</span> },\n    <span class=\"pl-smi\">compose_cursor</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">orange</span>,\n    <span class=\"pl-smi\">copy_mode_active_highlight_bg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg</span> },\n    <span class=\"pl-smi\">copy_mode_active_highlight_fg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">fg_mid</span> },\n    <span class=\"pl-smi\">copy_mode_inactive_highlight_bg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">green</span> },\n    <span class=\"pl-smi\">copy_mode_inactive_highlight_fg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg</span> },\n    <span class=\"pl-smi\">quick_select_label_fg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg</span> },\n    <span class=\"pl-smi\">quick_select_label_bg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">orange</span> },\n    <span class=\"pl-smi\">quick_select_match_bg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">bg_mid</span> },\n    <span class=\"pl-smi\">quick_select_match_fg</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">Color</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">p</span>.<span class=\"pl-e\">azure</span> },\n  }\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">M</span></pre></div>",
+    "bodyText": "Here are two of my favorite hues thus far.\nDeep Purple\nlocal hues = require(\"mini.hues\")\nvim.g.colors_name = \"minihues-purple\"\nlocal opts = {\n  accent = \"azure\",\n  background = \"#151025\",\n  foreground = \"#c0c8cb\",\n}\nhues.setup(opts)\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\n\nOlive\nlocal hues = require(\"mini.hues\")\nvim.g.colors_name = \"minihues-olive\"\nlocal opts = {\n  accent = \"green\",\n  background = \"#18271a\",\n  foreground = \"#c2c9c3\",\n}\nhues.setup(opts)\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\n\nPersisting random themes\nI sometimes generate a random hue that I really like—such as the olive one from above:\nlocal hues = require(\"mini.hues\")\nmath.randomseed(vim.loop.hrtime())\nlocal base_colors = hues.gen_random_base_colors()\nlocal opts = {\n  background = base_colors.background,\n  foreground = base_colors.foreground,\n  saturation = vim.o.background == \"dark\" and \"medium\" or \"high\",\n  accent = \"azure\",\n}\nhues.setup(opts)\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\nvim.g.colors_name = \"minihues-myrandomhue\"\nWhen I find one that I like, I want to be able to persist it for future use, so I wrote an exporter that will generate a new colorscheme with my custom highlights as well as a matching wezterm colorscheme (because you are a monster if your terminal and neovim themes aren't in sync 😄 ).\n\n\nMy exporter opens two buffers with the rendered themes in case I want to edit them before saving. Typically I want to change the accent color based on the hue. The wezterm config is specific to a dynamic configuration selector I recently wrote for my own wezterm setup that allows me to dynamically fuzzy select fonts, colorschemes, etc ...\nlocal M = {}\nlocal H = {}\n\nM.export_minihues_theme = function()\n  local ok, theme_name = pcall(vim.fn.input, {\n    prompt = \"Enter name for color scheme: minihues-\",\n    cancelreturn = false,\n  })\n  if not ok or theme_name == false then\n    return nil\n  end\n  local filename = \"minihues-\" .. theme_name\n  local p = require(\"mini.hues\").make_palette({})\n  H.render(H.minihues_path(filename), H.minihues_template, filename, vim.inspect(H.minihues_opts(p)))\n  vim.cmd(\"split\")\n  local display_name = \"MiniHues \" .. theme_name:gsub(\"^%l\", string.upper)\n  H.render(H.wezterm_path(filename), H.wezterm_template, display_name, vim.inspect(H.wezterm_opts(p)))\nend\n\nH.wezterm_path = function(theme_name)\n  local dir = os.getenv(\"WEZTERM_CONFIG_DIR\")\n  return string.format(\"%s/colorschemes/%s.lua\", dir, theme_name)\nend\n\nH.minihues_path = function(theme_name)\n  local dir = string.format(\"~/.config/%s/colors\", os.getenv(\"NVIM_APPNAME\") or \"nvim\")\n  return string.format(\"%s/%s.lua\", dir, theme_name)\nend\n\nH.render = function(filename, template, ...)\n  local rendered = string.format(template, ...)\n  vim.cmd(string.format(\"edit %s\", filename))\n  vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(rendered, \"\\n\"))\nend\n\nH.minihues_template = [[local hues = require(\"mini.hues\")\nvim.g.colors_name = \"%s\"\nlocal opts = %s\nhues.setup(opts)\nrequire(\"plugins.mini.hues\").apply_custom_highlights(opts)\n]]\n\nH.wezterm_template = [[local M = {}\nlocal name = \"%s\"\n\nM.init = function()\n  return name\nend\n\nM.activate = function(config)\n  config.color_schemes = config.color_schemes or {}\n  config.color_schemes[name] = %s\n  config.color_scheme = name\nend\n\nreturn M\n]]\n\nH.minihues_opts = function(p)\n  return {\n    background = p.bg,\n    foreground = p.fg,\n    accent = \"azure\",\n  }\nend\n\nH.wezterm_opts = function(p)\n  return {\n    foreground = p.fg,\n    background = p.bg,\n    cursor_bg = p.azure,\n    cursor_fg = p.azure_bg,\n    cursor_border = p.azure,\n    selection_bg = p.bg_mid2,\n    scrollbar_thumb = p.bg_mid,\n    split = p.bg_mid2,\n    ansi = {\n      p.bg_mid,\n      p.red,\n      p.green,\n      p.yellow,\n      p.azure,\n      p.purple,\n      p.cyan,\n      p.fg_mid2,\n    },\n    brights = {\n      p.bg_mid2,\n      p.red,\n      p.green,\n      p.yellow,\n      p.azure,\n      p.purple,\n      p.cyan,\n      p.fg_mid,\n    },\n    indexed = { [136] = p.orange },\n    compose_cursor = p.orange,\n    copy_mode_active_highlight_bg = { Color = p.bg },\n    copy_mode_active_highlight_fg = { Color = p.fg_mid },\n    copy_mode_inactive_highlight_bg = { Color = p.green },\n    copy_mode_inactive_highlight_fg = { Color = p.bg },\n    quick_select_label_fg = { Color = p.bg },\n    quick_select_label_bg = { Color = p.orange },\n    quick_select_match_bg = { Color = p.bg_mid },\n    quick_select_match_fg = { Color = p.azure },\n  }\nend\n\nreturn M",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Both of these solutions look great!\r\n\r\nStrangely, I am personally not a fan of purple as a color, but looking at that first screenshot made me think \"Those are beautiful colors!\" :)",
+            "bodyHTML": "<p dir=\"auto\">Both of these solutions look great!</p>\n<p dir=\"auto\">Strangely, I am personally not a fan of purple as a color, but looking at that first screenshot made me think \"Those are beautiful colors!\" :)</p>",
+            "bodyText": "Both of these solutions look great!\nStrangely, I am personally not a fan of purple as a color, but looking at that first screenshot made me think \"Those are beautiful colors!\" :)",
+            "createdAt": "2024-05-28T13:05:32Z",
+            "createdViaEmail": false,
+            "databaseId": 9580927,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AkjF_",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-05-28T13:05:32Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "😄 It’s amazing how a nice wallpaper can augment the color scheme. I created those when I saw that recent post on Reddit for that neofusion theme. I realized I needed to create wallpapers for my mini.hues favorites, so  I spent hours on my day off yesterday playing around with different colors in my Affinity Photo. I love the way the purple looked, so I did some advertising for mini in [/r/vimporn](https://www.reddit.com/r/vimporn/comments/1d211kn/mininvim_configuration/) last night. ",
+                    "bodyHTML": "<p dir=\"auto\">😄 It’s amazing how a nice wallpaper can augment the color scheme. I created those when I saw that recent post on Reddit for that neofusion theme. I realized I needed to create wallpapers for my mini.hues favorites, so  I spent hours on my day off yesterday playing around with different colors in my Affinity Photo. I love the way the purple looked, so I did some advertising for mini in <a href=\"https://www.reddit.com/r/vimporn/comments/1d211kn/mininvim_configuration/\" rel=\"nofollow\">/r/vimporn</a> last night.</p>",
+                    "bodyText": "😄 It’s amazing how a nice wallpaper can augment the color scheme. I created those when I saw that recent post on Reddit for that neofusion theme. I realized I needed to create wallpapers for my mini.hues favorites, so  I spent hours on my day off yesterday playing around with different colors in my Affinity Photo. I love the way the purple looked, so I did some advertising for mini in /r/vimporn last night.",
+                    "createdAt": "2024-05-28T13:24:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9581112,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "id": "DC_kwDOFoksYM4AkjI4",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-05-28T13:26:57Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-28T13:24:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9580927,
+                        "id": "DC_kwDOFoksYM4AkjF_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/919#discussioncomment-9580927"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/919#discussioncomment-9581112",
+                    "updatedAt": "2024-05-28T13:26:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/919#discussioncomment-9581112"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yeah, simple gradient with proper colors goes a long way.",
+                    "bodyHTML": "<p dir=\"auto\">Yeah, simple gradient with proper colors goes a long way.</p>",
+                    "bodyText": "Yeah, simple gradient with proper colors goes a long way.",
+                    "createdAt": "2024-05-28T13:49:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9581423,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AkjNv",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-05-28T13:49:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9580927,
+                        "id": "DC_kwDOFoksYM4AkjF_",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/919#discussioncomment-9580927"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/919#discussioncomment-9581423",
+                    "updatedAt": "2024-05-28T13:49:12Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/919#discussioncomment-9581423"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/919#discussioncomment-9580927",
+            "updatedAt": "2024-05-28T13:05:38Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/919#discussioncomment-9580927"
+        }
+    ],
+    "createdAt": "2024-05-28T13:01:21Z",
+    "createdViaEmail": false,
+    "databaseId": 6742612,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AZuJU",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABRlqsHg",
+                "name": "mini.hues"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 919,
+    "poll": null,
+    "publishedAt": "2024-05-28T13:01:21Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 2
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/919",
+    "stateReason": null,
+    "title": "[mini.hues] My favorite hues and persisting random ones",
+    "updatedAt": "2024-05-28T13:49:11Z",
+    "upvoteCount": 3,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/919"
+}

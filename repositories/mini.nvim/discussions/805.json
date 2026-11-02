@@ -1,0 +1,456 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 9092999,
+        "id": "DC_kwDOFoksYM4Air-H",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9092999"
+    },
+    "answerChosenAt": "2024-04-12T08:20:26Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/65299214?u=dbb62c184ad2da94ae9f0adc1d4af3e5148b3a4b&v=4",
+        "login": "samuel-garmany",
+        "resourcePath": "/samuel-garmany",
+        "url": "https://github.com/samuel-garmany"
+    },
+    "authorAssociation": "NONE",
+    "body": "I want to disable mini.pairs for markdown files because it gets in the way of writing code blocks with triple ` . I wrote this: \r\n```lua\r\nvim.api.nvim_create_autocmd(\"FileType\", {\r\n  pattern = { \"gitcommit\", \"markdown\" },\r\n  callback = function()\r\n    vim.b.mini_pairs_disable = true\r\n  end,\r\n})\r\n```\r\nBut it gives the warning `Fields cannot be injected into the reference of `table<number, table<string, any>>` for `mini_pairs_disable`. To allow injection, add `[any]: any` to the definition.`\r\n\r\nHow do I fix this? Would it be easier to just unmap ` in that buffer because I like using everything else about the plugin?",
+    "bodyHTML": "<p dir=\"auto\">I want to disable mini.pairs for markdown files because it gets in the way of writing code blocks with triple ` . I wrote this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd(&quot;FileType&quot;, {\n  pattern = { &quot;gitcommit&quot;, &quot;markdown&quot; },\n  callback = function()\n    vim.b.mini_pairs_disable = true\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FileType<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gitcommit<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>markdown<span class=\"pl-pds\">\" </span></span>},\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">mini_pairs_disable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">But it gives the warning <code class=\"notranslate\">Fields cannot be injected into the reference of </code>table&lt;number, table&lt;string, any&gt;&gt;<code class=\"notranslate\">for</code>mini_pairs_disable<code class=\"notranslate\">. To allow injection, add </code>[any]: any<code class=\"notranslate\"> to the definition.</code></p>\n<p dir=\"auto\">How do I fix this? Would it be easier to just unmap ` in that buffer because I like using everything else about the plugin?</p>",
+    "bodyText": "I want to disable mini.pairs for markdown files because it gets in the way of writing code blocks with triple ` . I wrote this:\nvim.api.nvim_create_autocmd(\"FileType\", {\n  pattern = { \"gitcommit\", \"markdown\" },\n  callback = function()\n    vim.b.mini_pairs_disable = true\n  end,\n})\nBut it gives the warning Fields cannot be injected into the reference of table<number, table<string, any>>formini_pairs_disable. To allow injection, add [any]: any to the definition.\nHow do I fix this? Would it be easier to just unmap ` in that buffer because I like using everything else about the plugin?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-04-12T08:20:23Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Having LSP show a warning has nothing to do with why it is not working. Replace `mini_pairs_disable` with [`minipairs_disable`](https://github.com/echasnovski/mini.nvim/blob/cc603f4fe763741969d809ef059bf5ed457ce0e4/doc/mini-pairs.txt#L75) and it should work.\r\n\r\nIf you want to *only* disable `` ` `` in those filetypes, [override its buffer-local mapping](https://github.com/echasnovski/mini.nvim/blob/cc603f4fe763741969d809ef059bf5ed457ce0e4/doc/mini-pairs.txt#L30) so that it works as default. So with something like this:\r\n\r\n```lua\r\nvim.api.nvim_create_autocmd('FileType', {\r\n  pattern = { 'gitcommit', 'markdown' },\r\n  callback = function(event) vim.keymap.set('i', '`', '`', { buffer = event.buf }) end,\r\n})\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Having LSP show a warning has nothing to do with why it is not working. Replace <code class=\"notranslate\">mini_pairs_disable</code> with <a href=\"https://github.com/echasnovski/mini.nvim/blob/cc603f4fe763741969d809ef059bf5ed457ce0e4/doc/mini-pairs.txt#L75\"><code class=\"notranslate\">minipairs_disable</code></a> and it should work.</p>\n<p dir=\"auto\">If you want to <em>only</em> disable <code class=\"notranslate\">`</code> in those filetypes, <a href=\"https://github.com/echasnovski/mini.nvim/blob/cc603f4fe763741969d809ef059bf5ed457ce0e4/doc/mini-pairs.txt#L30\">override its buffer-local mapping</a> so that it works as default. So with something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd('FileType', {\n  pattern = { 'gitcommit', 'markdown' },\n  callback = function(event) vim.keymap.set('i', '`', '`', { buffer = event.buf }) end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>FileType<span class=\"pl-pds\">'</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">'</span>gitcommit<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>markdown<span class=\"pl-pds\">' </span></span>},\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">event</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>`<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">event</span>.<span class=\"pl-e\">buf</span> }) <span class=\"pl-k\">end</span>,\n})</pre></div>",
+            "bodyText": "Having LSP show a warning has nothing to do with why it is not working. Replace mini_pairs_disable with minipairs_disable and it should work.\nIf you want to only disable ` in those filetypes, override its buffer-local mapping so that it works as default. So with something like this:\nvim.api.nvim_create_autocmd('FileType', {\n  pattern = { 'gitcommit', 'markdown' },\n  callback = function(event) vim.keymap.set('i', '`', '`', { buffer = event.buf }) end,\n})",
+            "createdAt": "2024-04-12T08:20:23Z",
+            "createdViaEmail": false,
+            "databaseId": 9092999,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Air-H",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-04-12T08:20:23Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/65299214?u=dbb62c184ad2da94ae9f0adc1d4af3e5148b3a4b&v=4",
+                        "login": "samuel-garmany",
+                        "resourcePath": "/samuel-garmany",
+                        "url": "https://github.com/samuel-garmany"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Replacing `mini_pairs_disable` didn't fix it, but your fix is even better. I really appreciate it!",
+                    "bodyHTML": "<p dir=\"auto\">Replacing <code class=\"notranslate\">mini_pairs_disable</code> didn't fix it, but your fix is even better. I really appreciate it!</p>",
+                    "bodyText": "Replacing mini_pairs_disable didn't fix it, but your fix is even better. I really appreciate it!",
+                    "createdAt": "2024-04-12T19:17:43Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9099576,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aitk4",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-04-12T19:17:43Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9092999,
+                        "id": "DC_kwDOFoksYM4Air-H",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9092999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/805#discussioncomment-9099576",
+                    "updatedAt": "2024-04-12T19:17:44Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9099576"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Replacing `mini_pairs_disable` didn't fix it...\r\n\r\nIt did fix it, as I've tested it prior to the answer. Although, the test was with `vim.b[event.buf].minipairs_disable = true`, so maybe that can be relevant in some cases.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Replacing <code class=\"notranslate\">mini_pairs_disable</code> didn't fix it...</p>\n</blockquote>\n<p dir=\"auto\">It did fix it, as I've tested it prior to the answer. Although, the test was with <code class=\"notranslate\">vim.b[event.buf].minipairs_disable = true</code>, so maybe that can be relevant in some cases.</p>",
+                    "bodyText": "Replacing mini_pairs_disable didn't fix it...\n\nIt did fix it, as I've tested it prior to the answer. Although, the test was with vim.b[event.buf].minipairs_disable = true, so maybe that can be relevant in some cases.",
+                    "createdAt": "2024-04-12T19:19:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9099583,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4Aitk_",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-04-12T19:20:20Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-04-12T19:19:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9092999,
+                        "id": "DC_kwDOFoksYM4Air-H",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9092999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/805#discussioncomment-9099583",
+                    "updatedAt": "2024-04-12T19:20:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9099583"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/65299214?u=dbb62c184ad2da94ae9f0adc1d4af3e5148b3a4b&v=4",
+                        "login": "samuel-garmany",
+                        "resourcePath": "/samuel-garmany",
+                        "url": "https://github.com/samuel-garmany"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "\r\n![image](https://github.com/echasnovski/mini.nvim/assets/65299214/8500484c-6493-4447-8ea0-b0c9b026754e)\r\n\r\nMust be, I was missing that originally. Thank you.\r\n",
+                    "bodyHTML": "<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/65299214/322114943-8500484c-6493-4447-8ea0-b0c9b026754e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDMsIm5iZiI6MTc5MzU1MzIwMywicGF0aCI6Ii82NTI5OTIxNC8zMjIxMTQ5NDMtODUwMDQ4NGMtNjQ5My00NDQ3LThlYTAtYjBjOWIwMjY3NTRlLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTMyM1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWQxMzRiNDk3NjY2NGY5MmYwYWViY2IwMGQyODdmYmRmMWM2NzJhOWM0OTM2N2JhNTZlMDY0N2QwNjg3OTdiNjAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.W9z-oH5-nMBQw9b5FcSlast6Oft2sc1GWWXRLcO-c9s\"><img src=\"https://private-user-images.githubusercontent.com/65299214/322114943-8500484c-6493-4447-8ea0-b0c9b026754e.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM1MDMsIm5iZiI6MTc5MzU1MzIwMywicGF0aCI6Ii82NTI5OTIxNC8zMjIxMTQ5NDMtODUwMDQ4NGMtNjQ5My00NDQ3LThlYTAtYjBjOWIwMjY3NTRlLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTMyM1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWQxMzRiNDk3NjY2NGY5MmYwYWViY2IwMGQyODdmYmRmMWM2NzJhOWM0OTM2N2JhNTZlMDY0N2QwNjg3OTdiNjAmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.W9z-oH5-nMBQw9b5FcSlast6Oft2sc1GWWXRLcO-c9s\" alt=\"image\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">Must be, I was missing that originally. Thank you.</p>",
+                    "bodyText": "Must be, I was missing that originally. Thank you.",
+                    "createdAt": "2024-04-12T19:24:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9099621,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aitll",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-04-12T19:24:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9092999,
+                        "id": "DC_kwDOFoksYM4Air-H",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9092999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/805#discussioncomment-9099621",
+                    "updatedAt": "2024-04-12T19:24:23Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9099621"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/805#discussioncomment-9092999",
+            "updatedAt": "2024-04-12T08:20:24Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/805#discussioncomment-9092999"
+        }
+    ],
+    "createdAt": "2024-04-12T03:16:16Z",
+    "createdViaEmail": false,
+    "databaseId": 6493801,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AYxZp",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vci",
+                "name": "mini.pairs"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 805,
+    "poll": null,
+    "publishedAt": "2024-04-12T03:16:16Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/805",
+    "stateReason": "RESOLVED",
+    "title": "How do I disable mini.pairs for markdown files? (My autocmd isn't working)",
+    "updatedAt": "2024-04-12T19:24:20Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/805"
+}

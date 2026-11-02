@@ -1,0 +1,543 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+        "login": "danielt812",
+        "resourcePath": "/danielt812",
+        "url": "https://github.com/danielt812"
+    },
+    "authorAssociation": "NONE",
+    "body": "Here is a small helper function for removing multiple buffers at once. My buffer list tends to get crowded after a while, and this helps me keep `:bprevious` and `:bnext` focused on what I actually want to cycle through.\r\n\r\n#### Features:\r\n- Directional buffer removal (left or right)\r\n- Removing all or all minus current buffer\r\n\r\n```lua\r\nlocal bufremove = require(\"mini.bufremove\")\r\n\r\n--- @param action '\"delete\"'|'\"wipeout\"'\r\n--- @param selection '\"all\"'|'\"current\"'|'\"others\"'|'\"left\"'|'\"right\"'\r\n--- @param force boolean\r\nlocal function remove_buffers(action, selection, force)\r\n  local cur = vim.api.nvim_get_current_buf()\r\n\r\n  local valid_actions = { delete = true, wipeout = true }\r\n\r\n  if not valid_actions[action] then\r\n    vim.notify(\"Invalid action: \" .. action, vim.log.levels.ERROR)\r\n    return\r\n  end\r\n\r\n  local valid_selections = { all = true, current = true, others = true, left = true, right = true }\r\n\r\n  if not valid_selections[selection] then\r\n    vim.notify(\"Invalid selection: \" .. selection, vim.log.levels.ERROR)\r\n    return\r\n  end\r\n\r\n  local bufs = vim.api.nvim_list_bufs()\r\n\r\n  for _, buf in ipairs(bufs) do\r\n    local delete = selection == \"all\"\r\n      or (selection == \"current\" and buf == cur)\r\n      or (selection == \"others\" and buf ~= cur)\r\n      or (selection == \"left\" and buf < cur)\r\n      or (selection == \"right\" and buf > cur)\r\n\r\n    if vim.fn.buflisted(buf) == 1 and delete then\r\n      bufremove[action](buf, force)\r\n    end\r\n  end\r\nend\r\n\r\nlocal function bufdelete_all() remove_buffers(\"delete\", \"all\", false) end\r\nlocal function bufdelete_cur() remove_buffers(\"delete\", \"current\", false) end\r\nlocal function bufdelete_left() remove_buffers(\"delete\", \"left\", false) end\r\nlocal function bufdelete_others() remove_buffers(\"delete\", \"others\", false) end\r\nlocal function bufdelete_right() remove_buffers(\"delete\", \"right\", false) end\r\nlocal function bufwipeout_cur() remove_buffers(\"wipeout\", \"current\", false) end\r\n\r\nvim.keymap.set(\"n\", \"<leader>ba\", bufdelete_all, { desc = \"Delete All\" })\r\nvim.keymap.set(\"n\", \"<leader>bd\", bufdelete_cur, { desc = \"Delete\" })\r\nvim.keymap.set(\"n\", \"<leader>bh\", bufdelete_left, { desc = \"Delete Left\" })\r\nvim.keymap.set(\"n\", \"<leader>bl\", bufdelete_right, { desc = \"Delete Right\" })\r\nvim.keymap.set(\"n\", \"<leader>bo\", bufdelete_others, { desc = \"Delete Others\" })\r\nvim.keymap.set(\"n\", \"<leader>bw\", bufwipeout_cur, { desc = \"Wipeout\" })\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Here is a small helper function for removing multiple buffers at once. My buffer list tends to get crowded after a while, and this helps me keep <code class=\"notranslate\">:bprevious</code> and <code class=\"notranslate\">:bnext</code> focused on what I actually want to cycle through.</p>\n<h4 dir=\"auto\">Features:</h4>\n<ul dir=\"auto\">\n<li>Directional buffer removal (left or right)</li>\n<li>Removing all or all minus current buffer</li>\n</ul>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local bufremove = require(&quot;mini.bufremove&quot;)\n\n--- @param action '&quot;delete&quot;'|'&quot;wipeout&quot;'\n--- @param selection '&quot;all&quot;'|'&quot;current&quot;'|'&quot;others&quot;'|'&quot;left&quot;'|'&quot;right&quot;'\n--- @param force boolean\nlocal function remove_buffers(action, selection, force)\n  local cur = vim.api.nvim_get_current_buf()\n\n  local valid_actions = { delete = true, wipeout = true }\n\n  if not valid_actions[action] then\n    vim.notify(&quot;Invalid action: &quot; .. action, vim.log.levels.ERROR)\n    return\n  end\n\n  local valid_selections = { all = true, current = true, others = true, left = true, right = true }\n\n  if not valid_selections[selection] then\n    vim.notify(&quot;Invalid selection: &quot; .. selection, vim.log.levels.ERROR)\n    return\n  end\n\n  local bufs = vim.api.nvim_list_bufs()\n\n  for _, buf in ipairs(bufs) do\n    local delete = selection == &quot;all&quot;\n      or (selection == &quot;current&quot; and buf == cur)\n      or (selection == &quot;others&quot; and buf ~= cur)\n      or (selection == &quot;left&quot; and buf &lt; cur)\n      or (selection == &quot;right&quot; and buf &gt; cur)\n\n    if vim.fn.buflisted(buf) == 1 and delete then\n      bufremove[action](buf, force)\n    end\n  end\nend\n\nlocal function bufdelete_all() remove_buffers(&quot;delete&quot;, &quot;all&quot;, false) end\nlocal function bufdelete_cur() remove_buffers(&quot;delete&quot;, &quot;current&quot;, false) end\nlocal function bufdelete_left() remove_buffers(&quot;delete&quot;, &quot;left&quot;, false) end\nlocal function bufdelete_others() remove_buffers(&quot;delete&quot;, &quot;others&quot;, false) end\nlocal function bufdelete_right() remove_buffers(&quot;delete&quot;, &quot;right&quot;, false) end\nlocal function bufwipeout_cur() remove_buffers(&quot;wipeout&quot;, &quot;current&quot;, false) end\n\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;ba&quot;, bufdelete_all, { desc = &quot;Delete All&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bd&quot;, bufdelete_cur, { desc = &quot;Delete&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bh&quot;, bufdelete_left, { desc = &quot;Delete Left&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bl&quot;, bufdelete_right, { desc = &quot;Delete Right&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bo&quot;, bufdelete_others, { desc = &quot;Delete Others&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bw&quot;, bufwipeout_cur, { desc = &quot;Wipeout&quot; })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufremove</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.bufremove<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">action</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"delete\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"wipeout\"<span class=\"pl-pds\">'</span></span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">selection</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"all\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"current\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"others\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"left\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"right\"<span class=\"pl-pds\">'</span></span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">force</span> <span class=\"pl-c1\">boolean</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">remove_buffers</span>(<span class=\"pl-smi\">action</span>, <span class=\"pl-smi\">selection</span>, <span class=\"pl-smi\">force</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cur</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">valid_actions</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">delete</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">wipeout</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">valid_actions</span>[<span class=\"pl-smi\">action</span>] <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Invalid action: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">action</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">valid_selections</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">all</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">others</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">valid_selections</span>[<span class=\"pl-smi\">selection</span>] <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Invalid selection: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">selection</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_bufs</span>()\n\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">bufs</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">delete</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>all<span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">cur</span>)\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>others<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">cur</span>)\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-smi\">cur</span>)\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-smi\">cur</span>)\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">buflisted</span>(<span class=\"pl-smi\">buf</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">delete</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">bufremove</span>[<span class=\"pl-smi\">action</span>](<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">force</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_all</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>all<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_cur</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_left</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_others</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>others<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_right</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufwipeout_cur</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>wipeout<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;ba<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_all</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete All<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bd<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_cur</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bh<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_left</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete Left<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bl<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_right</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete Right<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bo<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_others</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete Others<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bw<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufwipeout_cur</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Wipeout<span class=\"pl-pds\">\" </span></span>})</pre></div>",
+    "bodyText": "Here is a small helper function for removing multiple buffers at once. My buffer list tends to get crowded after a while, and this helps me keep :bprevious and :bnext focused on what I actually want to cycle through.\nFeatures:\n\nDirectional buffer removal (left or right)\nRemoving all or all minus current buffer\n\nlocal bufremove = require(\"mini.bufremove\")\n\n--- @param action '\"delete\"'|'\"wipeout\"'\n--- @param selection '\"all\"'|'\"current\"'|'\"others\"'|'\"left\"'|'\"right\"'\n--- @param force boolean\nlocal function remove_buffers(action, selection, force)\n  local cur = vim.api.nvim_get_current_buf()\n\n  local valid_actions = { delete = true, wipeout = true }\n\n  if not valid_actions[action] then\n    vim.notify(\"Invalid action: \" .. action, vim.log.levels.ERROR)\n    return\n  end\n\n  local valid_selections = { all = true, current = true, others = true, left = true, right = true }\n\n  if not valid_selections[selection] then\n    vim.notify(\"Invalid selection: \" .. selection, vim.log.levels.ERROR)\n    return\n  end\n\n  local bufs = vim.api.nvim_list_bufs()\n\n  for _, buf in ipairs(bufs) do\n    local delete = selection == \"all\"\n      or (selection == \"current\" and buf == cur)\n      or (selection == \"others\" and buf ~= cur)\n      or (selection == \"left\" and buf < cur)\n      or (selection == \"right\" and buf > cur)\n\n    if vim.fn.buflisted(buf) == 1 and delete then\n      bufremove[action](buf, force)\n    end\n  end\nend\n\nlocal function bufdelete_all() remove_buffers(\"delete\", \"all\", false) end\nlocal function bufdelete_cur() remove_buffers(\"delete\", \"current\", false) end\nlocal function bufdelete_left() remove_buffers(\"delete\", \"left\", false) end\nlocal function bufdelete_others() remove_buffers(\"delete\", \"others\", false) end\nlocal function bufdelete_right() remove_buffers(\"delete\", \"right\", false) end\nlocal function bufwipeout_cur() remove_buffers(\"wipeout\", \"current\", false) end\n\nvim.keymap.set(\"n\", \"<leader>ba\", bufdelete_all, { desc = \"Delete All\" })\nvim.keymap.set(\"n\", \"<leader>bd\", bufdelete_cur, { desc = \"Delete\" })\nvim.keymap.set(\"n\", \"<leader>bh\", bufdelete_left, { desc = \"Delete Left\" })\nvim.keymap.set(\"n\", \"<leader>bl\", bufdelete_right, { desc = \"Delete Right\" })\nvim.keymap.set(\"n\", \"<leader>bo\", bufdelete_others, { desc = \"Delete Others\" })\nvim.keymap.set(\"n\", \"<leader>bw\", bufwipeout_cur, { desc = \"Wipeout\" })",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing! I like the idea of \"delete right/left\"!\r\n\r\nOne suggestion, though: 'mini.bufremove' [doesn't have `config.set_vim_setting`](https://nvim-mini.org/mini.nvim/doc/mini-bufremove.html#minibufremove.config) for about nine months already. And `config.silent = false` is already the default.\r\n\r\nIf you want to, the `require('mini.bufremove').setup()` is enough. Although [it is documented as not really needed](https://nvim-mini.org/mini.nvim/doc/mini-bufremove.html#module-setup) and the example does only use `local bufremove = require('mini.bufremove')`. So in this case I'd rather just remove the `setup()` call here.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing! I like the idea of \"delete right/left\"!</p>\n<p dir=\"auto\">One suggestion, though: 'mini.bufremove' <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-bufremove.html#minibufremove.config\" rel=\"nofollow\">doesn't have <code class=\"notranslate\">config.set_vim_setting</code></a> for about nine months already. And <code class=\"notranslate\">config.silent = false</code> is already the default.</p>\n<p dir=\"auto\">If you want to, the <code class=\"notranslate\">require('mini.bufremove').setup()</code> is enough. Although <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-bufremove.html#module-setup\" rel=\"nofollow\">it is documented as not really needed</a> and the example does only use <code class=\"notranslate\">local bufremove = require('mini.bufremove')</code>. So in this case I'd rather just remove the <code class=\"notranslate\">setup()</code> call here.</p>",
+            "bodyText": "Thanks for sharing! I like the idea of \"delete right/left\"!\nOne suggestion, though: 'mini.bufremove' doesn't have config.set_vim_setting for about nine months already. And config.silent = false is already the default.\nIf you want to, the require('mini.bufremove').setup() is enough. Although it is documented as not really needed and the example does only use local bufremove = require('mini.bufremove'). So in this case I'd rather just remove the setup() call here.",
+            "createdAt": "2026-01-19T10:30:37Z",
+            "createdViaEmail": false,
+            "databaseId": 15537391,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A7RTv",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-01-19T10:30:37Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+                        "login": "danielt812",
+                        "resourcePath": "/danielt812",
+                        "url": "https://github.com/danielt812"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for the clarification! I updated the snippet to reflect the removal of the unnecessary setup call",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the clarification! I updated the snippet to reflect the removal of the unnecessary setup call</p>",
+                    "bodyText": "Thanks for the clarification! I updated the snippet to reflect the removal of the unnecessary setup call",
+                    "createdAt": "2026-01-19T17:23:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15541067,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A7SNL",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-19T17:23:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15537391,
+                        "id": "DC_kwDOFoksYM4A7RTv",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15537391"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541067",
+                    "updatedAt": "2026-01-19T17:23:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541067"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15537391",
+            "updatedAt": "2026-01-19T10:30:37Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15537391"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "You inspired me this morning to fix a gap in my buffer management. Specifically, there are times when I wish I could \"pin\" buffers and then delete the rest. So I whipped up the following for 'mini.tabline'.\r\n\r\n```lua\r\n-- Map of buffer ids that have been \"pinned\".\r\nlocal pinned = {}\r\n\r\nlocal pinned_format = function(buf_id, label)\r\n  local default = MiniTabline.default_format(buf_id, label)\r\n  return pinned[buf_id] and string.format(\"%s\", default) or default\r\nend\r\n\r\nrequire(\"mini.tabline\").setup({ format = pinned_format })\r\n\r\nConfig.toggle_pinned = function()\r\n  local buf_id = vim.api.nvim_get_current_buf()\r\n  pinned[buf_id] = not pinned[buf_id]\r\n  vim.cmd(\"redrawtabline\")\r\nend\r\n\r\nConfig.remove_pinned = function(action, force)\r\n  local bufs = vim.api.nvim_list_bufs()\r\n  for _, buf_id in ipairs(bufs) do\r\n    local remove = vim.bo[buf_id].buflisted and not pinned[buf_id]\r\n    if remove then MiniBufremove[action](buf_id, force) end\r\n  end\r\nend\r\n\r\nvim.api.new_autocmd({ \"BufDelete\", \"BufWipeout\" }, {\r\n  callback = function(args) pinned[args.buf] = nil end,\r\n})\r\n```\r\n\r\nI then bind `toggle_pinned` and `remove_pinned` to `<leader>bp` and `<leader>bP` respectively.\r\n\r\n```lua\r\n-- Helpers\r\nlocal L = function(key) return \"<leader>\" .. key end\r\nlocal C = function(cmd) return \"<Cmd>\" .. cmd .. \"<CR>\" end\r\n\r\nvim.keymap.set(\"n\",   L\"bp\",       C\"lua Config.toggle_pinned()\",                         \"Pin buffer\")\r\nvim.keymap.set(\"n\",   L\"bP\",       C\"lua Config.remove_pinned('delete')\",                 \"Delete non-pinned\")\r\n```\r\n\r\nHere is a screenshot showing some \"pinned\" buffers:\r\n\r\n<img width=\"1140\" height=\"988\" alt=\"image\" src=\"https://github.com/user-attachments/assets/cb3eabfc-ebe4-4533-9e0b-beb7f5fc2266\" />\r\n",
+            "bodyHTML": "<p dir=\"auto\">You inspired me this morning to fix a gap in my buffer management. Specifically, there are times when I wish I could \"pin\" buffers and then delete the rest. So I whipped up the following for 'mini.tabline'.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Map of buffer ids that have been &quot;pinned&quot;.\nlocal pinned = {}\n\nlocal pinned_format = function(buf_id, label)\n  local default = MiniTabline.default_format(buf_id, label)\n  return pinned[buf_id] and string.format(&quot;%s&quot;, default) or default\nend\n\nrequire(&quot;mini.tabline&quot;).setup({ format = pinned_format })\n\nConfig.toggle_pinned = function()\n  local buf_id = vim.api.nvim_get_current_buf()\n  pinned[buf_id] = not pinned[buf_id]\n  vim.cmd(&quot;redrawtabline&quot;)\nend\n\nConfig.remove_pinned = function(action, force)\n  local bufs = vim.api.nvim_list_bufs()\n  for _, buf_id in ipairs(bufs) do\n    local remove = vim.bo[buf_id].buflisted and not pinned[buf_id]\n    if remove then MiniBufremove[action](buf_id, force) end\n  end\nend\n\nvim.api.new_autocmd({ &quot;BufDelete&quot;, &quot;BufWipeout&quot; }, {\n  callback = function(args) pinned[args.buf] = nil end,\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Map of buffer ids that have been \"pinned\".</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">pinned</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">pinned_format</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">label</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">default</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniTabline</span>.<span class=\"pl-c1\">default_format</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">label</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">pinned</span>[<span class=\"pl-smi\">buf_id</span>] <span class=\"pl-k\">and</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">default</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">default</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.tabline<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">format</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">pinned_format</span> })\n\n<span class=\"pl-smi\">Config</span>.<span class=\"pl-en\">toggle_pinned</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n  <span class=\"pl-smi\">pinned</span>[<span class=\"pl-smi\">buf_id</span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">pinned</span>[<span class=\"pl-smi\">buf_id</span>]\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>redrawtabline<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">Config</span>.<span class=\"pl-en\">remove_pinned</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">action</span>, <span class=\"pl-smi\">force</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_bufs</span>()\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">bufs</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">remove</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">buf_id</span>].<span class=\"pl-e\">buflisted</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">pinned</span>[<span class=\"pl-smi\">buf_id</span>]\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">remove</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">MiniBufremove</span>[<span class=\"pl-smi\">action</span>](<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">force</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">new_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>BufDelete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>BufWipeout<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>) <span class=\"pl-smi\">pinned</span>[<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">buf</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">I then bind <code class=\"notranslate\">toggle_pinned</code> and <code class=\"notranslate\">remove_pinned</code> to <code class=\"notranslate\">&lt;leader&gt;bp</code> and <code class=\"notranslate\">&lt;leader&gt;bP</code> respectively.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Helpers\nlocal L = function(key) return &quot;&lt;leader&gt;&quot; .. key end\nlocal C = function(cmd) return &quot;&lt;Cmd&gt;&quot; .. cmd .. &quot;&lt;CR&gt;&quot; end\n\nvim.keymap.set(&quot;n&quot;,   L&quot;bp&quot;,       C&quot;lua Config.toggle_pinned()&quot;,                         &quot;Pin buffer&quot;)\nvim.keymap.set(&quot;n&quot;,   L&quot;bP&quot;,       C&quot;lua Config.remove_pinned('delete')&quot;,                 &quot;Delete non-pinned&quot;)\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Helpers</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">L</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">key</span>) <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">key</span> <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">C</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">cmd</span>) <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;Cmd&gt;<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;CR&gt;<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>,   <span class=\"pl-c1\">L</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>bp<span class=\"pl-pds\">\"</span></span>,       <span class=\"pl-c1\">C</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua Config.toggle_pinned()<span class=\"pl-pds\">\"</span></span>,                         <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Pin buffer<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>,   <span class=\"pl-c1\">L</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>bP<span class=\"pl-pds\">\"</span></span>,       <span class=\"pl-c1\">C</span><span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lua Config.remove_pinned('delete')<span class=\"pl-pds\">\"</span></span>,                 <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete non-pinned<span class=\"pl-pds\">\"</span></span>)</pre></div>\n<p dir=\"auto\">Here is a screenshot showing some \"pinned\" buffers:</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/747855/537695830-cb3eabfc-ebe4-4533-9e0b-beb7f5fc2266.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1NzgsIm5iZiI6MTc5MzU1MjI3OCwicGF0aCI6Ii83NDc4NTUvNTM3Njk1ODMwLWNiM2VhYmZjLWViZTQtNDUzMy05ZTBiLWJlYjdmNWZjMjI2Ni5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU3NThaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wMWQwZjZkMGUwNmE1MWIwYjlkYTE0ZTg4MzQzYzJjMzdlZWI1ZDlmMGU4NDg2ZGJlNDFiNWVkYTA0YTgyYWM1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.hoG6nEIeZIjBTndWPwYLHqtwwWxPj0kOr2DWzpJmsVQ\"><img width=\"1140\" height=\"988\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/747855/537695830-cb3eabfc-ebe4-4533-9e0b-beb7f5fc2266.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI1NzgsIm5iZiI6MTc5MzU1MjI3OCwicGF0aCI6Ii83NDc4NTUvNTM3Njk1ODMwLWNiM2VhYmZjLWViZTQtNDUzMy05ZTBiLWJlYjdmNWZjMjI2Ni5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNjU3NThaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0wMWQwZjZkMGUwNmE1MWIwYjlkYTE0ZTg4MzQzYzJjMzdlZWI1ZDlmMGU4NDg2ZGJlNDFiNWVkYTA0YTgyYWM1JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.hoG6nEIeZIjBTndWPwYLHqtwwWxPj0kOr2DWzpJmsVQ\" style=\"max-width: 100%; height: auto; max-height: 988px;; aspect-ratio: 1140 / 988; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>",
+            "bodyText": "You inspired me this morning to fix a gap in my buffer management. Specifically, there are times when I wish I could \"pin\" buffers and then delete the rest. So I whipped up the following for 'mini.tabline'.\n-- Map of buffer ids that have been \"pinned\".\nlocal pinned = {}\n\nlocal pinned_format = function(buf_id, label)\n  local default = MiniTabline.default_format(buf_id, label)\n  return pinned[buf_id] and string.format(\"%s\", default) or default\nend\n\nrequire(\"mini.tabline\").setup({ format = pinned_format })\n\nConfig.toggle_pinned = function()\n  local buf_id = vim.api.nvim_get_current_buf()\n  pinned[buf_id] = not pinned[buf_id]\n  vim.cmd(\"redrawtabline\")\nend\n\nConfig.remove_pinned = function(action, force)\n  local bufs = vim.api.nvim_list_bufs()\n  for _, buf_id in ipairs(bufs) do\n    local remove = vim.bo[buf_id].buflisted and not pinned[buf_id]\n    if remove then MiniBufremove[action](buf_id, force) end\n  end\nend\n\nvim.api.new_autocmd({ \"BufDelete\", \"BufWipeout\" }, {\n  callback = function(args) pinned[args.buf] = nil end,\n})\nI then bind toggle_pinned and remove_pinned to <leader>bp and <leader>bP respectively.\n-- Helpers\nlocal L = function(key) return \"<leader>\" .. key end\nlocal C = function(cmd) return \"<Cmd>\" .. cmd .. \"<CR>\" end\n\nvim.keymap.set(\"n\",   L\"bp\",       C\"lua Config.toggle_pinned()\",                         \"Pin buffer\")\nvim.keymap.set(\"n\",   L\"bP\",       C\"lua Config.remove_pinned('delete')\",                 \"Delete non-pinned\")\nHere is a screenshot showing some \"pinned\" buffers:",
+            "createdAt": "2026-01-19T17:30:09Z",
+            "createdViaEmail": false,
+            "databaseId": 15541117,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "id": "DC_kwDOFoksYM4A7SN9",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-01-19T18:02:08Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-01-19T17:30:09Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+                        "login": "danielt812",
+                        "resourcePath": "/danielt812",
+                        "url": "https://github.com/danielt812"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Nice feature! Added to my tabline config\r\n\r\nEdit: After spending more time with it, I did a rewrite to better integrate @pkazmier 's buffer pinning with my `remove_buffers` function. I tried to clearly separate responsibilities between each component:\r\n\r\n- **Buffer removal** is handled exclusively by `mini.bufremove`\r\n- **Visual indication of pinned/unpinned buffers** is handled exclusively by `mini.tabline`\r\n- A shared module (`utils.buffer-pin`) being responsible for managing pin state and lifecycle\r\n\r\nAs a result, `remove_buffers` now skips pinned buffers after determining the buffer selection.\r\n\r\n### `utils.buffer-pin`\r\n```lua\r\n--------------------------------------------------------------------------------\r\n-- Buffer pin module\r\n--------------------------------------------------------------------------------\r\n\r\nlocal M = {}\r\nlocal H = {}\r\n\r\n-- Internal table storing pinned buffers.\r\n-- Keys are buffer numbers, values are `true`.\r\nH.pinned = {}\r\n\r\n--- Pin a buffer.\r\n--- @param buf? number Optional buffer handle (defaults to current buffer)\r\nM.pin = function(buf)\r\n  buf = buf or vim.api.nvim_get_current_buf()\r\n  H.pinned[buf] = true\r\nend\r\n\r\n--- Unpin a buffer.\r\n--- @param buf? number Optional buffer handle (defaults to current buffer)\r\nM.unpin = function(buf)\r\n  buf = buf or vim.api.nvim_get_current_buf()\r\n  H.pinned[buf] = nil\r\nend\r\n\r\n--- Toggle pin state for a buffer.\r\n--- @param buf? number Optional buffer handle (defaults to current buffer)\r\nM.toggle = function(buf)\r\n  buf = buf or vim.api.nvim_get_current_buf()\r\n\r\n  if H.pinned[buf] then\r\n    H.pinned[buf] = nil\r\n  else\r\n    H.pinned[buf] = true\r\n  end\r\nend\r\n\r\n--- Check whether a buffer is pinned.\r\n--- @param buf number Buffer handle\r\n--- @return boolean\r\nM.is_pinned = function(buf)\r\n  return H.pinned[buf] == true\r\nend\r\n\r\nvim.api.nvim_create_autocmd({ \"BufDelete\", \"BufWipeout\" }, {\r\n  group = vim.api.nvim_create_augroup(\"buffer_utils_pin_lifecycle\", { clear = true }),\r\n  desc = \"Clear pinned buffer state on buffer removal\",\r\n  callback = function(args)\r\n    H.pinned[args.buf] = nil\r\n  end,\r\n})\r\n\r\nreturn M\r\n```\r\n### `mini.bufremove` config example:\r\n```lua\r\nlocal bufremove = require(\"mini.bufremove\")\r\nlocal pin = require(\"utils.buffer-pin\")\r\n\r\n--- Remove one or many buffers\r\n--- @param action? '\"delete\"'|'\"wipeout\"'\r\n--- @param selection? '\"all\"'|'\"current\"'|'\"others\"'|'\"left\"'|'\"right\"'|'\"unpinned\"'\r\n--- @param force boolean?\r\nlocal function remove_buffers(action, selection, force)\r\n  action = action or \"delete\"\r\n  selection = selection or \"current\"\r\n  force = force or false\r\n\r\n  local valid_actions = { delete = true, wipeout = true }\r\n  if not valid_actions[action] then\r\n    vim.notify(\"Invalid action: \" .. action, vim.log.levels.ERROR)\r\n    return\r\n  end\r\n\r\n  local valid_selections = { all = true, current = true, others = true, left = true, right = true, unpinned = true }\r\n  if not valid_selections[selection] then\r\n    vim.notify(\"Invalid selection: \" .. selection, vim.log.levels.ERROR)\r\n    return\r\n  end\r\n\r\n  local cur = vim.api.nvim_get_current_buf()\r\n  local bufs = vim.api.nvim_list_bufs()\r\n\r\n  for _, buf in ipairs(bufs) do\r\n    local delete = selection == \"all\"\r\n      or (selection == \"current\" and buf == cur)\r\n      or (selection == \"others\" and buf ~= cur)\r\n      or (selection == \"left\" and buf < cur)\r\n      or (selection == \"right\" and buf > cur)\r\n\r\n    if vim.fn.buflisted(buf) == 1 and delete and not pin.is_pinned(buf) then\r\n      bufremove[action](buf, force)\r\n    end\r\n  end\r\nend\r\n\r\nlocal function bufdelete_cur() remove_buffers(\"delete\", \"current\", false) end\r\nlocal function bufdelete_left() remove_buffers(\"delete\", \"left\", false) end\r\nlocal function bufdelete_others() remove_buffers(\"delete\", \"others\", false) end\r\nlocal function bufdelete_right() remove_buffers(\"delete\", \"right\", false) end\r\nlocal function bufwipeout_cur() remove_buffers(\"wipeout\", \"current\", true) end\r\n\r\nvim.keymap.set(\"n\", \"<leader>bd\", bufdelete_cur, { desc = \"Delete\" })\r\nvim.keymap.set(\"n\", \"<leader>bh\", bufdelete_left, { desc = \"Delete Left\" })\r\nvim.keymap.set(\"n\", \"<leader>bl\", bufdelete_right, { desc = \"Delete Right\" })\r\nvim.keymap.set(\"n\", \"<leader>bo\", bufdelete_others, { desc = \"Delete Others\" })\r\nvim.keymap.set(\"n\", \"<leader>bw\", bufwipeout_cur, { desc = \"Wipeout!\" })\r\n```\r\n\r\n### `mini.tabline` config example:\r\n```lua\r\nlocal tabline = require(\"mini.tabline\")\r\nlocal buf_utils = require(\"utils.buffer-pin\")\r\n\r\ntabline.setup({\r\n  format = function(buf, label)\r\n    local listed_buffers = vim.fn.getbufinfo({ buflisted = 1 })\r\n\r\n    local sep = (#listed_buffers > 0) and \"\" or \"\"\r\n\r\n    local suffix = {}\r\n\r\n    if vim.bo[buf].modified and buf_utils.is_pinned(buf) then\r\n      table.insert(suffix, \"\")\r\n    elseif buf_utils.is_pinned(buf) then\r\n      table.insert(suffix, \"\")\r\n    elseif vim.bo[buf].modified then\r\n      table.insert(suffix, \"●\")\r\n    end\r\n\r\n    if vim.bo[buf].readonly or not vim.bo[buf].modifiable then\r\n      table.insert(suffix, \"\")\r\n    end\r\n\r\n    return tabline.default_format(buf, label) .. table.concat(suffix, \" \") .. \" \" .. sep\r\n  end\r\n})\r\n\r\nvim.keymap.set(\"n\", \"<leader>bp\", buf_utils.toggle, { desc = \"Pin/Unpin\" })\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">Nice feature! Added to my tabline config</p>\n<p dir=\"auto\">Edit: After spending more time with it, I did a rewrite to better integrate <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a> 's buffer pinning with my <code class=\"notranslate\">remove_buffers</code> function. I tried to clearly separate responsibilities between each component:</p>\n<ul dir=\"auto\">\n<li><strong>Buffer removal</strong> is handled exclusively by <code class=\"notranslate\">mini.bufremove</code></li>\n<li><strong>Visual indication of pinned/unpinned buffers</strong> is handled exclusively by <code class=\"notranslate\">mini.tabline</code></li>\n<li>A shared module (<code class=\"notranslate\">utils.buffer-pin</code>) being responsible for managing pin state and lifecycle</li>\n</ul>\n<p dir=\"auto\">As a result, <code class=\"notranslate\">remove_buffers</code> now skips pinned buffers after determining the buffer selection.</p>\n<h3 dir=\"auto\"><code class=\"notranslate\">utils.buffer-pin</code></h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"--------------------------------------------------------------------------------\n-- Buffer pin module\n--------------------------------------------------------------------------------\n\nlocal M = {}\nlocal H = {}\n\n-- Internal table storing pinned buffers.\n-- Keys are buffer numbers, values are `true`.\nH.pinned = {}\n\n--- Pin a buffer.\n--- @param buf? number Optional buffer handle (defaults to current buffer)\nM.pin = function(buf)\n  buf = buf or vim.api.nvim_get_current_buf()\n  H.pinned[buf] = true\nend\n\n--- Unpin a buffer.\n--- @param buf? number Optional buffer handle (defaults to current buffer)\nM.unpin = function(buf)\n  buf = buf or vim.api.nvim_get_current_buf()\n  H.pinned[buf] = nil\nend\n\n--- Toggle pin state for a buffer.\n--- @param buf? number Optional buffer handle (defaults to current buffer)\nM.toggle = function(buf)\n  buf = buf or vim.api.nvim_get_current_buf()\n\n  if H.pinned[buf] then\n    H.pinned[buf] = nil\n  else\n    H.pinned[buf] = true\n  end\nend\n\n--- Check whether a buffer is pinned.\n--- @param buf number Buffer handle\n--- @return boolean\nM.is_pinned = function(buf)\n  return H.pinned[buf] == true\nend\n\nvim.api.nvim_create_autocmd({ &quot;BufDelete&quot;, &quot;BufWipeout&quot; }, {\n  group = vim.api.nvim_create_augroup(&quot;buffer_utils_pin_lifecycle&quot;, { clear = true }),\n  desc = &quot;Clear pinned buffer state on buffer removal&quot;,\n  callback = function(args)\n    H.pinned[args.buf] = nil\n  end,\n})\n\nreturn M\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">----</span>----------------------------------------------------------------------------</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Buffer pin module</span>\n<span class=\"pl-c\"><span class=\"pl-c\">----</span>----------------------------------------------------------------------------</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">M</span> <span class=\"pl-k\">=</span> {}\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Internal table storing pinned buffers.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Keys are buffer numbers, values are `true`.</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Pin a buffer.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">buf</span><span class=\"pl-k\">?</span> <span class=\"pl-c1\">number Optional buffer handle </span>(<span class=\"pl-c1\">defaults to current buffer</span>)</span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">pin</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>)\n  <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">buf</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Unpin a buffer.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">buf</span><span class=\"pl-k\">?</span> <span class=\"pl-c1\">number Optional buffer handle </span>(<span class=\"pl-c1\">defaults to current buffer</span>)</span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">unpin</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>)\n  <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">buf</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Toggle pin state for a buffer.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">buf</span><span class=\"pl-k\">?</span> <span class=\"pl-c1\">number Optional buffer handle </span>(<span class=\"pl-c1\">defaults to current buffer</span>)</span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">toggle</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>)\n  <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">buf</span>] <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">buf</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">else</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">buf</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Check whether a buffer is pinned.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">buf</span> <span class=\"pl-c1\">number Buffer handle</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @return</span> <span class=\"pl-c1\">boolean</span></span>\n<span class=\"pl-smi\">M</span>.<span class=\"pl-en\">is_pinned</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">buf</span>] <span class=\"pl-k\">==</span> <span class=\"pl-c1\">true</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>BufDelete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>BufWipeout<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>buffer_utils_pin_lifecycle<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Clear pinned buffer state on buffer removal<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">pinned</span>[<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">buf</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-k\">return</span> <span class=\"pl-smi\">M</span></pre></div>\n<h3 dir=\"auto\"><code class=\"notranslate\">mini.bufremove</code> config example:</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local bufremove = require(&quot;mini.bufremove&quot;)\nlocal pin = require(&quot;utils.buffer-pin&quot;)\n\n--- Remove one or many buffers\n--- @param action? '&quot;delete&quot;'|'&quot;wipeout&quot;'\n--- @param selection? '&quot;all&quot;'|'&quot;current&quot;'|'&quot;others&quot;'|'&quot;left&quot;'|'&quot;right&quot;'|'&quot;unpinned&quot;'\n--- @param force boolean?\nlocal function remove_buffers(action, selection, force)\n  action = action or &quot;delete&quot;\n  selection = selection or &quot;current&quot;\n  force = force or false\n\n  local valid_actions = { delete = true, wipeout = true }\n  if not valid_actions[action] then\n    vim.notify(&quot;Invalid action: &quot; .. action, vim.log.levels.ERROR)\n    return\n  end\n\n  local valid_selections = { all = true, current = true, others = true, left = true, right = true, unpinned = true }\n  if not valid_selections[selection] then\n    vim.notify(&quot;Invalid selection: &quot; .. selection, vim.log.levels.ERROR)\n    return\n  end\n\n  local cur = vim.api.nvim_get_current_buf()\n  local bufs = vim.api.nvim_list_bufs()\n\n  for _, buf in ipairs(bufs) do\n    local delete = selection == &quot;all&quot;\n      or (selection == &quot;current&quot; and buf == cur)\n      or (selection == &quot;others&quot; and buf ~= cur)\n      or (selection == &quot;left&quot; and buf &lt; cur)\n      or (selection == &quot;right&quot; and buf &gt; cur)\n\n    if vim.fn.buflisted(buf) == 1 and delete and not pin.is_pinned(buf) then\n      bufremove[action](buf, force)\n    end\n  end\nend\n\nlocal function bufdelete_cur() remove_buffers(&quot;delete&quot;, &quot;current&quot;, false) end\nlocal function bufdelete_left() remove_buffers(&quot;delete&quot;, &quot;left&quot;, false) end\nlocal function bufdelete_others() remove_buffers(&quot;delete&quot;, &quot;others&quot;, false) end\nlocal function bufdelete_right() remove_buffers(&quot;delete&quot;, &quot;right&quot;, false) end\nlocal function bufwipeout_cur() remove_buffers(&quot;wipeout&quot;, &quot;current&quot;, true) end\n\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bd&quot;, bufdelete_cur, { desc = &quot;Delete&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bh&quot;, bufdelete_left, { desc = &quot;Delete Left&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bl&quot;, bufdelete_right, { desc = &quot;Delete Right&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bo&quot;, bufdelete_others, { desc = &quot;Delete Others&quot; })\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bw&quot;, bufwipeout_cur, { desc = &quot;Wipeout!&quot; })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufremove</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.bufremove<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">pin</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>utils.buffer-pin<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Remove one or many buffers</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">action</span><span class=\"pl-k\">?</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"delete\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"wipeout\"<span class=\"pl-pds\">'</span></span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">selection</span><span class=\"pl-k\">?</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"all\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"current\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"others\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"left\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"right\"<span class=\"pl-pds\">'</span></span><span class=\"pl-k\">|</span><span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"unpinned\"<span class=\"pl-pds\">'</span></span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\"> @param</span> <span class=\"pl-en\">force</span> <span class=\"pl-c1\">boolean</span><span class=\"pl-k\">?</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">remove_buffers</span>(<span class=\"pl-smi\">action</span>, <span class=\"pl-smi\">selection</span>, <span class=\"pl-smi\">force</span>)\n  <span class=\"pl-smi\">action</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">action</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-smi\">selection</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">selection</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>\n  <span class=\"pl-smi\">force</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">force</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">false</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">valid_actions</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">delete</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">wipeout</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">valid_actions</span>[<span class=\"pl-smi\">action</span>] <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Invalid action: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">action</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">valid_selections</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">all</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">current</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">others</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">left</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">right</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">unpinned</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">valid_selections</span>[<span class=\"pl-smi\">selection</span>] <span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Invalid selection: <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">selection</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>)\n    <span class=\"pl-k\">return</span>\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cur</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bufs</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_bufs</span>()\n\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">bufs</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">delete</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>all<span class=\"pl-pds\">\"</span></span>\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">cur</span>)\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>others<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">cur</span>)\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-smi\">cur</span>)\n      <span class=\"pl-k\">or</span> (<span class=\"pl-smi\">selection</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-smi\">cur</span>)\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">buflisted</span>(<span class=\"pl-smi\">buf</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">delete</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">pin</span>.<span class=\"pl-c1\">is_pinned</span>(<span class=\"pl-smi\">buf</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">bufremove</span>[<span class=\"pl-smi\">action</span>](<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">force</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_cur</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_left</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>left<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_others</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>others<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufdelete_right</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>delete<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>right<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">bufwipeout_cur</span>() <span class=\"pl-c1\">remove_buffers</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>wipeout<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>current<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">true</span>) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bd<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_cur</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bh<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_left</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete Left<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bl<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_right</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete Right<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bo<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufdelete_others</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Delete Others<span class=\"pl-pds\">\" </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bw<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bufwipeout_cur</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Wipeout!<span class=\"pl-pds\">\" </span></span>})</pre></div>\n<h3 dir=\"auto\"><code class=\"notranslate\">mini.tabline</code> config example:</h3>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local tabline = require(&quot;mini.tabline&quot;)\nlocal buf_utils = require(&quot;utils.buffer-pin&quot;)\n\ntabline.setup({\n  format = function(buf, label)\n    local listed_buffers = vim.fn.getbufinfo({ buflisted = 1 })\n\n    local sep = (#listed_buffers &gt; 0) and &quot;&quot; or &quot;&quot;\n\n    local suffix = {}\n\n    if vim.bo[buf].modified and buf_utils.is_pinned(buf) then\n      table.insert(suffix, &quot;&quot;)\n    elseif buf_utils.is_pinned(buf) then\n      table.insert(suffix, &quot;&quot;)\n    elseif vim.bo[buf].modified then\n      table.insert(suffix, &quot;●&quot;)\n    end\n\n    if vim.bo[buf].readonly or not vim.bo[buf].modifiable then\n      table.insert(suffix, &quot;&quot;)\n    end\n\n    return tabline.default_format(buf, label) .. table.concat(suffix, &quot; &quot;) .. &quot; &quot; .. sep\n  end\n})\n\nvim.keymap.set(&quot;n&quot;, &quot;&lt;leader&gt;bp&quot;, buf_utils.toggle, { desc = &quot;Pin/Unpin&quot; })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">tabline</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.tabline<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_utils</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>utils.buffer-pin<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-smi\">tabline</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-en\">format</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">listed_buffers</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getbufinfo</span>({ <span class=\"pl-smi\">buflisted</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> })\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">sep</span> <span class=\"pl-k\">=</span> (<span class=\"pl-k\">#</span><span class=\"pl-smi\">listed_buffers</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">suffix</span> <span class=\"pl-k\">=</span> {}\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">buf</span>].<span class=\"pl-e\">modified</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">buf_utils</span>.<span class=\"pl-c1\">is_pinned</span>(<span class=\"pl-smi\">buf</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">suffix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">buf_utils</span>.<span class=\"pl-c1\">is_pinned</span>(<span class=\"pl-smi\">buf</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">suffix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">buf</span>].<span class=\"pl-e\">modified</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">suffix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>●<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">buf</span>].<span class=\"pl-e\">readonly</span> <span class=\"pl-k\">or</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>[<span class=\"pl-smi\">buf</span>].<span class=\"pl-e\">modifiable</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">suffix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">tabline</span>.<span class=\"pl-c1\">default_format</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">label</span>) <span class=\"pl-k\">..</span> <span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">suffix</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">sep</span>\n  <span class=\"pl-k\">end</span>\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;bp<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">buf_utils</span>.<span class=\"pl-e\">toggle</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Pin/Unpin<span class=\"pl-pds\">\" </span></span>})</pre></div>",
+                    "bodyText": "Nice feature! Added to my tabline config\nEdit: After spending more time with it, I did a rewrite to better integrate @pkazmier 's buffer pinning with my remove_buffers function. I tried to clearly separate responsibilities between each component:\n\nBuffer removal is handled exclusively by mini.bufremove\nVisual indication of pinned/unpinned buffers is handled exclusively by mini.tabline\nA shared module (utils.buffer-pin) being responsible for managing pin state and lifecycle\n\nAs a result, remove_buffers now skips pinned buffers after determining the buffer selection.\nutils.buffer-pin\n--------------------------------------------------------------------------------\n-- Buffer pin module\n--------------------------------------------------------------------------------\n\nlocal M = {}\nlocal H = {}\n\n-- Internal table storing pinned buffers.\n-- Keys are buffer numbers, values are `true`.\nH.pinned = {}\n\n--- Pin a buffer.\n--- @param buf? number Optional buffer handle (defaults to current buffer)\nM.pin = function(buf)\n  buf = buf or vim.api.nvim_get_current_buf()\n  H.pinned[buf] = true\nend\n\n--- Unpin a buffer.\n--- @param buf? number Optional buffer handle (defaults to current buffer)\nM.unpin = function(buf)\n  buf = buf or vim.api.nvim_get_current_buf()\n  H.pinned[buf] = nil\nend\n\n--- Toggle pin state for a buffer.\n--- @param buf? number Optional buffer handle (defaults to current buffer)\nM.toggle = function(buf)\n  buf = buf or vim.api.nvim_get_current_buf()\n\n  if H.pinned[buf] then\n    H.pinned[buf] = nil\n  else\n    H.pinned[buf] = true\n  end\nend\n\n--- Check whether a buffer is pinned.\n--- @param buf number Buffer handle\n--- @return boolean\nM.is_pinned = function(buf)\n  return H.pinned[buf] == true\nend\n\nvim.api.nvim_create_autocmd({ \"BufDelete\", \"BufWipeout\" }, {\n  group = vim.api.nvim_create_augroup(\"buffer_utils_pin_lifecycle\", { clear = true }),\n  desc = \"Clear pinned buffer state on buffer removal\",\n  callback = function(args)\n    H.pinned[args.buf] = nil\n  end,\n})\n\nreturn M\nmini.bufremove config example:\nlocal bufremove = require(\"mini.bufremove\")\nlocal pin = require(\"utils.buffer-pin\")\n\n--- Remove one or many buffers\n--- @param action? '\"delete\"'|'\"wipeout\"'\n--- @param selection? '\"all\"'|'\"current\"'|'\"others\"'|'\"left\"'|'\"right\"'|'\"unpinned\"'\n--- @param force boolean?\nlocal function remove_buffers(action, selection, force)\n  action = action or \"delete\"\n  selection = selection or \"current\"\n  force = force or false\n\n  local valid_actions = { delete = true, wipeout = true }\n  if not valid_actions[action] then\n    vim.notify(\"Invalid action: \" .. action, vim.log.levels.ERROR)\n    return\n  end\n\n  local valid_selections = { all = true, current = true, others = true, left = true, right = true, unpinned = true }\n  if not valid_selections[selection] then\n    vim.notify(\"Invalid selection: \" .. selection, vim.log.levels.ERROR)\n    return\n  end\n\n  local cur = vim.api.nvim_get_current_buf()\n  local bufs = vim.api.nvim_list_bufs()\n\n  for _, buf in ipairs(bufs) do\n    local delete = selection == \"all\"\n      or (selection == \"current\" and buf == cur)\n      or (selection == \"others\" and buf ~= cur)\n      or (selection == \"left\" and buf < cur)\n      or (selection == \"right\" and buf > cur)\n\n    if vim.fn.buflisted(buf) == 1 and delete and not pin.is_pinned(buf) then\n      bufremove[action](buf, force)\n    end\n  end\nend\n\nlocal function bufdelete_cur() remove_buffers(\"delete\", \"current\", false) end\nlocal function bufdelete_left() remove_buffers(\"delete\", \"left\", false) end\nlocal function bufdelete_others() remove_buffers(\"delete\", \"others\", false) end\nlocal function bufdelete_right() remove_buffers(\"delete\", \"right\", false) end\nlocal function bufwipeout_cur() remove_buffers(\"wipeout\", \"current\", true) end\n\nvim.keymap.set(\"n\", \"<leader>bd\", bufdelete_cur, { desc = \"Delete\" })\nvim.keymap.set(\"n\", \"<leader>bh\", bufdelete_left, { desc = \"Delete Left\" })\nvim.keymap.set(\"n\", \"<leader>bl\", bufdelete_right, { desc = \"Delete Right\" })\nvim.keymap.set(\"n\", \"<leader>bo\", bufdelete_others, { desc = \"Delete Others\" })\nvim.keymap.set(\"n\", \"<leader>bw\", bufwipeout_cur, { desc = \"Wipeout!\" })\nmini.tabline config example:\nlocal tabline = require(\"mini.tabline\")\nlocal buf_utils = require(\"utils.buffer-pin\")\n\ntabline.setup({\n  format = function(buf, label)\n    local listed_buffers = vim.fn.getbufinfo({ buflisted = 1 })\n\n    local sep = (#listed_buffers > 0) and \"\" or \"\"\n\n    local suffix = {}\n\n    if vim.bo[buf].modified and buf_utils.is_pinned(buf) then\n      table.insert(suffix, \"\")\n    elseif buf_utils.is_pinned(buf) then\n      table.insert(suffix, \"\")\n    elseif vim.bo[buf].modified then\n      table.insert(suffix, \"●\")\n    end\n\n    if vim.bo[buf].readonly or not vim.bo[buf].modifiable then\n      table.insert(suffix, \"\")\n    end\n\n    return tabline.default_format(buf, label) .. table.concat(suffix, \" \") .. \" \" .. sep\n  end\n})\n\nvim.keymap.set(\"n\", \"<leader>bp\", buf_utils.toggle, { desc = \"Pin/Unpin\" })",
+                    "createdAt": "2026-01-19T18:18:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15541494,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+                        "login": "danielt812",
+                        "resourcePath": "/danielt812",
+                        "url": "https://github.com/danielt812"
+                    },
+                    "id": "DC_kwDOFoksYM4A7ST2",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-01-23T04:25:50Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-19T18:18:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15541117,
+                        "id": "DC_kwDOFoksYM4A7SN9",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541117"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541494",
+                    "updatedAt": "2026-01-23T04:25:50Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541494"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541117",
+            "updatedAt": "2026-01-19T18:02:08Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-15541117"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/35547958?u=ffc582e8893bbde3643f5a8ffad39ef821838678&v=4",
+                "login": "vandalt",
+                "resourcePath": "/vandalt",
+                "url": "https://github.com/vandalt"
+            },
+            "authorAssociation": "NONE",
+            "body": "Nice @danielt812! I might give the \"left\" or \"right\" idea a try :)\r\n\r\nI came to share a similar snippet I have in my config that only does the \"others\" part of this. It has less functionality but makes for a tinier function so sharing in case anyone is interested in just that part (similar to what Snacks.bufdelete offers).\r\n\r\nThanks!\r\n\r\n```lua\r\nlocal bufremove_others = function()\r\n  for _, b in ipairs(vim.api.nvim_list_bufs()) do\r\n    if b ~= vim.api.nvim_get_current_buf() then\r\n      MiniBufremove.delete(b)\r\n    end\r\n  end\r\nend\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Nice <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/danielt812/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/danielt812\">@danielt812</a>! I might give the \"left\" or \"right\" idea a try :)</p>\n<p dir=\"auto\">I came to share a similar snippet I have in my config that only does the \"others\" part of this. It has less functionality but makes for a tinier function so sharing in case anyone is interested in just that part (similar to what Snacks.bufdelete offers).</p>\n<p dir=\"auto\">Thanks!</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local bufremove_others = function()\n  for _, b in ipairs(vim.api.nvim_list_bufs()) do\n    if b ~= vim.api.nvim_get_current_buf() then\n      MiniBufremove.delete(b)\n    end\n  end\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">bufremove_others</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">b</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_list_bufs</span>()) <span class=\"pl-k\">do</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">b</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>() <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">MiniBufremove</span>.<span class=\"pl-c1\">delete</span>(<span class=\"pl-smi\">b</span>)\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "Nice @danielt812! I might give the \"left\" or \"right\" idea a try :)\nI came to share a similar snippet I have in my config that only does the \"others\" part of this. It has less functionality but makes for a tinier function so sharing in case anyone is interested in just that part (similar to what Snacks.bufdelete offers).\nThanks!\nlocal bufremove_others = function()\n  for _, b in ipairs(vim.api.nvim_list_bufs()) do\n    if b ~= vim.api.nvim_get_current_buf() then\n      MiniBufremove.delete(b)\n    end\n  end\nend",
+            "createdAt": "2026-10-10T17:54:45Z",
+            "createdViaEmail": false,
+            "databaseId": 18854020,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BH7CE",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-10-10T17:54:45Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2231#discussioncomment-18854020",
+            "updatedAt": "2026-10-10T17:54:45Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231#discussioncomment-18854020"
+        }
+    ],
+    "createdAt": "2026-01-19T05:54:09Z",
+    "createdViaEmail": false,
+    "databaseId": 9361348,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/36260981?u=9ffdeeab205322386859a3a1126b88e44824bcb8&v=4",
+        "login": "danielt812",
+        "resourcePath": "/danielt812",
+        "url": "https://github.com/danielt812"
+    },
+    "id": "D_kwDOFoksYM4AjtfE",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1um9",
+                "name": "mini.bufremove"
+            },
+            {
+                "color": "DCA68E",
+                "description": "Solution is present (or should be present) in wiki",
+                "id": "LA_kwDOFoksYM8AAAABxlc9pg",
+                "name": "wiki"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-01-19T17:21:38Z",
+    "locked": false,
+    "number": 2231,
+    "poll": null,
+    "publishedAt": "2026-01-19T05:54:09Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2231",
+    "stateReason": null,
+    "title": "Delete or Wipeout multiple buffers",
+    "updatedAt": "2026-10-10T17:54:45Z",
+    "upvoteCount": 4,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2231"
+}

@@ -1,0 +1,2364 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "I added a colorscheme picker to my [configuration](https://github.com/pkazmier/nvim/blob/main/lua/plugins/mini/pick.lua) this morning and thought I'd share in case others were interested.  If you preview a colorscheme, it will change your current colorscheme to the one you are previewing. If you cancel the picker, it will revert back to the colorscheme you had before you entered the picker.\r\n\r\nhttps://github.com/echasnovski/mini.nvim/assets/747855/a8ae2b11-6998-4034-8fd0-539f8643ecf8\r\n\r\nTo track state of the original picker, I added the ability to have custom pre- and post-hooks for individual pickers:\r\n```lua\r\n-- Picker pre- and post-hooks ===============================================\r\n\r\n-- Keys should be a picker source.name. Value is a callback function that\r\n-- accepts same arguments as User autocommand callback.\r\nlocal hooks = {\r\n  pre_hooks = {},\r\n  post_hooks = {},\r\n}\r\n\r\nvim.api.nvim_create_autocmd({ \"User\" }, {\r\n  pattern = \"MiniPickStart\",\r\n  group = vim.api.nvim_create_augroup(\"minipick-pre-hooks\", { clear = true }),\r\n  desc = \"Invoke pre_hook for specific picker based on source.name.\",\r\n  callback = function(...)\r\n    local opts = MiniPick.get_picker_opts() or {}\r\n    local pre_hook = hooks.pre_hooks[opts.source.name] or function(...) end\r\n    pre_hook(...)\r\n  end,\r\n})\r\n\r\nvim.api.nvim_create_autocmd({ \"User\" }, {\r\n  pattern = \"MiniPickStop\",\r\n  group = vim.api.nvim_create_augroup(\"minipick-post-hooks\", { clear = true }),\r\n  desc = \"Invoke post_hook for specific picker based on source.name.\",\r\n  callback = function(...)\r\n    local opts = MiniPick.get_picker_opts() or {}\r\n    local post_hook = hooks.post_hooks[opts.source.name] or function(...) end\r\n    post_hook(...)\r\n  end,\r\n})\r\n```\r\n\r\nWith that in place, here is the definition of my colorscheme picker:\r\n```lua\r\n-- Colorscheme picker =======================================================\r\n\r\nlocal selected_colorscheme -- Currently selected or original colorscheme\r\n\r\nhooks.pre_hooks.Colorschemes = function()\r\n  selected_colorscheme = vim.g.colors_name\r\nend\r\n\r\nhooks.post_hooks.Colorschemes = function()\r\n  vim.cmd(\"colorscheme \" .. selected_colorscheme)\r\nend\r\n\r\nMiniPick.registry.colorschemes = function()\r\n  local colorschemes = vim.fn.getcompletion(\"\", \"color\")\r\n  return MiniPick.start({\r\n    source = {\r\n      name = \"Colorschemes\",\r\n      items = colorschemes,\r\n      choose = function(item)\r\n        selected_colorscheme = item\r\n      end,\r\n      preview = function(buf_id, item)\r\n        vim.cmd(\"colorscheme \" .. item)\r\n        vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, { item })\r\n      end,\r\n    },\r\n  })\r\nend\r\n```",
+    "bodyHTML": "<p dir=\"auto\">I added a colorscheme picker to my <a href=\"https://github.com/pkazmier/nvim/blob/main/lua/plugins/mini/pick.lua\">configuration</a> this morning and thought I'd share in case others were interested.  If you preview a colorscheme, it will change your current colorscheme to the one you are previewing. If you cancel the picker, it will revert back to the colorscheme you had before you entered the picker.</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">Screen.Recording.2024-06-08.at.10.24.59.AM.mov</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/747855/337880702-a8ae2b11-6998-4034-8fd0-539f8643ecf8.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMTYsIm5iZiI6MTc5MzU1MjcxNiwicGF0aCI6Ii83NDc4NTUvMzM3ODgwNzAyLWE4YWUyYjExLTY5OTgtNDAzNC04ZmQwLTUzOWY4NjQzZWNmOC5tb3Y_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MTZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0yOTAyZmQxZTIxNzdjNzNiNGVjMWUyODFjYzQ3NDYyY2U1NjJjZjQzNWM5ZGU3Y2M3YzMxOTZhOTZlNTdkMmU5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZxdWlja3RpbWUifQ.uFhOGZvtsQvqw-oY31FRIqSlpwJwpr0Kb_rQBtK2x6c\" data-canonical-src=\"https://private-user-images.githubusercontent.com/747855/337880702-a8ae2b11-6998-4034-8fd0-539f8643ecf8.mov?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMTYsIm5iZiI6MTc5MzU1MjcxNiwicGF0aCI6Ii83NDc4NTUvMzM3ODgwNzAyLWE4YWUyYjExLTY5OTgtNDAzNC04ZmQwLTUzOWY4NjQzZWNmOC5tb3Y_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzA1MTZaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT0yOTAyZmQxZTIxNzdjNzNiNGVjMWUyODFjYzQ3NDYyY2U1NjJjZjQzNWM5ZGU3Y2M3YzMxOTZhOTZlNTdkMmU5JlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9dmlkZW8lMkZxdWlja3RpbWUifQ.uFhOGZvtsQvqw-oY31FRIqSlpwJwpr0Kb_rQBtK2x6c\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">To track state of the original picker, I added the ability to have custom pre- and post-hooks for individual pickers:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Picker pre- and post-hooks ===============================================\n\n-- Keys should be a picker source.name. Value is a callback function that\n-- accepts same arguments as User autocommand callback.\nlocal hooks = {\n  pre_hooks = {},\n  post_hooks = {},\n}\n\nvim.api.nvim_create_autocmd({ &quot;User&quot; }, {\n  pattern = &quot;MiniPickStart&quot;,\n  group = vim.api.nvim_create_augroup(&quot;minipick-pre-hooks&quot;, { clear = true }),\n  desc = &quot;Invoke pre_hook for specific picker based on source.name.&quot;,\n  callback = function(...)\n    local opts = MiniPick.get_picker_opts() or {}\n    local pre_hook = hooks.pre_hooks[opts.source.name] or function(...) end\n    pre_hook(...)\n  end,\n})\n\nvim.api.nvim_create_autocmd({ &quot;User&quot; }, {\n  pattern = &quot;MiniPickStop&quot;,\n  group = vim.api.nvim_create_augroup(&quot;minipick-post-hooks&quot;, { clear = true }),\n  desc = &quot;Invoke post_hook for specific picker based on source.name.&quot;,\n  callback = function(...)\n    local opts = MiniPick.get_picker_opts() or {}\n    local post_hook = hooks.post_hooks[opts.source.name] or function(...) end\n    post_hook(...)\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Picker pre- and post-hooks ===============================================</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Keys should be a picker source.name. Value is a callback function that</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> accepts same arguments as User autocommand callback.</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">hooks</span> <span class=\"pl-k\">=</span> {\n  <span class=\"pl-smi\">pre_hooks</span> <span class=\"pl-k\">=</span> {},\n  <span class=\"pl-smi\">post_hooks</span> <span class=\"pl-k\">=</span> {},\n}\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickStart<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minipick-pre-hooks<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Invoke pre_hook for specific picker based on source.name.<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(...)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_opts</span>() <span class=\"pl-k\">or</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pre_hook</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hooks</span>.<span class=\"pl-e\">pre_hooks</span>[<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">source</span>.<span class=\"pl-e\">name</span>] <span class=\"pl-k\">or</span> <span class=\"pl-k\">function</span>(...) <span class=\"pl-k\">end</span>\n    <span class=\"pl-c1\">pre_hook</span>(<span class=\"pl-c1\">...</span>)\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickStop<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minipick-post-hooks<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Invoke post_hook for specific picker based on source.name.<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(...)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">get_picker_opts</span>() <span class=\"pl-k\">or</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">post_hook</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hooks</span>.<span class=\"pl-e\">post_hooks</span>[<span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">source</span>.<span class=\"pl-e\">name</span>] <span class=\"pl-k\">or</span> <span class=\"pl-k\">function</span>(...) <span class=\"pl-k\">end</span>\n    <span class=\"pl-c1\">post_hook</span>(<span class=\"pl-c1\">...</span>)\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">With that in place, here is the definition of my colorscheme picker:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Colorscheme picker =======================================================\n\nlocal selected_colorscheme -- Currently selected or original colorscheme\n\nhooks.pre_hooks.Colorschemes = function()\n  selected_colorscheme = vim.g.colors_name\nend\n\nhooks.post_hooks.Colorschemes = function()\n  vim.cmd(&quot;colorscheme &quot; .. selected_colorscheme)\nend\n\nMiniPick.registry.colorschemes = function()\n  local colorschemes = vim.fn.getcompletion(&quot;&quot;, &quot;color&quot;)\n  return MiniPick.start({\n    source = {\n      name = &quot;Colorschemes&quot;,\n      items = colorschemes,\n      choose = function(item)\n        selected_colorscheme = item\n      end,\n      preview = function(buf_id, item)\n        vim.cmd(&quot;colorscheme &quot; .. item)\n        vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, { item })\n      end,\n    },\n  })\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Colorscheme picker =======================================================</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">selected_colorscheme</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> Currently selected or original colorscheme</span>\n\n<span class=\"pl-smi\">hooks</span>.<span class=\"pl-e\">pre_hooks</span>.<span class=\"pl-en\">Colorschemes</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">selected_colorscheme</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">g</span>.<span class=\"pl-e\">colors_name</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">hooks</span>.<span class=\"pl-e\">post_hooks</span>.<span class=\"pl-en\">Colorschemes</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>colorscheme <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">selected_colorscheme</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">colorschemes</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">colorschemes</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcompletion</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>color<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({\n    <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n      <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Colorschemes<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">colorschemes</span>,\n      <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n        <span class=\"pl-smi\">selected_colorscheme</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>\n      <span class=\"pl-k\">end</span>,\n      <span class=\"pl-en\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">item</span>)\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>colorscheme <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">item</span>)\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_lines</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>, { <span class=\"pl-smi\">item</span> })\n      <span class=\"pl-k\">end</span>,\n    },\n  })\n<span class=\"pl-k\">end</span></pre></div>",
+    "bodyText": "I added a colorscheme picker to my configuration this morning and thought I'd share in case others were interested.  If you preview a colorscheme, it will change your current colorscheme to the one you are previewing. If you cancel the picker, it will revert back to the colorscheme you had before you entered the picker.\n\n  \n    \n    \n\n    Screen.Recording.2024-06-08.at.10.24.59.AM.mov\n    \n  \n\n  \n\n  \n\n\nTo track state of the original picker, I added the ability to have custom pre- and post-hooks for individual pickers:\n-- Picker pre- and post-hooks ===============================================\n\n-- Keys should be a picker source.name. Value is a callback function that\n-- accepts same arguments as User autocommand callback.\nlocal hooks = {\n  pre_hooks = {},\n  post_hooks = {},\n}\n\nvim.api.nvim_create_autocmd({ \"User\" }, {\n  pattern = \"MiniPickStart\",\n  group = vim.api.nvim_create_augroup(\"minipick-pre-hooks\", { clear = true }),\n  desc = \"Invoke pre_hook for specific picker based on source.name.\",\n  callback = function(...)\n    local opts = MiniPick.get_picker_opts() or {}\n    local pre_hook = hooks.pre_hooks[opts.source.name] or function(...) end\n    pre_hook(...)\n  end,\n})\n\nvim.api.nvim_create_autocmd({ \"User\" }, {\n  pattern = \"MiniPickStop\",\n  group = vim.api.nvim_create_augroup(\"minipick-post-hooks\", { clear = true }),\n  desc = \"Invoke post_hook for specific picker based on source.name.\",\n  callback = function(...)\n    local opts = MiniPick.get_picker_opts() or {}\n    local post_hook = hooks.post_hooks[opts.source.name] or function(...) end\n    post_hook(...)\n  end,\n})\nWith that in place, here is the definition of my colorscheme picker:\n-- Colorscheme picker =======================================================\n\nlocal selected_colorscheme -- Currently selected or original colorscheme\n\nhooks.pre_hooks.Colorschemes = function()\n  selected_colorscheme = vim.g.colors_name\nend\n\nhooks.post_hooks.Colorschemes = function()\n  vim.cmd(\"colorscheme \" .. selected_colorscheme)\nend\n\nMiniPick.registry.colorschemes = function()\n  local colorschemes = vim.fn.getcompletion(\"\", \"color\")\n  return MiniPick.start({\n    source = {\n      name = \"Colorschemes\",\n      items = colorschemes,\n      choose = function(item)\n        selected_colorscheme = item\n      end,\n      preview = function(buf_id, item)\n        vim.cmd(\"colorscheme \" .. item)\n        vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, { item })\n      end,\n    },\n  })\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-05-24T13:28:09Z",
+    "comment_count": 6,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Very nice! I *think* there were plans of including something like this in 'mini.extra'. Probably decided that it is fairly trivial to implement and left to the user.\r\n\r\nI'd also think about applying color scheme not only inside preview, but also after choosing.",
+            "bodyHTML": "<p dir=\"auto\">Very nice! I <em>think</em> there were plans of including something like this in 'mini.extra'. Probably decided that it is fairly trivial to implement and left to the user.</p>\n<p dir=\"auto\">I'd also think about applying color scheme not only inside preview, but also after choosing.</p>",
+            "bodyText": "Very nice! I think there were plans of including something like this in 'mini.extra'. Probably decided that it is fairly trivial to implement and left to the user.\nI'd also think about applying color scheme not only inside preview, but also after choosing.",
+            "createdAt": "2024-06-08T14:56:47Z",
+            "createdViaEmail": false,
+            "databaseId": 9714368,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AlDrA",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-06-08T14:56:47Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I'd also think about applying color scheme not only inside preview, but also after choosing.\r\n\r\nIt does apply if you choose it.\r\n\r\nI don’t explicitly run the colorscheme command in the choose function because it would revert to the original colorscheme that was saved in the pre hook upon exit. The choose function simply sets the name of the selected item and the post hook is where the colorscheme command actually runs. This is how I’m able to revert to the user’s original scheme if they cancel.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I'd also think about applying color scheme not only inside preview, but also after choosing.</p>\n</blockquote>\n<p dir=\"auto\">It does apply if you choose it.</p>\n<p dir=\"auto\">I don’t explicitly run the colorscheme command in the choose function because it would revert to the original colorscheme that was saved in the pre hook upon exit. The choose function simply sets the name of the selected item and the post hook is where the colorscheme command actually runs. This is how I’m able to revert to the user’s original scheme if they cancel.</p>",
+                    "bodyText": "I'd also think about applying color scheme not only inside preview, but also after choosing.\n\nIt does apply if you choose it.\nI don’t explicitly run the colorscheme command in the choose function because it would revert to the original colorscheme that was saved in the pre hook upon exit. The choose function simply sets the name of the selected item and the post hook is where the colorscheme command actually runs. This is how I’m able to revert to the user’s original scheme if they cancel.",
+                    "createdAt": "2024-06-08T14:59:50Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9714401,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "id": "DC_kwDOFoksYM4AlDrh",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-06-08T15:17:32Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-06-08T14:59:50Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9714368,
+                        "id": "DC_kwDOFoksYM4AlDrA",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714368"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714401",
+                    "updatedAt": "2024-06-08T15:17:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714401"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Very nice! I _think_ there were plans of including something like this in 'mini.extra'. Probably decided that it is fairly trivial to implement and left to the user.\r\n\r\nLike you said, it was trivial to add the colorscheme picker and I’ve had that in my config for a while now. But it was not so trivial, at least for me, to figure out how to get preview working—especially if the user cancelled the picker. So, this morning, that’s how I landed up with the ability to add pre and post hooks for any picker, which I thought was pretty cool. ",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Very nice! I <em>think</em> there were plans of including something like this in 'mini.extra'. Probably decided that it is fairly trivial to implement and left to the user.</p>\n</blockquote>\n<p dir=\"auto\">Like you said, it was trivial to add the colorscheme picker and I’ve had that in my config for a while now. But it was not so trivial, at least for me, to figure out how to get preview working—especially if the user cancelled the picker. So, this morning, that’s how I landed up with the ability to add pre and post hooks for any picker, which I thought was pretty cool.</p>",
+                    "bodyText": "Very nice! I think there were plans of including something like this in 'mini.extra'. Probably decided that it is fairly trivial to implement and left to the user.\n\nLike you said, it was trivial to add the colorscheme picker and I’ve had that in my config for a while now. But it was not so trivial, at least for me, to figure out how to get preview working—especially if the user cancelled the picker. So, this morning, that’s how I landed up with the ability to add pre and post hooks for any picker, which I thought was pretty cool.",
+                    "createdAt": "2024-06-08T15:12:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9714489,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "id": "DC_kwDOFoksYM4AlDs5",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-06-08T15:28:10Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-06-08T15:12:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9714368,
+                        "id": "DC_kwDOFoksYM4AlDrA",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714368"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714489",
+                    "updatedAt": "2024-06-08T15:28:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714489"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I don’t explicitly run the colorscheme command in the choose function because it would revert to the original colorscheme that was saved in the pre hook upon exit. The choose function simply sets the name of the selected item and the post hook is where the colorscheme command actually runs. This is how I’m able to revert to the user’s original scheme if they cancel.\r\n\r\nYeah, my bad. Didn't pay close attention to the content of the hooks. Overall makes sense.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I don’t explicitly run the colorscheme command in the choose function because it would revert to the original colorscheme that was saved in the pre hook upon exit. The choose function simply sets the name of the selected item and the post hook is where the colorscheme command actually runs. This is how I’m able to revert to the user’s original scheme if they cancel.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, my bad. Didn't pay close attention to the content of the hooks. Overall makes sense.</p>",
+                    "bodyText": "I don’t explicitly run the colorscheme command in the choose function because it would revert to the original colorscheme that was saved in the pre hook upon exit. The choose function simply sets the name of the selected item and the post hook is where the colorscheme command actually runs. This is how I’m able to revert to the user’s original scheme if they cancel.\n\nYeah, my bad. Didn't pay close attention to the content of the hooks. Overall makes sense.",
+                    "createdAt": "2024-06-08T16:15:31Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9714943,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AlDz_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-06-08T16:15:31Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9714368,
+                        "id": "DC_kwDOFoksYM4AlDrA",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714368"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714943",
+                    "updatedAt": "2024-06-08T16:15:32Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714943"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714368",
+            "updatedAt": "2024-06-08T14:56:47Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9714368"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Nice! I [also](https://github.com/abeldekat/nvim_pde/blob/2de962f5c15f3c53da3b4711de01b3a86c79ddd0/lua/ak/config/editor/mini_pick.lua#L165) use this idea. I did have to set the colorscheme like so:\r\n\r\n```lua\r\n  local on_stop = function()\r\n    vim.schedule(function() -- must use schedule, otherwise eyeliner stops displaying\r\n      vim.cmd.colorscheme(selected_colorscheme)\r\n    end)\r\n  end\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Nice! I <a href=\"https://github.com/abeldekat/nvim_pde/blob/2de962f5c15f3c53da3b4711de01b3a86c79ddd0/lua/ak/config/editor/mini_pick.lua#L165\">also</a> use this idea. I did have to set the colorscheme like so:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local on_stop = function()\n    vim.schedule(function() -- must use schedule, otherwise eyeliner stops displaying\n      vim.cmd.colorscheme(selected_colorscheme)\n    end)\n  end\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-en\">on_stop</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> must use schedule, otherwise eyeliner stops displaying</span>\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">colorscheme</span>(<span class=\"pl-smi\">selected_colorscheme</span>)\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "Nice! I also use this idea. I did have to set the colorscheme like so:\n  local on_stop = function()\n    vim.schedule(function() -- must use schedule, otherwise eyeliner stops displaying\n      vim.cmd.colorscheme(selected_colorscheme)\n    end)\n  end",
+            "createdAt": "2024-06-24T18:26:01Z",
+            "createdViaEmail": false,
+            "databaseId": 9863600,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AloGw",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-06-24T18:26:01Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-9863600",
+            "updatedAt": "2024-06-24T18:26:02Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-9863600"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/57909991?v=4",
+                "login": "swahpy",
+                "resourcePath": "/swahpy",
+                "url": "https://github.com/swahpy"
+            },
+            "authorAssociation": "NONE",
+            "body": "it would be great if this could get integrated into `mini.extra`. +1",
+            "bodyHTML": "<p dir=\"auto\">it would be great if this could get integrated into <code class=\"notranslate\">mini.extra</code>. +1</p>",
+            "bodyText": "it would be great if this could get integrated into mini.extra. +1",
+            "createdAt": "2025-02-18T05:48:06Z",
+            "createdViaEmail": false,
+            "databaseId": 12232289,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AuqZh",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-02-18T05:48:06Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 7,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yeah, I also had similar thoughts. Maybe :) ",
+                    "bodyHTML": "<p dir=\"auto\">Yeah, I also had similar thoughts. Maybe :)</p>",
+                    "bodyText": "Yeah, I also had similar thoughts. Maybe :)",
+                    "createdAt": "2025-02-18T08:18:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12233594,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Auqt6",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T08:18:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12233594",
+                    "updatedAt": "2025-02-18T08:18:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12233594"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@echasnovski, would it be okay if I make a PR for *Colorscheme* and *Autocommands*?",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>, would it be okay if I make a PR for <em>Colorscheme</em> and <em>Autocommands</em>?</p>",
+                    "bodyText": "@echasnovski, would it be okay if I make a PR for Colorscheme and Autocommands?",
+                    "createdAt": "2025-02-18T18:29:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12240629,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ausb1",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T18:29:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12240629",
+                    "updatedAt": "2025-02-18T18:29:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12240629"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I'd ask you to at least postpone it. I am not yet entirely sure if built-in colorscheme picker is a good idea long-term (it might be at least a good use case for a custom example) and the implementation details.\r\n\r\nThe picker for autocommands is even less urgent as I mostly don't see a valid use case for it. What would you expect it to do?",
+                    "bodyHTML": "<p dir=\"auto\">I'd ask you to at least postpone it. I am not yet entirely sure if built-in colorscheme picker is a good idea long-term (it might be at least a good use case for a custom example) and the implementation details.</p>\n<p dir=\"auto\">The picker for autocommands is even less urgent as I mostly don't see a valid use case for it. What would you expect it to do?</p>",
+                    "bodyText": "I'd ask you to at least postpone it. I am not yet entirely sure if built-in colorscheme picker is a good idea long-term (it might be at least a good use case for a custom example) and the implementation details.\nThe picker for autocommands is even less urgent as I mostly don't see a valid use case for it. What would you expect it to do?",
+                    "createdAt": "2025-02-18T18:54:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12240909,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AusgN",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T18:54:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12240909",
+                    "updatedAt": "2025-02-18T18:54:44Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12240909"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> The picker for autocommands is even less urgent as I mostly don't see a valid use case for it. What would you expect it to do?\r\n\r\nThe purpose of the autocommands picker is to provide a way to see which autocommands are currently active and what they are doing. For example, running it would display something like:  \r\n\r\n```\r\nCursorMoved          ▏MiniIndentscope             ▏*                         ▏Auto draw indentscope lazily\r\nCursorMoved          ▏MiniCursorword              ▏*                         ▏Auto highlight cursorword\r\nCursorMoved          ▏matchparen                  ▏*                         ▏call s:Highlight_Matching_Pair()\r\nCompleteChanged      ▏IndentBlankline             ▏*                         ▏<lua function>\r\nColorScheme          ▏MiniStatusline              ▏*                         ▏Ensure colors\r\n...\r\n```\r\n\r\nThis would help users quickly inspect what autocommands are currently being used, which plugin registered them, and their corresponding actions. It can be useful for debugging and understanding how different plugins interact with events.  \r\n\r\n@echasnovski Would this be a valid use case for you?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">The picker for autocommands is even less urgent as I mostly don't see a valid use case for it. What would you expect it to do?</p>\n</blockquote>\n<p dir=\"auto\">The purpose of the autocommands picker is to provide a way to see which autocommands are currently active and what they are doing. For example, running it would display something like:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"CursorMoved          ▏MiniIndentscope             ▏*                         ▏Auto draw indentscope lazily\nCursorMoved          ▏MiniCursorword              ▏*                         ▏Auto highlight cursorword\nCursorMoved          ▏matchparen                  ▏*                         ▏call s:Highlight_Matching_Pair()\nCompleteChanged      ▏IndentBlankline             ▏*                         ▏&lt;lua function&gt;\nColorScheme          ▏MiniStatusline              ▏*                         ▏Ensure colors\n...\"><pre class=\"notranslate\"><code class=\"notranslate\">CursorMoved          ▏MiniIndentscope             ▏*                         ▏Auto draw indentscope lazily\nCursorMoved          ▏MiniCursorword              ▏*                         ▏Auto highlight cursorword\nCursorMoved          ▏matchparen                  ▏*                         ▏call s:Highlight_Matching_Pair()\nCompleteChanged      ▏IndentBlankline             ▏*                         ▏&lt;lua function&gt;\nColorScheme          ▏MiniStatusline              ▏*                         ▏Ensure colors\n...\n</code></pre></div>\n<p dir=\"auto\">This would help users quickly inspect what autocommands are currently being used, which plugin registered them, and their corresponding actions. It can be useful for debugging and understanding how different plugins interact with events.</p>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Would this be a valid use case for you?</p>",
+                    "bodyText": "The picker for autocommands is even less urgent as I mostly don't see a valid use case for it. What would you expect it to do?\n\nThe purpose of the autocommands picker is to provide a way to see which autocommands are currently active and what they are doing. For example, running it would display something like:\nCursorMoved          ▏MiniIndentscope             ▏*                         ▏Auto draw indentscope lazily\nCursorMoved          ▏MiniCursorword              ▏*                         ▏Auto highlight cursorword\nCursorMoved          ▏matchparen                  ▏*                         ▏call s:Highlight_Matching_Pair()\nCompleteChanged      ▏IndentBlankline             ▏*                         ▏<lua function>\nColorScheme          ▏MiniStatusline              ▏*                         ▏Ensure colors\n...\n\nThis would help users quickly inspect what autocommands are currently being used, which plugin registered them, and their corresponding actions. It can be useful for debugging and understanding how different plugins interact with events.\n@echasnovski Would this be a valid use case for you?",
+                    "createdAt": "2025-02-18T19:35:25Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12241303,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AusmX",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T19:35:25Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241303",
+                    "updatedAt": "2025-02-18T19:35:26Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241303"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "For just examining it can be done with `:au` command (see `:h autocmd-list`). So, something like `:au * <buffer>` will show all autocommands for the current buffer, etc. Yes, it is not as interactive as in picker, but usually gets the job done.\r\n\r\nSome of my issues with the dedicated picker for autocommands are:\r\n- There is no suitable \"choose\" action. The main design of 'mini.pick' is for the picker to be used to *pick* something. The absence of \"choose\" action somehwat contradicts it.\r\n- I really think that this is a rather niche use case. Not many people want/need to explore currently active autocommands. And for those who do want/need, exploring the `:au` command is even beneficial (at least in long term).",
+                    "bodyHTML": "<p dir=\"auto\">For just examining it can be done with <code class=\"notranslate\">:au</code> command (see <code class=\"notranslate\">:h autocmd-list</code>). So, something like <code class=\"notranslate\">:au * &lt;buffer&gt;</code> will show all autocommands for the current buffer, etc. Yes, it is not as interactive as in picker, but usually gets the job done.</p>\n<p dir=\"auto\">Some of my issues with the dedicated picker for autocommands are:</p>\n<ul dir=\"auto\">\n<li>There is no suitable \"choose\" action. The main design of 'mini.pick' is for the picker to be used to <em>pick</em> something. The absence of \"choose\" action somehwat contradicts it.</li>\n<li>I really think that this is a rather niche use case. Not many people want/need to explore currently active autocommands. And for those who do want/need, exploring the <code class=\"notranslate\">:au</code> command is even beneficial (at least in long term).</li>\n</ul>",
+                    "bodyText": "For just examining it can be done with :au command (see :h autocmd-list). So, something like :au * <buffer> will show all autocommands for the current buffer, etc. Yes, it is not as interactive as in picker, but usually gets the job done.\nSome of my issues with the dedicated picker for autocommands are:\n\nThere is no suitable \"choose\" action. The main design of 'mini.pick' is for the picker to be used to pick something. The absence of \"choose\" action somehwat contradicts it.\nI really think that this is a rather niche use case. Not many people want/need to explore currently active autocommands. And for those who do want/need, exploring the :au command is even beneficial (at least in long term).",
+                    "createdAt": "2025-02-18T19:52:18Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12241483,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AuspL",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T19:52:18Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241483",
+                    "updatedAt": "2025-02-18T19:52:19Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241483"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I see your point. While `:au` does provide the information, a picker could improve usability by making it easier to filter and explore autocommands interactively. For example, users could quickly search by event, source, or action instead of scrolling through a long list.  \r\n\r\nAdditionally, selecting an autocommand in the picker could open the file where it was defined (if available). This would make it more useful for debugging and understanding how autocommands are set up.  \r\n\r\nI understand if you think it's unnecessary, but for me, it's more convenient than running `:au`.",
+                    "bodyHTML": "<p dir=\"auto\">I see your point. While <code class=\"notranslate\">:au</code> does provide the information, a picker could improve usability by making it easier to filter and explore autocommands interactively. For example, users could quickly search by event, source, or action instead of scrolling through a long list.</p>\n<p dir=\"auto\">Additionally, selecting an autocommand in the picker could open the file where it was defined (if available). This would make it more useful for debugging and understanding how autocommands are set up.</p>\n<p dir=\"auto\">I understand if you think it's unnecessary, but for me, it's more convenient than running <code class=\"notranslate\">:au</code>.</p>",
+                    "bodyText": "I see your point. While :au does provide the information, a picker could improve usability by making it easier to filter and explore autocommands interactively. For example, users could quickly search by event, source, or action instead of scrolling through a long list.\nAdditionally, selecting an autocommand in the picker could open the file where it was defined (if available). This would make it more useful for debugging and understanding how autocommands are set up.\nI understand if you think it's unnecessary, but for me, it's more convenient than running :au.",
+                    "createdAt": "2025-02-18T20:22:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12241836,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ausus",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T20:22:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241836",
+                    "updatedAt": "2025-02-18T20:22:08Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241836"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Additionally, selecting an autocommand in the picker could open the file where it was defined (if available). This would make it more useful for debugging and understanding how autocommands are set up.\r\n\r\nYeah, that would be useful. Unfortunately, it will only be possible for autocommands with function callback (and not Vimscript command) and not in 100% cases. And even getting to that point is not really pretty.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Additionally, selecting an autocommand in the picker could open the file where it was defined (if available). This would make it more useful for debugging and understanding how autocommands are set up.</p>\n</blockquote>\n<p dir=\"auto\">Yeah, that would be useful. Unfortunately, it will only be possible for autocommands with function callback (and not Vimscript command) and not in 100% cases. And even getting to that point is not really pretty.</p>",
+                    "bodyText": "Additionally, selecting an autocommand in the picker could open the file where it was defined (if available). This would make it more useful for debugging and understanding how autocommands are set up.\n\nYeah, that would be useful. Unfortunately, it will only be possible for autocommands with function callback (and not Vimscript command) and not in 100% cases. And even getting to that point is not really pretty.",
+                    "createdAt": "2025-02-18T20:36:18Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12241962,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Auswq",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-02-18T20:36:18Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12232289,
+                        "id": "DC_kwDOFoksYM4AuqZh",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241962",
+                    "updatedAt": "2025-02-18T20:36:18Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12241962"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289",
+            "updatedAt": "2025-02-18T05:48:07Z",
+            "upvoteCount": 4,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12232289"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "After several times going back and fourth, I think having relatively concise `colorschemes` picker in 'mini.extra' should be worth it.\r\n\r\n@pkazmier, as an original author of this, are you interested in PR? Some notes in advance:\r\n- No need for a general `hooks` approach. A single `MiniPickStop` autocommand with `once = true` that applies `selected_colorscheme` should be enough here (should also take care to not run `:colorscheme` if it not needed, i.e. target color scheme is already applied).\r\n- It would be good to incorporate ['mini.colors' capabilities](https://github.com/echasnovski/mini.nvim/blob/0429e9ee9d35faef51971abdbb1b26d2540b5a5f/doc/mini-colors.txt#L704) (if it is present) for picker to be able to restore initial state even if there is no `vim.g.colors_name` defined.\r\n- It needs tests for both common and various tricky cases. Like:\r\n    - Navigating up/down with enabled preview should show different previews.\r\n    - Cancelling without choosing should restore original color scheme.\r\n    - Choosing marked should choose first marked item (which is default in 'mini.pick', but should still be tested).",
+            "bodyHTML": "<p dir=\"auto\">After several times going back and fourth, I think having relatively concise <code class=\"notranslate\">colorschemes</code> picker in 'mini.extra' should be worth it.</p>\n<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a>, as an original author of this, are you interested in PR? Some notes in advance:</p>\n<ul dir=\"auto\">\n<li>No need for a general <code class=\"notranslate\">hooks</code> approach. A single <code class=\"notranslate\">MiniPickStop</code> autocommand with <code class=\"notranslate\">once = true</code> that applies <code class=\"notranslate\">selected_colorscheme</code> should be enough here (should also take care to not run <code class=\"notranslate\">:colorscheme</code> if it not needed, i.e. target color scheme is already applied).</li>\n<li>It would be good to incorporate <a href=\"https://github.com/echasnovski/mini.nvim/blob/0429e9ee9d35faef51971abdbb1b26d2540b5a5f/doc/mini-colors.txt#L704\">'mini.colors' capabilities</a> (if it is present) for picker to be able to restore initial state even if there is no <code class=\"notranslate\">vim.g.colors_name</code> defined.</li>\n<li>It needs tests for both common and various tricky cases. Like:\n<ul dir=\"auto\">\n<li>Navigating up/down with enabled preview should show different previews.</li>\n<li>Cancelling without choosing should restore original color scheme.</li>\n<li>Choosing marked should choose first marked item (which is default in 'mini.pick', but should still be tested).</li>\n</ul>\n</li>\n</ul>",
+            "bodyText": "After several times going back and fourth, I think having relatively concise colorschemes picker in 'mini.extra' should be worth it.\n@pkazmier, as an original author of this, are you interested in PR? Some notes in advance:\n\nNo need for a general hooks approach. A single MiniPickStop autocommand with once = true that applies selected_colorscheme should be enough here (should also take care to not run :colorscheme if it not needed, i.e. target color scheme is already applied).\nIt would be good to incorporate 'mini.colors' capabilities (if it is present) for picker to be able to restore initial state even if there is no vim.g.colors_name defined.\nIt needs tests for both common and various tricky cases. Like:\n\nNavigating up/down with enabled preview should show different previews.\nCancelling without choosing should restore original color scheme.\nChoosing marked should choose first marked item (which is default in 'mini.pick', but should still be tested).",
+            "createdAt": "2025-03-20T17:37:20Z",
+            "createdViaEmail": false,
+            "databaseId": 12567427,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4Av8OD",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-03-20T17:37:39Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-03-20T17:37:20Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Unfortunately, I don’t have time at the moment due to a lot of travel as part of my day job. Thank you for asking me!",
+                    "bodyHTML": "<p dir=\"auto\">Unfortunately, I don’t have time at the moment due to a lot of travel as part of my day job. Thank you for asking me!</p>",
+                    "bodyText": "Unfortunately, I don’t have time at the moment due to a lot of travel as part of my day job. Thank you for asking me!",
+                    "createdAt": "2025-03-20T23:49:57Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12570903,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Av9EX",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-20T23:49:57Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12567427,
+                        "id": "DC_kwDOFoksYM4Av8OD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12567427"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570903",
+                    "updatedAt": "2025-03-20T23:49:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570903"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "That's a shame. I didn't mean to do it right away, though :) A week or two is a reasonable time to wait here. But judging by your GitHub activity it might still be too soon.",
+                    "bodyHTML": "<p dir=\"auto\">That's a shame. I didn't mean to do it right away, though :) A week or two is a reasonable time to wait here. But judging by your GitHub activity it might still be too soon.</p>",
+                    "bodyText": "That's a shame. I didn't mean to do it right away, though :) A week or two is a reasonable time to wait here. But judging by your GitHub activity it might still be too soon.",
+                    "createdAt": "2025-03-21T08:53:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12574438,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Av97m",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-21T08:53:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12567427,
+                        "id": "DC_kwDOFoksYM4Av8OD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12567427"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12574438",
+                    "updatedAt": "2025-03-21T08:53:09Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12574438"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "If you haven’t done this and are not in a rush I’d be happy to give it a try. I’ve never done any testing in neovim so it’ll be slow going (limited time) as I need to learn how this even works.  I’ve always wondered how your test framework works so it would be fun to learn.",
+                    "bodyHTML": "<p dir=\"auto\">If you haven’t done this and are not in a rush I’d be happy to give it a try. I’ve never done any testing in neovim so it’ll be slow going (limited time) as I need to learn how this even works.  I’ve always wondered how your test framework works so it would be fun to learn.</p>",
+                    "bodyText": "If you haven’t done this and are not in a rush I’d be happy to give it a try. I’ve never done any testing in neovim so it’ll be slow going (limited time) as I need to learn how this even works.  I’ve always wondered how your test framework works so it would be fun to learn.",
+                    "createdAt": "2025-05-06T23:17:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13055936,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxzfA",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-06T23:17:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12567427,
+                        "id": "DC_kwDOFoksYM4Av8OD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12567427"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-13055936",
+                    "updatedAt": "2025-05-06T23:17:21Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-13055936"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> If you haven’t done this and are not in a rush I’d be happy to give it a try.\r\n\r\nYes to both. There is currently a \"feature freeze\" until about 15-20 May when I plan to release 0.16.0. I had plans to add this as one of the first new features after that. So I'd be really glad if you'd give it a try.\r\n\r\n> I’ve never done any testing in neovim so it’ll be slow going (limited time) as I need to learn how this even works. I’ve always wondered how your test framework works so it would be fun to learn.\r\n\r\nThere is ['TESTING.md'](https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md) with a relatively comprehensive guide. But I'd guess that following [tests for `pickers.hl_groups()`](https://github.com/echasnovski/mini.nvim/blob/6105b69d79fef0afed5ed576081b1997ef2b4be1/tests/test_extra.lua#L2163) should be enough. There is also ['CONTRIBUTING.md'](https://github.com/echasnovski/mini.nvim/blob/main/CONTRIBUTING.md) with relevant sections.\r\n\r\nIf you have any questions before having working code (without tests) - feel free to ask here. If after having working code - create a PR and we can discuss there.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">If you haven’t done this and are not in a rush I’d be happy to give it a try.</p>\n</blockquote>\n<p dir=\"auto\">Yes to both. There is currently a \"feature freeze\" until about 15-20 May when I plan to release 0.16.0. I had plans to add this as one of the first new features after that. So I'd be really glad if you'd give it a try.</p>\n<blockquote>\n<p dir=\"auto\">I’ve never done any testing in neovim so it’ll be slow going (limited time) as I need to learn how this even works. I’ve always wondered how your test framework works so it would be fun to learn.</p>\n</blockquote>\n<p dir=\"auto\">There is <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/TESTING.md\">'TESTING.md'</a> with a relatively comprehensive guide. But I'd guess that following <a href=\"https://github.com/echasnovski/mini.nvim/blob/6105b69d79fef0afed5ed576081b1997ef2b4be1/tests/test_extra.lua#L2163\">tests for <code class=\"notranslate\">pickers.hl_groups()</code></a> should be enough. There is also <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CONTRIBUTING.md\">'CONTRIBUTING.md'</a> with relevant sections.</p>\n<p dir=\"auto\">If you have any questions before having working code (without tests) - feel free to ask here. If after having working code - create a PR and we can discuss there.</p>",
+                    "bodyText": "If you haven’t done this and are not in a rush I’d be happy to give it a try.\n\nYes to both. There is currently a \"feature freeze\" until about 15-20 May when I plan to release 0.16.0. I had plans to add this as one of the first new features after that. So I'd be really glad if you'd give it a try.\n\nI’ve never done any testing in neovim so it’ll be slow going (limited time) as I need to learn how this even works. I’ve always wondered how your test framework works so it would be fun to learn.\n\nThere is 'TESTING.md' with a relatively comprehensive guide. But I'd guess that following tests for pickers.hl_groups() should be enough. There is also 'CONTRIBUTING.md' with relevant sections.\nIf you have any questions before having working code (without tests) - feel free to ask here. If after having working code - create a PR and we can discuss there.",
+                    "createdAt": "2025-05-07T09:54:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13061368,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ax0z4",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-07T09:54:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12567427,
+                        "id": "DC_kwDOFoksYM4Av8OD",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12567427"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-13061368",
+                    "updatedAt": "2025-05-07T09:54:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-13061368"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12567427",
+            "updatedAt": "2025-03-20T17:37:39Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12567427"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                "login": "krovuxdev",
+                "resourcePath": "/krovuxdev",
+                "url": "https://github.com/krovuxdev"
+            },
+            "authorAssociation": "NONE",
+            "body": "@echasnovski   opinions? \r\nI like to see the color syntax working in the preview.\r\nIt also works when exiting or pressing escape restores the original color scheme without using`hooks` or `MiniPickStop`.\r\n\r\nhttps://github.com/user-attachments/assets/0366eaee-de5a-4efe-9ab6-39b1d9afe6dd\r\n\r\n",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>   opinions?<br>\nI like to see the color syntax working in the preview.<br>\nIt also works when exiting or pressing escape restores the original color scheme without using<code class=\"notranslate\">hooks</code> or <code class=\"notranslate\">MiniPickStop</code>.</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">colorscheme.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/62192487/425210844-0366eaee-de5a-4efe-9ab6-39b1d9afe6dd.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMTcsIm5iZiI6MTc5MzU1MjcxNywicGF0aCI6Ii82MjE5MjQ4Ny80MjUyMTA4NDQtMDM2NmVhZWUtZGU1YS00ZWZlLTlhYjYtMzliMWQ5YWZlNmRkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDUxN1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTNiZmVlOGZhZGI1MWNiYWM2MDhlY2E0OGRiZGUyNTZjOWVlMzgyOWZiNDc4YmQ0YThkZTI4M2E4ZDQ1YTBiOWEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.phDXAMeYcWogx1iDsPAZ0FsEm2e9oILEpuWN39ZBozg\" data-canonical-src=\"https://private-user-images.githubusercontent.com/62192487/425210844-0366eaee-de5a-4efe-9ab6-39b1d9afe6dd.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMwMTcsIm5iZiI6MTc5MzU1MjcxNywicGF0aCI6Ii82MjE5MjQ4Ny80MjUyMTA4NDQtMDM2NmVhZWUtZGU1YS00ZWZlLTlhYjYtMzliMWQ5YWZlNmRkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDUxN1omWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTNiZmVlOGZhZGI1MWNiYWM2MDhlY2E0OGRiZGUyNTZjOWVlMzgyOWZiNDc4YmQ0YThkZTI4M2E4ZDQ1YTBiOWEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.phDXAMeYcWogx1iDsPAZ0FsEm2e9oILEpuWN39ZBozg\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+            "bodyText": "@echasnovski   opinions?\nI like to see the color syntax working in the preview.\nIt also works when exiting or pressing escape restores the original color scheme without usinghooks or MiniPickStop.\n\n  \n    \n    \n\n    colorscheme.mp4",
+            "createdAt": "2025-03-20T23:20:08Z",
+            "createdViaEmail": false,
+            "databaseId": 12570711,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Av9BX",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-03-20T23:20:08Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 7,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "If you like it, I'll open a PR in case you're interested :).",
+                    "bodyHTML": "<p dir=\"auto\">If you like it, I'll open a PR in case you're interested :).</p>",
+                    "bodyText": "If you like it, I'll open a PR in case you're interested :).",
+                    "createdAt": "2025-03-21T00:11:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12571020,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Av9GM",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-21T00:11:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12571020",
+                    "updatedAt": "2025-03-21T00:11:41Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12571020"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks for the suggestion!\r\n\r\nI'll wait about a week for possible @pkazmier availability and then will probably do it myself. Mostly because of the idea you gave about a more informative preview window content. I think it is better to have something like selected items of `hl_groups` with their highlights applied directly there. For a regular syntax preview there can be a regular split beforehand.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion!</p>\n<p dir=\"auto\">I'll wait about a week for possible <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a> availability and then will probably do it myself. Mostly because of the idea you gave about a more informative preview window content. I think it is better to have something like selected items of <code class=\"notranslate\">hl_groups</code> with their highlights applied directly there. For a regular syntax preview there can be a regular split beforehand.</p>",
+                    "bodyText": "Thanks for the suggestion!\nI'll wait about a week for possible @pkazmier availability and then will probably do it myself. Mostly because of the idea you gave about a more informative preview window content. I think it is better to have something like selected items of hl_groups with their highlights applied directly there. For a regular syntax preview there can be a regular split beforehand.",
+                    "createdAt": "2025-03-21T08:59:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12574514,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Av98y",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-21T08:59:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12574514",
+                    "updatedAt": "2025-03-21T08:59:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12574514"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": " Sounds great! Displaying `hl_groups` directly in the preview window seems like a solid improvement. I'll try implementing a **split**, where one side shows the list of `hl_groups` and the other displays the content with real-time highlighting.  \r\n  \r\n Let me know if you need any input or testing. Thanks for considering my suggestion!",
+                    "bodyHTML": "<p dir=\"auto\">Sounds great! Displaying <code class=\"notranslate\">hl_groups</code> directly in the preview window seems like a solid improvement. I'll try implementing a <strong>split</strong>, where one side shows the list of <code class=\"notranslate\">hl_groups</code> and the other displays the content with real-time highlighting.</p>\n<p dir=\"auto\">Let me know if you need any input or testing. Thanks for considering my suggestion!</p>",
+                    "bodyText": "Sounds great! Displaying hl_groups directly in the preview window seems like a solid improvement. I'll try implementing a split, where one side shows the list of hl_groups and the other displays the content with real-time highlighting.\nLet me know if you need any input or testing. Thanks for considering my suggestion!",
+                    "createdAt": "2025-03-21T20:20:02Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12581701,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Av_tF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-21T20:20:02Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12581701",
+                    "updatedAt": "2025-03-21T20:20:04Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12581701"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Just to be clear, a comment about split was about the user manually opening a file in a vertical/horizontal split with the file which syntax they want to preview. Showing picker should not create any splits.",
+                    "bodyHTML": "<p dir=\"auto\">Just to be clear, a comment about split was about the user manually opening a file in a vertical/horizontal split with the file which syntax they want to preview. Showing picker should not create any splits.</p>",
+                    "bodyText": "Just to be clear, a comment about split was about the user manually opening a file in a vertical/horizontal split with the file which syntax they want to preview. Showing picker should not create any splits.",
+                    "createdAt": "2025-03-22T09:25:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12585001,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AwAgp",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-22T09:25:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12585001",
+                    "updatedAt": "2025-03-22T09:25:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12585001"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                        "login": "pkazmier",
+                        "resourcePath": "/pkazmier",
+                        "url": "https://github.com/pkazmier"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Thanks for the suggestion!\r\n> \r\n> I'll wait about a week for possible @pkazmier availability and then will probably do it myself. Mostly because of the idea you gave about a more informative preview window content. I think it is better to have something like selected items of `hl_groups` with their highlights applied directly there. For a regular syntax preview there can be a regular split beforehand.\r\n\r\nNo need to wait for me. I’ve got a queue of coding for work that trumps my personal time for several upcoming weekends. Thanks",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Thanks for the suggestion!</p>\n<p dir=\"auto\">I'll wait about a week for possible <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a> availability and then will probably do it myself. Mostly because of the idea you gave about a more informative preview window content. I think it is better to have something like selected items of <code class=\"notranslate\">hl_groups</code> with their highlights applied directly there. For a regular syntax preview there can be a regular split beforehand.</p>\n</blockquote>\n<p dir=\"auto\">No need to wait for me. I’ve got a queue of coding for work that trumps my personal time for several upcoming weekends. Thanks</p>",
+                    "bodyText": "Thanks for the suggestion!\nI'll wait about a week for possible @pkazmier availability and then will probably do it myself. Mostly because of the idea you gave about a more informative preview window content. I think it is better to have something like selected items of hl_groups with their highlights applied directly there. For a regular syntax preview there can be a regular split beforehand.\n\nNo need to wait for me. I’ve got a queue of coding for work that trumps my personal time for several upcoming weekends. Thanks",
+                    "createdAt": "2025-03-22T14:31:20Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12586586,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AwA5a",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-22T14:31:20Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 3
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12586586",
+                    "updatedAt": "2025-03-22T14:31:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12586586"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58621726?u=b3fd71c811256058861d9e9e4760c4bd9b1161eb&v=4",
+                        "login": "kurumeii",
+                        "resourcePath": "/kurumeii",
+                        "url": "https://github.com/kurumeii"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@krovuxdev Could you share the code for this, if that is okay?",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/krovuxdev/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/krovuxdev\">@krovuxdev</a> Could you share the code for this, if that is okay?</p>",
+                    "bodyText": "@krovuxdev Could you share the code for this, if that is okay?",
+                    "createdAt": "2025-05-06T18:32:01Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13053724,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Axy8c",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-06T18:32:01Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-13053724",
+                    "updatedAt": "2025-05-06T18:32:03Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-13053724"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "@kurumeii Sure! It's in my repo [here](https://github.com/krovuxdev/NeoClean/blob/15f5077b1a2103edc2345e9e959a4f112d62a1eb/lua/config/registry.lua#L63-L135).",
+                    "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/kurumeii/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/kurumeii\">@kurumeii</a> Sure! It's in my repo <a href=\"https://github.com/krovuxdev/NeoClean/blob/15f5077b1a2103edc2345e9e959a4f112d62a1eb/lua/config/registry.lua#L63-L135\">here</a>.</p>",
+                    "bodyText": "@kurumeii Sure! It's in my repo here.",
+                    "createdAt": "2025-05-06T19:23:41Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13054148,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxzDE",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-05-06T19:23:41Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12570711,
+                        "id": "DC_kwDOFoksYM4Av9BX",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-13054148",
+                    "updatedAt": "2025-05-06T19:23:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-13054148"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711",
+            "updatedAt": "2025-03-20T23:20:09Z",
+            "upvoteCount": 0,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-12570711"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The colors scheme picker is now [part of 'mini.extra'](https://github.com/echasnovski/mini.nvim/blob/6c6ac83b59e8918e42a3d395282b2d555c288a92/doc/mini-extra.txt#L252). Thanks @pkazmier for initial implementation in #1789!",
+            "bodyHTML": "<p dir=\"auto\">The colors scheme picker is now <a href=\"https://github.com/echasnovski/mini.nvim/blob/6c6ac83b59e8918e42a3d395282b2d555c288a92/doc/mini-extra.txt#L252\">part of 'mini.extra'</a>. Thanks <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/pkazmier/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/pkazmier\">@pkazmier</a> for initial implementation in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3046000060\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1789\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1789/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/1789\">#1789</a>!</p>",
+            "bodyText": "The colors scheme picker is now part of 'mini.extra'. Thanks @pkazmier for initial implementation in #1789!",
+            "createdAt": "2025-05-24T13:28:09Z",
+            "createdViaEmail": false,
+            "databaseId": 13256689,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Aykfx",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-24T13:28:09Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/951#discussioncomment-13256689",
+            "updatedAt": "2025-05-24T13:28:10Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/951#discussioncomment-13256689"
+        }
+    ],
+    "createdAt": "2024-06-08T14:27:17Z",
+    "createdViaEmail": false,
+    "databaseId": 6794995,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+        "login": "pkazmier",
+        "resourcePath": "/pkazmier",
+        "url": "https://github.com/pkazmier"
+    },
+    "id": "D_kwDOFoksYM4AZ67z",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-06-08T14:40:46Z",
+    "locked": false,
+    "number": 951,
+    "poll": null,
+    "publishedAt": "2024-06-08T14:27:17Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 4
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/951",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pick] Colorscheme picker with preview",
+    "updatedAt": "2025-11-28T11:33:11Z",
+    "upvoteCount": 4,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/951"
+}

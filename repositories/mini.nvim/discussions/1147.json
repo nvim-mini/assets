@@ -1,0 +1,269 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+        "login": "felpafel",
+        "resourcePath": "/felpafel",
+        "url": "https://github.com/felpafel"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hello, I have a suggestion to make regarding **MiniOperators**.\r\n\r\n### Introduction\r\n\r\nMy most used feature in the plugin is by far the evaluation motion (`g=`), specially when I'm debugging. Instead of reaching to `python` or even `calc.exe`, I can dump any math expression with hex and binary numbers and the plugin can give me back the answer. However, when I'm subtracting memory addresses, the decimal representation, given after evaluation, has little to no meaning, forcing me to use another tool to do the decimal to hex conversion.\r\n\r\n### Solution\r\n\r\nCreate the following motions: (I used my own motion implementation to make the demo video)\r\n\r\n- `gh` motion, like go hex, e.g. `255 -> 0xff`;\r\n- `gH` motion, like go HEX, e.g. `255 -> 0XFF`;\r\n- `gb` motion, like go bin, e.g. `255 -> 0b11111111`;\r\n\r\nThe intended workflow is to after an evaluation motion the user can do an `ghiw` and have the answer converted to hex. In addition, `0x`/`0X` and `0b`/`0B` are valid number representations in Lua, so the user can do another `g=` motion, if they desire.\r\n\r\n### Implementation\r\n\r\n> I included only the \"parsing\" code, since MiniOperators already has the entire engine for capturing/handling motions.\r\n\r\n#### Hex\r\n\r\nThe hex implementation is just a 1 line code, since `string.format` already has hexadecimal formatting builtin.\r\n\r\n```lua\r\n-- # is used to add the prefix `0x`\r\nstring.format('%#x', n) -- `0xff`\r\nstring.format('%#X', n) -- `0XFF`\r\n```\r\n\r\n> `string.format` does not convert `0` to `'0x0'` but to `'0'`.\r\n\r\n#### Bin\r\n\r\nThe bin implementation requires a function to do the conversion, since there is no builtin method.\r\n\r\n```lua\r\nlocal to_binary = function(n)\r\n  if type(n) ~= 'number' then\r\n    n = tonumber(n)\r\n  end\r\n  if n == 0 then\r\n    return '0b0'\r\n  end\r\n  local binary = ''\r\n  while n > 0 do\r\n    binary = (n % 2) .. binary\r\n    n = bit.rshift(n, 1)\r\n  end\r\n  return '0b' .. binary\r\nend\r\n```\r\n\r\n> This solution assumes that neovim is built with `luajit`, but `bit.rshift(n, 1)` can be changed to `math.floor(n / 2)` if the luajit assumption is bad.\r\n\r\n### Why I think this is a good idea?\r\n\r\nThe hex conversion is trivial and supported by Lua. When working with colors, memory addresses, etc. the hexadecimal representation is the standard way to represent numbers and often they are easier to reason about. And since `g=` force all evaluations to decimal representation, it's good to have a way back to hexadecimal representation.\r\n\r\n#### Demo\r\nhttps://github.com/user-attachments/assets/8e6afce0-15de-45fe-b47a-ce28f0b5a6cd\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\">Hello, I have a suggestion to make regarding <strong>MiniOperators</strong>.</p>\n<h3 dir=\"auto\">Introduction</h3>\n<p dir=\"auto\">My most used feature in the plugin is by far the evaluation motion (<code class=\"notranslate\">g=</code>), specially when I'm debugging. Instead of reaching to <code class=\"notranslate\">python</code> or even <code class=\"notranslate\">calc.exe</code>, I can dump any math expression with hex and binary numbers and the plugin can give me back the answer. However, when I'm subtracting memory addresses, the decimal representation, given after evaluation, has little to no meaning, forcing me to use another tool to do the decimal to hex conversion.</p>\n<h3 dir=\"auto\">Solution</h3>\n<p dir=\"auto\">Create the following motions: (I used my own motion implementation to make the demo video)</p>\n<ul dir=\"auto\">\n<li><code class=\"notranslate\">gh</code> motion, like go hex, e.g. <code class=\"notranslate\">255 -&gt; 0xff</code>;</li>\n<li><code class=\"notranslate\">gH</code> motion, like go HEX, e.g. <code class=\"notranslate\">255 -&gt; 0XFF</code>;</li>\n<li><code class=\"notranslate\">gb</code> motion, like go bin, e.g. <code class=\"notranslate\">255 -&gt; 0b11111111</code>;</li>\n</ul>\n<p dir=\"auto\">The intended workflow is to after an evaluation motion the user can do an <code class=\"notranslate\">ghiw</code> and have the answer converted to hex. In addition, <code class=\"notranslate\">0x</code>/<code class=\"notranslate\">0X</code> and <code class=\"notranslate\">0b</code>/<code class=\"notranslate\">0B</code> are valid number representations in Lua, so the user can do another <code class=\"notranslate\">g=</code> motion, if they desire.</p>\n<h3 dir=\"auto\">Implementation</h3>\n<blockquote>\n<p dir=\"auto\">I included only the \"parsing\" code, since MiniOperators already has the entire engine for capturing/handling motions.</p>\n</blockquote>\n<h4 dir=\"auto\">Hex</h4>\n<p dir=\"auto\">The hex implementation is just a 1 line code, since <code class=\"notranslate\">string.format</code> already has hexadecimal formatting builtin.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- # is used to add the prefix `0x`\nstring.format('%#x', n) -- `0xff`\nstring.format('%#X', n) -- `0XFF`\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> # is used to add the prefix `0x`</span>\n<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%#x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">n</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> `0xff`</span>\n<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%#X<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">n</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> `0XFF`</span></pre></div>\n<blockquote>\n<p dir=\"auto\"><code class=\"notranslate\">string.format</code> does not convert <code class=\"notranslate\">0</code> to <code class=\"notranslate\">'0x0'</code> but to <code class=\"notranslate\">'0'</code>.</p>\n</blockquote>\n<h4 dir=\"auto\">Bin</h4>\n<p dir=\"auto\">The bin implementation requires a function to do the conversion, since there is no builtin method.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local to_binary = function(n)\n  if type(n) ~= 'number' then\n    n = tonumber(n)\n  end\n  if n == 0 then\n    return '0b0'\n  end\n  local binary = ''\n  while n &gt; 0 do\n    binary = (n % 2) .. binary\n    n = bit.rshift(n, 1)\n  end\n  return '0b' .. binary\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">to_binary</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">n</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">n</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>number<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">tonumber</span>(<span class=\"pl-smi\">n</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>0b0<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">binary</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">while</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">do</span>\n    <span class=\"pl-smi\">binary</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">n</span> <span class=\"pl-k\">%</span> <span class=\"pl-c1\">2</span>) <span class=\"pl-k\">..</span> <span class=\"pl-smi\">binary</span>\n    <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bit</span>.<span class=\"pl-c1\">rshift</span>(<span class=\"pl-smi\">n</span>, <span class=\"pl-c1\">1</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>0b<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">binary</span>\n<span class=\"pl-k\">end</span></pre></div>\n<blockquote>\n<p dir=\"auto\">This solution assumes that neovim is built with <code class=\"notranslate\">luajit</code>, but <code class=\"notranslate\">bit.rshift(n, 1)</code> can be changed to <code class=\"notranslate\">math.floor(n / 2)</code> if the luajit assumption is bad.</p>\n</blockquote>\n<h3 dir=\"auto\">Why I think this is a good idea?</h3>\n<p dir=\"auto\">The hex conversion is trivial and supported by Lua. When working with colors, memory addresses, etc. the hexadecimal representation is the standard way to represent numbers and often they are easier to reason about. And since <code class=\"notranslate\">g=</code> force all evaluations to decimal representation, it's good to have a way back to hexadecimal representation.</p>\n<h4 dir=\"auto\">Demo</h4>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">poc.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/21080902/358550003-8e6afce0-15de-45fe-b47a-ce28f0b5a6cd.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzODksIm5iZiI6MTc5MzU1MzA4OSwicGF0aCI6Ii8yMTA4MDkwMi8zNTg1NTAwMDMtOGU2YWZjZTAtMTVkZS00NWZlLWI0N2EtY2UyOGYwYjVhNmNkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTEyOVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTMyODFkYzA1Zjc3Y2M5N2QwZDFhZjY4NzU5MzZhZDk1NjU5MDY4NmRlZWU5Y2FjZDUzNTE3ZGIyOGU3NmFlOTEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.5UUK1xslaedX2REQOLXDu5JC0c8x_ZJRug5t95Ftr-0\" data-canonical-src=\"https://private-user-images.githubusercontent.com/21080902/358550003-8e6afce0-15de-45fe-b47a-ce28f0b5a6cd.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzODksIm5iZiI6MTc5MzU1MzA4OSwicGF0aCI6Ii8yMTA4MDkwMi8zNTg1NTAwMDMtOGU2YWZjZTAtMTVkZS00NWZlLWI0N2EtY2UyOGYwYjVhNmNkLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTEyOVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTMyODFkYzA1Zjc3Y2M5N2QwZDFhZjY4NzU5MzZhZDk1NjU5MDY4NmRlZWU5Y2FjZDUzNTE3ZGIyOGU3NmFlOTEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.5UUK1xslaedX2REQOLXDu5JC0c8x_ZJRug5t95Ftr-0\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+    "bodyText": "Hello, I have a suggestion to make regarding MiniOperators.\nIntroduction\nMy most used feature in the plugin is by far the evaluation motion (g=), specially when I'm debugging. Instead of reaching to python or even calc.exe, I can dump any math expression with hex and binary numbers and the plugin can give me back the answer. However, when I'm subtracting memory addresses, the decimal representation, given after evaluation, has little to no meaning, forcing me to use another tool to do the decimal to hex conversion.\nSolution\nCreate the following motions: (I used my own motion implementation to make the demo video)\n\ngh motion, like go hex, e.g. 255 -> 0xff;\ngH motion, like go HEX, e.g. 255 -> 0XFF;\ngb motion, like go bin, e.g. 255 -> 0b11111111;\n\nThe intended workflow is to after an evaluation motion the user can do an ghiw and have the answer converted to hex. In addition, 0x/0X and 0b/0B are valid number representations in Lua, so the user can do another g= motion, if they desire.\nImplementation\n\nI included only the \"parsing\" code, since MiniOperators already has the entire engine for capturing/handling motions.\n\nHex\nThe hex implementation is just a 1 line code, since string.format already has hexadecimal formatting builtin.\n-- # is used to add the prefix `0x`\nstring.format('%#x', n) -- `0xff`\nstring.format('%#X', n) -- `0XFF`\n\nstring.format does not convert 0 to '0x0' but to '0'.\n\nBin\nThe bin implementation requires a function to do the conversion, since there is no builtin method.\nlocal to_binary = function(n)\n  if type(n) ~= 'number' then\n    n = tonumber(n)\n  end\n  if n == 0 then\n    return '0b0'\n  end\n  local binary = ''\n  while n > 0 do\n    binary = (n % 2) .. binary\n    n = bit.rshift(n, 1)\n  end\n  return '0b' .. binary\nend\n\nThis solution assumes that neovim is built with luajit, but bit.rshift(n, 1) can be changed to math.floor(n / 2) if the luajit assumption is bad.\n\nWhy I think this is a good idea?\nThe hex conversion is trivial and supported by Lua. When working with colors, memory addresses, etc. the hexadecimal representation is the standard way to represent numbers and often they are easier to reason about. And since g= force all evaluations to decimal representation, it's good to have a way back to hexadecimal representation.\nDemo\n\n  \n    \n    \n\n    poc.mp4",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-09-09T08:31:36Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks, this looks interesting!\r\n\r\nInstead of 'mini.operators', I think this will have a better fit in the planned 'mini.cycle' (or possibly 'mini.convert') module dedicated to \"cycling through alternatives with pre-defined rules\". This particular case can be framed as \"cycle through different number representations\".\r\n\r\nYour examples will be handy, thanks!",
+            "bodyHTML": "<p dir=\"auto\">Thanks, this looks interesting!</p>\n<p dir=\"auto\">Instead of 'mini.operators', I think this will have a better fit in the planned 'mini.cycle' (or possibly 'mini.convert') module dedicated to \"cycling through alternatives with pre-defined rules\". This particular case can be framed as \"cycle through different number representations\".</p>\n<p dir=\"auto\">Your examples will be handy, thanks!</p>",
+            "bodyText": "Thanks, this looks interesting!\nInstead of 'mini.operators', I think this will have a better fit in the planned 'mini.cycle' (or possibly 'mini.convert') module dedicated to \"cycling through alternatives with pre-defined rules\". This particular case can be framed as \"cycle through different number representations\".\nYour examples will be handy, thanks!",
+            "createdAt": "2024-08-16T11:26:38Z",
+            "createdViaEmail": false,
+            "databaseId": 10357860,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Angxk",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-16T11:26:38Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/21080902?u=33b328f0f5fe83947d393ccfe3e4b240cffeed30&v=4",
+                        "login": "felpafel",
+                        "resourcePath": "/felpafel",
+                        "url": "https://github.com/felpafel"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for your reply!\r\n\r\nI agree with you, this can fit better in something like 'mini.convert', and justify having bin, oct, dec and hex all together.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for your reply!</p>\n<p dir=\"auto\">I agree with you, this can fit better in something like 'mini.convert', and justify having bin, oct, dec and hex all together.</p>",
+                    "bodyText": "Thanks for your reply!\nI agree with you, this can fit better in something like 'mini.convert', and justify having bin, oct, dec and hex all together.",
+                    "createdAt": "2024-08-16T11:43:44Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10358028,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ang0M",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-16T11:43:44Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10357860,
+                        "id": "DC_kwDOFoksYM4Angxk",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1147#discussioncomment-10357860"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1147#discussioncomment-10358028",
+                    "updatedAt": "2024-08-16T11:43:45Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1147#discussioncomment-10358028"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1147#discussioncomment-10357860",
+            "updatedAt": "2024-08-16T11:26:39Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1147#discussioncomment-10357860"
+        }
+    ],
+    "createdAt": "2024-08-16T10:27:44Z",
+    "createdViaEmail": false,
+    "databaseId": 7059466,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Aa7gK",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [],
+        "totalCount": 0
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1147,
+    "poll": null,
+    "publishedAt": "2024-08-16T10:27:44Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1147",
+    "stateReason": "RESOLVED",
+    "title": "[mini.operators] `gh` - to hex motion idea",
+    "updatedAt": "2024-09-09T08:31:36Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1147"
+}

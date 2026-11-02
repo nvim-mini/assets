@@ -1,0 +1,276 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/122305393?u=2b4eaef9d8ec9f393e70daf695e596f8623520f1&v=4",
+        "login": "n-crespo",
+        "resourcePath": "/n-crespo",
+        "url": "https://github.com/n-crespo"
+    },
+    "authorAssociation": "NONE",
+    "body": "Here's a snippet I use for toggling comments in insert mode with <C-/> (just like vsc*de):\r\n\r\n```lua\r\n{ \r\n  \"nvim-mini/mini.comment\",\r\n  keys = {\r\n    {\r\n      \"<C-/>\",\r\n      function()\r\n        local api = vim.api\r\n        local cursor = api.nvim_win_get_cursor(0)\r\n        local row, col = cursor[1], cursor[2]\r\n        local line = api.nvim_get_current_line()\r\n\r\n        -- get commentstring components\r\n        local cs = require(\"mini.comment\").get_commentstring({ row, col + 1 })\r\n        if cs == \"\" or not cs:find(\"%%s\") then\r\n          return\r\n        end\r\n\r\n        local prefix, suffix = cs:match(\"^(.-)%%s(.-)$\")\r\n        local trim_pre = prefix:gsub(\"%s+$\", \"\") -- prefix without trailing space\r\n        local trim_suf = suffix:gsub(\"^%s+\", \"\") -- suffix without leading space\r\n\r\n        -- capture leading whitespace and everything else\r\n        local indent, content = line:match(\"^(%s*)(.*)\")\r\n\r\n        -- handle line that is either empty OR only contains the comment markers\r\n        -- we use vim.pesc to treat markers as literal strings in the regex\r\n        local pattern = \"^\" .. vim.pesc(prefix) .. vim.pesc(suffix) .. \"$\"\r\n        local pattern_trimmed = \"^\" .. vim.pesc(trim_pre) .. vim.pesc(trim_suf) .. \"$\"\r\n\r\n        if content == \"\" or content:match(pattern) or content:match(pattern_trimmed) then\r\n          if content == \"\" then\r\n            -- case: empty line -> add comment, keep indent\r\n            api.nvim_set_current_line(indent .. prefix .. suffix)\r\n            api.nvim_win_set_cursor(0, { row, #indent + #prefix })\r\n          else\r\n            -- case: only comment markers exist -> remove markers, keep indent\r\n            api.nvim_set_current_line(indent)\r\n            api.nvim_win_set_cursor(0, { row, #indent })\r\n          end\r\n          return\r\n        end\r\n\r\n        -- standard toggle logic for lines with actual content\r\n        local is_commented = content:sub(1, #trim_pre) == trim_pre\r\n        local offset = 0\r\n        if is_commented then\r\n          local space_match = content:match(\"^\" .. vim.pesc(trim_pre) .. \"(%s?)\") or \"\"\r\n          offset = -(#trim_pre + #space_match)\r\n        else\r\n          local padding = prefix:find(\"%s$\") and 1 or 0\r\n          offset = #trim_pre + padding\r\n        end\r\n\r\n        require(\"mini.comment\").toggle_lines(row, row, { ref_position = { row, col + 1 } })\r\n        api.nvim_win_set_cursor(0, { row, math.max(0, col + offset) })\r\n      end,\r\n      mode = \"i\",\r\n      desc = \"Toggle Comment Line\",\r\n    },\r\n    {\r\n      \"<C-/>\",\r\n      \"gcc\",\r\n      mode = \"n\",\r\n      remap = true,\r\n      desc = \"Toggle Comment Line\",\r\n    },\r\n    {\r\n      \"<C-/>\",\r\n      \"gcgv\",\r\n      mode = \"v\",\r\n      remap = true,\r\n      desc = \"Toggle Comment Line\",\r\n    },\r\n  },\r\n}\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Here's a snippet I use for toggling comments in insert mode with  (just like vsc*de):</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{ \n  &quot;nvim-mini/mini.comment&quot;,\n  keys = {\n    {\n      &quot;&lt;C-/&gt;&quot;,\n      function()\n        local api = vim.api\n        local cursor = api.nvim_win_get_cursor(0)\n        local row, col = cursor[1], cursor[2]\n        local line = api.nvim_get_current_line()\n\n        -- get commentstring components\n        local cs = require(&quot;mini.comment&quot;).get_commentstring({ row, col + 1 })\n        if cs == &quot;&quot; or not cs:find(&quot;%%s&quot;) then\n          return\n        end\n\n        local prefix, suffix = cs:match(&quot;^(.-)%%s(.-)$&quot;)\n        local trim_pre = prefix:gsub(&quot;%s+$&quot;, &quot;&quot;) -- prefix without trailing space\n        local trim_suf = suffix:gsub(&quot;^%s+&quot;, &quot;&quot;) -- suffix without leading space\n\n        -- capture leading whitespace and everything else\n        local indent, content = line:match(&quot;^(%s*)(.*)&quot;)\n\n        -- handle line that is either empty OR only contains the comment markers\n        -- we use vim.pesc to treat markers as literal strings in the regex\n        local pattern = &quot;^&quot; .. vim.pesc(prefix) .. vim.pesc(suffix) .. &quot;$&quot;\n        local pattern_trimmed = &quot;^&quot; .. vim.pesc(trim_pre) .. vim.pesc(trim_suf) .. &quot;$&quot;\n\n        if content == &quot;&quot; or content:match(pattern) or content:match(pattern_trimmed) then\n          if content == &quot;&quot; then\n            -- case: empty line -&gt; add comment, keep indent\n            api.nvim_set_current_line(indent .. prefix .. suffix)\n            api.nvim_win_set_cursor(0, { row, #indent + #prefix })\n          else\n            -- case: only comment markers exist -&gt; remove markers, keep indent\n            api.nvim_set_current_line(indent)\n            api.nvim_win_set_cursor(0, { row, #indent })\n          end\n          return\n        end\n\n        -- standard toggle logic for lines with actual content\n        local is_commented = content:sub(1, #trim_pre) == trim_pre\n        local offset = 0\n        if is_commented then\n          local space_match = content:match(&quot;^&quot; .. vim.pesc(trim_pre) .. &quot;(%s?)&quot;) or &quot;&quot;\n          offset = -(#trim_pre + #space_match)\n        else\n          local padding = prefix:find(&quot;%s$&quot;) and 1 or 0\n          offset = #trim_pre + padding\n        end\n\n        require(&quot;mini.comment&quot;).toggle_lines(row, row, { ref_position = { row, col + 1 } })\n        api.nvim_win_set_cursor(0, { row, math.max(0, col + offset) })\n      end,\n      mode = &quot;i&quot;,\n      desc = &quot;Toggle Comment Line&quot;,\n    },\n    {\n      &quot;&lt;C-/&gt;&quot;,\n      &quot;gcc&quot;,\n      mode = &quot;n&quot;,\n      remap = true,\n      desc = &quot;Toggle Comment Line&quot;,\n    },\n    {\n      &quot;&lt;C-/&gt;&quot;,\n      &quot;gcgv&quot;,\n      mode = &quot;v&quot;,\n      remap = true,\n      desc = &quot;Toggle Comment Line&quot;,\n    },\n  },\n}\"><pre class=\"notranslate\">{ \n  <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-mini/mini.comment<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">keys</span> <span class=\"pl-k\">=</span> {\n    {\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-/&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-k\">function</span>()\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">api</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cursor</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-c1\">0</span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cursor</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">cursor</span>[<span class=\"pl-c1\">2</span>]\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_get_current_line</span>()\n\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> get commentstring components</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.comment<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">get_commentstring</span>({ <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> })\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">cs</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-k\">not</span> <span class=\"pl-en\">cs</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%%s<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span>\n          <span class=\"pl-k\">return</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">prefix</span>, <span class=\"pl-smi\">suffix</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">cs</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^(.-)%%s(.-)$<span class=\"pl-pds\">\"</span></span>)\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">trim_pre</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">prefix</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s+$<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> prefix without trailing space</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">trim_suf</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">suffix</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%s+<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> suffix without leading space</span>\n\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> capture leading whitespace and everything else</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">indent</span>, <span class=\"pl-smi\">content</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^(%s*)(.*)<span class=\"pl-pds\">\"</span></span>)\n\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> handle line that is either empty OR only contains the comment markers</span>\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> we use vim.pesc to treat markers as literal strings in the regex</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">pesc</span>(<span class=\"pl-smi\">prefix</span>) <span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">pesc</span>(<span class=\"pl-smi\">suffix</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>$<span class=\"pl-pds\">\"</span></span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pattern_trimmed</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">pesc</span>(<span class=\"pl-smi\">trim_pre</span>) <span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">pesc</span>(<span class=\"pl-smi\">trim_suf</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>$<span class=\"pl-pds\">\"</span></span>\n\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">content</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-en\">content</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-smi\">pattern</span>) <span class=\"pl-k\">or</span> <span class=\"pl-en\">content</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-smi\">pattern_trimmed</span>) <span class=\"pl-k\">then</span>\n          <span class=\"pl-k\">if</span> <span class=\"pl-smi\">content</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> case: empty line -&gt; add comment, keep indent</span>\n            <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_set_current_line</span>(<span class=\"pl-smi\">indent</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">prefix</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">suffix</span>)\n            <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">row</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">indent</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">prefix</span> })\n          <span class=\"pl-k\">else</span>\n            <span class=\"pl-c\"><span class=\"pl-c\">--</span> case: only comment markers exist -&gt; remove markers, keep indent</span>\n            <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_set_current_line</span>(<span class=\"pl-smi\">indent</span>)\n            <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">row</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">indent</span> })\n          <span class=\"pl-k\">end</span>\n          <span class=\"pl-k\">return</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-c\"><span class=\"pl-c\">--</span> standard toggle logic for lines with actual content</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_commented</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">content</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">trim_pre</span>) <span class=\"pl-k\">==</span> <span class=\"pl-smi\">trim_pre</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">offset</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">is_commented</span> <span class=\"pl-k\">then</span>\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">space_match</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">content</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">pesc</span>(<span class=\"pl-smi\">trim_pre</span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>(%s?)<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>\n          <span class=\"pl-smi\">offset</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">-</span>(<span class=\"pl-k\">#</span><span class=\"pl-smi\">trim_pre</span> <span class=\"pl-k\">+</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">space_match</span>)\n        <span class=\"pl-k\">else</span>\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">padding</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">prefix</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s$<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>\n          <span class=\"pl-smi\">offset</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">trim_pre</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">padding</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.comment<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">toggle_lines</span>(<span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">row</span>, { <span class=\"pl-smi\">ref_position</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">row</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span> } })\n        <span class=\"pl-smi\">api</span>.<span class=\"pl-c1\">nvim_win_set_cursor</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">row</span>, <span class=\"pl-c1\">math.max</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">offset</span>) })\n      <span class=\"pl-k\">end</span>,\n      <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>i<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Toggle Comment Line<span class=\"pl-pds\">\"</span></span>,\n    },\n    {\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-/&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gcc<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n      <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Toggle Comment Line<span class=\"pl-pds\">\"</span></span>,\n    },\n    {\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-/&gt;<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>gcgv<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>v<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-smi\">remap</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>,\n      <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Toggle Comment Line<span class=\"pl-pds\">\"</span></span>,\n    },\n  },\n}</pre></div>",
+    "bodyText": "Here's a snippet I use for toggling comments in insert mode with  (just like vsc*de):\n{ \n  \"nvim-mini/mini.comment\",\n  keys = {\n    {\n      \"<C-/>\",\n      function()\n        local api = vim.api\n        local cursor = api.nvim_win_get_cursor(0)\n        local row, col = cursor[1], cursor[2]\n        local line = api.nvim_get_current_line()\n\n        -- get commentstring components\n        local cs = require(\"mini.comment\").get_commentstring({ row, col + 1 })\n        if cs == \"\" or not cs:find(\"%%s\") then\n          return\n        end\n\n        local prefix, suffix = cs:match(\"^(.-)%%s(.-)$\")\n        local trim_pre = prefix:gsub(\"%s+$\", \"\") -- prefix without trailing space\n        local trim_suf = suffix:gsub(\"^%s+\", \"\") -- suffix without leading space\n\n        -- capture leading whitespace and everything else\n        local indent, content = line:match(\"^(%s*)(.*)\")\n\n        -- handle line that is either empty OR only contains the comment markers\n        -- we use vim.pesc to treat markers as literal strings in the regex\n        local pattern = \"^\" .. vim.pesc(prefix) .. vim.pesc(suffix) .. \"$\"\n        local pattern_trimmed = \"^\" .. vim.pesc(trim_pre) .. vim.pesc(trim_suf) .. \"$\"\n\n        if content == \"\" or content:match(pattern) or content:match(pattern_trimmed) then\n          if content == \"\" then\n            -- case: empty line -> add comment, keep indent\n            api.nvim_set_current_line(indent .. prefix .. suffix)\n            api.nvim_win_set_cursor(0, { row, #indent + #prefix })\n          else\n            -- case: only comment markers exist -> remove markers, keep indent\n            api.nvim_set_current_line(indent)\n            api.nvim_win_set_cursor(0, { row, #indent })\n          end\n          return\n        end\n\n        -- standard toggle logic for lines with actual content\n        local is_commented = content:sub(1, #trim_pre) == trim_pre\n        local offset = 0\n        if is_commented then\n          local space_match = content:match(\"^\" .. vim.pesc(trim_pre) .. \"(%s?)\") or \"\"\n          offset = -(#trim_pre + #space_match)\n        else\n          local padding = prefix:find(\"%s$\") and 1 or 0\n          offset = #trim_pre + padding\n        end\n\n        require(\"mini.comment\").toggle_lines(row, row, { ref_position = { row, col + 1 } })\n        api.nvim_win_set_cursor(0, { row, math.max(0, col + offset) })\n      end,\n      mode = \"i\",\n      desc = \"Toggle Comment Line\",\n    },\n    {\n      \"<C-/>\",\n      \"gcc\",\n      mode = \"n\",\n      remap = true,\n      desc = \"Toggle Comment Line\",\n    },\n    {\n      \"<C-/>\",\n      \"gcgv\",\n      mode = \"v\",\n      remap = true,\n      desc = \"Toggle Comment Line\",\n    },\n  },\n}",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI'd still think that using plain `'<Cmd>lua MiniComment.toggle_lines(vim.fn.line('.'), vim.fn.line('.'))<CR>'` as mapping's right hand side would achieve a lot. But yeah, wouldn't work on blank lines.\r\n\r\nMaybe `<C-/>` is a good enough default for 'mini.comment' to add commenting in Insert mode. That would work on blank and comment-leader-only lines. I'll think about it.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I'd still think that using plain <code class=\"notranslate\">'&lt;Cmd&gt;lua MiniComment.toggle_lines(vim.fn.line('.'), vim.fn.line('.'))&lt;CR&gt;'</code> as mapping's right hand side would achieve a lot. But yeah, wouldn't work on blank lines.</p>\n<p dir=\"auto\">Maybe <code class=\"notranslate\">&lt;C-/&gt;</code> is a good enough default for 'mini.comment' to add commenting in Insert mode. That would work on blank and comment-leader-only lines. I'll think about it.</p>",
+            "bodyText": "Thanks for sharing!\nI'd still think that using plain '<Cmd>lua MiniComment.toggle_lines(vim.fn.line('.'), vim.fn.line('.'))<CR>' as mapping's right hand side would achieve a lot. But yeah, wouldn't work on blank lines.\nMaybe <C-/> is a good enough default for 'mini.comment' to add commenting in Insert mode. That would work on blank and comment-leader-only lines. I'll think about it.",
+            "createdAt": "2026-03-09T09:52:16Z",
+            "createdViaEmail": false,
+            "databaseId": 16050881,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A9OrB",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-03-09T09:52:16Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/122305393?u=2b4eaef9d8ec9f393e70daf695e596f8623520f1&v=4",
+                        "login": "n-crespo",
+                        "resourcePath": "/n-crespo",
+                        "url": "https://github.com/n-crespo"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thats true, you get like 90% the way there with just that. I only added more to support blank lines (as you said) and so the cursor moves with the text under it as the comment is toggled (rather than staying in the same place as text gets shifted)",
+                    "bodyHTML": "<p dir=\"auto\">Thats true, you get like 90% the way there with just that. I only added more to support blank lines (as you said) and so the cursor moves with the text under it as the comment is toggled (rather than staying in the same place as text gets shifted)</p>",
+                    "bodyText": "Thats true, you get like 90% the way there with just that. I only added more to support blank lines (as you said) and so the cursor moves with the text under it as the comment is toggled (rather than staying in the same place as text gets shifted)",
+                    "createdAt": "2026-03-09T22:38:19Z",
+                    "createdViaEmail": false,
+                    "databaseId": 16058956,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A9QpM",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-03-09T22:38:19Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 16050881,
+                        "id": "DC_kwDOFoksYM4A9OrB",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2308#discussioncomment-16050881"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2308#discussioncomment-16058956",
+                    "updatedAt": "2026-03-09T22:38:19Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2308#discussioncomment-16058956"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2308#discussioncomment-16050881",
+            "updatedAt": "2026-03-09T09:52:16Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2308#discussioncomment-16050881"
+        }
+    ],
+    "createdAt": "2026-03-08T21:55:28Z",
+    "createdViaEmail": false,
+    "databaseId": 9602286,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AkoTu",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1uuT",
+                "name": "mini.comment"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2308,
+    "poll": null,
+    "publishedAt": "2026-03-08T21:55:28Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2308",
+    "stateReason": null,
+    "title": "[mini.comment] Commenting in insert mode",
+    "updatedAt": "2026-03-09T22:38:19Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2308"
+}

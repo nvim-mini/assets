@@ -1,0 +1,278 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/100923931?u=dbe1707ba2feb73081a0fa4ba7f952f07589fd77&v=4",
+        "login": "Aumnescio",
+        "resourcePath": "/Aumnescio",
+        "url": "https://github.com/Aumnescio"
+    },
+    "authorAssociation": "NONE",
+    "body": "Bit lazy about posting a full issue / PR about this, but want to share. This primarily concerns parsing large'ish snippets. (like 100-200+ lines.) Though the performance impact should affect basically all parsing of snippets. It's just not really so noticeable unless the snippet is a bit larger.\r\n\r\n[This part of `snippets.lua`](https://github.com/nvim-mini/mini.nvim/blob/c5cdbadeb423ff724e27a42ab2d1c504d1d6fc5a/lua/mini/snippets.lua#L1485) is seemingly very slow. (~375ms to parse the attached sample file snippet.)\r\n\r\n```lua\r\n  for i = 0, vim.fn.strchars(snippet_body) - 1 do\r\n      local depth = #state.depth_arrays\r\n      local arr = state.depth_arrays[depth]\r\n      local processor, node = H.parse_processors[state.name], arr[#arr]\r\n      processor(vim.fn.strcharpart(snippet_body, i, 1), state, node)\r\n  end\r\n```\r\n\r\n## Alternative version\r\n\r\nThe code below parses the same snippet in under 5ms. It also passes all the snippets tests.\r\n\r\n```lua\r\n  local i, n = 1, #snippet_body\r\n\r\n  while i <= n do\r\n      local byte = snippet_body:byte(i)\r\n      local character\r\n\r\n      if byte < 0x80 then\r\n          -- ASCII\r\n          character = string.char(byte)\r\n          i = i + 1\r\n      else\r\n          -- Consume one UTF-8 codepoint as opaque text.\r\n          local len =\r\n              byte < 0xE0 and 2 or\r\n              byte < 0xF0 and 3 or\r\n              4\r\n\r\n          character = snippet_body:sub(i, i + len - 1)\r\n          i = i + len\r\n      end\r\n\r\n      local depth = #state.depth_arrays\r\n      local arr = state.depth_arrays[depth]\r\n      local processor, node = H.parse_processors[state.name], arr[#arr]\r\n      processor(character, state, node)\r\n  end\r\n```\r\n\r\nUsage: just replace the original loop block with this version.\r\n\r\n## Attachments\r\n\r\nNOTE: Github doesn't allow me to upload the file ending in `.lua`, so it needs to be renamed. (for example to `toml.lua`)\r\n\r\n[sample-toml-lua.txt](https://github.com/user-attachments/files/29670168/sample-toml-lua.txt)\r\n",
+    "bodyHTML": "<p dir=\"auto\">Bit lazy about posting a full issue / PR about this, but want to share. This primarily concerns parsing large'ish snippets. (like 100-200+ lines.) Though the performance impact should affect basically all parsing of snippets. It's just not really so noticeable unless the snippet is a bit larger.</p>\n<p dir=\"auto\"><a href=\"https://github.com/nvim-mini/mini.nvim/blob/c5cdbadeb423ff724e27a42ab2d1c504d1d6fc5a/lua/mini/snippets.lua#L1485\">This part of <code class=\"notranslate\">snippets.lua</code></a> is seemingly very slow. (~375ms to parse the attached sample file snippet.)</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  for i = 0, vim.fn.strchars(snippet_body) - 1 do\n      local depth = #state.depth_arrays\n      local arr = state.depth_arrays[depth]\n      local processor, node = H.parse_processors[state.name], arr[#arr]\n      processor(vim.fn.strcharpart(snippet_body, i, 1), state, node)\n  end\"><pre class=\"notranslate\">  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">strchars</span>(<span class=\"pl-smi\">snippet_body</span>) <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_arrays</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">arr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_arrays</span>[<span class=\"pl-smi\">depth</span>]\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">processor</span>, <span class=\"pl-smi\">node</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">parse_processors</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">name</span>], <span class=\"pl-smi\">arr</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">arr</span>]\n      <span class=\"pl-c1\">processor</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">strcharpart</span>(<span class=\"pl-smi\">snippet_body</span>, <span class=\"pl-smi\">i</span>, <span class=\"pl-c1\">1</span>), <span class=\"pl-smi\">state</span>, <span class=\"pl-smi\">node</span>)\n  <span class=\"pl-k\">end</span></pre></div>\n<h2 dir=\"auto\">Alternative version</h2>\n<p dir=\"auto\">The code below parses the same snippet in under 5ms. It also passes all the snippets tests.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local i, n = 1, #snippet_body\n\n  while i &lt;= n do\n      local byte = snippet_body:byte(i)\n      local character\n\n      if byte &lt; 0x80 then\n          -- ASCII\n          character = string.char(byte)\n          i = i + 1\n      else\n          -- Consume one UTF-8 codepoint as opaque text.\n          local len =\n              byte &lt; 0xE0 and 2 or\n              byte &lt; 0xF0 and 3 or\n              4\n\n          character = snippet_body:sub(i, i + len - 1)\n          i = i + len\n      end\n\n      local depth = #state.depth_arrays\n      local arr = state.depth_arrays[depth]\n      local processor, node = H.parse_processors[state.name], arr[#arr]\n      processor(character, state, node)\n  end\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">n</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">snippet_body</span>\n\n  <span class=\"pl-k\">while</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-smi\">n</span> <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">byte</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">snippet_body</span>:<span class=\"pl-c1\">byte</span>(<span class=\"pl-smi\">i</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">character</span>\n\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">byte</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0x80</span> <span class=\"pl-k\">then</span>\n          <span class=\"pl-c\"><span class=\"pl-c\">--</span> ASCII</span>\n          <span class=\"pl-smi\">character</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.char</span>(<span class=\"pl-smi\">byte</span>)\n          <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n      <span class=\"pl-k\">else</span>\n          <span class=\"pl-c\"><span class=\"pl-c\">--</span> Consume one UTF-8 codepoint as opaque text.</span>\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">len</span> <span class=\"pl-k\">=</span>\n              <span class=\"pl-smi\">byte</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0xE0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">or</span>\n              <span class=\"pl-smi\">byte</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">0xF0</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">3</span> <span class=\"pl-k\">or</span>\n              <span class=\"pl-c1\">4</span>\n\n          <span class=\"pl-smi\">character</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">snippet_body</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">len</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n          <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">+</span> <span class=\"pl-smi\">len</span>\n      <span class=\"pl-k\">end</span>\n\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">depth</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_arrays</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">arr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">state</span>.<span class=\"pl-e\">depth_arrays</span>[<span class=\"pl-smi\">depth</span>]\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">processor</span>, <span class=\"pl-smi\">node</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">parse_processors</span>[<span class=\"pl-smi\">state</span>.<span class=\"pl-e\">name</span>], <span class=\"pl-smi\">arr</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">arr</span>]\n      <span class=\"pl-c1\">processor</span>(<span class=\"pl-smi\">character</span>, <span class=\"pl-smi\">state</span>, <span class=\"pl-smi\">node</span>)\n  <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">Usage: just replace the original loop block with this version.</p>\n<h2 dir=\"auto\">Attachments</h2>\n<p dir=\"auto\">NOTE: Github doesn't allow me to upload the file ending in <code class=\"notranslate\">.lua</code>, so it needs to be renamed. (for example to <code class=\"notranslate\">toml.lua</code>)</p>\n<p dir=\"auto\"><a href=\"https://github.com/user-attachments/files/29670168/sample-toml-lua.txt\">sample-toml-lua.txt</a></p>",
+    "bodyText": "Bit lazy about posting a full issue / PR about this, but want to share. This primarily concerns parsing large'ish snippets. (like 100-200+ lines.) Though the performance impact should affect basically all parsing of snippets. It's just not really so noticeable unless the snippet is a bit larger.\nThis part of snippets.lua is seemingly very slow. (~375ms to parse the attached sample file snippet.)\n  for i = 0, vim.fn.strchars(snippet_body) - 1 do\n      local depth = #state.depth_arrays\n      local arr = state.depth_arrays[depth]\n      local processor, node = H.parse_processors[state.name], arr[#arr]\n      processor(vim.fn.strcharpart(snippet_body, i, 1), state, node)\n  end\nAlternative version\nThe code below parses the same snippet in under 5ms. It also passes all the snippets tests.\n  local i, n = 1, #snippet_body\n\n  while i <= n do\n      local byte = snippet_body:byte(i)\n      local character\n\n      if byte < 0x80 then\n          -- ASCII\n          character = string.char(byte)\n          i = i + 1\n      else\n          -- Consume one UTF-8 codepoint as opaque text.\n          local len =\n              byte < 0xE0 and 2 or\n              byte < 0xF0 and 3 or\n              4\n\n          character = snippet_body:sub(i, i + len - 1)\n          i = i + len\n      end\n\n      local depth = #state.depth_arrays\n      local arr = state.depth_arrays[depth]\n      local processor, node = H.parse_processors[state.name], arr[#arr]\n      processor(character, state, node)\n  end\nUsage: just replace the original loop block with this version.\nAttachments\nNOTE: Github doesn't allow me to upload the file ending in .lua, so it needs to be renamed. (for example to toml.lua)\nsample-toml-lua.txt",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-07-09T08:25:46Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Yeah, I can reproduce the performance difference with and without using `vim.fn.strchars` + `vim.fn.strcharpart`.\r\n\r\nI *think* it would be safe to just use byte iteration, but need more time to confer and test.\r\n\r\nHowever, even the existing approach is usually done together with caching file contents. I am not so keen on introducing custom character byte length logic (and existing tests might have missed something to do with multibyte characters). So if the \"just traverse bytes\" solution doesn't work out, I'll leave it as is.",
+            "bodyHTML": "<p dir=\"auto\">Yeah, I can reproduce the performance difference with and without using <code class=\"notranslate\">vim.fn.strchars</code> + <code class=\"notranslate\">vim.fn.strcharpart</code>.</p>\n<p dir=\"auto\">I <em>think</em> it would be safe to just use byte iteration, but need more time to confer and test.</p>\n<p dir=\"auto\">However, even the existing approach is usually done together with caching file contents. I am not so keen on introducing custom character byte length logic (and existing tests might have missed something to do with multibyte characters). So if the \"just traverse bytes\" solution doesn't work out, I'll leave it as is.</p>",
+            "bodyText": "Yeah, I can reproduce the performance difference with and without using vim.fn.strchars + vim.fn.strcharpart.\nI think it would be safe to just use byte iteration, but need more time to confer and test.\nHowever, even the existing approach is usually done together with caching file contents. I am not so keen on introducing custom character byte length logic (and existing tests might have missed something to do with multibyte characters). So if the \"just traverse bytes\" solution doesn't work out, I'll leave it as is.",
+            "createdAt": "2026-07-05T12:16:53Z",
+            "createdViaEmail": false,
+            "databaseId": 17537877,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BC5tV",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-07-05T12:16:53Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2499#discussioncomment-17537877",
+            "updatedAt": "2026-07-05T12:16:53Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2499#discussioncomment-17537877"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I think using raw bytes instead of characters when traversing the snippet should be fine indeed. So this should now be how latest `main` does it.",
+            "bodyHTML": "<p dir=\"auto\">I think using raw bytes instead of characters when traversing the snippet should be fine indeed. So this should now be how latest <code class=\"notranslate\">main</code> does it.</p>",
+            "bodyText": "I think using raw bytes instead of characters when traversing the snippet should be fine indeed. So this should now be how latest main does it.",
+            "createdAt": "2026-07-09T08:25:45Z",
+            "createdViaEmail": false,
+            "databaseId": 17582369,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BDEkh",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-07-09T08:25:45Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2499#discussioncomment-17582369",
+            "updatedAt": "2026-07-09T08:25:45Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2499#discussioncomment-17582369"
+        }
+    ],
+    "createdAt": "2026-07-05T06:40:36Z",
+    "createdViaEmail": false,
+    "databaseId": 10372711,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/100923931?u=dbe1707ba2feb73081a0fa4ba7f952f07589fd77&v=4",
+        "login": "Aumnescio",
+        "resourcePath": "/Aumnescio",
+        "url": "https://github.com/Aumnescio"
+    },
+    "id": "D_kwDOFoksYM4AnkZn",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2026-07-05T06:44:19Z",
+    "locked": false,
+    "number": 2499,
+    "poll": null,
+    "publishedAt": "2026-07-05T06:40:36Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 1
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2499",
+    "stateReason": "RESOLVED",
+    "title": "[mini.snippets] \"MiniSnippets.parse\" performance improvement.",
+    "updatedAt": "2026-07-09T08:25:46Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2499"
+}

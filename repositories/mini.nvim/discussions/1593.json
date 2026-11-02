@@ -1,0 +1,207 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12275527,
+        "id": "DC_kwDOFoksYM4Au09H",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1593#discussioncomment-12275527"
+    },
+    "answerChosenAt": "2025-02-21T12:09:15Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/29869999?v=4",
+        "login": "embie27",
+        "resourcePath": "/embie27",
+        "url": "https://github.com/embie27"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.ai\n\n### Question\n\nI have implemented a textobject `m`for LaTeX-math using treesitter. The current behaviour using the `cover`-search method is the following. Assume that I am in the following situation, where `|`is the cursor:\r\n```\r\n\\( | \\pi \\)\r\n```\r\nThen hitting `vim`, does not find a textobject because the cursor is not covered by the inner part (whitespaces are not counted as inner by my treesitter query). The behaior that I would like to achieve is that in this case `\\pi`is selected because the outer textobject covers the cursor.\r\n\r\nI could not find a way to achieve this by simply changing options of mini.ai. Hence, I assume that I would need to implement a custom search method to achieve the desired behavior. Is this assumption correct? If so, could you point me to a good starting place to implement this search method?\r\n\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I have implemented a textobject <code class=\"notranslate\">m</code>for LaTeX-math using treesitter. The current behaviour using the <code class=\"notranslate\">cover</code>-search method is the following. Assume that I am in the following situation, where <code class=\"notranslate\">|</code>is the cursor:</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"\\( | \\pi \\)\"><pre class=\"notranslate\"><code class=\"notranslate\">\\( | \\pi \\)\n</code></pre></div>\n<p dir=\"auto\">Then hitting <code class=\"notranslate\">vim</code>, does not find a textobject because the cursor is not covered by the inner part (whitespaces are not counted as inner by my treesitter query). The behaior that I would like to achieve is that in this case <code class=\"notranslate\">\\pi</code>is selected because the outer textobject covers the cursor.</p>\n<p dir=\"auto\">I could not find a way to achieve this by simply changing options of mini.ai. Hence, I assume that I would need to implement a custom search method to achieve the desired behavior. Is this assumption correct? If so, could you point me to a good starting place to implement this search method?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai\nQuestion\nI have implemented a textobject mfor LaTeX-math using treesitter. The current behaviour using the cover-search method is the following. Assume that I am in the following situation, where |is the cursor:\n\\( | \\pi \\)\n\nThen hitting vim, does not find a textobject because the cursor is not covered by the inner part (whitespaces are not counted as inner by my treesitter query). The behaior that I would like to achieve is that in this case \\piis selected because the outer textobject covers the cursor.\nI could not find a way to achieve this by simply changing options of mini.ai. Hence, I assume that I would need to implement a custom search method to achieve the desired behavior. Is this assumption correct? If so, could you point me to a good starting place to implement this search method?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-02-21T12:09:12Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "This is indeed correct for custom textobjects with specification generated from [`gen_spec.treesitter()`](https://github.com/echasnovski/mini.nvim/blob/dc1775613f672e6a804577945813353c5c4e6fe5/doc/mini-ai.txt#L707) and more generally for callable specification which returns [single or multiple regions](https://github.com/echasnovski/mini.nvim/blob/dc1775613f672e6a804577945813353c5c4e6fe5/doc/mini-ai.txt#L278-L310). Searching for the \"best\" region is then done internally by 'mini.ai' based on the current reference region, search method, etc. As `gen_spec.treesitter()` returns an array of regions for `i` textobject and doesn't account for `a` during querying for them, the behavior you describe is indeed expected.\r\n\r\nIn theory, it is possible to update `gen_spec.treesitter()` querying logic to something like \"search regions for both `a` and `i` textobjects, find the best (the smallest width) covering region for `a`, and then find the appropriate region (probably the largest width) for `i` that is inside `a` region\". But I don't think this behavior is universally expected enough to be implemented in `gen_spec.treesitter()`.\r\n\r\nMy suggestions would be the following (from most to least advisable in my opinion):\r\n- Use explicit `in` and `il` to select these inner parts when outside of them. It usually quite soon becomes pretty natural to treat being in the whitespace padding of brackets as being \"outside\" of the inner part.\r\n- Try to use [nested patterns](https://github.com/echasnovski/mini.nvim/blob/dc1775613f672e6a804577945813353c5c4e6fe5/doc/mini-ai.txt#L255-L263) specification instead of tree-sitter. It might not be 100% robust solution, but it will behave the way you describe: it finds matches based on the last nested pattern (which usually covers whole `a`) and *then* extracts either `a` or `i` part. This is possible because there is a one-to-one relation here between `a` and `i` parts, which is generally speaking not present in tree-sitter case.\r\n- Implement own specification based on the output of `gen_spec.treesitter()`. So it might be something like:\r\n\r\n    ```lua\r\n    local ai = require('mini.ai')\r\n    local ref_ts_spec = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' })\r\n    -- See `:h MiniAi.find_textobject()` for arguments descriptions\r\n    local my_ts_spec = function(ai_type, id, opts)\r\n      local a_regions = ref_ts_spec(ai_type)\r\n      if ai_type == 'a' then return a_regions end\r\n      local i_regions = ref_ts_spec('i')\r\n      -- Do the matching. Might be non-trivial.\r\n    end\r\n    ai.setup({ custom_textobjects = { m = my_ts_spec } })\r\n    ```\r\n\r\nHope this helps.",
+            "bodyHTML": "<p dir=\"auto\">This is indeed correct for custom textobjects with specification generated from <a href=\"https://github.com/echasnovski/mini.nvim/blob/dc1775613f672e6a804577945813353c5c4e6fe5/doc/mini-ai.txt#L707\"><code class=\"notranslate\">gen_spec.treesitter()</code></a> and more generally for callable specification which returns <a href=\"https://github.com/echasnovski/mini.nvim/blob/dc1775613f672e6a804577945813353c5c4e6fe5/doc/mini-ai.txt#L278-L310\">single or multiple regions</a>. Searching for the \"best\" region is then done internally by 'mini.ai' based on the current reference region, search method, etc. As <code class=\"notranslate\">gen_spec.treesitter()</code> returns an array of regions for <code class=\"notranslate\">i</code> textobject and doesn't account for <code class=\"notranslate\">a</code> during querying for them, the behavior you describe is indeed expected.</p>\n<p dir=\"auto\">In theory, it is possible to update <code class=\"notranslate\">gen_spec.treesitter()</code> querying logic to something like \"search regions for both <code class=\"notranslate\">a</code> and <code class=\"notranslate\">i</code> textobjects, find the best (the smallest width) covering region for <code class=\"notranslate\">a</code>, and then find the appropriate region (probably the largest width) for <code class=\"notranslate\">i</code> that is inside <code class=\"notranslate\">a</code> region\". But I don't think this behavior is universally expected enough to be implemented in <code class=\"notranslate\">gen_spec.treesitter()</code>.</p>\n<p dir=\"auto\">My suggestions would be the following (from most to least advisable in my opinion):</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Use explicit <code class=\"notranslate\">in</code> and <code class=\"notranslate\">il</code> to select these inner parts when outside of them. It usually quite soon becomes pretty natural to treat being in the whitespace padding of brackets as being \"outside\" of the inner part.</p>\n</li>\n<li>\n<p dir=\"auto\">Try to use <a href=\"https://github.com/echasnovski/mini.nvim/blob/dc1775613f672e6a804577945813353c5c4e6fe5/doc/mini-ai.txt#L255-L263\">nested patterns</a> specification instead of tree-sitter. It might not be 100% robust solution, but it will behave the way you describe: it finds matches based on the last nested pattern (which usually covers whole <code class=\"notranslate\">a</code>) and <em>then</em> extracts either <code class=\"notranslate\">a</code> or <code class=\"notranslate\">i</code> part. This is possible because there is a one-to-one relation here between <code class=\"notranslate\">a</code> and <code class=\"notranslate\">i</code> parts, which is generally speaking not present in tree-sitter case.</p>\n</li>\n<li>\n<p dir=\"auto\">Implement own specification based on the output of <code class=\"notranslate\">gen_spec.treesitter()</code>. So it might be something like:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local ai = require('mini.ai')\nlocal ref_ts_spec = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' })\n-- See `:h MiniAi.find_textobject()` for arguments descriptions\nlocal my_ts_spec = function(ai_type, id, opts)\n  local a_regions = ref_ts_spec(ai_type)\n  if ai_type == 'a' then return a_regions end\n  local i_regions = ref_ts_spec('i')\n  -- Do the matching. Might be non-trivial.\nend\nai.setup({ custom_textobjects = { m = my_ts_spec } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">ai</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">ref_ts_spec</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">treesitter</span>({ <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>@function.outer<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>@function.inner<span class=\"pl-pds\">' </span></span>})\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> See `:h MiniAi.find_textobject()` for arguments descriptions</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">my_ts_spec</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">a_regions</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">ref_ts_spec</span>(<span class=\"pl-smi\">ai_type</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">a_regions</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">i_regions</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">ref_ts_spec</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Do the matching. Might be non-trivial.</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">ai</span>.<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">m</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">my_ts_spec</span> } })</pre></div>\n</li>\n</ul>\n<p dir=\"auto\">Hope this helps.</p>",
+            "bodyText": "This is indeed correct for custom textobjects with specification generated from gen_spec.treesitter() and more generally for callable specification which returns single or multiple regions. Searching for the \"best\" region is then done internally by 'mini.ai' based on the current reference region, search method, etc. As gen_spec.treesitter() returns an array of regions for i textobject and doesn't account for a during querying for them, the behavior you describe is indeed expected.\nIn theory, it is possible to update gen_spec.treesitter() querying logic to something like \"search regions for both a and i textobjects, find the best (the smallest width) covering region for a, and then find the appropriate region (probably the largest width) for i that is inside a region\". But I don't think this behavior is universally expected enough to be implemented in gen_spec.treesitter().\nMy suggestions would be the following (from most to least advisable in my opinion):\n\n\nUse explicit in and il to select these inner parts when outside of them. It usually quite soon becomes pretty natural to treat being in the whitespace padding of brackets as being \"outside\" of the inner part.\n\n\nTry to use nested patterns specification instead of tree-sitter. It might not be 100% robust solution, but it will behave the way you describe: it finds matches based on the last nested pattern (which usually covers whole a) and then extracts either a or i part. This is possible because there is a one-to-one relation here between a and i parts, which is generally speaking not present in tree-sitter case.\n\n\nImplement own specification based on the output of gen_spec.treesitter(). So it might be something like:\nlocal ai = require('mini.ai')\nlocal ref_ts_spec = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' })\n-- See `:h MiniAi.find_textobject()` for arguments descriptions\nlocal my_ts_spec = function(ai_type, id, opts)\n  local a_regions = ref_ts_spec(ai_type)\n  if ai_type == 'a' then return a_regions end\n  local i_regions = ref_ts_spec('i')\n  -- Do the matching. Might be non-trivial.\nend\nai.setup({ custom_textobjects = { m = my_ts_spec } })\n\n\nHope this helps.",
+            "createdAt": "2025-02-21T12:09:12Z",
+            "createdViaEmail": false,
+            "databaseId": 12275527,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Au09H",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-02-21T12:09:12Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1593#discussioncomment-12275527",
+            "updatedAt": "2025-02-21T12:09:12Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1593#discussioncomment-12275527"
+        }
+    ],
+    "createdAt": "2025-02-21T11:23:14Z",
+    "createdViaEmail": false,
+    "databaseId": 7998090,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AegqK",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1593,
+    "poll": null,
+    "publishedAt": "2025-02-21T11:23:14Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1593",
+    "stateReason": "RESOLVED",
+    "title": "Apply i-textobject even if cursor is only covered by o-textobject",
+    "updatedAt": "2025-02-21T12:09:15Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1593"
+}

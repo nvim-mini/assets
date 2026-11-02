@@ -1,0 +1,302 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12528318,
+        "id": "DC_kwDOFoksYM4Avyq-",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1685#discussioncomment-12528318"
+    },
+    "answerChosenAt": "2025-03-18T15:21:58Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/67907166?u=0b39da38b7072ad14eee61f65a711101d59d645f&v=4",
+        "login": "Jackaed",
+        "resourcePath": "/Jackaed",
+        "url": "https://github.com/Jackaed"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nall of the above\n\n### Question\n\nFor loading with `lazy.nvim`, is it better practice to load `mini.nvim` plugins individually, such that they can all be lazy-loaded separately, or is it best to load the overall `mini.nvim` plugin and individually choose plugins from there? As of right now I'm going with the former, as it allows you to use the configuration syntax as specified by lazy.nvim, but switching between the two should be fairly trivial. What would give better startup times? Or is the difference negligible.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">all of the above</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">For loading with <code class=\"notranslate\">lazy.nvim</code>, is it better practice to load <code class=\"notranslate\">mini.nvim</code> plugins individually, such that they can all be lazy-loaded separately, or is it best to load the overall <code class=\"notranslate\">mini.nvim</code> plugin and individually choose plugins from there? As of right now I'm going with the former, as it allows you to use the configuration syntax as specified by lazy.nvim, but switching between the two should be fairly trivial. What would give better startup times? Or is the difference negligible.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nall of the above\nQuestion\nFor loading with lazy.nvim, is it better practice to load mini.nvim plugins individually, such that they can all be lazy-loaded separately, or is it best to load the overall mini.nvim plugin and individually choose plugins from there? As of right now I'm going with the former, as it allows you to use the configuration syntax as specified by lazy.nvim, but switching between the two should be fairly trivial. What would give better startup times? Or is the difference negligible.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-03-17T17:18:17Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The main \"distribution source\" of 'mini.nvim' is the whole library. It will always have priority over standalone repositories which are semi-automatically synchronized with the changes in 'mini.nvim'.\r\n\r\nAs far as I can tell with 'folke/lazy.nvim', the standalone repos fit more to its declarative specification *if* you want to narrowly lazy load everything that can be lazy loaded. Like lazy load 'mini.completion' on `InsertEnter` event, etc.\r\n\r\nIf you don't really care about extra lazy loading, installing the whole 'mini.nvim' and then doing `require('mini.xxx').setup()` in the `config` field should be good enough. The benefit here is a more compact and easy-to-follow config, which is not nothing in my opinion.\r\n\r\nThe main argument that motivated creating a dual distribution model in the first place was that with standalone modules users get narrowly targeted changelog during updates only from modules they prefer to use. With the 'mini.nvim' library approach, there will be all kinds of `fix(other)` and `test(module)` types of commits. That is not necessarily a bad thing, as it allows spotting a feature users might not have realized they needed, but some people might not like it.\r\n\r\nBut in the end, the \"official\" suggestion here remains the same and is to use 'mini.deps' (with config similar to [this](https://github.com/echasnovski/mini.nvim/blob/main/scripts/init-deps-example.lua)) :)\r\n\r\n---\r\n\r\nThe extra performance benefit of using the whole 'mini.nvim' library is that it adds only a single entry in runtimepath (collection of paths Neovim uses when searching for runtime stuff; like during any `require('some.module')` first time call, or setting a 'filetype', or syntax, etc.). If many modules are used, entries from using standalone repos *might* result in building up significant extra time spent searching in their paths. Full disclaimer: I did not conduct any benchmarking here to measure the effect, but I *think* it might be significant with active enough runtime usage compared to possible startup gains from standalone repos. So it is like a `O(1)` penalty on startup compared to `O(n)` penalty during runtime (albeit probably with very small constant).",
+            "bodyHTML": "<p dir=\"auto\">The main \"distribution source\" of 'mini.nvim' is the whole library. It will always have priority over standalone repositories which are semi-automatically synchronized with the changes in 'mini.nvim'.</p>\n<p dir=\"auto\">As far as I can tell with 'folke/lazy.nvim', the standalone repos fit more to its declarative specification <em>if</em> you want to narrowly lazy load everything that can be lazy loaded. Like lazy load 'mini.completion' on <code class=\"notranslate\">InsertEnter</code> event, etc.</p>\n<p dir=\"auto\">If you don't really care about extra lazy loading, installing the whole 'mini.nvim' and then doing <code class=\"notranslate\">require('mini.xxx').setup()</code> in the <code class=\"notranslate\">config</code> field should be good enough. The benefit here is a more compact and easy-to-follow config, which is not nothing in my opinion.</p>\n<p dir=\"auto\">The main argument that motivated creating a dual distribution model in the first place was that with standalone modules users get narrowly targeted changelog during updates only from modules they prefer to use. With the 'mini.nvim' library approach, there will be all kinds of <code class=\"notranslate\">fix(other)</code> and <code class=\"notranslate\">test(module)</code> types of commits. That is not necessarily a bad thing, as it allows spotting a feature users might not have realized they needed, but some people might not like it.</p>\n<p dir=\"auto\">But in the end, the \"official\" suggestion here remains the same and is to use 'mini.deps' (with config similar to <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/scripts/init-deps-example.lua\">this</a>) :)</p>\n<hr>\n<p dir=\"auto\">The extra performance benefit of using the whole 'mini.nvim' library is that it adds only a single entry in runtimepath (collection of paths Neovim uses when searching for runtime stuff; like during any <code class=\"notranslate\">require('some.module')</code> first time call, or setting a 'filetype', or syntax, etc.). If many modules are used, entries from using standalone repos <em>might</em> result in building up significant extra time spent searching in their paths. Full disclaimer: I did not conduct any benchmarking here to measure the effect, but I <em>think</em> it might be significant with active enough runtime usage compared to possible startup gains from standalone repos. So it is like a <code class=\"notranslate\">O(1)</code> penalty on startup compared to <code class=\"notranslate\">O(n)</code> penalty during runtime (albeit probably with very small constant).</p>",
+            "bodyText": "The main \"distribution source\" of 'mini.nvim' is the whole library. It will always have priority over standalone repositories which are semi-automatically synchronized with the changes in 'mini.nvim'.\nAs far as I can tell with 'folke/lazy.nvim', the standalone repos fit more to its declarative specification if you want to narrowly lazy load everything that can be lazy loaded. Like lazy load 'mini.completion' on InsertEnter event, etc.\nIf you don't really care about extra lazy loading, installing the whole 'mini.nvim' and then doing require('mini.xxx').setup() in the config field should be good enough. The benefit here is a more compact and easy-to-follow config, which is not nothing in my opinion.\nThe main argument that motivated creating a dual distribution model in the first place was that with standalone modules users get narrowly targeted changelog during updates only from modules they prefer to use. With the 'mini.nvim' library approach, there will be all kinds of fix(other) and test(module) types of commits. That is not necessarily a bad thing, as it allows spotting a feature users might not have realized they needed, but some people might not like it.\nBut in the end, the \"official\" suggestion here remains the same and is to use 'mini.deps' (with config similar to this) :)\n\nThe extra performance benefit of using the whole 'mini.nvim' library is that it adds only a single entry in runtimepath (collection of paths Neovim uses when searching for runtime stuff; like during any require('some.module') first time call, or setting a 'filetype', or syntax, etc.). If many modules are used, entries from using standalone repos might result in building up significant extra time spent searching in their paths. Full disclaimer: I did not conduct any benchmarking here to measure the effect, but I think it might be significant with active enough runtime usage compared to possible startup gains from standalone repos. So it is like a O(1) penalty on startup compared to O(n) penalty during runtime (albeit probably with very small constant).",
+            "createdAt": "2025-03-17T17:18:17Z",
+            "createdViaEmail": false,
+            "databaseId": 12528318,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "id": "DC_kwDOFoksYM4Avyq-",
+            "includesCreatedEdit": true,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": "2025-03-17T17:18:26Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-03-17T17:18:17Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/67907166?u=0b39da38b7072ad14eee61f65a711101d59d645f&v=4",
+                        "login": "Jackaed",
+                        "resourcePath": "/Jackaed",
+                        "url": "https://github.com/Jackaed"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thank you for the very quick (and detailed) answer! I think, given that I'm not (yet) willing to migrate to `mini.deps`, I'll keep loading them individually, just because that better fits the `lazy.nvim` model of declaring plugins (mainly for my own internal satisfaction of maintaining consistency across my config, rather than for any particular technical reason). \r\n\r\nThank you for the great work on mini! I've managed to cut out huge chunks of my config thanks to it (and I'm particularly looking forward to mini.terminals).",
+                    "bodyHTML": "<p dir=\"auto\">Thank you for the very quick (and detailed) answer! I think, given that I'm not (yet) willing to migrate to <code class=\"notranslate\">mini.deps</code>, I'll keep loading them individually, just because that better fits the <code class=\"notranslate\">lazy.nvim</code> model of declaring plugins (mainly for my own internal satisfaction of maintaining consistency across my config, rather than for any particular technical reason).</p>\n<p dir=\"auto\">Thank you for the great work on mini! I've managed to cut out huge chunks of my config thanks to it (and I'm particularly looking forward to mini.terminals).</p>",
+                    "bodyText": "Thank you for the very quick (and detailed) answer! I think, given that I'm not (yet) willing to migrate to mini.deps, I'll keep loading them individually, just because that better fits the lazy.nvim model of declaring plugins (mainly for my own internal satisfaction of maintaining consistency across my config, rather than for any particular technical reason).\nThank you for the great work on mini! I've managed to cut out huge chunks of my config thanks to it (and I'm particularly looking forward to mini.terminals).",
+                    "createdAt": "2025-03-17T17:25:31Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12528392,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AvysI",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-17T17:25:31Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12528318,
+                        "id": "DC_kwDOFoksYM4Avyq-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1685#discussioncomment-12528318"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1685#discussioncomment-12528392",
+                    "updatedAt": "2025-03-17T17:25:31Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1685#discussioncomment-12528392"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1685#discussioncomment-12528318",
+            "updatedAt": "2025-03-17T17:18:26Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1685#discussioncomment-12528318"
+        }
+    ],
+    "createdAt": "2025-03-17T16:52:21Z",
+    "createdViaEmail": false,
+    "databaseId": 8094618,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Ae4Oa",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABhiw-bg",
+                "name": "mini.deps"
+            },
+            {
+                "color": "FBCA04",
+                "description": "This is related to all present modules",
+                "id": "LA_kwDOFoksYM8AAAABwzHsyw",
+                "name": "ALL"
+            }
+        ],
+        "totalCount": 3
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1685,
+    "poll": null,
+    "publishedAt": "2025-03-17T16:52:21Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1685",
+    "stateReason": "RESOLVED",
+    "title": "Best practices for setup with lazy.nvim?",
+    "updatedAt": "2025-03-18T15:21:57Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1685"
+}

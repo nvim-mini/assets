@@ -1,0 +1,618 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "Before:\r\n\r\n![1720081830](https://github.com/echasnovski/mini.nvim/assets/58370433/c61bd63e-b9ae-4876-b865-13c9c0554b74)\r\n\r\n\r\nAfter:\r\n\r\n![1720081671](https://github.com/echasnovski/mini.nvim/assets/58370433/0819f8a2-d616-469a-9166-3c433bf58cbb)\r\n\r\n\r\n\r\nAs the [initiator](https://github.com/LazyVim/LazyVim/pull/2115) of `.lazy.lua` I was curious to see if the [Tokyonight Dev Environment](https://www.reddit.com/r/neovim/comments/1dtk0iq/tokyonightnvim_v4x_rewrite/) could also be applied using `mini.deps` as the package manager.\r\n\r\nThis is especially interesting when other `colorscheme` creators also [apply](https://www.reddit.com/r/neovim/comments/1duuo6r/folke_has_set_the_bar_for_neovim_dx_yet_again/) this approach.\r\n\r\nThe code:\r\n\r\n```lua\r\nlocal hipatterns = require(\"mini.hipatterns\")\r\n\r\n-- Prepend a space, append a colon:\r\nlocal function to_pattern(word) return \" \" .. word .. \":\" end\r\n\r\n-- Lots of hightlighers....\r\nlocal function get_highlighters()\r\n  local highlighters = {\r\n    FIX = { pattern = to_pattern(\"FIX\"), group = \"MiniHipatternsFixme\" },\r\n  }\r\n  return highlighters\r\nend\r\n\r\n--[[\r\nEnable project-specific plugin specs.\r\n\r\nFile .lazy.lua:\r\n  is read when present in the current working directory\r\n  should return a plugin spec\r\n  has to be manually trusted for each instance of the file\r\n\r\nSee:\r\n  :h 'exrc'\r\n  :h :trust\r\n--]]\r\n---@return function?\r\nlocal function get_opt_function_from_lazy_lua()\r\n  local filepath = vim.fn.fnamemodify(\".lazy.lua\", \":p\")\r\n  local file = vim.secure.read(filepath)\r\n  if not file then return end\r\n\r\n  local package = vim.fn.fnamemodify(filepath, \":p:h:t\")\r\n  vim.cmd.packadd(package) -- name of dir holding the colorscheme to packadd\r\n\r\n  local lazyspec = loadstring(file)()\r\n  if not lazyspec then return end\r\n\r\n  local hi_spec = lazyspec[1]\r\n  if not hi_spec or type(hi_spec[1]) ~= \"string\" or not string.find(hi_spec[1], \"hipatterns\") then return end\r\n\r\n  local hi_spec_callable = hi_spec.opts\r\n  if not hi_spec_callable or type(hi_spec_callable) ~= \"function\" then return end\r\n\r\n  return hi_spec_callable\r\nend\r\n\r\nlocal highlighters = get_highlighters()\r\nlocal lazy_opt_function = get_opt_function_from_lazy_lua()\r\nlocal opts = { highlighters = highlighters }\r\nhipatterns.setup(lazy_opt_function and lazy_opt_function(nil, opts) or opts)\r\n\r\n```\r\n\r\nOpen a file inside the directory of `tokyonight.nvim` and the patterns apply exactly as when using `lazy.nvim`. An initial `:w` might be necessary.",
+    "bodyHTML": "<p dir=\"auto\">Before:</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/58370433/345756351-c61bd63e-b9ae-4876-b865-13c9c0554b74.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0NTUsIm5iZiI6MTc5MzU1MzE1NSwicGF0aCI6Ii81ODM3MDQzMy8zNDU3NTYzNTEtYzYxYmQ2M2UtYjlhZS00ODc2LWI4NjUtMTNjOWMwNTU0Yjc0LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTBjOTk5OWE2NGU5OWI5YmY0ZWVmNTkxMTdmMjU5MDEyYzYwNjE3M2EyYTM4NWVhZDIzYWQ3YzUzYzgyMWRiNDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.xvky7k0EqWfUqqKPUCSXfYZEffCskQK1r17-okK2R0Y\"><img src=\"https://private-user-images.githubusercontent.com/58370433/345756351-c61bd63e-b9ae-4876-b865-13c9c0554b74.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0NTUsIm5iZiI6MTc5MzU1MzE1NSwicGF0aCI6Ii81ODM3MDQzMy8zNDU3NTYzNTEtYzYxYmQ2M2UtYjlhZS00ODc2LWI4NjUtMTNjOWMwNTU0Yjc0LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTBjOTk5OWE2NGU5OWI5YmY0ZWVmNTkxMTdmMjU5MDEyYzYwNjE3M2EyYTM4NWVhZDIzYWQ3YzUzYzgyMWRiNDImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.xvky7k0EqWfUqqKPUCSXfYZEffCskQK1r17-okK2R0Y\" alt=\"1720081830\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">After:</p>\n<p dir=\"auto\"><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/58370433/345755660-0819f8a2-d616-469a-9166-3c433bf58cbb.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0NTUsIm5iZiI6MTc5MzU1MzE1NSwicGF0aCI6Ii81ODM3MDQzMy8zNDU3NTU2NjAtMDgxOWY4YTItZDYxNi00NjlhLTkxNjYtM2M0MzNiZjU4Y2JiLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWI4MzcxNjNhMDlkZDQyNGY1ZmUzNWU1YjBhNmM2ODQ0YjNmOTdkZWQwMzc1MTIxZmMxNzUwNjQzOTIxZDEyYTUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.ooiZGEd_sghopwS_FXJVpiLPIMgS7aqW1xGCgbkq2r0\"><img src=\"https://private-user-images.githubusercontent.com/58370433/345755660-0819f8a2-d616-469a-9166-3c433bf58cbb.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTM0NTUsIm5iZiI6MTc5MzU1MzE1NSwicGF0aCI6Ii81ODM3MDQzMy8zNDU3NTU2NjAtMDgxOWY4YTItZDYxNi00NjlhLTkxNjYtM2M0MzNiZjU4Y2JiLnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTIzNVomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWI4MzcxNjNhMDlkZDQyNGY1ZmUzNWU1YjBhNmM2ODQ0YjNmOTdkZWQwMzc1MTIxZmMxNzUwNjQzOTIxZDEyYTUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT1pbWFnZSUyRnBuZyJ9.ooiZGEd_sghopwS_FXJVpiLPIMgS7aqW1xGCgbkq2r0\" alt=\"1720081671\" style=\"max-width: 100%;\"></a></p>\n<p dir=\"auto\">As the <a href=\"https://github.com/LazyVim/LazyVim/pull/2115\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/LazyVim/LazyVim/pull/2115/hovercard\">initiator</a> of <code class=\"notranslate\">.lazy.lua</code> I was curious to see if the <a href=\"https://www.reddit.com/r/neovim/comments/1dtk0iq/tokyonightnvim_v4x_rewrite/\" rel=\"nofollow\">Tokyonight Dev Environment</a> could also be applied using <code class=\"notranslate\">mini.deps</code> as the package manager.</p>\n<p dir=\"auto\">This is especially interesting when other <code class=\"notranslate\">colorscheme</code> creators also <a href=\"https://www.reddit.com/r/neovim/comments/1duuo6r/folke_has_set_the_bar_for_neovim_dx_yet_again/\" rel=\"nofollow\">apply</a> this approach.</p>\n<p dir=\"auto\">The code:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local hipatterns = require(&quot;mini.hipatterns&quot;)\n\n-- Prepend a space, append a colon:\nlocal function to_pattern(word) return &quot; &quot; .. word .. &quot;:&quot; end\n\n-- Lots of hightlighers....\nlocal function get_highlighters()\n  local highlighters = {\n    FIX = { pattern = to_pattern(&quot;FIX&quot;), group = &quot;MiniHipatternsFixme&quot; },\n  }\n  return highlighters\nend\n\n--[[\nEnable project-specific plugin specs.\n\nFile .lazy.lua:\n  is read when present in the current working directory\n  should return a plugin spec\n  has to be manually trusted for each instance of the file\n\nSee:\n  :h 'exrc'\n  :h :trust\n--]]\n---@return function?\nlocal function get_opt_function_from_lazy_lua()\n  local filepath = vim.fn.fnamemodify(&quot;.lazy.lua&quot;, &quot;:p&quot;)\n  local file = vim.secure.read(filepath)\n  if not file then return end\n\n  local package = vim.fn.fnamemodify(filepath, &quot;:p:h:t&quot;)\n  vim.cmd.packadd(package) -- name of dir holding the colorscheme to packadd\n\n  local lazyspec = loadstring(file)()\n  if not lazyspec then return end\n\n  local hi_spec = lazyspec[1]\n  if not hi_spec or type(hi_spec[1]) ~= &quot;string&quot; or not string.find(hi_spec[1], &quot;hipatterns&quot;) then return end\n\n  local hi_spec_callable = hi_spec.opts\n  if not hi_spec_callable or type(hi_spec_callable) ~= &quot;function&quot; then return end\n\n  return hi_spec_callable\nend\n\nlocal highlighters = get_highlighters()\nlocal lazy_opt_function = get_opt_function_from_lazy_lua()\nlocal opts = { highlighters = highlighters }\nhipatterns.setup(lazy_opt_function and lazy_opt_function(nil, opts) or opts)\n\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">hipatterns</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hipatterns<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Prepend a space, append a colon:</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">to_pattern</span>(<span class=\"pl-smi\">word</span>) <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">word</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Lots of hightlighers....</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">get_highlighters</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlighters</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">FIX</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">to_pattern</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FIX<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHipatternsFixme<span class=\"pl-pds\">\" </span></span>},\n  }\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">highlighters</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--[[</span></span>\n<span class=\"pl-c\">Enable project-specific plugin specs.</span>\n<span class=\"pl-c\"></span>\n<span class=\"pl-c\">File .lazy.lua:</span>\n<span class=\"pl-c\">  is read when present in the current working directory</span>\n<span class=\"pl-c\">  should return a plugin spec</span>\n<span class=\"pl-c\">  has to be manually trusted for each instance of the file</span>\n<span class=\"pl-c\"></span>\n<span class=\"pl-c\">See:</span>\n<span class=\"pl-c\">  :h 'exrc'</span>\n<span class=\"pl-c\">  :h :trust</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--]]</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@return</span> <span class=\"pl-c1\">function</span><span class=\"pl-k\">?</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">get_opt_function_from_lazy_lua</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">filepath</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.lazy.lua<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:p<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">file</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">secure</span>.<span class=\"pl-c1\">read</span>(<span class=\"pl-smi\">filepath</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">file</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">package</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">filepath</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:p:h:t<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">cmd</span>.<span class=\"pl-c1\">packadd</span>(<span class=\"pl-smi\">package</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> name of dir holding the colorscheme to packadd</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lazyspec</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">loadstring</span>(<span class=\"pl-smi\">file</span>)()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">lazyspec</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hi_spec</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">lazyspec</span>[<span class=\"pl-c1\">1</span>]\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">hi_spec</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">hi_spec</span>[<span class=\"pl-c1\">1</span>]) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">hi_spec</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>hipatterns<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hi_spec_callable</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">hi_spec</span>.<span class=\"pl-e\">opts</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">hi_spec_callable</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">hi_spec_callable</span>) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>function<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">hi_spec_callable</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">highlighters</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">get_highlighters</span>()\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">lazy_opt_function</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">get_opt_function_from_lazy_lua</span>()\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">highlighters</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">highlighters</span> }\n<span class=\"pl-smi\">hipatterns</span>.<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">lazy_opt_function</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">lazy_opt_function</span>(<span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">opts</span>) <span class=\"pl-k\">or</span> <span class=\"pl-smi\">opts</span>)\n</pre></div>\n<p dir=\"auto\">Open a file inside the directory of <code class=\"notranslate\">tokyonight.nvim</code> and the patterns apply exactly as when using <code class=\"notranslate\">lazy.nvim</code>. An initial <code class=\"notranslate\">:w</code> might be necessary.</p>",
+    "bodyText": "Before:\n\nAfter:\n\nAs the initiator of .lazy.lua I was curious to see if the Tokyonight Dev Environment could also be applied using mini.deps as the package manager.\nThis is especially interesting when other colorscheme creators also apply this approach.\nThe code:\nlocal hipatterns = require(\"mini.hipatterns\")\n\n-- Prepend a space, append a colon:\nlocal function to_pattern(word) return \" \" .. word .. \":\" end\n\n-- Lots of hightlighers....\nlocal function get_highlighters()\n  local highlighters = {\n    FIX = { pattern = to_pattern(\"FIX\"), group = \"MiniHipatternsFixme\" },\n  }\n  return highlighters\nend\n\n--[[\nEnable project-specific plugin specs.\n\nFile .lazy.lua:\n  is read when present in the current working directory\n  should return a plugin spec\n  has to be manually trusted for each instance of the file\n\nSee:\n  :h 'exrc'\n  :h :trust\n--]]\n---@return function?\nlocal function get_opt_function_from_lazy_lua()\n  local filepath = vim.fn.fnamemodify(\".lazy.lua\", \":p\")\n  local file = vim.secure.read(filepath)\n  if not file then return end\n\n  local package = vim.fn.fnamemodify(filepath, \":p:h:t\")\n  vim.cmd.packadd(package) -- name of dir holding the colorscheme to packadd\n\n  local lazyspec = loadstring(file)()\n  if not lazyspec then return end\n\n  local hi_spec = lazyspec[1]\n  if not hi_spec or type(hi_spec[1]) ~= \"string\" or not string.find(hi_spec[1], \"hipatterns\") then return end\n\n  local hi_spec_callable = hi_spec.opts\n  if not hi_spec_callable or type(hi_spec_callable) ~= \"function\" then return end\n\n  return hi_spec_callable\nend\n\nlocal highlighters = get_highlighters()\nlocal lazy_opt_function = get_opt_function_from_lazy_lua()\nlocal opts = { highlighters = highlighters }\nhipatterns.setup(lazy_opt_function and lazy_opt_function(nil, opts) or opts)\n\nOpen a file inside the directory of tokyonight.nvim and the patterns apply exactly as when using lazy.nvim. An initial :w might be necessary.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "While I don't plan on visiting tokyonight or cyberdreams repos anytime soon, I still added this to my config 😄\r\n\r\nMade a small change and replaced these two lines:\r\n```lua\r\n  local hi_spec = lazyspec[1]\r\n  if not hi_spec or type(hi_spec[1]) ~= \"string\" or not string.find(hi_spec[1], \"hipatterns\") then return end\r\n```\r\nWith these lines just in case someone has other plug-in specs in their `.lazy.lua` file:\r\n```lua\r\n  local hi_spec = vim.tbl_filter(function(spec)\r\n    return type(spec[1]) == \"string\" and spec[1]:find(\"hipatterns\") ~= nil\r\n  end, lazyspec)[1]\r\n  if not hi_spec then return end\r\n```",
+            "bodyHTML": "<p dir=\"auto\">While I don't plan on visiting tokyonight or cyberdreams repos anytime soon, I still added this to my config 😄</p>\n<p dir=\"auto\">Made a small change and replaced these two lines:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local hi_spec = lazyspec[1]\n  if not hi_spec or type(hi_spec[1]) ~= &quot;string&quot; or not string.find(hi_spec[1], &quot;hipatterns&quot;) then return end\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hi_spec</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">lazyspec</span>[<span class=\"pl-c1\">1</span>]\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">hi_spec</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">hi_spec</span>[<span class=\"pl-c1\">1</span>]) <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-k\">not</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">hi_spec</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>hipatterns<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">With these lines just in case someone has other plug-in specs in their <code class=\"notranslate\">.lazy.lua</code> file:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  local hi_spec = vim.tbl_filter(function(spec)\n    return type(spec[1]) == &quot;string&quot; and spec[1]:find(&quot;hipatterns&quot;) ~= nil\n  end, lazyspec)[1]\n  if not hi_spec then return end\"><pre class=\"notranslate\">  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hi_spec</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">spec</span>)\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">type</span>(<span class=\"pl-smi\">spec</span>[<span class=\"pl-c1\">1</span>]) <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>string<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">spec</span>[<span class=\"pl-c1\">1</span>]:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>hipatterns<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">lazyspec</span>)[<span class=\"pl-c1\">1</span>]\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">hi_spec</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span></pre></div>",
+            "bodyText": "While I don't plan on visiting tokyonight or cyberdreams repos anytime soon, I still added this to my config 😄\nMade a small change and replaced these two lines:\n  local hi_spec = lazyspec[1]\n  if not hi_spec or type(hi_spec[1]) ~= \"string\" or not string.find(hi_spec[1], \"hipatterns\") then return end\nWith these lines just in case someone has other plug-in specs in their .lazy.lua file:\n  local hi_spec = vim.tbl_filter(function(spec)\n    return type(spec[1]) == \"string\" and spec[1]:find(\"hipatterns\") ~= nil\n  end, lazyspec)[1]\n  if not hi_spec then return end",
+            "createdAt": "2024-07-04T13:20:35Z",
+            "createdViaEmail": false,
+            "databaseId": 9959181,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Al_cN",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-04T13:20:35Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Very nice! Thanks for the improvement.",
+                    "bodyHTML": "<p dir=\"auto\">Very nice! Thanks for the improvement.</p>",
+                    "bodyText": "Very nice! Thanks for the improvement.",
+                    "createdAt": "2024-07-04T14:28:05Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9959773,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Al_ld",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-04T14:28:05Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9959181,
+                        "id": "DC_kwDOFoksYM4Al_cN",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959181"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959773",
+                    "updatedAt": "2024-07-04T14:28:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959773"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959181",
+            "updatedAt": "2024-07-04T13:20:36Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959181"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI am thinking about an idea of adding something like `MiniExtra.gen_highlighter.hl_groups` to possibly make this easier. So that it highlight whole word in buffer if it is equal to *some* present highlight group. Will need an investigation on performant implementation (some kind of caching for present highlight groups, at least). We'll see.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I am thinking about an idea of adding something like <code class=\"notranslate\">MiniExtra.gen_highlighter.hl_groups</code> to possibly make this easier. So that it highlight whole word in buffer if it is equal to <em>some</em> present highlight group. Will need an investigation on performant implementation (some kind of caching for present highlight groups, at least). We'll see.</p>",
+            "bodyText": "Thanks for sharing!\nI am thinking about an idea of adding something like MiniExtra.gen_highlighter.hl_groups to possibly make this easier. So that it highlight whole word in buffer if it is equal to some present highlight group. Will need an investigation on performant implementation (some kind of caching for present highlight groups, at least). We'll see.",
+            "createdAt": "2024-07-04T13:42:15Z",
+            "createdViaEmail": false,
+            "databaseId": 9959382,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Al_fW",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-04T13:42:15Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "That would be great!",
+                    "bodyHTML": "<p dir=\"auto\">That would be great!</p>",
+                    "bodyText": "That would be great!",
+                    "createdAt": "2024-07-04T14:26:54Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9959765,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Al_lV",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-04T14:26:54Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9959382,
+                        "id": "DC_kwDOFoksYM4Al_fW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959382"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959765",
+                    "updatedAt": "2024-07-04T14:26:54Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959765"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Just a thought: Would this extra have the same intent as the code Folke wrote in `.lazy.lua`? If that's the case, and the extra is used in a local `.lazy.lua` in the colorscheme, performance is perhaps not that critical.\r\n\r\nWould an \"extra\", reading the local `.lazy.lua` be interesting? The `mini.deps` user could then select from the output of the extra when doing `require(\"someplugin\").setup(\"opts_with_extra_opts\")`",
+                    "bodyHTML": "<p dir=\"auto\">Just a thought: Would this extra have the same intent as the code Folke wrote in <code class=\"notranslate\">.lazy.lua</code>? If that's the case, and the extra is used in a local <code class=\"notranslate\">.lazy.lua</code> in the colorscheme, performance is perhaps not that critical.</p>\n<p dir=\"auto\">Would an \"extra\", reading the local <code class=\"notranslate\">.lazy.lua</code> be interesting? The <code class=\"notranslate\">mini.deps</code> user could then select from the output of the extra when doing <code class=\"notranslate\">require(\"someplugin\").setup(\"opts_with_extra_opts\")</code></p>",
+                    "bodyText": "Just a thought: Would this extra have the same intent as the code Folke wrote in .lazy.lua? If that's the case, and the extra is used in a local .lazy.lua in the colorscheme, performance is perhaps not that critical.\nWould an \"extra\", reading the local .lazy.lua be interesting? The mini.deps user could then select from the output of the extra when doing require(\"someplugin\").setup(\"opts_with_extra_opts\")",
+                    "createdAt": "2024-07-04T14:53:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9960027,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Al_pb",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-04T14:53:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9959382,
+                        "id": "DC_kwDOFoksYM4Al_fW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959382"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9960027",
+                    "updatedAt": "2024-07-04T14:53:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9960027"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Just a thought: Would this extra have the same intent as the code Folke wrote in `.lazy.lua`? If that's the case, and the extra is used in a local `.lazy.lua` in the colorscheme, performance is perhaps not that critical.\r\n> \r\n> Would an \"extra\", reading the local `.lazy.lua` be interesting? The `mini.deps` user could then select from the output of the extra when doing `require(\"someplugin\").setup(\"opts_with_extra_opts\")`\r\n\r\nThe intent is to make it easier to have manually toggled highlighter which highlights highlight group names inside a buffer. Reading '.lazy.lua' is probably too much here.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Just a thought: Would this extra have the same intent as the code Folke wrote in <code class=\"notranslate\">.lazy.lua</code>? If that's the case, and the extra is used in a local <code class=\"notranslate\">.lazy.lua</code> in the colorscheme, performance is perhaps not that critical.</p>\n<p dir=\"auto\">Would an \"extra\", reading the local <code class=\"notranslate\">.lazy.lua</code> be interesting? The <code class=\"notranslate\">mini.deps</code> user could then select from the output of the extra when doing <code class=\"notranslate\">require(\"someplugin\").setup(\"opts_with_extra_opts\")</code></p>\n</blockquote>\n<p dir=\"auto\">The intent is to make it easier to have manually toggled highlighter which highlights highlight group names inside a buffer. Reading '.lazy.lua' is probably too much here.</p>",
+                    "bodyText": "Just a thought: Would this extra have the same intent as the code Folke wrote in .lazy.lua? If that's the case, and the extra is used in a local .lazy.lua in the colorscheme, performance is perhaps not that critical.\nWould an \"extra\", reading the local .lazy.lua be interesting? The mini.deps user could then select from the output of the extra when doing require(\"someplugin\").setup(\"opts_with_extra_opts\")\n\nThe intent is to make it easier to have manually toggled highlighter which highlights highlight group names inside a buffer. Reading '.lazy.lua' is probably too much here.",
+                    "createdAt": "2024-07-04T14:55:53Z",
+                    "createdViaEmail": false,
+                    "databaseId": 9960046,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Al_pu",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-04T14:55:53Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 9959382,
+                        "id": "DC_kwDOFoksYM4Al_fW",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959382"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9960046",
+                    "updatedAt": "2024-07-04T14:55:53Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9960046"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959382",
+            "updatedAt": "2024-07-04T13:42:16Z",
+            "upvoteCount": 4,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012#discussioncomment-9959382"
+        }
+    ],
+    "createdAt": "2024-07-04T08:31:26Z",
+    "createdViaEmail": false,
+    "databaseId": 6896329,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "id": "D_kwDOFoksYM4AaTrJ",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABSnqSzg",
+                "name": "mini.hipatterns"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABhiw-bg",
+                "name": "mini.deps"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2024-07-04T09:00:54Z",
+    "locked": false,
+    "number": 1012,
+    "poll": null,
+    "publishedAt": "2024-07-04T08:31:26Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1012",
+    "stateReason": null,
+    "title": "[mini.deps] Apply Folke's Tokyonight Dev Environment",
+    "updatedAt": "2024-07-04T14:55:53Z",
+    "upvoteCount": 3,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1012"
+}

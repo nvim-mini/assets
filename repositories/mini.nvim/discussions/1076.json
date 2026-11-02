@@ -1,0 +1,626 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 10111911,
+        "id": "DC_kwDOFoksYM4Amkun",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10111911"
+    },
+    "answerChosenAt": "2024-07-22T21:15:57Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/69218859?u=6b7b0e89bc0fe564f3ef9de96977c531c35a0492&v=4",
+        "login": "bvngee",
+        "resourcePath": "/bvngee",
+        "url": "https://github.com/bvngee"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/69218859?u=6b7b0e89bc0fe564f3ef9de96977c531c35a0492&v=4",
+        "login": "bvngee",
+        "resourcePath": "/bvngee",
+        "url": "https://github.com/bvngee"
+    },
+    "authorAssociation": "NONE",
+    "body": "I apologize if this question has already been answered or explained elsewhere that I could not find.\r\n\r\nIn most cases, I think `search_method = 'cover_or_next'` is the best. However, when working with `ai.gen_spec.treesitter()` textobjects, I find that the \"or_next\" part gets annoying; that is, I want these specific textobjects to only match when my cursor is within their bounds (which I believe `search_method = 'cover'` does), for example to prevent jumping 30 line down when I do a cif. Is there a way of specifying `search_method` for different textobjects? (I don't see anything obvious [here](https://github.com/echasnovski/mini.ai/blob/45587078f323eaf41b9f701bbc04f8d1ab008979/lua/mini/ai.lua#L959)...)\r\n\r\nPS. I absolutely love what you're doing with mini.nvim, thanks for the awesome work <3",
+    "bodyHTML": "<p dir=\"auto\">I apologize if this question has already been answered or explained elsewhere that I could not find.</p>\n<p dir=\"auto\">In most cases, I think <code class=\"notranslate\">search_method = 'cover_or_next'</code> is the best. However, when working with <code class=\"notranslate\">ai.gen_spec.treesitter()</code> textobjects, I find that the \"or_next\" part gets annoying; that is, I want these specific textobjects to only match when my cursor is within their bounds (which I believe <code class=\"notranslate\">search_method = 'cover'</code> does), for example to prevent jumping 30 line down when I do a cif. Is there a way of specifying <code class=\"notranslate\">search_method</code> for different textobjects? (I don't see anything obvious <a href=\"https://github.com/echasnovski/mini.ai/blob/45587078f323eaf41b9f701bbc04f8d1ab008979/lua/mini/ai.lua#L959\">here</a>...)</p>\n<p dir=\"auto\">PS. I absolutely love what you're doing with mini.nvim, thanks for the awesome work &lt;3</p>",
+    "bodyText": "I apologize if this question has already been answered or explained elsewhere that I could not find.\nIn most cases, I think search_method = 'cover_or_next' is the best. However, when working with ai.gen_spec.treesitter() textobjects, I find that the \"or_next\" part gets annoying; that is, I want these specific textobjects to only match when my cursor is within their bounds (which I believe search_method = 'cover' does), for example to prevent jumping 30 line down when I do a cif. Is there a way of specifying search_method for different textobjects? (I don't see anything obvious here...)\nPS. I absolutely love what you're doing with mini.nvim, thanks for the awesome work <3",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-07-22T08:00:58Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I don't think this was answered before, so no need to apologize :)\r\n\r\nAlthough not straightforward, there is a way to do this. The `gen_spec.treesitter()` [function returns a callable (i.e. function) specification](https://github.com/echasnovski/mini.nvim/blob/23669ab7abc2cd10f9a5166de07400bb34eaecda/doc/mini-ai.txt#L767-L770). This returned function has the same signature as [`find_textobject()`](https://github.com/echasnovski/mini.nvim/blob/23669ab7abc2cd10f9a5166de07400bb34eaecda/doc/mini-ai.txt#L560-L575), which in turn can be configured to use specific search method via `opts.search_method`.\r\n\r\nSo the solution here would be to wrap the output of `gen_spec.treesitter()` in own function which forces specific search method. Here is an example for \"function definition\" textobject:\r\n\r\n```lua\r\nlocal ai = require('mini.ai')\r\nlocal spec_ts = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' })\r\nlocal spec_ts_cover = function(ai_type, id, opts)\r\n  opts.search_method = 'cover'\r\n  return spec_ts(ai_type, id, opts)\r\nend\r\nai.setup({\r\n  custom_textobjects = {\r\n    F = spec_ts_cover,\r\n  },\r\n})\r\n```\r\n\r\n------\r\n\r\nThat said, my recommendation would be to use `'cover'` method as the main one and explicitly use `an` / `al` / `in` / `il` variants if you want next/previous textobject.",
+            "bodyHTML": "<p dir=\"auto\">I don't think this was answered before, so no need to apologize :)</p>\n<p dir=\"auto\">Although not straightforward, there is a way to do this. The <code class=\"notranslate\">gen_spec.treesitter()</code> <a href=\"https://github.com/echasnovski/mini.nvim/blob/23669ab7abc2cd10f9a5166de07400bb34eaecda/doc/mini-ai.txt#L767-L770\">function returns a callable (i.e. function) specification</a>. This returned function has the same signature as <a href=\"https://github.com/echasnovski/mini.nvim/blob/23669ab7abc2cd10f9a5166de07400bb34eaecda/doc/mini-ai.txt#L560-L575\"><code class=\"notranslate\">find_textobject()</code></a>, which in turn can be configured to use specific search method via <code class=\"notranslate\">opts.search_method</code>.</p>\n<p dir=\"auto\">So the solution here would be to wrap the output of <code class=\"notranslate\">gen_spec.treesitter()</code> in own function which forces specific search method. Here is an example for \"function definition\" textobject:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local ai = require('mini.ai')\nlocal spec_ts = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' })\nlocal spec_ts_cover = function(ai_type, id, opts)\n  opts.search_method = 'cover'\n  return spec_ts(ai_type, id, opts)\nend\nai.setup({\n  custom_textobjects = {\n    F = spec_ts_cover,\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">ai</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">spec_ts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai</span>.<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-c1\">treesitter</span>({ <span class=\"pl-smi\">a</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>@function.outer<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>@function.inner<span class=\"pl-pds\">' </span></span>})\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">spec_ts_cover</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">search_method</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>cover<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">spec_ts</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">ai</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">F</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">spec_ts_cover</span>,\n  },\n})</pre></div>\n<hr>\n<p dir=\"auto\">That said, my recommendation would be to use <code class=\"notranslate\">'cover'</code> method as the main one and explicitly use <code class=\"notranslate\">an</code> / <code class=\"notranslate\">al</code> / <code class=\"notranslate\">in</code> / <code class=\"notranslate\">il</code> variants if you want next/previous textobject.</p>",
+            "bodyText": "I don't think this was answered before, so no need to apologize :)\nAlthough not straightforward, there is a way to do this. The gen_spec.treesitter() function returns a callable (i.e. function) specification. This returned function has the same signature as find_textobject(), which in turn can be configured to use specific search method via opts.search_method.\nSo the solution here would be to wrap the output of gen_spec.treesitter() in own function which forces specific search method. Here is an example for \"function definition\" textobject:\nlocal ai = require('mini.ai')\nlocal spec_ts = ai.gen_spec.treesitter({ a = '@function.outer', i = '@function.inner' })\nlocal spec_ts_cover = function(ai_type, id, opts)\n  opts.search_method = 'cover'\n  return spec_ts(ai_type, id, opts)\nend\nai.setup({\n  custom_textobjects = {\n    F = spec_ts_cover,\n  },\n})\n\nThat said, my recommendation would be to use 'cover' method as the main one and explicitly use an / al / in / il variants if you want next/previous textobject.",
+            "createdAt": "2024-07-22T08:00:58Z",
+            "createdViaEmail": false,
+            "databaseId": 10111911,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Amkun",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-22T08:00:58Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/69218859?u=6b7b0e89bc0fe564f3ef9de96977c531c35a0492&v=4",
+                        "login": "bvngee",
+                        "resourcePath": "/bvngee",
+                        "url": "https://github.com/bvngee"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "I kinda thought it would be something like that :) thanks so much!",
+                    "bodyHTML": "<p dir=\"auto\">I kinda thought it would be something like that :) thanks so much!</p>",
+                    "bodyText": "I kinda thought it would be something like that :) thanks so much!",
+                    "createdAt": "2024-07-22T21:15:55Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10119455,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Ammkf",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-22T21:15:55Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10111911,
+                        "id": "DC_kwDOFoksYM4Amkun",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10111911"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10119455",
+                    "updatedAt": "2024-07-22T21:15:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10119455"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10111911",
+            "updatedAt": "2024-07-22T08:00:59Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10111911"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/35915460?u=f854aad1081045a56b010b82c5a044d272387089&v=4",
+                "login": "Goose97",
+                "resourcePath": "/Goose97",
+                "url": "https://github.com/Goose97"
+            },
+            "authorAssociation": "NONE",
+            "body": "Sorry for resurrect this thread. I want to achieve the same thing but for brackets ((, [, {). I want the bracket to always use the `cover` strategy. I tried to mimic your solution but it seems like the gen_spec.pair doesn't support that\r\n\r\n```\r\n      local spec_pair = require(\"mini.ai\").gen_spec.pair\r\n      local opts = {\r\n        custom_textobjects = {\r\n          [\")\"] = spec_pair(\"(\", \")\", { type = \"balanced\", search_method = \"cover\" }),\r\n          [\"(\"] = spec_pair(\"(\", \")\", { type = \"balanced\", search_method = \"cover\" })\r\n        },\r\n      }\r\n\r\n      require(\"mini.ai\").setup(opts)\r\n```\r\n\r\nOne solution I can think of is to increase the size of `n_lines` to a sufficiently large number, like 100. I just want to know if there's any official solution before using it as the last resort.\r\n\r\nThanks for this module. I think the API is well thought-out and the documentation is superb.",
+            "bodyHTML": "<p dir=\"auto\">Sorry for resurrect this thread. I want to achieve the same thing but for brackets ((, [, {). I want the bracket to always use the <code class=\"notranslate\">cover</code> strategy. I tried to mimic your solution but it seems like the gen_spec.pair doesn't support that</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"      local spec_pair = require(&quot;mini.ai&quot;).gen_spec.pair\n      local opts = {\n        custom_textobjects = {\n          [&quot;)&quot;] = spec_pair(&quot;(&quot;, &quot;)&quot;, { type = &quot;balanced&quot;, search_method = &quot;cover&quot; }),\n          [&quot;(&quot;] = spec_pair(&quot;(&quot;, &quot;)&quot;, { type = &quot;balanced&quot;, search_method = &quot;cover&quot; })\n        },\n      }\n\n      require(&quot;mini.ai&quot;).setup(opts)\"><pre class=\"notranslate\"><code class=\"notranslate\">      local spec_pair = require(\"mini.ai\").gen_spec.pair\n      local opts = {\n        custom_textobjects = {\n          [\")\"] = spec_pair(\"(\", \")\", { type = \"balanced\", search_method = \"cover\" }),\n          [\"(\"] = spec_pair(\"(\", \")\", { type = \"balanced\", search_method = \"cover\" })\n        },\n      }\n\n      require(\"mini.ai\").setup(opts)\n</code></pre></div>\n<p dir=\"auto\">One solution I can think of is to increase the size of <code class=\"notranslate\">n_lines</code> to a sufficiently large number, like 100. I just want to know if there's any official solution before using it as the last resort.</p>\n<p dir=\"auto\">Thanks for this module. I think the API is well thought-out and the documentation is superb.</p>",
+            "bodyText": "Sorry for resurrect this thread. I want to achieve the same thing but for brackets ((, [, {). I want the bracket to always use the cover strategy. I tried to mimic your solution but it seems like the gen_spec.pair doesn't support that\n      local spec_pair = require(\"mini.ai\").gen_spec.pair\n      local opts = {\n        custom_textobjects = {\n          [\")\"] = spec_pair(\"(\", \")\", { type = \"balanced\", search_method = \"cover\" }),\n          [\"(\"] = spec_pair(\"(\", \")\", { type = \"balanced\", search_method = \"cover\" })\n        },\n      }\n\n      require(\"mini.ai\").setup(opts)\n\nOne solution I can think of is to increase the size of n_lines to a sufficiently large number, like 100. I just want to know if there's any official solution before using it as the last resort.\nThanks for this module. I think the API is well thought-out and the documentation is superb.",
+            "createdAt": "2024-10-04T05:51:31Z",
+            "createdViaEmail": false,
+            "databaseId": 10840190,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4ApWh-",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-10-04T05:51:31Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/35915460?u=f854aad1081045a56b010b82c5a044d272387089&v=4",
+                        "login": "Goose97",
+                        "resourcePath": "/Goose97",
+                        "url": "https://github.com/Goose97"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "After digging around the source code a bit, I came up with a decent solution. Looks a bit cryptic\r\n\r\n```lua\r\nlocal spec_pair = require(\"mini.ai\").gen_spec.pair\r\nlocal opts = {\r\n    custom_textobjects = {\r\n    [\"(\"] = function(ai_type, _, opts)\r\n    -- Force the search method to always be \"cover\"\r\n    opts.search_method = \"cover\"\r\n    -- This will use the pattern supply by \"_(\" below\r\n    return require(\"mini.ai\").find_textobject(ai_type, \"_(\", opts)\r\n  end,\r\n\r\n  [\"_(\"] = { \"%b()\", \"^.().*().$\" }\r\n}\r\n\r\nrequire(\"mini.ai\").setup(opts)\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">After digging around the source code a bit, I came up with a decent solution. Looks a bit cryptic</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local spec_pair = require(&quot;mini.ai&quot;).gen_spec.pair\nlocal opts = {\n    custom_textobjects = {\n    [&quot;(&quot;] = function(ai_type, _, opts)\n    -- Force the search method to always be &quot;cover&quot;\n    opts.search_method = &quot;cover&quot;\n    -- This will use the pattern supply by &quot;_(&quot; below\n    return require(&quot;mini.ai&quot;).find_textobject(ai_type, &quot;_(&quot;, opts)\n  end,\n\n  [&quot;_(&quot;] = { &quot;%b()&quot;, &quot;^.().*().$&quot; }\n}\n\nrequire(&quot;mini.ai&quot;).setup(opts)\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">spec_pair</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.ai<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">gen_spec</span>.<span class=\"pl-e\">pair</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> {\n    [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>(<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">opts</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Force the search method to always be \"cover\"</span>\n    <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">search_method</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>cover<span class=\"pl-pds\">\"</span></span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> This will use the pattern supply by \"_(\" below</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.ai<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">find_textobject</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>_(<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">end</span>,\n\n  [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>_(<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b()<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^.().*().$<span class=\"pl-pds\">\" </span></span>}\n}\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.ai<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">setup</span>(<span class=\"pl-smi\">opts</span>)</pre></div>",
+                    "bodyText": "After digging around the source code a bit, I came up with a decent solution. Looks a bit cryptic\nlocal spec_pair = require(\"mini.ai\").gen_spec.pair\nlocal opts = {\n    custom_textobjects = {\n    [\"(\"] = function(ai_type, _, opts)\n    -- Force the search method to always be \"cover\"\n    opts.search_method = \"cover\"\n    -- This will use the pattern supply by \"_(\" below\n    return require(\"mini.ai\").find_textobject(ai_type, \"_(\", opts)\n  end,\n\n  [\"_(\"] = { \"%b()\", \"^.().*().$\" }\n}\n\nrequire(\"mini.ai\").setup(opts)",
+                    "createdAt": "2024-10-04T08:03:24Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10841302,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/35915460?u=f854aad1081045a56b010b82c5a044d272387089&v=4",
+                        "login": "Goose97",
+                        "resourcePath": "/Goose97",
+                        "url": "https://github.com/Goose97"
+                    },
+                    "id": "DC_kwDOFoksYM4ApWzW",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-10-04T08:03:51Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-04T08:03:24Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10840190,
+                        "id": "DC_kwDOFoksYM4ApWh-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10840190"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10841302",
+                    "updatedAt": "2024-10-04T08:03:51Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10841302"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yes, this is one way of doing this.\r\n\r\nAnother approach is to create custom mappings for `a(` and `i(` in Visual and Operator-pending modes. With something like this:\r\n\r\n```lua\r\nlocal map_cover_parens = function(mode, ai_type, id)\r\n  local opts = { search_method = 'cover', operator_pending = mode == 'o' }\r\n  local rhs = function()\r\n    opts.n_times = vim.v.count1\r\n    MiniAi.select_textobject(ai_type, id, opts)\r\n  end\r\n  local desc = (ai_type == 'a' and 'Around' or 'Inside') .. ' covering ' .. vim.inspect(id)\r\n  vim.keymap.set(mode, ai_type .. id, rhs, { desc = desc })\r\nend\r\n\r\nmap_cover_parens('x', 'a', '(')\r\nmap_cover_parens('x', 'i', '(')\r\nmap_cover_parens('o', 'a', '(')\r\nmap_cover_parens('o', 'i', '(')\r\n```\r\n\r\nThis is more verbose, but should be less cryptic.\r\n\r\n------\r\n\r\nUnfortunately, I don't see a better way of doing this. Maybe `find_textobject()` might be extended to accept specification directly as `id` argument.\r\n\r\nBut nevertheless, the main suggestion still stands: use `'cover'` method as the main one and explicitly use `an` / `al` / `in` / `il` variants if you want next/previous textobject.",
+                    "bodyHTML": "<p dir=\"auto\">Yes, this is one way of doing this.</p>\n<p dir=\"auto\">Another approach is to create custom mappings for <code class=\"notranslate\">a(</code> and <code class=\"notranslate\">i(</code> in Visual and Operator-pending modes. With something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local map_cover_parens = function(mode, ai_type, id)\n  local opts = { search_method = 'cover', operator_pending = mode == 'o' }\n  local rhs = function()\n    opts.n_times = vim.v.count1\n    MiniAi.select_textobject(ai_type, id, opts)\n  end\n  local desc = (ai_type == 'a' and 'Around' or 'Inside') .. ' covering ' .. vim.inspect(id)\n  vim.keymap.set(mode, ai_type .. id, rhs, { desc = desc })\nend\n\nmap_cover_parens('x', 'a', '(')\nmap_cover_parens('x', 'i', '(')\nmap_cover_parens('o', 'a', '(')\nmap_cover_parens('o', 'i', '(')\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">map_cover_parens</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">search_method</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>cover<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">operator_pending</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">' </span></span>}\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">rhs</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">n_times</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">v</span>.<span class=\"pl-e\">count1</span>\n    <span class=\"pl-smi\">MiniAi</span>.<span class=\"pl-c1\">select_textobject</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> (<span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Around<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Inside<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span> covering <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">inspect</span>(<span class=\"pl-smi\">id</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">..</span> <span class=\"pl-smi\">id</span>, <span class=\"pl-smi\">rhs</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">desc</span> })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">map_cover_parens</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>(<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-c1\">map_cover_parens</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>x<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>(<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-c1\">map_cover_parens</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>a<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>(<span class=\"pl-pds\">'</span></span>)\n<span class=\"pl-c1\">map_cover_parens</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>o<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>(<span class=\"pl-pds\">'</span></span>)</pre></div>\n<p dir=\"auto\">This is more verbose, but should be less cryptic.</p>\n<hr>\n<p dir=\"auto\">Unfortunately, I don't see a better way of doing this. Maybe <code class=\"notranslate\">find_textobject()</code> might be extended to accept specification directly as <code class=\"notranslate\">id</code> argument.</p>\n<p dir=\"auto\">But nevertheless, the main suggestion still stands: use <code class=\"notranslate\">'cover'</code> method as the main one and explicitly use <code class=\"notranslate\">an</code> / <code class=\"notranslate\">al</code> / <code class=\"notranslate\">in</code> / <code class=\"notranslate\">il</code> variants if you want next/previous textobject.</p>",
+                    "bodyText": "Yes, this is one way of doing this.\nAnother approach is to create custom mappings for a( and i( in Visual and Operator-pending modes. With something like this:\nlocal map_cover_parens = function(mode, ai_type, id)\n  local opts = { search_method = 'cover', operator_pending = mode == 'o' }\n  local rhs = function()\n    opts.n_times = vim.v.count1\n    MiniAi.select_textobject(ai_type, id, opts)\n  end\n  local desc = (ai_type == 'a' and 'Around' or 'Inside') .. ' covering ' .. vim.inspect(id)\n  vim.keymap.set(mode, ai_type .. id, rhs, { desc = desc })\nend\n\nmap_cover_parens('x', 'a', '(')\nmap_cover_parens('x', 'i', '(')\nmap_cover_parens('o', 'a', '(')\nmap_cover_parens('o', 'i', '(')\nThis is more verbose, but should be less cryptic.\n\nUnfortunately, I don't see a better way of doing this. Maybe find_textobject() might be extended to accept specification directly as id argument.\nBut nevertheless, the main suggestion still stands: use 'cover' method as the main one and explicitly use an / al / in / il variants if you want next/previous textobject.",
+                    "createdAt": "2024-10-04T10:48:33Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10842967,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ApXNX",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-04T10:48:33Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10840190,
+                        "id": "DC_kwDOFoksYM4ApWh-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10840190"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10842967",
+                    "updatedAt": "2024-10-04T10:48:34Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10842967"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/35915460?u=f854aad1081045a56b010b82c5a044d272387089&v=4",
+                        "login": "Goose97",
+                        "resourcePath": "/Goose97",
+                        "url": "https://github.com/Goose97"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Thanks for the response. I will adopt this since this is more align with the public API 👍 ",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the response. I will adopt this since this is more align with the public API 👍</p>",
+                    "bodyText": "Thanks for the response. I will adopt this since this is more align with the public API 👍",
+                    "createdAt": "2024-10-05T04:21:29Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10849943,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4ApY6X",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-10-05T04:21:29Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10840190,
+                        "id": "DC_kwDOFoksYM4ApWh-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10840190"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10849943",
+                    "updatedAt": "2024-10-05T04:21:30Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10849943"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10840190",
+            "updatedAt": "2024-10-04T05:51:33Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076#discussioncomment-10840190"
+        }
+    ],
+    "createdAt": "2024-07-22T02:53:26Z",
+    "createdViaEmail": false,
+    "databaseId": 6963219,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/69218859?u=6b7b0e89bc0fe564f3ef9de96977c531c35a0492&v=4",
+        "login": "bvngee",
+        "resourcePath": "/bvngee",
+        "url": "https://github.com/bvngee"
+    },
+    "id": "D_kwDOFoksYM4AakAT",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-07-22T03:06:47Z",
+    "locked": false,
+    "number": 1076,
+    "poll": null,
+    "publishedAt": "2024-07-22T02:53:26Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1076",
+    "stateReason": "RESOLVED",
+    "title": "mini.ai: use different search_method for treesitter textobjects?",
+    "updatedAt": "2024-10-05T04:21:29Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1076"
+}

@@ -1,0 +1,462 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12418809,
+        "id": "DC_kwDOFoksYM4AvX75",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12418809"
+    },
+    "answerChosenAt": "2025-03-06T20:50:19Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+        "login": "krovuxdev",
+        "resourcePath": "/krovuxdev",
+        "url": "https://github.com/krovuxdev"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.snippets\n\n### Question\n\nI'm using `blink.cmp` with `mini.snippet`. The issue occurs when I use `;` to trigger snippet completion. If I type `(;fu)`, after expansion, the output is:  \r\n\r\n```lua\r\n(function()\r\n\r\nend\r\n```\r\n\r\nThe closing `)` gets deleted. However, without `;`, the `)` remains intact.  \r\n\r\nI suspect the issue comes from `blink.cmp`'s snippet handling, specifically in [`mini_snippet.lua`](https://github.com/Saghen/blink.cmp/blob/main/lua/blink/cmp/sources/snippets/mini_snippets.lua),  Below is my configuration:  \r\n<details><summary>\r\nMy Code  \r\n</summary>\r\n\r\n```lua\r\n  transform_items = function(_, items)\r\n                local col = vim.api.nvim_win_get_cursor(0)[2]\r\n                local before_cursor = vim.api.nvim_get_current_line():sub(1, col)\r\n                local pos = before_cursor:find(\";[%w*]*$\")\r\n                -- if not pos then return items end\r\n                if not pos then\r\n                    return vim.tbl_filter(function(item)\r\n                        return item.kind ~= require('blink.cmp.types').CompletionItemKind.Snippet\r\n                    end, items)\r\n                end\r\n                for _, item in ipairs(items) do\r\n                    item.textEdit = {\r\n                        newText = item.insertText or item.label,\r\n                        range = {\r\n                            start = {\r\n                                line = vim.fn.line(\".\") - 1,\r\n                                character = pos - 1,\r\n\r\n                            },\r\n                            [\"end\"] = {\r\n                                line = vim.fn.line(\".\") - 1,\r\n                                character = col,\r\n                            },\r\n                        },\r\n                    }\r\n\r\n                end\r\n\r\n                return vim.tbl_filter(function(item)\r\n                    local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet\r\n                    return pos and item.kind == kind_snippet\r\n                end, items)\r\n            end,\r\n```\r\n</details>\r\n\r\nI'm unsure how to fix this for a PR to [`mini_snippet.lua`](link_mini_snippet.lua). Any guidance on why the `)` is being deleted and how to properly handle snippet expansion with `;` would be helpful.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.snippets</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I'm using <code class=\"notranslate\">blink.cmp</code> with <code class=\"notranslate\">mini.snippet</code>. The issue occurs when I use <code class=\"notranslate\">;</code> to trigger snippet completion. If I type <code class=\"notranslate\">(;fu)</code>, after expansion, the output is:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"(function()\n\nend\"><pre class=\"notranslate\">(<span class=\"pl-k\">function</span>()\n\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">The closing <code class=\"notranslate\">)</code> gets deleted. However, without <code class=\"notranslate\">;</code>, the <code class=\"notranslate\">)</code> remains intact.</p>\n<p dir=\"auto\">I suspect the issue comes from <code class=\"notranslate\">blink.cmp</code>'s snippet handling, specifically in <a href=\"https://github.com/Saghen/blink.cmp/blob/main/lua/blink/cmp/sources/snippets/mini_snippets.lua\"><code class=\"notranslate\">mini_snippet.lua</code></a>,  Below is my configuration:</p>\n<details><summary>\nMy Code  \n</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"  transform_items = function(_, items)\n                local col = vim.api.nvim_win_get_cursor(0)[2]\n                local before_cursor = vim.api.nvim_get_current_line():sub(1, col)\n                local pos = before_cursor:find(&quot;;[%w*]*$&quot;)\n                -- if not pos then return items end\n                if not pos then\n                    return vim.tbl_filter(function(item)\n                        return item.kind ~= require('blink.cmp.types').CompletionItemKind.Snippet\n                    end, items)\n                end\n                for _, item in ipairs(items) do\n                    item.textEdit = {\n                        newText = item.insertText or item.label,\n                        range = {\n                            start = {\n                                line = vim.fn.line(&quot;.&quot;) - 1,\n                                character = pos - 1,\n\n                            },\n                            [&quot;end&quot;] = {\n                                line = vim.fn.line(&quot;.&quot;) - 1,\n                                character = col,\n                            },\n                        },\n                    }\n\n                end\n\n                return vim.tbl_filter(function(item)\n                    local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet\n                    return pos and item.kind == kind_snippet\n                end, items)\n            end,\"><pre class=\"notranslate\">  <span class=\"pl-en\">transform_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">items</span>)\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-c1\">0</span>)[<span class=\"pl-c1\">2</span>]\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">before_cursor</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_line</span>():<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">col</span>)\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">before_cursor</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>;[%w*]*$<span class=\"pl-pds\">\"</span></span>)\n                <span class=\"pl-c\"><span class=\"pl-c\">--</span> if not pos then return items end</span>\n                <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">then</span>\n                    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n                        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">kind</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>blink.cmp.types<span class=\"pl-pds\">'</span></span>).<span class=\"pl-e\">CompletionItemKind</span>.<span class=\"pl-e\">Snippet</span>\n                    <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items</span>)\n                <span class=\"pl-k\">end</span>\n                <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">do</span>\n                    <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">textEdit</span> <span class=\"pl-k\">=</span> {\n                        <span class=\"pl-smi\">newText</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">insertText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">label</span>,\n                        <span class=\"pl-smi\">range</span> <span class=\"pl-k\">=</span> {\n                            <span class=\"pl-smi\">start</span> <span class=\"pl-k\">=</span> {\n                                <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n                                <span class=\"pl-smi\">character</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n\n                            },\n                            [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>end<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> {\n                                <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n                                <span class=\"pl-smi\">character</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">col</span>,\n                            },\n                        },\n                    }\n\n                <span class=\"pl-k\">end</span>\n\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n                    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">kind_snippet</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>blink.cmp.types<span class=\"pl-pds\">'</span></span>).<span class=\"pl-e\">CompletionItemKind</span>.<span class=\"pl-e\">Snippet</span>\n                    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">kind</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">kind_snippet</span>\n                <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items</span>)\n            <span class=\"pl-k\">end</span>,</pre></div>\n</details>\n<p dir=\"auto\">I'm unsure how to fix this for a PR to <a href=\"link_mini_snippet.lua\"><code class=\"notranslate\">mini_snippet.lua</code></a>. Any guidance on why the <code class=\"notranslate\">)</code> is being deleted and how to properly handle snippet expansion with <code class=\"notranslate\">;</code> would be helpful.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.snippets\nQuestion\nI'm using blink.cmp with mini.snippet. The issue occurs when I use ; to trigger snippet completion. If I type (;fu), after expansion, the output is:\n(function()\n\nend\nThe closing ) gets deleted. However, without ;, the ) remains intact.\nI suspect the issue comes from blink.cmp's snippet handling, specifically in mini_snippet.lua,  Below is my configuration:\n\nMy Code  \n\n  transform_items = function(_, items)\n                local col = vim.api.nvim_win_get_cursor(0)[2]\n                local before_cursor = vim.api.nvim_get_current_line():sub(1, col)\n                local pos = before_cursor:find(\";[%w*]*$\")\n                -- if not pos then return items end\n                if not pos then\n                    return vim.tbl_filter(function(item)\n                        return item.kind ~= require('blink.cmp.types').CompletionItemKind.Snippet\n                    end, items)\n                end\n                for _, item in ipairs(items) do\n                    item.textEdit = {\n                        newText = item.insertText or item.label,\n                        range = {\n                            start = {\n                                line = vim.fn.line(\".\") - 1,\n                                character = pos - 1,\n\n                            },\n                            [\"end\"] = {\n                                line = vim.fn.line(\".\") - 1,\n                                character = col,\n                            },\n                        },\n                    }\n\n                end\n\n                return vim.tbl_filter(function(item)\n                    local kind_snippet = require('blink.cmp.types').CompletionItemKind.Snippet\n                    return pos and item.kind == kind_snippet\n                end, items)\n            end,\n\nI'm unsure how to fix this for a PR to mini_snippet.lua. Any guidance on why the ) is being deleted and how to properly handle snippet expansion with ; would be helpful.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-03-06T20:50:17Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "My first thought is that that is a result of how 'Saghen/blink.cmp' (and 'hrsh7th/nvim-cmp', for that matter) handle combination of `additionalTextEdits` / `textEdit` and snippet expansion. The root cause for this seems to be that 'mini.snippets' always operates in Insert mode which can cause some issues with asynchronous execution (i.e. which text is current at the time of some steps executed). See more information at abeldekat/cmp-mini-snippets#9 and Saghen/blink.cmp#1035.\r\n\r\nThe second thought is that this might be a consequence of the custom `transform_items` conflicting with [this part](https://github.com/Saghen/blink.cmp/blob/bf810ebe1251dfa756c7fa328e56b0c2e157d313/lua/blink/cmp/sources/snippets/mini_snippets.lua#L125-L134) of the 'blink.cmp'.\r\n\r\nAs this is seems to be more of a *not* 'mini.snippets' question, I am going to close this. If there will be concrete question about how 'mini.snippets' operates, feel free to ask here.\r\n\r\n---\r\n\r\nI hope to soon update 'mini.snippets' with a way to suggest its entries via an in-process LSP server. Then it can be used with a regular LSP server handling. Not sure if that would help with this custom \"; to trigger snippets\" approach.",
+            "bodyHTML": "<p dir=\"auto\">My first thought is that that is a result of how 'Saghen/blink.cmp' (and 'hrsh7th/nvim-cmp', for that matter) handle combination of <code class=\"notranslate\">additionalTextEdits</code> / <code class=\"notranslate\">textEdit</code> and snippet expansion. The root cause for this seems to be that 'mini.snippets' always operates in Insert mode which can cause some issues with asynchronous execution (i.e. which text is current at the time of some steps executed). See more information at <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2782418843\" data-permission-text=\"Title is private\" data-url=\"https://github.com/abeldekat/cmp-mini-snippets/issues/9\" data-hovercard-type=\"issue\" data-hovercard-url=\"/abeldekat/cmp-mini-snippets/issues/9/hovercard\" href=\"https://github.com/abeldekat/cmp-mini-snippets/issues/9\">abeldekat/cmp-mini-snippets#9</a> and <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2797648922\" data-permission-text=\"Title is private\" data-url=\"https://github.com/saghen/blink.cmp/issues/1035\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/saghen/blink.cmp/pull/1035/hovercard\" href=\"https://github.com/saghen/blink.cmp/pull/1035\">saghen/blink.cmp#1035</a>.</p>\n<p dir=\"auto\">The second thought is that this might be a consequence of the custom <code class=\"notranslate\">transform_items</code> conflicting with <a href=\"https://github.com/Saghen/blink.cmp/blob/bf810ebe1251dfa756c7fa328e56b0c2e157d313/lua/blink/cmp/sources/snippets/mini_snippets.lua#L125-L134\">this part</a> of the 'blink.cmp'.</p>\n<p dir=\"auto\">As this is seems to be more of a <em>not</em> 'mini.snippets' question, I am going to close this. If there will be concrete question about how 'mini.snippets' operates, feel free to ask here.</p>\n<hr>\n<p dir=\"auto\">I hope to soon update 'mini.snippets' with a way to suggest its entries via an in-process LSP server. Then it can be used with a regular LSP server handling. Not sure if that would help with this custom \"; to trigger snippets\" approach.</p>",
+            "bodyText": "My first thought is that that is a result of how 'Saghen/blink.cmp' (and 'hrsh7th/nvim-cmp', for that matter) handle combination of additionalTextEdits / textEdit and snippet expansion. The root cause for this seems to be that 'mini.snippets' always operates in Insert mode which can cause some issues with asynchronous execution (i.e. which text is current at the time of some steps executed). See more information at abeldekat/cmp-mini-snippets#9 and saghen/blink.cmp#1035.\nThe second thought is that this might be a consequence of the custom transform_items conflicting with this part of the 'blink.cmp'.\nAs this is seems to be more of a not 'mini.snippets' question, I am going to close this. If there will be concrete question about how 'mini.snippets' operates, feel free to ask here.\n\nI hope to soon update 'mini.snippets' with a way to suggest its entries via an in-process LSP server. Then it can be used with a regular LSP server handling. Not sure if that would help with this custom \"; to trigger snippets\" approach.",
+            "createdAt": "2025-03-06T20:50:16Z",
+            "createdViaEmail": false,
+            "databaseId": 12418809,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AvX75",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-03-06T20:50:16Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Finally, I found the solution! The missing part was adding:\r\n\r\n```lua\r\nvim.schedule(function()\r\n    require(\"blink.cmp\").reload()\r\nend)\r\n```  \r\n\r\nIt turns out that calling `reload()` ensures the snippet resets properly, and now it works as expected.  \r\n\r\nThank you so much, @echasnovski  Your explanation helped me understand the different edge cases in `blink.cmp` and `nvim-cmp`.  \r\n\r\n<details><summary>My Code:</summary>\r\n\r\n```lua\r\n   transform_items = function(_, items)\r\n                local col = vim.api.nvim_win_get_cursor(0)[2]\r\n                local before_cursor = vim.api.nvim_get_current_line():sub(1, col)\r\n                local pos = before_cursor:find(\";[%w*]*$\")\r\n                local reload = function()\r\n                    vim.schedule(function()\r\n                        require(\"blink.cmp\").reload()\r\n                    end)\r\n                end\r\n                -- if not pos then return items end\r\n                if not pos then\r\n                    return vim.tbl_filter(function(item)\r\n                        reload()\r\n                        return item.kind\r\n                            ~= require(\"blink.cmp.types\").CompletionItemKind.Snippet\r\n                    end, items)\r\n                end\r\n                for _, item in ipairs(items) do\r\n                    item.textEdit = {\r\n                        newText = item.insertText or item.label,\r\n                        range = {\r\n                            start = {\r\n                                line = vim.fn.line(\".\") - 1,\r\n                                character = pos - 1,\r\n                            },\r\n                            [\"end\"] = {\r\n                                line = vim.fn.line(\".\") - 1,\r\n                                character = col,\r\n                            },\r\n                        },\r\n                    }\r\n                end\r\n                return vim.tbl_filter(function(item)\r\n                    reload()\r\n                    local kind_snippet = require(\"blink.cmp.types\").CompletionItemKind.Snippet\r\n                    return pos and item.kind == kind_snippet\r\n                end, items)\r\n            end,\r\n```\r\n</details>\r\n \r\nMy apologies for opening a discussion that wasn’t directly related to  `mini.snippet`.",
+                    "bodyHTML": "<p dir=\"auto\">Finally, I found the solution! The missing part was adding:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.schedule(function()\n    require(&quot;blink.cmp&quot;).reload()\nend)\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink.cmp<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">reload</span>()\n<span class=\"pl-k\">end</span>)</pre></div>\n<p dir=\"auto\">It turns out that calling <code class=\"notranslate\">reload()</code> ensures the snippet resets properly, and now it works as expected.</p>\n<p dir=\"auto\">Thank you so much, <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>  Your explanation helped me understand the different edge cases in <code class=\"notranslate\">blink.cmp</code> and <code class=\"notranslate\">nvim-cmp</code>.</p>\n<details><summary>My Code:</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"   transform_items = function(_, items)\n                local col = vim.api.nvim_win_get_cursor(0)[2]\n                local before_cursor = vim.api.nvim_get_current_line():sub(1, col)\n                local pos = before_cursor:find(&quot;;[%w*]*$&quot;)\n                local reload = function()\n                    vim.schedule(function()\n                        require(&quot;blink.cmp&quot;).reload()\n                    end)\n                end\n                -- if not pos then return items end\n                if not pos then\n                    return vim.tbl_filter(function(item)\n                        reload()\n                        return item.kind\n                            ~= require(&quot;blink.cmp.types&quot;).CompletionItemKind.Snippet\n                    end, items)\n                end\n                for _, item in ipairs(items) do\n                    item.textEdit = {\n                        newText = item.insertText or item.label,\n                        range = {\n                            start = {\n                                line = vim.fn.line(&quot;.&quot;) - 1,\n                                character = pos - 1,\n                            },\n                            [&quot;end&quot;] = {\n                                line = vim.fn.line(&quot;.&quot;) - 1,\n                                character = col,\n                            },\n                        },\n                    }\n                end\n                return vim.tbl_filter(function(item)\n                    reload()\n                    local kind_snippet = require(&quot;blink.cmp.types&quot;).CompletionItemKind.Snippet\n                    return pos and item.kind == kind_snippet\n                end, items)\n            end,\"><pre class=\"notranslate\">   <span class=\"pl-en\">transform_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">items</span>)\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-c1\">0</span>)[<span class=\"pl-c1\">2</span>]\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">before_cursor</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_line</span>():<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">col</span>)\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">before_cursor</span>:<span class=\"pl-c1\">find</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>;[%w*]*$<span class=\"pl-pds\">\"</span></span>)\n                <span class=\"pl-k\">local</span> <span class=\"pl-en\">reload</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n                    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n                        <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink.cmp<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">reload</span>()\n                    <span class=\"pl-k\">end</span>)\n                <span class=\"pl-k\">end</span>\n                <span class=\"pl-c\"><span class=\"pl-c\">--</span> if not pos then return items end</span>\n                <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">then</span>\n                    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n                        <span class=\"pl-c1\">reload</span>()\n                        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">kind</span>\n                            <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink.cmp.types<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">CompletionItemKind</span>.<span class=\"pl-e\">Snippet</span>\n                    <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items</span>)\n                <span class=\"pl-k\">end</span>\n                <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">item</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">items</span>) <span class=\"pl-k\">do</span>\n                    <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">textEdit</span> <span class=\"pl-k\">=</span> {\n                        <span class=\"pl-smi\">newText</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">insertText</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">label</span>,\n                        <span class=\"pl-smi\">range</span> <span class=\"pl-k\">=</span> {\n                            <span class=\"pl-smi\">start</span> <span class=\"pl-k\">=</span> {\n                                <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n                                <span class=\"pl-smi\">character</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n                            },\n                            [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>end<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> {\n                                <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">line</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n                                <span class=\"pl-smi\">character</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">col</span>,\n                            },\n                        },\n                    }\n                <span class=\"pl-k\">end</span>\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_filter</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n                    <span class=\"pl-c1\">reload</span>()\n                    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">kind_snippet</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink.cmp.types<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">CompletionItemKind</span>.<span class=\"pl-e\">Snippet</span>\n                    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">pos</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">kind</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">kind_snippet</span>\n                <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">items</span>)\n            <span class=\"pl-k\">end</span>,</pre></div>\n</details>\n<p dir=\"auto\">My apologies for opening a discussion that wasn’t directly related to  <code class=\"notranslate\">mini.snippet</code>.</p>",
+                    "bodyText": "Finally, I found the solution! The missing part was adding:\nvim.schedule(function()\n    require(\"blink.cmp\").reload()\nend)\nIt turns out that calling reload() ensures the snippet resets properly, and now it works as expected.\nThank you so much, @echasnovski  Your explanation helped me understand the different edge cases in blink.cmp and nvim-cmp.\nMy Code:\n   transform_items = function(_, items)\n                local col = vim.api.nvim_win_get_cursor(0)[2]\n                local before_cursor = vim.api.nvim_get_current_line():sub(1, col)\n                local pos = before_cursor:find(\";[%w*]*$\")\n                local reload = function()\n                    vim.schedule(function()\n                        require(\"blink.cmp\").reload()\n                    end)\n                end\n                -- if not pos then return items end\n                if not pos then\n                    return vim.tbl_filter(function(item)\n                        reload()\n                        return item.kind\n                            ~= require(\"blink.cmp.types\").CompletionItemKind.Snippet\n                    end, items)\n                end\n                for _, item in ipairs(items) do\n                    item.textEdit = {\n                        newText = item.insertText or item.label,\n                        range = {\n                            start = {\n                                line = vim.fn.line(\".\") - 1,\n                                character = pos - 1,\n                            },\n                            [\"end\"] = {\n                                line = vim.fn.line(\".\") - 1,\n                                character = col,\n                            },\n                        },\n                    }\n                end\n                return vim.tbl_filter(function(item)\n                    reload()\n                    local kind_snippet = require(\"blink.cmp.types\").CompletionItemKind.Snippet\n                    return pos and item.kind == kind_snippet\n                end, items)\n            end,\n\nMy apologies for opening a discussion that wasn’t directly related to  mini.snippet.",
+                    "createdAt": "2025-03-07T00:41:56Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12420263,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AvYSn",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-07T00:41:56Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12418809,
+                        "id": "DC_kwDOFoksYM4AvX75",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12418809"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12420263",
+                    "updatedAt": "2025-03-07T00:41:56Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12420263"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> Thank you so much, @echasnovski Your explanation helped me understand the different edge cases in `blink.cmp` and `nvim-cmp`.\r\n\r\nI can't have any credit here. All goes to @abeldekat for dealing with these issues.\r\n\r\n> My apologies for opening a discussion that wasn’t directly related to `mini.snippet`.\r\n\r\nNo worries. You didn't know about that and it wasn't exactly obvious.\r\n\r\n---\r\n\r\nOne small improvement for `local reload = ...` part is to use `vim.schedule_wrap`:\r\n\r\n```lua\r\n                local reload = vim.schedule_wrap(require(\"blink.cmp\").reload)\r\n```\r\n\r\nOr just use `vim.schedule(require(\"blink.cmp\").reload)` directly both times. Depends on style preferences.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">Thank you so much, <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> Your explanation helped me understand the different edge cases in <code class=\"notranslate\">blink.cmp</code> and <code class=\"notranslate\">nvim-cmp</code>.</p>\n</blockquote>\n<p dir=\"auto\">I can't have any credit here. All goes to <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/abeldekat/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/abeldekat\">@abeldekat</a> for dealing with these issues.</p>\n<blockquote>\n<p dir=\"auto\">My apologies for opening a discussion that wasn’t directly related to <code class=\"notranslate\">mini.snippet</code>.</p>\n</blockquote>\n<p dir=\"auto\">No worries. You didn't know about that and it wasn't exactly obvious.</p>\n<hr>\n<p dir=\"auto\">One small improvement for <code class=\"notranslate\">local reload = ...</code> part is to use <code class=\"notranslate\">vim.schedule_wrap</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"                local reload = vim.schedule_wrap(require(&quot;blink.cmp&quot;).reload)\"><pre class=\"notranslate\">                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">reload</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink.cmp<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">reload</span>)</pre></div>\n<p dir=\"auto\">Or just use <code class=\"notranslate\">vim.schedule(require(\"blink.cmp\").reload)</code> directly both times. Depends on style preferences.</p>",
+                    "bodyText": "Thank you so much, @echasnovski Your explanation helped me understand the different edge cases in blink.cmp and nvim-cmp.\n\nI can't have any credit here. All goes to @abeldekat for dealing with these issues.\n\nMy apologies for opening a discussion that wasn’t directly related to mini.snippet.\n\nNo worries. You didn't know about that and it wasn't exactly obvious.\n\nOne small improvement for local reload = ... part is to use vim.schedule_wrap:\n                local reload = vim.schedule_wrap(require(\"blink.cmp\").reload)\nOr just use vim.schedule(require(\"blink.cmp\").reload) directly both times. Depends on style preferences.",
+                    "createdAt": "2025-03-07T08:36:53Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12423729,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "id": "DC_kwDOFoksYM4AvZIx",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-03-07T08:39:59Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-07T08:36:53Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12418809,
+                        "id": "DC_kwDOFoksYM4AvX75",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12418809"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12423729",
+                    "updatedAt": "2025-03-07T08:39:59Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12423729"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/62192487?u=a36947d53d29eebdd44445978c89853446d108f0&v=4",
+                        "login": "krovuxdev",
+                        "resourcePath": "/krovuxdev",
+                        "url": "https://github.com/krovuxdev"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> One small improvement for `local reload = ...` part is to use `vim.schedule_wrap`:\r\n> \r\n> ```lua\r\n>                 local reload = vim.schedule_wrap(require(\"blink.cmp\").reload)\r\n> ```\r\n> \r\n> Or just use `vim.schedule(require(\"blink.cmp\").reload)` directly both times. Depends on style preferences.\r\n\r\nThank you! That was useful, and it worked for me. :) ",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">One small improvement for <code class=\"notranslate\">local reload = ...</code> part is to use <code class=\"notranslate\">vim.schedule_wrap</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"                local reload = vim.schedule_wrap(require(&quot;blink.cmp&quot;).reload)\"><pre class=\"notranslate\">                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">reload</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>blink.cmp<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">reload</span>)</pre></div>\n<p dir=\"auto\">Or just use <code class=\"notranslate\">vim.schedule(require(\"blink.cmp\").reload)</code> directly both times. Depends on style preferences.</p>\n</blockquote>\n<p dir=\"auto\">Thank you! That was useful, and it worked for me. :)</p>",
+                    "bodyText": "One small improvement for local reload = ... part is to use vim.schedule_wrap:\n                local reload = vim.schedule_wrap(require(\"blink.cmp\").reload)\nOr just use vim.schedule(require(\"blink.cmp\").reload) directly both times. Depends on style preferences.\n\nThank you! That was useful, and it worked for me. :)",
+                    "createdAt": "2025-03-07T18:39:07Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12429826,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AvaoC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-07T18:39:07Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12418809,
+                        "id": "DC_kwDOFoksYM4AvX75",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12418809"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12429826",
+                    "updatedAt": "2025-03-07T18:39:08Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12429826"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12418809",
+            "updatedAt": "2025-03-06T20:50:17Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643#discussioncomment-12418809"
+        }
+    ],
+    "createdAt": "2025-03-06T20:10:52Z",
+    "createdViaEmail": false,
+    "databaseId": 8048296,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Aes6o",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1643,
+    "poll": null,
+    "publishedAt": "2025-03-06T20:10:52Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1643",
+    "stateReason": "RESOLVED",
+    "title": "Snippet Expansion Removes Closing Parenthesis When Triggered with `;`",
+    "updatedAt": "2025-03-07T18:39:07Z",
+    "upvoteCount": 0,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1643"
+}

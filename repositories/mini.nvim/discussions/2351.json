@@ -1,0 +1,212 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 16466117,
+        "id": "DC_kwDOFoksYM4A-0DF",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2351#discussioncomment-16466117"
+    },
+    "answerChosenAt": "2026-04-06T17:00:27Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/16707112?v=4",
+        "login": "simonmandlik",
+        "resourcePath": "/simonmandlik",
+        "url": "https://github.com/simonmandlik"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.indentscope\r\n\r\n### Question\r\n\r\nCan I somehow disable indent guides in `vim.diagnostic.open_float` windows please?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.indentscope</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">Can I somehow disable indent guides in <code class=\"notranslate\">vim.diagnostic.open_float</code> windows please?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.indentscope\nQuestion\nCan I somehow disable indent guides in vim.diagnostic.open_float windows please?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-04-06T17:00:26Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "The usual suggested approach of [automated disabling](https://nvim-mini.org/mini.nvim/doc/mini-nvim.html#mini.nvim-disabling-recipes-automateddisabling) should work here: find a way to automatically run a code for a buffer in which you want to disable something and set `vim.b.miniindentscope_disable = true`.\r\n\r\nIn this case, it doesn't look like the diagnostic's buffer has any distinctive features (filetype and buffer name are empty). But `vim.diagnostic.open_float` returns a buffer identifier displayed in the opened window. So creating a wrapper function for `vim.diagnostic.open_float()` that captures that buffer id and then sets `vim.b.miniindentscope_disable` should do the trick. Something like this:\r\n\r\n```lua\r\n_G.diag_open_float = function(...)\r\n  local buf_id = vim.diagnostic.open_float(...)\r\n  vim.b[buf_id].miniindentscope_disable = true\r\nend\r\nvim.keymap.set('n', '<Leader>ld', diag_open_float)\r\n```",
+            "bodyHTML": "<p dir=\"auto\">The usual suggested approach of <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-nvim.html#mini.nvim-disabling-recipes-automateddisabling\" rel=\"nofollow\">automated disabling</a> should work here: find a way to automatically run a code for a buffer in which you want to disable something and set <code class=\"notranslate\">vim.b.miniindentscope_disable = true</code>.</p>\n<p dir=\"auto\">In this case, it doesn't look like the diagnostic's buffer has any distinctive features (filetype and buffer name are empty). But <code class=\"notranslate\">vim.diagnostic.open_float</code> returns a buffer identifier displayed in the opened window. So creating a wrapper function for <code class=\"notranslate\">vim.diagnostic.open_float()</code> that captures that buffer id and then sets <code class=\"notranslate\">vim.b.miniindentscope_disable</code> should do the trick. Something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"_G.diag_open_float = function(...)\n  local buf_id = vim.diagnostic.open_float(...)\n  vim.b[buf_id].miniindentscope_disable = true\nend\nvim.keymap.set('n', '&lt;Leader&gt;ld', diag_open_float)\"><pre class=\"notranslate\"><span class=\"pl-c1\">_G</span>.<span class=\"pl-en\">diag_open_float</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(...)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">diagnostic</span>.<span class=\"pl-c1\">open_float</span>(<span class=\"pl-c1\">...</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>[<span class=\"pl-smi\">buf_id</span>].<span class=\"pl-e\">miniindentscope_disable</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Leader&gt;ld<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">diag_open_float</span>)</pre></div>",
+            "bodyText": "The usual suggested approach of automated disabling should work here: find a way to automatically run a code for a buffer in which you want to disable something and set vim.b.miniindentscope_disable = true.\nIn this case, it doesn't look like the diagnostic's buffer has any distinctive features (filetype and buffer name are empty). But vim.diagnostic.open_float returns a buffer identifier displayed in the opened window. So creating a wrapper function for vim.diagnostic.open_float() that captures that buffer id and then sets vim.b.miniindentscope_disable should do the trick. Something like this:\n_G.diag_open_float = function(...)\n  local buf_id = vim.diagnostic.open_float(...)\n  vim.b[buf_id].miniindentscope_disable = true\nend\nvim.keymap.set('n', '<Leader>ld', diag_open_float)",
+            "createdAt": "2026-04-06T17:00:26Z",
+            "createdViaEmail": false,
+            "databaseId": 16466117,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A-0DF",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-06T17:00:26Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2351#discussioncomment-16466117",
+            "updatedAt": "2026-04-06T17:00:26Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2351#discussioncomment-16466117"
+        }
+    ],
+    "createdAt": "2026-04-06T15:06:43Z",
+    "createdViaEmail": false,
+    "databaseId": 9834495,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/16707112?v=4",
+        "login": "simonmandlik",
+        "resourcePath": "/simonmandlik",
+        "url": "https://github.com/simonmandlik"
+    },
+    "id": "D_kwDOFoksYM4Alg__",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7jpP9L",
+                "name": "mini.indentscope"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-04-06T15:06:51Z",
+    "locked": false,
+    "number": 2351,
+    "poll": null,
+    "publishedAt": "2026-04-06T15:06:43Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2351",
+    "stateReason": "RESOLVED",
+    "title": "Disabling `mini.indentscope` in diagnostic floats",
+    "updatedAt": "2026-04-06T17:00:27Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2351"
+}

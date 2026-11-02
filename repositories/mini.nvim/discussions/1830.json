@@ -1,0 +1,288 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 13295627,
+        "id": "DC_kwDOFoksYM4AyuAL",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1830#discussioncomment-13295627"
+    },
+    "answerChosenAt": "2025-05-28T21:35:29Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/7199304?u=340f1535b352c94ffd8c703733357ff1f885134e&v=4",
+        "login": "danwwilson",
+        "resourcePath": "/danwwilson",
+        "url": "https://github.com/danwwilson"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/7199304?u=340f1535b352c94ffd8c703733357ff1f885134e&v=4",
+        "login": "danwwilson",
+        "resourcePath": "/danwwilson",
+        "url": "https://github.com/danwwilson"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.statusline\n\n### Question\n\nI'm wondering if there is a way to make the way that a modified file show more obviously than a `[+]` at the end of the filename. I was thinking something along the lines of a ❌ icon and a checkmark ✅ if the file is saved. Would there be any tips on how to do this?",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.statusline</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I'm wondering if there is a way to make the way that a modified file show more obviously than a <code class=\"notranslate\">[+]</code> at the end of the filename. I was thinking something along the lines of a ❌ icon and a checkmark ✅ if the file is saved. Would there be any tips on how to do this?</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.statusline\nQuestion\nI'm wondering if there is a way to make the way that a modified file show more obviously than a [+] at the end of the filename. I was thinking something along the lines of a ❌ icon and a checkmark ✅ if the file is saved. Would there be any tips on how to do this?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-05-28T10:53:14Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "It is possible, yes. This requires writing custom section instead of using `section_filename`:\r\n\r\n```lua\r\nlocal my_filename = function()\r\n  -- In terminal always use plain name\r\n  if vim.bo.buftype == 'terminal' then return '%t' end\r\n  local modified = vim.bo.modified and '❌' or '✅'\r\n  return (MiniStatusline.is_truncated(140) and '%f' or '%F') .. modified .. '%r'\r\nend\r\n```\r\n\r\nYou can use it in combination with [default active content](https://github.com/echasnovski/mini.nvim/blob/ecbb9b1e2223a04171388887765e7695f5a0c132/doc/mini-statusline.txt#L86C1-L106C6) like this:\r\n\r\n```lua\r\nlocal active_content = function()\r\n  local mode, mode_hl = MiniStatusline.section_mode({ trunc_width = 120 })\r\n  local git = MiniStatusline.section_git({ trunc_width = 40 })\r\n  local diff = MiniStatusline.section_diff({ trunc_width = 75 })\r\n  local diagnostics = MiniStatusline.section_diagnostics({ trunc_width = 75 })\r\n  local lsp = MiniStatusline.section_lsp({ trunc_width = 75 })\r\n  local filename = my_filename()\r\n  local fileinfo = MiniStatusline.section_fileinfo({ trunc_width = 120 })\r\n  local location = MiniStatusline.section_location({ trunc_width = 75 })\r\n  local search = MiniStatusline.section_searchcount({ trunc_width = 75 })\r\n\r\n  return MiniStatusline.combine_groups({\r\n    { hl = mode_hl, strings = { mode } },\r\n    { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },\r\n    '%<', -- Mark general truncate point\r\n    { hl = 'MiniStatuslineFilename', strings = { filename } },\r\n    '%=', -- End left alignment\r\n    { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },\r\n    { hl = mode_hl, strings = { search, location } },\r\n  })\r\nend\r\nrequire('mini.statusline').setup({ content = { active = active_content } })\r\n```",
+            "bodyHTML": "<p dir=\"auto\">It is possible, yes. This requires writing custom section instead of using <code class=\"notranslate\">section_filename</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local my_filename = function()\n  -- In terminal always use plain name\n  if vim.bo.buftype == 'terminal' then return '%t' end\n  local modified = vim.bo.modified and '❌' or '✅'\n  return (MiniStatusline.is_truncated(140) and '%f' or '%F') .. modified .. '%r'\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">my_filename</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> In terminal always use plain name</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-e\">buftype</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>terminal<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%t<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">modified</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">bo</span>.<span class=\"pl-e\">modified</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>❌<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>✅<span class=\"pl-pds\">'</span></span>\n  <span class=\"pl-k\">return</span> (<span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">is_truncated</span>(<span class=\"pl-c1\">140</span>) <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%f<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%F<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-smi\">modified</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%r<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">You can use it in combination with <a href=\"https://github.com/echasnovski/mini.nvim/blob/ecbb9b1e2223a04171388887765e7695f5a0c132/doc/mini-statusline.txt#L86C1-L106C6\">default active content</a> like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local active_content = function()\n  local mode, mode_hl = MiniStatusline.section_mode({ trunc_width = 120 })\n  local git = MiniStatusline.section_git({ trunc_width = 40 })\n  local diff = MiniStatusline.section_diff({ trunc_width = 75 })\n  local diagnostics = MiniStatusline.section_diagnostics({ trunc_width = 75 })\n  local lsp = MiniStatusline.section_lsp({ trunc_width = 75 })\n  local filename = my_filename()\n  local fileinfo = MiniStatusline.section_fileinfo({ trunc_width = 120 })\n  local location = MiniStatusline.section_location({ trunc_width = 75 })\n  local search = MiniStatusline.section_searchcount({ trunc_width = 75 })\n\n  return MiniStatusline.combine_groups({\n    { hl = mode_hl, strings = { mode } },\n    { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },\n    '%&lt;', -- Mark general truncate point\n    { hl = 'MiniStatuslineFilename', strings = { filename } },\n    '%=', -- End left alignment\n    { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },\n    { hl = mode_hl, strings = { search, location } },\n  })\nend\nrequire('mini.statusline').setup({ content = { active = active_content } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">active_content</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mode</span>, <span class=\"pl-smi\">mode_hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_mode</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">120</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">git</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_git</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">40</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">diff</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_diff</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">75</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">diagnostics</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_diagnostics</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">75</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lsp</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_lsp</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">75</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">filename</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">my_filename</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">fileinfo</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_fileinfo</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">120</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">location</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_location</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">75</span> })\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">search</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">section_searchcount</span>({ <span class=\"pl-smi\">trunc_width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">75</span> })\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniStatusline</span>.<span class=\"pl-c1\">combine_groups</span>({\n    { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode_hl</span>, <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">mode</span> } },\n    { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniStatuslineDevinfo<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">git</span>, <span class=\"pl-smi\">diff</span>, <span class=\"pl-smi\">diagnostics</span>, <span class=\"pl-smi\">lsp</span> } },\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%&lt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> Mark general truncate point</span>\n    { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniStatuslineFilename<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">filename</span> } },\n    <span class=\"pl-s\"><span class=\"pl-pds\">'</span>%=<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> End left alignment</span>\n    { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniStatuslineFileinfo<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">fileinfo</span> } },\n    { <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mode_hl</span>, <span class=\"pl-smi\">strings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">search</span>, <span class=\"pl-smi\">location</span> } },\n  })\n<span class=\"pl-k\">end</span>\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.statusline<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">content</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">active</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">active_content</span> } })</pre></div>",
+            "bodyText": "It is possible, yes. This requires writing custom section instead of using section_filename:\nlocal my_filename = function()\n  -- In terminal always use plain name\n  if vim.bo.buftype == 'terminal' then return '%t' end\n  local modified = vim.bo.modified and '❌' or '✅'\n  return (MiniStatusline.is_truncated(140) and '%f' or '%F') .. modified .. '%r'\nend\nYou can use it in combination with default active content like this:\nlocal active_content = function()\n  local mode, mode_hl = MiniStatusline.section_mode({ trunc_width = 120 })\n  local git = MiniStatusline.section_git({ trunc_width = 40 })\n  local diff = MiniStatusline.section_diff({ trunc_width = 75 })\n  local diagnostics = MiniStatusline.section_diagnostics({ trunc_width = 75 })\n  local lsp = MiniStatusline.section_lsp({ trunc_width = 75 })\n  local filename = my_filename()\n  local fileinfo = MiniStatusline.section_fileinfo({ trunc_width = 120 })\n  local location = MiniStatusline.section_location({ trunc_width = 75 })\n  local search = MiniStatusline.section_searchcount({ trunc_width = 75 })\n\n  return MiniStatusline.combine_groups({\n    { hl = mode_hl, strings = { mode } },\n    { hl = 'MiniStatuslineDevinfo', strings = { git, diff, diagnostics, lsp } },\n    '%<', -- Mark general truncate point\n    { hl = 'MiniStatuslineFilename', strings = { filename } },\n    '%=', -- End left alignment\n    { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },\n    { hl = mode_hl, strings = { search, location } },\n  })\nend\nrequire('mini.statusline').setup({ content = { active = active_content } })",
+            "createdAt": "2025-05-28T10:53:14Z",
+            "createdViaEmail": false,
+            "databaseId": 13295627,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AyuAL",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-28T10:53:14Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1830#discussioncomment-13295627",
+            "updatedAt": "2025-05-28T10:53:15Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1830#discussioncomment-13295627"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/7199304?u=340f1535b352c94ffd8c703733357ff1f885134e&v=4",
+                "login": "danwwilson",
+                "resourcePath": "/danwwilson",
+                "url": "https://github.com/danwwilson"
+            },
+            "authorAssociation": "NONE",
+            "body": "This works an absolute treat. Thanks so much for taking the time to help. I was really struggling to find/follow the documentation for how to identify if the buffer is modified.",
+            "bodyHTML": "<p dir=\"auto\">This works an absolute treat. Thanks so much for taking the time to help. I was really struggling to find/follow the documentation for how to identify if the buffer is modified.</p>",
+            "bodyText": "This works an absolute treat. Thanks so much for taking the time to help. I was really struggling to find/follow the documentation for how to identify if the buffer is modified.",
+            "createdAt": "2025-05-28T21:36:55Z",
+            "createdViaEmail": false,
+            "databaseId": 13302508,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Ayvrs",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-05-28T21:36:55Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1830#discussioncomment-13302508",
+            "updatedAt": "2025-05-28T21:36:56Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1830#discussioncomment-13302508"
+        }
+    ],
+    "createdAt": "2025-05-28T10:15:35Z",
+    "createdViaEmail": false,
+    "databaseId": 8383846,
+    "editor": null,
+    "id": "D_kwDOFoksYM4Af-1m",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM7R1vjI",
+                "name": "mini.statusline"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1830,
+    "poll": null,
+    "publishedAt": "2025-05-28T10:15:35Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1830",
+    "stateReason": "RESOLVED",
+    "title": "using icons in statusline.section_filename",
+    "updatedAt": "2025-05-28T21:36:55Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1830"
+}

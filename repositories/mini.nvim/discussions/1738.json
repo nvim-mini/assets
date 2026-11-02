@@ -1,0 +1,212 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 12794972,
+        "id": "DC_kwDOFoksYM4Awzxc",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1738#discussioncomment-12794972"
+    },
+    "answerChosenAt": "2025-04-10T17:57:52Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/65008815?v=4",
+        "login": "lost22git",
+        "resourcePath": "/lost22git",
+        "url": "https://github.com/lost22git"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.ai\r\n\r\n### Question\r\n\r\nhow to add custom textobject for the below text block?\r\n\r\n```\r\n=beigin Title\r\nsome code...\r\nsome code...\r\n=end Title\r\n```\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.ai</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">how to add custom textobject for the below text block?</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"=beigin Title\nsome code...\nsome code...\n=end Title\"><pre class=\"notranslate\"><code class=\"notranslate\">=beigin Title\nsome code...\nsome code...\n=end Title\n</code></pre></div>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.ai\nQuestion\nhow to add custom textobject for the below text block?\n=beigin Title\nsome code...\nsome code...\n=end Title",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-04-10T17:57:47Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I think the most straightforward and robust way here would be to use [function that returns array of regions](https://github.com/echasnovski/mini.nvim/blob/82c895e58d893bbbde8300277d6ceee813b15f63/doc/mini-ai.txt#L290-L310). So something like this:\r\n\r\n```lua\r\nlocal custom_block = function(ai_type, _, _)\r\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\r\n  local title_start_lines, res = {}, {}\r\n\r\n  local process_line = function(i, l)\r\n    -- If line is for \"begin\", document it and move on until its \"end\" part\r\n    local start_title = l:match('^=begin (.*)$')\r\n    if start_title ~= nil then\r\n      title_start_lines[start_title] = i\r\n      return\r\n    end\r\n\r\n    -- Use only \"end\" lines that have same title as some previous \"begin\"\r\n    local end_title = l:match('^=end (.*)$')\r\n    if end_title == nil or title_start_lines[end_title] == nil then return end\r\n\r\n    -- Ignore \"begin\" and \"end\" lines for `i` textobject\r\n    local from_line = title_start_lines[end_title] + (ai_type == 'i' and 1 or 0)\r\n    local to_line = i - (ai_type == 'i' and 1 or 0)\r\n    title_start_lines[end_title] = nil\r\n\r\n    if from_line >= to_line then return end\r\n    local to_col = ai_type == 'i' and vim.fn.getline(to_line):len() or l:len()\r\n    local from, to = { line = from_line, col = 1 }, { line = to_line, col = to_col }\r\n    table.insert(res, { from = from, to = to, vis_mode = 'V' })\r\n  end\r\n\r\n  for i, l in ipairs(lines) do\r\n    process_line(i, l)\r\n  end\r\n\r\n  return res\r\nend\r\n\r\nrequire('mini.ai').setup({ custom_textobjects = { x = custom_block } })\r\n```",
+            "bodyHTML": "<p dir=\"auto\">I think the most straightforward and robust way here would be to use <a href=\"https://github.com/echasnovski/mini.nvim/blob/82c895e58d893bbbde8300277d6ceee813b15f63/doc/mini-ai.txt#L290-L310\">function that returns array of regions</a>. So something like this:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local custom_block = function(ai_type, _, _)\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n  local title_start_lines, res = {}, {}\n\n  local process_line = function(i, l)\n    -- If line is for &quot;begin&quot;, document it and move on until its &quot;end&quot; part\n    local start_title = l:match('^=begin (.*)$')\n    if start_title ~= nil then\n      title_start_lines[start_title] = i\n      return\n    end\n\n    -- Use only &quot;end&quot; lines that have same title as some previous &quot;begin&quot;\n    local end_title = l:match('^=end (.*)$')\n    if end_title == nil or title_start_lines[end_title] == nil then return end\n\n    -- Ignore &quot;begin&quot; and &quot;end&quot; lines for `i` textobject\n    local from_line = title_start_lines[end_title] + (ai_type == 'i' and 1 or 0)\n    local to_line = i - (ai_type == 'i' and 1 or 0)\n    title_start_lines[end_title] = nil\n\n    if from_line &gt;= to_line then return end\n    local to_col = ai_type == 'i' and vim.fn.getline(to_line):len() or l:len()\n    local from, to = { line = from_line, col = 1 }, { line = to_line, col = to_col }\n    table.insert(res, { from = from, to = to, vis_mode = 'V' })\n  end\n\n  for i, l in ipairs(lines) do\n    process_line(i, l)\n  end\n\n  return res\nend\n\nrequire('mini.ai').setup({ custom_textobjects = { x = custom_block } })\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">custom_block</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">ai_type</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">lines</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">false</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">title_start_lines</span>, <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> {}, {}\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">process_line</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">l</span>)\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> If line is for \"begin\", document it and move on until its \"end\" part</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">start_title</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^=begin (.*)$<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">start_title</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">title_start_lines</span>[<span class=\"pl-smi\">start_title</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span>\n      <span class=\"pl-k\">return</span>\n    <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Use only \"end\" lines that have same title as some previous \"begin\"</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">end_title</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^=end (.*)$<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">end_title</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">title_start_lines</span>[<span class=\"pl-smi\">end_title</span>] <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> Ignore \"begin\" and \"end\" lines for `i` textobject</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">from_line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">title_start_lines</span>[<span class=\"pl-smi\">end_title</span>] <span class=\"pl-k\">+</span> (<span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">to_line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> (<span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>)\n    <span class=\"pl-smi\">title_start_lines</span>[<span class=\"pl-smi\">end_title</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">from_line</span> <span class=\"pl-k\">&gt;=</span> <span class=\"pl-smi\">to_line</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">to_col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">ai_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getline</span>(<span class=\"pl-smi\">to_line</span>):<span class=\"pl-c1\">len</span>() <span class=\"pl-k\">or</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">len</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">from_line</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span> }, { <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">to_line</span>, <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">to_col</span> }\n    <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">res</span>, { <span class=\"pl-smi\">from</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">to</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">to</span>, <span class=\"pl-smi\">vis_mode</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>V<span class=\"pl-pds\">' </span></span>})\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">lines</span>) <span class=\"pl-k\">do</span>\n    <span class=\"pl-c1\">process_line</span>(<span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">l</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.ai<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">custom_textobjects</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">x</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">custom_block</span> } })</pre></div>",
+            "bodyText": "I think the most straightforward and robust way here would be to use function that returns array of regions. So something like this:\nlocal custom_block = function(ai_type, _, _)\n  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)\n  local title_start_lines, res = {}, {}\n\n  local process_line = function(i, l)\n    -- If line is for \"begin\", document it and move on until its \"end\" part\n    local start_title = l:match('^=begin (.*)$')\n    if start_title ~= nil then\n      title_start_lines[start_title] = i\n      return\n    end\n\n    -- Use only \"end\" lines that have same title as some previous \"begin\"\n    local end_title = l:match('^=end (.*)$')\n    if end_title == nil or title_start_lines[end_title] == nil then return end\n\n    -- Ignore \"begin\" and \"end\" lines for `i` textobject\n    local from_line = title_start_lines[end_title] + (ai_type == 'i' and 1 or 0)\n    local to_line = i - (ai_type == 'i' and 1 or 0)\n    title_start_lines[end_title] = nil\n\n    if from_line >= to_line then return end\n    local to_col = ai_type == 'i' and vim.fn.getline(to_line):len() or l:len()\n    local from, to = { line = from_line, col = 1 }, { line = to_line, col = to_col }\n    table.insert(res, { from = from, to = to, vis_mode = 'V' })\n  end\n\n  for i, l in ipairs(lines) do\n    process_line(i, l)\n  end\n\n  return res\nend\n\nrequire('mini.ai').setup({ custom_textobjects = { x = custom_block } })",
+            "createdAt": "2025-04-10T17:57:47Z",
+            "createdViaEmail": false,
+            "databaseId": 12794972,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Awzxc",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-10T17:57:47Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1738#discussioncomment-12794972",
+            "updatedAt": "2025-04-10T17:57:47Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1738#discussioncomment-12794972"
+        }
+    ],
+    "createdAt": "2025-04-10T16:51:28Z",
+    "createdViaEmail": false,
+    "databaseId": 8188868,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/65008815?v=4",
+        "login": "lost22git",
+        "resourcePath": "/lost22git",
+        "url": "https://github.com/lost22git"
+    },
+    "id": "D_kwDOFoksYM4AfPPE",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABBJgZaw",
+                "name": "mini.ai"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-04-10T16:52:20Z",
+    "locked": false,
+    "number": 1738,
+    "poll": null,
+    "publishedAt": "2025-04-10T16:51:28Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1738",
+    "stateReason": "RESOLVED",
+    "title": "how to custom textobject?",
+    "updatedAt": "2025-04-10T17:57:52Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1738"
+}

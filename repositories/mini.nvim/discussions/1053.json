@@ -1,0 +1,201 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 10038817,
+        "id": "DC_kwDOFoksYM4AmS4h",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1053#discussioncomment-10038817"
+    },
+    "answerChosenAt": "2024-07-13T12:32:45Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/45304579?u=59539f800b4ed5c30cbfa66108fb638966bffb14&v=4",
+        "login": "jamestansx",
+        "resourcePath": "/jamestansx",
+        "url": "https://github.com/jamestansx"
+    },
+    "authorAssociation": "NONE",
+    "body": "Here I am trying to use [proximity-sort](https://github.com/jonhoo/proximity-sort) with mini-pick.\r\n\r\nI tried with to directly pass the following commands into `builtin.cli()`:\r\n\r\n```lua\r\n        command = {\r\n            \"fd\",\r\n            \"--color=never\",\r\n            \"--type\",\r\n            \"file\",\r\n            \"--hidden\",\r\n            \"--follow\",\r\n            \"--exclude\",\r\n            \".git\",\r\n            \"|\",\r\n            \"proximity-sort\",\r\n            vim.fn.expand(\"%:.\"),\r\n        },\r\n```\r\n\r\nBut nothing was shown. I could make it work as follows:\r\n\r\n```lua\r\nlocal function files()\r\n    local uv = vim.uv\r\n    local pipe, stdout = uv.new_pipe(), uv.new_pipe()\r\n\r\n    uv.spawn(\"fd\", {\r\n        args = {\r\n            \"--color=never\",\r\n            \"--type\",\r\n            \"file\",\r\n            \"--hidden\",\r\n            \"--follow\",\r\n            \"--exclude\",\r\n            \".git\",\r\n        },\r\n        stdio = { nil, pipe, nil },\r\n    })\r\n\r\n    uv.spawn(\"proximity-sort\", {\r\n        args = { vim.fn.expand(\"%:.\") },\r\n        stdio = { pipe, stdout, nil },\r\n    })\r\n\r\n    local data_feed = {}\r\n    local items = nil\r\n    stdout:read_start(function(err, data)\r\n        assert(not err, err)\r\n        if data then return table.insert(data_feed, data) end\r\n\r\n        items = vim.split(table.concat(data_feed), \"\\n\")\r\n        data_feed = nil\r\n        stdout:close()\r\n        pipe:close()\r\n        vim.schedule(function()\r\n            MiniPick.start({\r\n                source = {\r\n                    items = items,\r\n                },\r\n            })\r\n        end)\r\n    end)\r\nend\r\n```\r\n\r\nBut I was wondering if there are other ways to write this? as I could easily do this in `fzf-lua` like so:\r\n\r\n```lua\r\n    local opts = {\r\n        cwd = vim.fn.getcwd(),\r\n        fzf_opts = {\r\n            [\"--tiebreak\"] = \"index\",\r\n        },\r\n        cmd = \"fd --color=never --type file --hidden --follow --exclude .git\",\r\n    }\r\n\r\n    local base = vim.fn.expand(\"%:.\")\r\n    opts.cmd = string.format(\r\n        \"%s | proximity-sort %s\",\r\n        opts.cmd,\r\n        vim.fn.empty(base) == 0 and vim.fn.shellescape(base) or \".\"\r\n    )\r\n\r\n    require(\"fzf-lua\").files(opts)\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Here I am trying to use <a href=\"https://github.com/jonhoo/proximity-sort\">proximity-sort</a> with mini-pick.</p>\n<p dir=\"auto\">I tried with to directly pass the following commands into <code class=\"notranslate\">builtin.cli()</code>:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"        command = {\n            &quot;fd&quot;,\n            &quot;--color=never&quot;,\n            &quot;--type&quot;,\n            &quot;file&quot;,\n            &quot;--hidden&quot;,\n            &quot;--follow&quot;,\n            &quot;--exclude&quot;,\n            &quot;.git&quot;,\n            &quot;|&quot;,\n            &quot;proximity-sort&quot;,\n            vim.fn.expand(&quot;%:.&quot;),\n        },\"><pre class=\"notranslate\">        <span class=\"pl-smi\">command</span> <span class=\"pl-k\">=</span> {\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fd<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--color=never<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--type<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>file<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--hidden<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--follow<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--exclude<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.git<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>|<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>proximity-sort<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%:.<span class=\"pl-pds\">\"</span></span>),\n        },</pre></div>\n<p dir=\"auto\">But nothing was shown. I could make it work as follows:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local function files()\n    local uv = vim.uv\n    local pipe, stdout = uv.new_pipe(), uv.new_pipe()\n\n    uv.spawn(&quot;fd&quot;, {\n        args = {\n            &quot;--color=never&quot;,\n            &quot;--type&quot;,\n            &quot;file&quot;,\n            &quot;--hidden&quot;,\n            &quot;--follow&quot;,\n            &quot;--exclude&quot;,\n            &quot;.git&quot;,\n        },\n        stdio = { nil, pipe, nil },\n    })\n\n    uv.spawn(&quot;proximity-sort&quot;, {\n        args = { vim.fn.expand(&quot;%:.&quot;) },\n        stdio = { pipe, stdout, nil },\n    })\n\n    local data_feed = {}\n    local items = nil\n    stdout:read_start(function(err, data)\n        assert(not err, err)\n        if data then return table.insert(data_feed, data) end\n\n        items = vim.split(table.concat(data_feed), &quot;\\n&quot;)\n        data_feed = nil\n        stdout:close()\n        pipe:close()\n        vim.schedule(function()\n            MiniPick.start({\n                source = {\n                    items = items,\n                },\n            })\n        end)\n    end)\nend\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">files</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">uv</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pipe</span>, <span class=\"pl-smi\">stdout</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">uv</span>.<span class=\"pl-c1\">new_pipe</span>(), <span class=\"pl-smi\">uv</span>.<span class=\"pl-c1\">new_pipe</span>()\n\n    <span class=\"pl-smi\">uv</span>.<span class=\"pl-c1\">spawn</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fd<span class=\"pl-pds\">\"</span></span>, {\n        <span class=\"pl-smi\">args</span> <span class=\"pl-k\">=</span> {\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--color=never<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--type<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>file<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--hidden<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--follow<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--exclude<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.git<span class=\"pl-pds\">\"</span></span>,\n        },\n        <span class=\"pl-smi\">stdio</span> <span class=\"pl-k\">=</span> { <span class=\"pl-c1\">nil</span>, <span class=\"pl-smi\">pipe</span>, <span class=\"pl-c1\">nil</span> },\n    })\n\n    <span class=\"pl-smi\">uv</span>.<span class=\"pl-c1\">spawn</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>proximity-sort<span class=\"pl-pds\">\"</span></span>, {\n        <span class=\"pl-smi\">args</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%:.<span class=\"pl-pds\">\"</span></span>) },\n        <span class=\"pl-smi\">stdio</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pipe</span>, <span class=\"pl-smi\">stdout</span>, <span class=\"pl-c1\">nil</span> },\n    })\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">data_feed</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n    <span class=\"pl-en\">stdout</span>:<span class=\"pl-c1\">read_start</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">err</span>, <span class=\"pl-smi\">data</span>)\n        <span class=\"pl-c1\">assert</span>(<span class=\"pl-k\">not</span> <span class=\"pl-smi\">err</span>, <span class=\"pl-smi\">err</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">data</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">data_feed</span>, <span class=\"pl-smi\">data</span>) <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-c1\">table.concat</span>(<span class=\"pl-smi\">data_feed</span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>)\n        <span class=\"pl-smi\">data_feed</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n        <span class=\"pl-en\">stdout</span>:<span class=\"pl-c1\">close</span>()\n        <span class=\"pl-en\">pipe</span>:<span class=\"pl-c1\">close</span>()\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>()\n            <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({\n                <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> {\n                    <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span>,\n                },\n            })\n        <span class=\"pl-k\">end</span>)\n    <span class=\"pl-k\">end</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\">But I was wondering if there are other ways to write this? as I could easily do this in <code class=\"notranslate\">fzf-lua</code> like so:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"    local opts = {\n        cwd = vim.fn.getcwd(),\n        fzf_opts = {\n            [&quot;--tiebreak&quot;] = &quot;index&quot;,\n        },\n        cmd = &quot;fd --color=never --type file --hidden --follow --exclude .git&quot;,\n    }\n\n    local base = vim.fn.expand(&quot;%:.&quot;)\n    opts.cmd = string.format(\n        &quot;%s | proximity-sort %s&quot;,\n        opts.cmd,\n        vim.fn.empty(base) == 0 and vim.fn.shellescape(base) or &quot;.&quot;\n    )\n\n    require(&quot;fzf-lua&quot;).files(opts)\"><pre class=\"notranslate\">    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>(),\n        <span class=\"pl-smi\">fzf_opts</span> <span class=\"pl-k\">=</span> {\n            [<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>--tiebreak<span class=\"pl-pds\">\"</span></span>] <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>index<span class=\"pl-pds\">\"</span></span>,\n        },\n        <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fd --color=never --type file --hidden --follow --exclude .git<span class=\"pl-pds\">\"</span></span>,\n    }\n\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">base</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%:.<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(\n        <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s | proximity-sort %s<span class=\"pl-pds\">\"</span></span>,\n        <span class=\"pl-smi\">opts</span>.<span class=\"pl-e\">cmd</span>,\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">empty</span>(<span class=\"pl-smi\">base</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">shellescape</span>(<span class=\"pl-smi\">base</span>) <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.<span class=\"pl-pds\">\"</span></span>\n    )\n\n    <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>fzf-lua<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">files</span>(<span class=\"pl-smi\">opts</span>)</pre></div>",
+    "bodyText": "Here I am trying to use proximity-sort with mini-pick.\nI tried with to directly pass the following commands into builtin.cli():\n        command = {\n            \"fd\",\n            \"--color=never\",\n            \"--type\",\n            \"file\",\n            \"--hidden\",\n            \"--follow\",\n            \"--exclude\",\n            \".git\",\n            \"|\",\n            \"proximity-sort\",\n            vim.fn.expand(\"%:.\"),\n        },\nBut nothing was shown. I could make it work as follows:\nlocal function files()\n    local uv = vim.uv\n    local pipe, stdout = uv.new_pipe(), uv.new_pipe()\n\n    uv.spawn(\"fd\", {\n        args = {\n            \"--color=never\",\n            \"--type\",\n            \"file\",\n            \"--hidden\",\n            \"--follow\",\n            \"--exclude\",\n            \".git\",\n        },\n        stdio = { nil, pipe, nil },\n    })\n\n    uv.spawn(\"proximity-sort\", {\n        args = { vim.fn.expand(\"%:.\") },\n        stdio = { pipe, stdout, nil },\n    })\n\n    local data_feed = {}\n    local items = nil\n    stdout:read_start(function(err, data)\n        assert(not err, err)\n        if data then return table.insert(data_feed, data) end\n\n        items = vim.split(table.concat(data_feed), \"\\n\")\n        data_feed = nil\n        stdout:close()\n        pipe:close()\n        vim.schedule(function()\n            MiniPick.start({\n                source = {\n                    items = items,\n                },\n            })\n        end)\n    end)\nend\nBut I was wondering if there are other ways to write this? as I could easily do this in fzf-lua like so:\n    local opts = {\n        cwd = vim.fn.getcwd(),\n        fzf_opts = {\n            [\"--tiebreak\"] = \"index\",\n        },\n        cmd = \"fd --color=never --type file --hidden --follow --exclude .git\",\n    }\n\n    local base = vim.fn.expand(\"%:.\")\n    opts.cmd = string.format(\n        \"%s | proximity-sort %s\",\n        opts.cmd,\n        vim.fn.empty(base) == 0 and vim.fn.shellescape(base) or \".\"\n    )\n\n    require(\"fzf-lua\").files(opts)",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-07-13T12:32:43Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Indeed, command in `builtin.cli()` should be a single CLI command (as in: can be used in `vim.uv.spawn()`). The best way I can suggest to implement this is via `builtin.cli()` and its [`postprocess` field](https://github.com/echasnovski/mini.nvim/blob/27de3dd4485161470ea55004fc132f2b158d1d24/doc/mini-pick.txt#L1163). It [will be called with array of items](https://github.com/echasnovski/mini.nvim/blob/27de3dd4485161470ea55004fc132f2b158d1d24/doc/mini-pick.txt#L1320-L1322) and should return the array of items. You can apply custom sorting there. If you want to make it async, I *think* returning empty table while scheduling `MiniPick.set_picker_items()` with sorted items when they are ready should do the trick.",
+            "bodyHTML": "<p dir=\"auto\">Indeed, command in <code class=\"notranslate\">builtin.cli()</code> should be a single CLI command (as in: can be used in <code class=\"notranslate\">vim.uv.spawn()</code>). The best way I can suggest to implement this is via <code class=\"notranslate\">builtin.cli()</code> and its <a href=\"https://github.com/echasnovski/mini.nvim/blob/27de3dd4485161470ea55004fc132f2b158d1d24/doc/mini-pick.txt#L1163\"><code class=\"notranslate\">postprocess</code> field</a>. It <a href=\"https://github.com/echasnovski/mini.nvim/blob/27de3dd4485161470ea55004fc132f2b158d1d24/doc/mini-pick.txt#L1320-L1322\">will be called with array of items</a> and should return the array of items. You can apply custom sorting there. If you want to make it async, I <em>think</em> returning empty table while scheduling <code class=\"notranslate\">MiniPick.set_picker_items()</code> with sorted items when they are ready should do the trick.</p>",
+            "bodyText": "Indeed, command in builtin.cli() should be a single CLI command (as in: can be used in vim.uv.spawn()). The best way I can suggest to implement this is via builtin.cli() and its postprocess field. It will be called with array of items and should return the array of items. You can apply custom sorting there. If you want to make it async, I think returning empty table while scheduling MiniPick.set_picker_items() with sorted items when they are ready should do the trick.",
+            "createdAt": "2024-07-13T12:32:43Z",
+            "createdViaEmail": false,
+            "databaseId": 10038817,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AmS4h",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-13T12:32:43Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1053#discussioncomment-10038817",
+            "updatedAt": "2024-07-13T12:32:44Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1053#discussioncomment-10038817"
+        }
+    ],
+    "createdAt": "2024-07-11T13:31:50Z",
+    "createdViaEmail": false,
+    "databaseId": 6923323,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AaaQ7",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1053,
+    "poll": null,
+    "publishedAt": "2024-07-11T13:31:50Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1053",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pick] How to write custom commands with pipe `|` to `builtin.cli`?",
+    "updatedAt": "2024-07-13T12:32:45Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1053"
+}

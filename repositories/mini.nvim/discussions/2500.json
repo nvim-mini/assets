@@ -1,0 +1,192 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/200692511?u=c91520338430e87aee479ed0d4dbcfe627f87a7b&v=4",
+        "login": "yilisharcs",
+        "resourcePath": "/yilisharcs",
+        "url": "https://github.com/yilisharcs"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "for mini.splitjoin users and fennel enjoyers, i assure you, it is entirely possible to have the two work together with just four hooks. tables are formatted in the same way that fnlfmt would format them. @echasnovski my initial go at it in #2470 wasn't good enough, so i did as asked. here you go!\r\n\r\n```lua\r\n-- cache the position of the opening bracket.\r\n-- `lisp_indent` needs what `lisp_split` strips out.\r\nlocal bracket_col_cache\r\n\r\n-- any {:foo 10} or (let [bar 20]) are key-value tables\r\nlocal function kv_split(positions)\r\n        if #positions < 2 then\r\n                return positions\r\n        end\r\n\r\n        local first = positions[1]\r\n        local line = vim.api.nvim_buf_get_lines(0, first.line - 1, first.line, false)[1]\r\n        local bracket = line:sub(first.col, first.col)\r\n        bracket_col_cache = first.col\r\n\r\n        local is_kv_tbl = bracket == \"{\"\r\n        if bracket == \"[\" then\r\n                -- doesn't check line above\r\n                local before = line:sub(1, first.col - 1)\r\n                is_kv_tbl = before:match(\"let%s*$\") ~= nil\r\n        end\r\n\r\n        if is_kv_tbl then\r\n                local res = { positions[1] }\r\n                for i = 3, #positions - 1, 2 do\r\n                        res[#res + 1] = positions[i]\r\n                end\r\n                res[#res + 1] = positions[#positions]\r\n                return res\r\n        end\r\n\r\n        return positions\r\nend\r\n\r\n-- brackets stay close to the first and last elements\r\nlocal function lisp_split(positions)\r\n        if #positions < 2 then\r\n                return positions\r\n        end\r\n\r\n        local res = {}\r\n        for i = 2, #positions - 1 do\r\n                res[i - 1] = positions[i]\r\n        end\r\n\r\n        return res\r\nend\r\n\r\n-- align all elements to the first element\r\nlocal function lisp_indent(positions)\r\n        if #positions < 2 then\r\n                return positions\r\n        end\r\n\r\n        local indent = string.rep(\" \", bracket_col_cache or 1)\r\n        for l = positions[1].line + 1, positions[#positions].line do\r\n                local cur_line = vim.api.nvim_buf_get_lines(0, l - 1, l, false)[1]\r\n                vim.api.nvim_buf_set_text(0, l - 1, 0, l - 1, cur_line:match(\"^%s*\"):len(), { indent })\r\n        end\r\n\r\n        return positions\r\nend\r\n\r\n-- add a space after the first and before the last element\r\nlocal function lisp_pad(positions)\r\n        if #positions < 2 then\r\n                return positions\r\n        end\r\n\r\n        local first = positions[1]\r\n        local last = positions[#positions - 1]\r\n        local two_kv = first.line == last.line and first.col == last.col\r\n\r\n        vim.api.nvim_buf_set_text(0, first.line - 1, first.col, first.line - 1, first.col, { \" \" })\r\n        if not two_kv then\r\n                last.col = last.col + 1\r\n                vim.api.nvim_buf_set_text(0, last.line - 1, last.col, last.line - 1, last.col, { \" \" })\r\n        end\r\n\r\n        return positions\r\nend\r\n\r\nvim.b.minisplitjoin_config = {\r\n        detect = {\r\n                brackets = { \"%b[]\", \"%b{}\" },\r\n                separator = \"%s+\",\r\n        },\r\n        split = {\r\n                hooks_pre = { kv_split, lisp_split },\r\n                hooks_post = { lisp_indent },\r\n        },\r\n        join = {\r\n                hooks_post = { lisp_pad },\r\n        },\r\n}\r\n```\r\n",
+    "bodyHTML": "<p dir=\"auto\">for mini.splitjoin users and fennel enjoyers, i assure you, it is entirely possible to have the two work together with just four hooks. tables are formatted in the same way that fnlfmt would format them. <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> my initial go at it in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"4705211377\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/2470\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/2470/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/2470\">#2470</a> wasn't good enough, so i did as asked. here you go!</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- cache the position of the opening bracket.\n-- `lisp_indent` needs what `lisp_split` strips out.\nlocal bracket_col_cache\n\n-- any {:foo 10} or (let [bar 20]) are key-value tables\nlocal function kv_split(positions)\n        if #positions &lt; 2 then\n                return positions\n        end\n\n        local first = positions[1]\n        local line = vim.api.nvim_buf_get_lines(0, first.line - 1, first.line, false)[1]\n        local bracket = line:sub(first.col, first.col)\n        bracket_col_cache = first.col\n\n        local is_kv_tbl = bracket == &quot;{&quot;\n        if bracket == &quot;[&quot; then\n                -- doesn't check line above\n                local before = line:sub(1, first.col - 1)\n                is_kv_tbl = before:match(&quot;let%s*$&quot;) ~= nil\n        end\n\n        if is_kv_tbl then\n                local res = { positions[1] }\n                for i = 3, #positions - 1, 2 do\n                        res[#res + 1] = positions[i]\n                end\n                res[#res + 1] = positions[#positions]\n                return res\n        end\n\n        return positions\nend\n\n-- brackets stay close to the first and last elements\nlocal function lisp_split(positions)\n        if #positions &lt; 2 then\n                return positions\n        end\n\n        local res = {}\n        for i = 2, #positions - 1 do\n                res[i - 1] = positions[i]\n        end\n\n        return res\nend\n\n-- align all elements to the first element\nlocal function lisp_indent(positions)\n        if #positions &lt; 2 then\n                return positions\n        end\n\n        local indent = string.rep(&quot; &quot;, bracket_col_cache or 1)\n        for l = positions[1].line + 1, positions[#positions].line do\n                local cur_line = vim.api.nvim_buf_get_lines(0, l - 1, l, false)[1]\n                vim.api.nvim_buf_set_text(0, l - 1, 0, l - 1, cur_line:match(&quot;^%s*&quot;):len(), { indent })\n        end\n\n        return positions\nend\n\n-- add a space after the first and before the last element\nlocal function lisp_pad(positions)\n        if #positions &lt; 2 then\n                return positions\n        end\n\n        local first = positions[1]\n        local last = positions[#positions - 1]\n        local two_kv = first.line == last.line and first.col == last.col\n\n        vim.api.nvim_buf_set_text(0, first.line - 1, first.col, first.line - 1, first.col, { &quot; &quot; })\n        if not two_kv then\n                last.col = last.col + 1\n                vim.api.nvim_buf_set_text(0, last.line - 1, last.col, last.line - 1, last.col, { &quot; &quot; })\n        end\n\n        return positions\nend\n\nvim.b.minisplitjoin_config = {\n        detect = {\n                brackets = { &quot;%b[]&quot;, &quot;%b{}&quot; },\n                separator = &quot;%s+&quot;,\n        },\n        split = {\n                hooks_pre = { kv_split, lisp_split },\n                hooks_post = { lisp_indent },\n        },\n        join = {\n                hooks_post = { lisp_pad },\n        },\n}\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> cache the position of the opening bracket.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> `lisp_indent` needs what `lisp_split` strips out.</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">bracket_col_cache</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> any {:foo 10} or (let [bar 20]) are key-value tables</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">kv_split</span>(<span class=\"pl-smi\">positions</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">first</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-c1\">1</span>]\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">line</span>, <span class=\"pl-c1\">false</span>)[<span class=\"pl-c1\">1</span>]\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span>)\n        <span class=\"pl-smi\">bracket_col_cache</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_kv_tbl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>{<span class=\"pl-pds\">\"</span></span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">bracket</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n                <span class=\"pl-c\"><span class=\"pl-c\">--</span> doesn't check line above</span>\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">before</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">line</span>:<span class=\"pl-c1\">sub</span>(<span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>)\n                <span class=\"pl-smi\">is_kv_tbl</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">before</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>let%s*$<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">is_kv_tbl</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">positions</span>[<span class=\"pl-c1\">1</span>] }\n                <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">3</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">2</span> <span class=\"pl-k\">do</span>\n                        <span class=\"pl-smi\">res</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">res</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-smi\">i</span>]\n                <span class=\"pl-k\">end</span>\n                <span class=\"pl-smi\">res</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">res</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span>]\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> brackets stay close to the first and last elements</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">lisp_split</span>(<span class=\"pl-smi\">positions</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">res</span> <span class=\"pl-k\">=</span> {}\n        <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">2</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">do</span>\n                <span class=\"pl-smi\">res</span>[<span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>] <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-smi\">i</span>]\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">res</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> align all elements to the first element</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">lisp_indent</span>(<span class=\"pl-smi\">positions</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">indent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.rep</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">bracket_col_cache</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">1</span>)\n        <span class=\"pl-k\">for</span> <span class=\"pl-smi\">l</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-c1\">1</span>].<span class=\"pl-e\">line</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">positions</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span>].<span class=\"pl-e\">line</span> <span class=\"pl-k\">do</span>\n                <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cur_line</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_get_lines</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">l</span>, <span class=\"pl-c1\">false</span>)[<span class=\"pl-c1\">1</span>]\n                <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_text</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-en\">cur_line</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%s*<span class=\"pl-pds\">\"</span></span>):<span class=\"pl-c1\">len</span>(), { <span class=\"pl-smi\">indent</span> })\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> add a space after the first and before the last element</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-k\">function</span> <span class=\"pl-en\">lisp_pad</span>(<span class=\"pl-smi\">positions</span>)\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-c1\">2</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">first</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-c1\">1</span>]\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">last</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">positions</span>[<span class=\"pl-k\">#</span><span class=\"pl-smi\">positions</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>]\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">two_kv</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">==</span> <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">col</span>\n\n        <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_text</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">first</span>.<span class=\"pl-e\">col</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span>})\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">two_kv</span> <span class=\"pl-k\">then</span>\n                <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">col</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">1</span>\n                <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_text</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">col</span>, <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">last</span>.<span class=\"pl-e\">col</span>, { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> <span class=\"pl-pds\">\" </span></span>})\n        <span class=\"pl-k\">end</span>\n\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">positions</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">b</span>.<span class=\"pl-e\">minisplitjoin_config</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">detect</span> <span class=\"pl-k\">=</span> {\n                <span class=\"pl-smi\">brackets</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b[]<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%b{}<span class=\"pl-pds\">\" </span></span>},\n                <span class=\"pl-smi\">separator</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s+<span class=\"pl-pds\">\"</span></span>,\n        },\n        <span class=\"pl-smi\">split</span> <span class=\"pl-k\">=</span> {\n                <span class=\"pl-smi\">hooks_pre</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">kv_split</span>, <span class=\"pl-smi\">lisp_split</span> },\n                <span class=\"pl-smi\">hooks_post</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">lisp_indent</span> },\n        },\n        <span class=\"pl-smi\">join</span> <span class=\"pl-k\">=</span> {\n                <span class=\"pl-smi\">hooks_post</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">lisp_pad</span> },\n        },\n}</pre></div>",
+    "bodyText": "for mini.splitjoin users and fennel enjoyers, i assure you, it is entirely possible to have the two work together with just four hooks. tables are formatted in the same way that fnlfmt would format them. @echasnovski my initial go at it in #2470 wasn't good enough, so i did as asked. here you go!\n-- cache the position of the opening bracket.\n-- `lisp_indent` needs what `lisp_split` strips out.\nlocal bracket_col_cache\n\n-- any {:foo 10} or (let [bar 20]) are key-value tables\nlocal function kv_split(positions)\n        if #positions < 2 then\n                return positions\n        end\n\n        local first = positions[1]\n        local line = vim.api.nvim_buf_get_lines(0, first.line - 1, first.line, false)[1]\n        local bracket = line:sub(first.col, first.col)\n        bracket_col_cache = first.col\n\n        local is_kv_tbl = bracket == \"{\"\n        if bracket == \"[\" then\n                -- doesn't check line above\n                local before = line:sub(1, first.col - 1)\n                is_kv_tbl = before:match(\"let%s*$\") ~= nil\n        end\n\n        if is_kv_tbl then\n                local res = { positions[1] }\n                for i = 3, #positions - 1, 2 do\n                        res[#res + 1] = positions[i]\n                end\n                res[#res + 1] = positions[#positions]\n                return res\n        end\n\n        return positions\nend\n\n-- brackets stay close to the first and last elements\nlocal function lisp_split(positions)\n        if #positions < 2 then\n                return positions\n        end\n\n        local res = {}\n        for i = 2, #positions - 1 do\n                res[i - 1] = positions[i]\n        end\n\n        return res\nend\n\n-- align all elements to the first element\nlocal function lisp_indent(positions)\n        if #positions < 2 then\n                return positions\n        end\n\n        local indent = string.rep(\" \", bracket_col_cache or 1)\n        for l = positions[1].line + 1, positions[#positions].line do\n                local cur_line = vim.api.nvim_buf_get_lines(0, l - 1, l, false)[1]\n                vim.api.nvim_buf_set_text(0, l - 1, 0, l - 1, cur_line:match(\"^%s*\"):len(), { indent })\n        end\n\n        return positions\nend\n\n-- add a space after the first and before the last element\nlocal function lisp_pad(positions)\n        if #positions < 2 then\n                return positions\n        end\n\n        local first = positions[1]\n        local last = positions[#positions - 1]\n        local two_kv = first.line == last.line and first.col == last.col\n\n        vim.api.nvim_buf_set_text(0, first.line - 1, first.col, first.line - 1, first.col, { \" \" })\n        if not two_kv then\n                last.col = last.col + 1\n                vim.api.nvim_buf_set_text(0, last.line - 1, last.col, last.line - 1, last.col, { \" \" })\n        end\n\n        return positions\nend\n\nvim.b.minisplitjoin_config = {\n        detect = {\n                brackets = { \"%b[]\", \"%b{}\" },\n                separator = \"%s+\",\n        },\n        split = {\n                hooks_pre = { kv_split, lisp_split },\n                hooks_post = { lisp_indent },\n        },\n        join = {\n                hooks_post = { lisp_pad },\n        },\n}",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI do not write lisps (yet), but I am sure this will be useful for somebody who does.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I do not write lisps (yet), but I am sure this will be useful for somebody who does.</p>",
+            "bodyText": "Thanks for sharing!\nI do not write lisps (yet), but I am sure this will be useful for somebody who does.",
+            "createdAt": "2026-07-06T08:24:42Z",
+            "createdViaEmail": false,
+            "databaseId": 17544988,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BC7cc",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-07-06T08:24:42Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2500#discussioncomment-17544988",
+            "updatedAt": "2026-07-06T08:24:42Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2500#discussioncomment-17544988"
+        }
+    ],
+    "createdAt": "2026-07-05T22:34:33Z",
+    "createdViaEmail": false,
+    "databaseId": 10375919,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AnlLv",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABOKowBw",
+                "name": "mini.splitjoin"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2500,
+    "poll": null,
+    "publishedAt": "2026-07-05T22:34:33Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2500",
+    "stateReason": null,
+    "title": "split and join in fennel",
+    "updatedAt": "2026-07-06T08:24:42Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2500"
+}

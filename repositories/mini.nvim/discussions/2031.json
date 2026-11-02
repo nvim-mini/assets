@@ -1,0 +1,544 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Related: https://github.com/nvim-mini/mini.nvim/discussions/783\r\n\r\nFeatures:\r\n\r\n- [x] Highlight only inside treesitter **comments** when a parser is available.\r\n- [x] Support the following patterns for words (with/without surrounding spaces): `NOTE`, `NOTE:`, `  NOTE  `, ` NOTE:`\r\n\r\n| Example |\r\n| - |\r\n| <img width=\"647\" height=\"37\" alt=\"image\" src=\"https://github.com/user-attachments/assets/beb31a77-79dd-43c1-acc4-910caae8d348\" /> |\r\n\r\n```lua\r\nlocal MiniHipatterns = require(\"mini.hipatterns\")\r\nvim.api.nvim_create_autocmd({ \"VimEnter\", \"ColorScheme\" }, {\r\n  group = vim.api.nvim_create_augroup(\"todo_highlight\", { clear = true }),\r\n  callback = function()\r\n    local get = function(name)\r\n      return vim.api.nvim_get_hl(0, { name = name, link = false })\r\n    end\r\n    local make = function(name, fg, bg)\r\n      vim.api.nvim_set_hl(0, name, { bold = true, fg = fg, bg = bg })\r\n    end\r\n    make(\"UserHipatternsPerf\", \"black\", get(\"Identifier\").fg)\r\n  end,\r\n})\r\nlocal hi_todo = function(words, hl_name)\r\n  -- Examples: `NOTE` `NOTE:` ` NOTE ` ` NOTE:`\r\n  local pattern = vim\r\n    .iter(words)\r\n    :map(function(word)\r\n      return { \"%f[%w]()\" .. word .. \"()%f[%W]\", \"() \" .. word .. \"[: ]()\" }\r\n    end)\r\n    :flatten()\r\n    :totable()\r\n  return {\r\n    pattern = pattern,\r\n    -- NOTE: Highlight only inside treesitter comments when a parser is available\r\n    group = function(buf, _, data)\r\n      local parser = vim.treesitter.get_parser(buf, nil, { error = false })\r\n      if not parser then\r\n        return hl_name\r\n      end\r\n      local range4 = {\r\n        data.line - 1,\r\n        data.from_col - 1,\r\n        data.line - 1,\r\n        data.to_col - 1,\r\n      }\r\n      parser:parse(range4)\r\n      local node = parser:named_node_for_range(range4)\r\n      if node and node:type() == \"comment_content\" then\r\n        return hl_name\r\n      end\r\n    end,\r\n  }\r\nend\r\nMiniHipatterns.setup({\r\n  highlighters = {\r\n    fix = hi_todo({ \"FIX\", \"FIXME\" }, \"MiniHipatternsFixme\"),\r\n    note = hi_todo({ \"NOTE\" }, \"MiniHipatternsNote\"),\r\n    todo = hi_todo({ \"TODO\", \"FEAT\" }, \"MiniHipatternsTodo\"),\r\n    hack = hi_todo({ \"HACK\" }, \"MiniHipatternsHack\"),\r\n    perf = hi_todo({ \"PERF\" }, \"UserHipatternsPerf\"),\r\n  },\r\n})\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Related: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6468947\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/783\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/783/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/783\">#783</a></p>\n<p dir=\"auto\">Features:</p>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Highlight only inside treesitter <strong>comments</strong> when a parser is available.</li>\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> Support the following patterns for words (with/without surrounding spaces): <code class=\"notranslate\">NOTE</code>, <code class=\"notranslate\">NOTE:</code>, <code class=\"notranslate\"> NOTE </code>, <code class=\"notranslate\"> NOTE:</code></li>\n</ul>\n<markdown-accessiblity-table><table role=\"table\">\n<thead>\n<tr>\n<th>Example</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/495787031-beb31a77-79dd-43c1-acc4-910caae8d348.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MDAsIm5iZiI6MTc5MzU1MjUwMCwicGF0aCI6Ii8xMTk4NDUwNDUvNDk1Nzg3MDMxLWJlYjMxYTc3LTc5ZGQtNDNjMS1hY2M0LTkxMGNhYWU4ZDM0OC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03YmZhNzVkZmI5OWRkMzViYzg3MDBiZTFmZmU1MTQ3ZmYxODFiMzY5YzAyNjJjODI0Nzk5YzE2ZDIyY2MwYzRiJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.ZEhF93LEK0yc3A7M88AoBAbH5C-e5JUqcadTbKJ1mps\"><img width=\"647\" height=\"37\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/495787031-beb31a77-79dd-43c1-acc4-910caae8d348.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MDAsIm5iZiI6MTc5MzU1MjUwMCwicGF0aCI6Ii8xMTk4NDUwNDUvNDk1Nzg3MDMxLWJlYjMxYTc3LTc5ZGQtNDNjMS1hY2M0LTkxMGNhYWU4ZDM0OC5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03YmZhNzVkZmI5OWRkMzViYzg3MDBiZTFmZmU1MTQ3ZmYxODFiMzY5YzAyNjJjODI0Nzk5YzE2ZDIyY2MwYzRiJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.ZEhF93LEK0yc3A7M88AoBAbH5C-e5JUqcadTbKJ1mps\" style=\"max-width: 100%; height: auto; max-height: 37px;; aspect-ratio: 647 / 37; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></td>\n</tr>\n</tbody>\n</table></markdown-accessiblity-table>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local MiniHipatterns = require(&quot;mini.hipatterns&quot;)\nvim.api.nvim_create_autocmd({ &quot;VimEnter&quot;, &quot;ColorScheme&quot; }, {\n  group = vim.api.nvim_create_augroup(&quot;todo_highlight&quot;, { clear = true }),\n  callback = function()\n    local get = function(name)\n      return vim.api.nvim_get_hl(0, { name = name, link = false })\n    end\n    local make = function(name, fg, bg)\n      vim.api.nvim_set_hl(0, name, { bold = true, fg = fg, bg = bg })\n    end\n    make(&quot;UserHipatternsPerf&quot;, &quot;black&quot;, get(&quot;Identifier&quot;).fg)\n  end,\n})\nlocal hi_todo = function(words, hl_name)\n  -- Examples: `NOTE` `NOTE:` ` NOTE ` ` NOTE:`\n  local pattern = vim\n    .iter(words)\n    :map(function(word)\n      return { &quot;%f[%w]()&quot; .. word .. &quot;()%f[%W]&quot;, &quot;() &quot; .. word .. &quot;[: ]()&quot; }\n    end)\n    :flatten()\n    :totable()\n  return {\n    pattern = pattern,\n    -- NOTE: Highlight only inside treesitter comments when a parser is available\n    group = function(buf, _, data)\n      local parser = vim.treesitter.get_parser(buf, nil, { error = false })\n      if not parser then\n        return hl_name\n      end\n      local range4 = {\n        data.line - 1,\n        data.from_col - 1,\n        data.line - 1,\n        data.to_col - 1,\n      }\n      parser:parse(range4)\n      local node = parser:named_node_for_range(range4)\n      if node and node:type() == &quot;comment_content&quot; then\n        return hl_name\n      end\n    end,\n  }\nend\nMiniHipatterns.setup({\n  highlighters = {\n    fix = hi_todo({ &quot;FIX&quot;, &quot;FIXME&quot; }, &quot;MiniHipatternsFixme&quot;),\n    note = hi_todo({ &quot;NOTE&quot; }, &quot;MiniHipatternsNote&quot;),\n    todo = hi_todo({ &quot;TODO&quot;, &quot;FEAT&quot; }, &quot;MiniHipatternsTodo&quot;),\n    hack = hi_todo({ &quot;HACK&quot; }, &quot;MiniHipatternsHack&quot;),\n    perf = hi_todo({ &quot;PERF&quot; }, &quot;UserHipatternsPerf&quot;),\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniHipatterns</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hipatterns<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>VimEnter<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ColorScheme<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>todo_highlight<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">get</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">name</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_hl</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">link</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">make</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">fg</span>, <span class=\"pl-smi\">bg</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_hl</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">name</span>, { <span class=\"pl-smi\">bold</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">fg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">fg</span>, <span class=\"pl-smi\">bg</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">bg</span> })\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-c1\">make</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>UserHipatternsPerf<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>black<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">get</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Identifier<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-e\">fg</span>)\n  <span class=\"pl-k\">end</span>,\n})\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">hi_todo</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">words</span>, <span class=\"pl-smi\">hl_name</span>)\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Examples: `NOTE` `NOTE:` ` NOTE ` ` NOTE:`</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>\n    .<span class=\"pl-c1\">iter</span>(<span class=\"pl-smi\">words</span>)\n    :<span class=\"pl-c1\">map</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">word</span>)\n      <span class=\"pl-k\">return</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%f[%w]()<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">word</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>()%f[%W]<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>() <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">word</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[: ]()<span class=\"pl-pds\">\" </span></span>}\n    <span class=\"pl-k\">end</span>)\n    :<span class=\"pl-c1\">flatten</span>()\n    :<span class=\"pl-c1\">totable</span>()\n  <span class=\"pl-k\">return</span> {\n    <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">pattern</span>,\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: Highlight only inside treesitter comments when a parser is available</span>\n    <span class=\"pl-en\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">data</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">parser</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">treesitter</span>.<span class=\"pl-c1\">get_parser</span>(<span class=\"pl-smi\">buf</span>, <span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">error</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">parser</span> <span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">hl_name</span>\n      <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">range4</span> <span class=\"pl-k\">=</span> {\n        <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n        <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">from_col</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n        <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">line</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n        <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">to_col</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>,\n      }\n      <span class=\"pl-en\">parser</span>:<span class=\"pl-c1\">parse</span>(<span class=\"pl-smi\">range4</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">node</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">parser</span>:<span class=\"pl-c1\">named_node_for_range</span>(<span class=\"pl-smi\">range4</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">node</span> <span class=\"pl-k\">and</span> <span class=\"pl-en\">node</span>:<span class=\"pl-c1\">type</span>() <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>comment_content<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n        <span class=\"pl-k\">return</span> <span class=\"pl-smi\">hl_name</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>,\n  }\n<span class=\"pl-k\">end</span>\n<span class=\"pl-smi\">MiniHipatterns</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">highlighters</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">fix</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">hi_todo</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FIX<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FIXME<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHipatternsFixme<span class=\"pl-pds\">\"</span></span>),\n    <span class=\"pl-smi\">note</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">hi_todo</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>NOTE<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHipatternsNote<span class=\"pl-pds\">\"</span></span>),\n    <span class=\"pl-smi\">todo</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">hi_todo</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>TODO<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>FEAT<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHipatternsTodo<span class=\"pl-pds\">\"</span></span>),\n    <span class=\"pl-smi\">hack</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">hi_todo</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>HACK<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHipatternsHack<span class=\"pl-pds\">\"</span></span>),\n    <span class=\"pl-smi\">perf</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">hi_todo</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>PERF<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>UserHipatternsPerf<span class=\"pl-pds\">\"</span></span>),\n  },\n})</pre></div>",
+    "bodyText": "Related: #783\nFeatures:\n\n Highlight only inside treesitter comments when a parser is available.\n Support the following patterns for words (with/without surrounding spaces): NOTE, NOTE:,  NOTE ,  NOTE:\n\n\n\n\nExample\n\n\n\n\n\n\n\n\nlocal MiniHipatterns = require(\"mini.hipatterns\")\nvim.api.nvim_create_autocmd({ \"VimEnter\", \"ColorScheme\" }, {\n  group = vim.api.nvim_create_augroup(\"todo_highlight\", { clear = true }),\n  callback = function()\n    local get = function(name)\n      return vim.api.nvim_get_hl(0, { name = name, link = false })\n    end\n    local make = function(name, fg, bg)\n      vim.api.nvim_set_hl(0, name, { bold = true, fg = fg, bg = bg })\n    end\n    make(\"UserHipatternsPerf\", \"black\", get(\"Identifier\").fg)\n  end,\n})\nlocal hi_todo = function(words, hl_name)\n  -- Examples: `NOTE` `NOTE:` ` NOTE ` ` NOTE:`\n  local pattern = vim\n    .iter(words)\n    :map(function(word)\n      return { \"%f[%w]()\" .. word .. \"()%f[%W]\", \"() \" .. word .. \"[: ]()\" }\n    end)\n    :flatten()\n    :totable()\n  return {\n    pattern = pattern,\n    -- NOTE: Highlight only inside treesitter comments when a parser is available\n    group = function(buf, _, data)\n      local parser = vim.treesitter.get_parser(buf, nil, { error = false })\n      if not parser then\n        return hl_name\n      end\n      local range4 = {\n        data.line - 1,\n        data.from_col - 1,\n        data.line - 1,\n        data.to_col - 1,\n      }\n      parser:parse(range4)\n      local node = parser:named_node_for_range(range4)\n      if node and node:type() == \"comment_content\" then\n        return hl_name\n      end\n    end,\n  }\nend\nMiniHipatterns.setup({\n  highlighters = {\n    fix = hi_todo({ \"FIX\", \"FIXME\" }, \"MiniHipatternsFixme\"),\n    note = hi_todo({ \"NOTE\" }, \"MiniHipatternsNote\"),\n    todo = hi_todo({ \"TODO\", \"FEAT\" }, \"MiniHipatternsTodo\"),\n    hack = hi_todo({ \"HACK\" }, \"MiniHipatternsHack\"),\n    perf = hi_todo({ \"PERF\" }, \"UserHipatternsPerf\"),\n  },\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nI'd maybe recommend using `MiniHipatternsXxx` highlight groups wherever possible for consistency.\r\n\r\nI'd also add at least a small text description of what this does: can highlight not only a word itself but also including padding around it. This was considered when writing 'mini.hipatterns', but I don't really like how it looks a bit too much. But that's a personal taste.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">I'd maybe recommend using <code class=\"notranslate\">MiniHipatternsXxx</code> highlight groups wherever possible for consistency.</p>\n<p dir=\"auto\">I'd also add at least a small text description of what this does: can highlight not only a word itself but also including padding around it. This was considered when writing 'mini.hipatterns', but I don't really like how it looks a bit too much. But that's a personal taste.</p>",
+            "bodyText": "Thanks for sharing!\nI'd maybe recommend using MiniHipatternsXxx highlight groups wherever possible for consistency.\nI'd also add at least a small text description of what this does: can highlight not only a word itself but also including padding around it. This was considered when writing 'mini.hipatterns', but I don't really like how it looks a bit too much. But that's a personal taste.",
+            "createdAt": "2025-09-28T11:10:51Z",
+            "createdViaEmail": false,
+            "databaseId": 14533593,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A3cPZ",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-09-28T11:10:51Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "~~Indeed. If I recall correctly, I had a problem when enabling the `listchars:trail` symbol, as it somehow overrode `MiniHipatternsXxx` due to `reverse` option.~~\r\n\r\nI will update the code and add more comments. To be honest, I didn’t find https://github.com/nvim-mini/mini.nvim/discussions/783 right away, so I apologize for the duplicate.",
+                    "bodyHTML": "<p dir=\"auto\"><del>Indeed. If I recall correctly, I had a problem when enabling the <code class=\"notranslate\">listchars:trail</code> symbol, as it somehow overrode <code class=\"notranslate\">MiniHipatternsXxx</code> due to <code class=\"notranslate\">reverse</code> option.</del></p>\n<p dir=\"auto\">I will update the code and add more comments. To be honest, I didn’t find <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6468947\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/783\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/783/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/783\">#783</a> right away, so I apologize for the duplicate.</p>",
+                    "bodyText": "Indeed. If I recall correctly, I had a problem when enabling the listchars:trail symbol, as it somehow overrode MiniHipatternsXxx due to reverse option.\nI will update the code and add more comments. To be honest, I didn’t find #783 right away, so I apologize for the duplicate.",
+                    "createdAt": "2025-09-28T12:25:47Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14533891,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A3cUD",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-12-22T00:12:09Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-28T12:25:47Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14533593,
+                        "id": "DC_kwDOFoksYM4A3cPZ",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533593"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533891",
+                    "updatedAt": "2025-12-22T00:12:09Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533891"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Oh, I remember now. It was actually the opposite. For some reason, `MiniHipatternsXxx` highlights work fine, but custom highlights do not behave as expected:\r\n\r\n<details>\r\n  <summary>More info</summary>\r\n  \r\n| |\r\n| - |\r\n| <img width=\"739\" height=\"251\" alt=\"image\" src=\"https://github.com/user-attachments/assets/f9830661-2541-41c5-b1b9-58534c73d7ea\" /> |\r\n\r\n```lua\r\nvim.env.LAZY_STDPATH = \".repro\"\r\nload(vim.fn.system(\"curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua\"))()\r\n\r\nrequire(\"lazy.minit\").repro({ spec = { { \"nvim-mini/mini.nvim\" } } })\r\n\r\nvim.o.list = true\r\n\r\nvim.api.nvim_create_autocmd({ \"VimEnter\", \"ColorScheme\" }, {\r\n  group = vim.api.nvim_create_augroup(\"todo_highlight\", { clear = true }),\r\n  callback = function()\r\n    -- https://github.com/nvim-mini/mini.nvim/blob/228a8c34fae1d778e895ad06e4158f65e85828bc/lua/mini/hipatterns.lua#L701-L712\r\n    local hi_link_bold_reverse = function(to, from)\r\n      local data = vim.api.nvim_get_hl(0, { name = from, link = false })\r\n      data.default, data.bold, data.reverse = true, true, true\r\n      data.cterm = { bold = true, reverse = true }\r\n      vim.api.nvim_set_hl(0, to, data) ---@diagnostic disable-line: param-type-mismatch\r\n    end\r\n    hi_link_bold_reverse(\"@MiniHipatternsPerf\", \"Identifier\")\r\n  end,\r\n})\r\n\r\nlocal MiniHipatterns = require(\"mini.hipatterns\")\r\nMiniHipatterns.setup({\r\n  highlighters = {\r\n    -- NOTE: ` PERF ` has spaces at the end\r\n    -- PERF                                \r\n    -- FIXME                               \r\n    perf = { pattern = \" PERF \", group = \"@MiniHipatternsPerf\" },\r\n    fixme = { pattern = \" FIXME \", group = \"MiniHipatternsFixme\" },\r\n  },\r\n})\r\n```\r\n\r\n</details>",
+                    "bodyHTML": "<p dir=\"auto\">Oh, I remember now. It was actually the opposite. For some reason, <code class=\"notranslate\">MiniHipatternsXxx</code> highlights work fine, but custom highlights do not behave as expected:</p>\n<details>\n  <summary>More info</summary>\n<markdown-accessiblity-table><table role=\"table\">\n<thead>\n<tr>\n<th></th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td><a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/494886543-f9830661-2541-41c5-b1b9-58534c73d7ea.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MDAsIm5iZiI6MTc5MzU1MjUwMCwicGF0aCI6Ii8xMTk4NDUwNDUvNDk0ODg2NTQzLWY5ODMwNjYxLTI1NDEtNDFjNS1iMWI5LTU4NTM0YzczZDdlYS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03NjJiNmVlN2YyZThhOTkyYTI5ZTBjNWJmZTZmZWE1OTQyNGUwYWRhZGQwMmI4NWRhOGZjNzZhODBjZTZkMmFiJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.LduW-Fwj28NkdiBlI9_HbJV6-_NIX70D-A2qnJTrvUg\"><img width=\"739\" height=\"251\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/494886543-f9830661-2541-41c5-b1b9-58534c73d7ea.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI4MDAsIm5iZiI6MTc5MzU1MjUwMCwicGF0aCI6Ii8xMTk4NDUwNDUvNDk0ODg2NTQzLWY5ODMwNjYxLTI1NDEtNDFjNS1iMWI5LTU4NTM0YzczZDdlYS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxNDBaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03NjJiNmVlN2YyZThhOTkyYTI5ZTBjNWJmZTZmZWE1OTQyNGUwYWRhZGQwMmI4NWRhOGZjNzZhODBjZTZkMmFiJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.LduW-Fwj28NkdiBlI9_HbJV6-_NIX70D-A2qnJTrvUg\" style=\"max-width: 100%; height: auto; max-height: 251px;; aspect-ratio: 739 / 251; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a></td>\n</tr>\n</tbody>\n</table></markdown-accessiblity-table>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.env.LAZY_STDPATH = &quot;.repro&quot;\nload(vim.fn.system(&quot;curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua&quot;))()\n\nrequire(&quot;lazy.minit&quot;).repro({ spec = { { &quot;nvim-mini/mini.nvim&quot; } } })\n\nvim.o.list = true\n\nvim.api.nvim_create_autocmd({ &quot;VimEnter&quot;, &quot;ColorScheme&quot; }, {\n  group = vim.api.nvim_create_augroup(&quot;todo_highlight&quot;, { clear = true }),\n  callback = function()\n    -- https://github.com/nvim-mini/mini.nvim/blob/228a8c34fae1d778e895ad06e4158f65e85828bc/lua/mini/hipatterns.lua#L701-L712\n    local hi_link_bold_reverse = function(to, from)\n      local data = vim.api.nvim_get_hl(0, { name = from, link = false })\n      data.default, data.bold, data.reverse = true, true, true\n      data.cterm = { bold = true, reverse = true }\n      vim.api.nvim_set_hl(0, to, data) ---@diagnostic disable-line: param-type-mismatch\n    end\n    hi_link_bold_reverse(&quot;@MiniHipatternsPerf&quot;, &quot;Identifier&quot;)\n  end,\n})\n\nlocal MiniHipatterns = require(&quot;mini.hipatterns&quot;)\nMiniHipatterns.setup({\n  highlighters = {\n    -- NOTE: ` PERF ` has spaces at the end\n    -- PERF                                \n    -- FIXME                               \n    perf = { pattern = &quot; PERF &quot;, group = &quot;@MiniHipatternsPerf&quot; },\n    fixme = { pattern = &quot; FIXME &quot;, group = &quot;MiniHipatternsFixme&quot; },\n  },\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">env</span>.<span class=\"pl-e\">LAZY_STDPATH</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>.repro<span class=\"pl-pds\">\"</span></span>\n<span class=\"pl-c1\">load</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">system</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua<span class=\"pl-pds\">\"</span></span>))()\n\n<span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>lazy.minit<span class=\"pl-pds\">\"</span></span>).<span class=\"pl-c1\">repro</span>({ <span class=\"pl-smi\">spec</span> <span class=\"pl-k\">=</span> { { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>nvim-mini/mini.nvim<span class=\"pl-pds\">\" </span></span>} } })\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">list</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>VimEnter<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>ColorScheme<span class=\"pl-pds\">\" </span></span>}, {\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>todo_highlight<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> https://github.com/nvim-mini/mini.nvim/blob/228a8c34fae1d778e895ad06e4158f65e85828bc/lua/mini/hipatterns.lua#L701-L712</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">hi_link_bold_reverse</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">to</span>, <span class=\"pl-smi\">from</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">data</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_hl</span>(<span class=\"pl-c1\">0</span>, { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">from</span>, <span class=\"pl-smi\">link</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span> })\n      <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">default</span>, <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">bold</span>, <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">reverse</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">true</span>\n      <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">cterm</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">bold</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-smi\">reverse</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_hl</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">to</span>, <span class=\"pl-smi\">data</span>) <span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@diagnostic</span> <span class=\"pl-k\">disable-line</span><span class=\"pl-k\">:</span> <span class=\"pl-c1\">param-type-mismatch</span></span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-c1\">hi_link_bold_reverse</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@MiniHipatternsPerf<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Identifier<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">end</span>,\n})\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">MiniHipatterns</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.hipatterns<span class=\"pl-pds\">\"</span></span>)\n<span class=\"pl-smi\">MiniHipatterns</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">highlighters</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> NOTE: ` PERF ` has spaces at the end</span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> PERF                                </span>\n    <span class=\"pl-c\"><span class=\"pl-c\">--</span> FIXME                               </span>\n    <span class=\"pl-smi\">perf</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> PERF <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>@MiniHipatternsPerf<span class=\"pl-pds\">\" </span></span>},\n    <span class=\"pl-smi\">fixme</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> FIXME <span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniHipatternsFixme<span class=\"pl-pds\">\" </span></span>},\n  },\n})</pre></div>\n</details>",
+                    "bodyText": "Oh, I remember now. It was actually the opposite. For some reason, MiniHipatternsXxx highlights work fine, but custom highlights do not behave as expected:\n\n  More info\n\n\n\n\n\n\n\n\n\n\n\n\nvim.env.LAZY_STDPATH = \".repro\"\nload(vim.fn.system(\"curl -s https://raw.githubusercontent.com/folke/lazy.nvim/main/bootstrap.lua\"))()\n\nrequire(\"lazy.minit\").repro({ spec = { { \"nvim-mini/mini.nvim\" } } })\n\nvim.o.list = true\n\nvim.api.nvim_create_autocmd({ \"VimEnter\", \"ColorScheme\" }, {\n  group = vim.api.nvim_create_augroup(\"todo_highlight\", { clear = true }),\n  callback = function()\n    -- https://github.com/nvim-mini/mini.nvim/blob/228a8c34fae1d778e895ad06e4158f65e85828bc/lua/mini/hipatterns.lua#L701-L712\n    local hi_link_bold_reverse = function(to, from)\n      local data = vim.api.nvim_get_hl(0, { name = from, link = false })\n      data.default, data.bold, data.reverse = true, true, true\n      data.cterm = { bold = true, reverse = true }\n      vim.api.nvim_set_hl(0, to, data) ---@diagnostic disable-line: param-type-mismatch\n    end\n    hi_link_bold_reverse(\"@MiniHipatternsPerf\", \"Identifier\")\n  end,\n})\n\nlocal MiniHipatterns = require(\"mini.hipatterns\")\nMiniHipatterns.setup({\n  highlighters = {\n    -- NOTE: ` PERF ` has spaces at the end\n    -- PERF                                \n    -- FIXME                               \n    perf = { pattern = \" PERF \", group = \"@MiniHipatternsPerf\" },\n    fixme = { pattern = \" FIXME \", group = \"MiniHipatternsFixme\" },\n  },\n})",
+                    "createdAt": "2025-09-28T16:54:00Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14535110,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A3cnG",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-30T16:07:47Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-28T16:54:00Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14533593,
+                        "id": "DC_kwDOFoksYM4A3cPZ",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533593"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14535110",
+                    "updatedAt": "2025-09-30T16:07:47Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14535110"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533593",
+            "updatedAt": "2025-09-28T11:10:52Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533593"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I still prefer the look of what I posted here. https://github.com/nvim-mini/mini.nvim/discussions/783\r\n\r\nBut I should update it to automatically create the extra needed highlight groups as it requires me setting them for each colorscheme I want to use.",
+            "bodyHTML": "<p dir=\"auto\">I still prefer the look of what I posted here. <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6468947\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/783\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/783/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/783\">#783</a></p>\n<p dir=\"auto\">But I should update it to automatically create the extra needed highlight groups as it requires me setting them for each colorscheme I want to use.</p>",
+            "bodyText": "I still prefer the look of what I posted here. #783\nBut I should update it to automatically create the extra needed highlight groups as it requires me setting them for each colorscheme I want to use.",
+            "createdAt": "2025-09-28T11:34:03Z",
+            "createdViaEmail": false,
+            "databaseId": 14533688,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/747855?v=4",
+                "login": "pkazmier",
+                "resourcePath": "/pkazmier",
+                "url": "https://github.com/pkazmier"
+            },
+            "id": "DC_kwDOFoksYM4A3cQ4",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2025-09-28T11:37:42Z",
+            "minimizedReason": null,
+            "publishedAt": "2025-09-28T11:34:03Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 2
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yeah, the #783 is more straightforward for sure. And can also add different highlighting for the body.\r\n\r\n(Re-opened the discussion because I didn't really pay attention to having \"Show and tell\" discussions be open for better reach).",
+                    "bodyHTML": "<p dir=\"auto\">Yeah, the <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"6468947\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/783\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/783/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/783\">#783</a> is more straightforward for sure. And can also add different highlighting for the body.</p>\n<p dir=\"auto\">(Re-opened the discussion because I didn't really pay attention to having \"Show and tell\" discussions be open for better reach).</p>",
+                    "bodyText": "Yeah, the #783 is more straightforward for sure. And can also add different highlighting for the body.\n(Re-opened the discussion because I didn't really pay attention to having \"Show and tell\" discussions be open for better reach).",
+                    "createdAt": "2025-09-28T11:39:11Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14533720,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3cRY",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-28T11:39:11Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14533688,
+                        "id": "DC_kwDOFoksYM4A3cQ4",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533688"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533720",
+                    "updatedAt": "2025-09-28T11:39:11Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533720"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533688",
+            "updatedAt": "2025-09-28T11:37:42Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031#discussioncomment-14533688"
+        }
+    ],
+    "createdAt": "2025-09-28T09:21:28Z",
+    "createdViaEmail": false,
+    "databaseId": 8953582,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+        "login": "drowning-cat",
+        "resourcePath": "/drowning-cat",
+        "url": "https://github.com/drowning-cat"
+    },
+    "id": "D_kwDOFoksYM4AiJ7u",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABSnqSzg",
+                "name": "mini.hipatterns"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-12-30T15:36:09Z",
+    "locked": false,
+    "number": 2031,
+    "poll": null,
+    "publishedAt": "2025-09-28T09:21:28Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 2
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2031",
+    "stateReason": null,
+    "title": "[mini.hipatterns] Better todo comments",
+    "updatedAt": "2025-12-30T15:36:09Z",
+    "upvoteCount": 3,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2031"
+}

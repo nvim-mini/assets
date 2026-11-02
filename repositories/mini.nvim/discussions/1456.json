@@ -1,0 +1,207 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 11732404,
+        "id": "DC_kwDOFoksYM4AswW0",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1456#discussioncomment-11732404"
+    },
+    "answerChosenAt": "2025-01-04T09:56:50Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/763985?u=1240ba136343a1205326102a8e505469f511fe71&v=4",
+        "login": "willdavidow",
+        "resourcePath": "/willdavidow",
+        "url": "https://github.com/willdavidow"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\n\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\n\n### Module(s)\n\nmini.files\n\n### Question\n\nI'm wondering if there's a way to configure opening files in a specific split window. I had the plugin https://github.com/s1n7ax/nvim-window-picker enabled when I was using `nvim-tree` and I was hoping to use that plugin and have `mini.files` do something similar.\r\n\r\nIt doesn't seem like there's a way to map functions to the internal keys of `mini.files` but I didn't try for very long since I received the error that the plugin expects a string and not a function for keybinds, so I stopped there.\r\n\r\nBasically: move cursor to the file, press `l` or `L` and then the window picker opens to prompt which window the file should open in, and then opens there once the window is selected.\r\n\r\n",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.files</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I'm wondering if there's a way to configure opening files in a specific split window. I had the plugin <a href=\"https://github.com/s1n7ax/nvim-window-picker\">https://github.com/s1n7ax/nvim-window-picker</a> enabled when I was using <code class=\"notranslate\">nvim-tree</code> and I was hoping to use that plugin and have <code class=\"notranslate\">mini.files</code> do something similar.</p>\n<p dir=\"auto\">It doesn't seem like there's a way to map functions to the internal keys of <code class=\"notranslate\">mini.files</code> but I didn't try for very long since I received the error that the plugin expects a string and not a function for keybinds, so I stopped there.</p>\n<p dir=\"auto\">Basically: move cursor to the file, press <code class=\"notranslate\">l</code> or <code class=\"notranslate\">L</code> and then the window picker opens to prompt which window the file should open in, and then opens there once the window is selected.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.files\nQuestion\nI'm wondering if there's a way to configure opening files in a specific split window. I had the plugin https://github.com/s1n7ax/nvim-window-picker enabled when I was using nvim-tree and I was hoping to use that plugin and have mini.files do something similar.\nIt doesn't seem like there's a way to map functions to the internal keys of mini.files but I didn't try for very long since I received the error that the plugin expects a string and not a function for keybinds, so I stopped there.\nBasically: move cursor to the file, press l or L and then the window picker opens to prompt which window the file should open in, and then opens there once the window is selected.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-01-04T09:56:49Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Sure, this is possible via making custom buffer-local mappings (similar to [this code](https://github.com/echasnovski/mini.nvim/blob/546b9c8bd8ebba594bd18811e54bd3e6f9a662ec/doc/mini-files.txt#L473), for example). Something like this should work:\r\n\r\n```lua\r\nrequire('mini.files').setup({ mappings = { go_in = '', go_in_plug = '' } })\r\nlocal pick_win_and_go_in = function(close_on_file)\r\n  if MiniFiles.get_fs_entry().fs_type == 'file' then\r\n    local picked_win_id = require('window-picker').pick_window()\r\n    MiniFiles.set_target_window(picked_win_id)\r\n  end\r\n  MiniFiles.go_in({ close_on_file = close_on_file })\r\nend\r\n\r\nvim.api.nvim_create_autocmd('User', {\r\n  pattern = 'MiniFilesBufferCreate',\r\n  callback = function(args)\r\n    local buf_id = args.data.buf_id\r\n    vim.keymap.set('n', 'l', function() pick_win_and_go_in(false) end, { buffer = buf_id })\r\n    vim.keymap.set('n', 'L', function() pick_win_and_go_in(true) end, { buffer = buf_id })\r\n  end,\r\n})\r\n```",
+            "bodyHTML": "<p dir=\"auto\">Sure, this is possible via making custom buffer-local mappings (similar to <a href=\"https://github.com/echasnovski/mini.nvim/blob/546b9c8bd8ebba594bd18811e54bd3e6f9a662ec/doc/mini-files.txt#L473\">this code</a>, for example). Something like this should work:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.files').setup({ mappings = { go_in = '', go_in_plug = '' } })\nlocal pick_win_and_go_in = function(close_on_file)\n  if MiniFiles.get_fs_entry().fs_type == 'file' then\n    local picked_win_id = require('window-picker').pick_window()\n    MiniFiles.set_target_window(picked_win_id)\n  end\n  MiniFiles.go_in({ close_on_file = close_on_file })\nend\n\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args)\n    local buf_id = args.data.buf_id\n    vim.keymap.set('n', 'l', function() pick_win_and_go_in(false) end, { buffer = buf_id })\n    vim.keymap.set('n', 'L', function() pick_win_and_go_in(true) end, { buffer = buf_id })\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.files<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>({ <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">go_in</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">go_in_plug</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-pds\">' </span></span>} })\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">pick_win_and_go_in</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">close_on_file</span>)\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_fs_entry</span>().<span class=\"pl-e\">fs_type</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>file<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">picked_win_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>window-picker<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">pick_window</span>()\n    <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">set_target_window</span>(<span class=\"pl-smi\">picked_win_id</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">go_in</span>({ <span class=\"pl-smi\">close_on_file</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">close_on_file</span> })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>User<span class=\"pl-pds\">'</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>MiniFilesBufferCreate<span class=\"pl-pds\">'</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>l<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">pick_win_and_go_in</span>(<span class=\"pl-c1\">false</span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_id</span> })\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>L<span class=\"pl-pds\">'</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">pick_win_and_go_in</span>(<span class=\"pl-c1\">true</span>) <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_id</span> })\n  <span class=\"pl-k\">end</span>,\n})</pre></div>",
+            "bodyText": "Sure, this is possible via making custom buffer-local mappings (similar to this code, for example). Something like this should work:\nrequire('mini.files').setup({ mappings = { go_in = '', go_in_plug = '' } })\nlocal pick_win_and_go_in = function(close_on_file)\n  if MiniFiles.get_fs_entry().fs_type == 'file' then\n    local picked_win_id = require('window-picker').pick_window()\n    MiniFiles.set_target_window(picked_win_id)\n  end\n  MiniFiles.go_in({ close_on_file = close_on_file })\nend\n\nvim.api.nvim_create_autocmd('User', {\n  pattern = 'MiniFilesBufferCreate',\n  callback = function(args)\n    local buf_id = args.data.buf_id\n    vim.keymap.set('n', 'l', function() pick_win_and_go_in(false) end, { buffer = buf_id })\n    vim.keymap.set('n', 'L', function() pick_win_and_go_in(true) end, { buffer = buf_id })\n  end,\n})",
+            "createdAt": "2025-01-04T09:56:49Z",
+            "createdViaEmail": false,
+            "databaseId": 11732404,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AswW0",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-01-04T09:56:49Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1456#discussioncomment-11732404",
+            "updatedAt": "2025-01-04T09:56:50Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1456#discussioncomment-11732404"
+        }
+    ],
+    "createdAt": "2025-01-03T21:52:31Z",
+    "createdViaEmail": false,
+    "databaseId": 7775757,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AdqYN",
+    "includesCreatedEdit": false,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 1456,
+    "poll": null,
+    "publishedAt": "2025-01-03T21:52:31Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1456",
+    "stateReason": "RESOLVED",
+    "title": "[mini.files]: Enable Window Picker for Splits",
+    "updatedAt": "2025-01-04T09:56:50Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1456"
+}

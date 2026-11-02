@@ -1,0 +1,702 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi @echasnovski! Sorry for the ping again. I just realized mini.files does not have support for willdeletefiles, willcreatefiles and willrenamefiles requests for lsp. I just implemented this small snippet to make this happen. The issue I am facing here is that before calling didmethods, willmethods should be called and that too before the changes are made, and I needed a way to get the changes done by mini.files before they are done and once they are confirmed. I just tried looking at the autocommands and non of them seem to help. So Is there any way to expose an autocommand which will give all the changes data after the confirmation prompt is confirmed. That should help me implement the functionality perfectly. Also this does not yet support copy and move functionalities which I will add them later.\r\n```lua\r\nlocal lsp_get_client = function(name, bufnr, all)\r\n\tlocal clients\r\n\tlocal buf = nil\r\n\tif name and bufnr then\r\n\t\tclients = vim.lsp.get_clients({\r\n\t\t\tbufnr = buf,\r\n\t\t\tname = name,\r\n\t\t})\r\n\telseif name and not bufnr then\r\n\t\tclients = vim.lsp.get_clients({\r\n\t\t\tname = name,\r\n\t\t})\r\n\telseif bufnr and not name then\r\n\t\tclients = vim.lsp.get_clients({\r\n\t\t\tbufnr = buf,\r\n\t\t})\r\n\telse\r\n\t\tclients = vim.lsp.get_clients()\r\n\tend\r\n\tif #clients == 0 then\r\n\t\tvim.notify(\"No \" .. name .. \" client found\", vim.log.levels.WARN)\r\n\t\treturn\r\n\tend\r\n\tif all then\r\n\t\treturn clients\r\n\tend\r\n\treturn clients[1]\r\nend\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n\tpattern = {\r\n\t\t\"MiniFilesActionCreate\",\r\n\t\t\"MiniFilesActionDelete\",\r\n\t\t\"MiniFilesActionRename\",\r\n\t},\r\n\tcallback = function(args)\r\n\t\tlocal clients = lsp_get_client(nil, nil, true)\r\n\t\tlocal willMethod\r\n\t\tlocal didMethod\r\n\t\tlocal changes\r\n\t\tif clients and #clients > 0 then\r\n\t\t\tif args.data.to and not args.data.from then\r\n\t\t\t\twillMethod = \"workspace/willCreateFiles\"\r\n\t\t\t\tdidMethod = \"workspace/didCreateFiles\"\r\n\t\t\t\tchanges = {\r\n\t\t\t\t\tfiles = {\r\n\t\t\t\t\t\turi = vim.uri_from_fname(args.data.to),\r\n\t\t\t\t\t},\r\n\t\t\t\t}\r\n\t\t\telseif args.data.from and not args.data.to then\r\n\t\t\t\twillMethod = \"workspace/willDeleteFiles\"\r\n\t\t\t\tdidMethod = \"workspace/didDeleteFiles\"\r\n\t\t\t\tchanges = {\r\n\t\t\t\t\tfiles = {\r\n\t\t\t\t\t\turi = vim.uri_from_fname(args.data.from),\r\n\t\t\t\t\t},\r\n\t\t\t\t}\r\n\t\t\telse\r\n\t\t\t\twillMethod = \"workspace/willRenameFiles\"\r\n\t\t\t\tdidMethod = \"workspace/didRenameFiles\"\r\n\t\t\t\tchanges = {\r\n\t\t\t\t\tfiles = {\r\n\t\t\t\t\t\toldUri = vim.uri_from_fname(args.data.from),\r\n\t\t\t\t\t\tnewUri = vim.uri_from_fname(args.data.to),\r\n\t\t\t\t\t},\r\n\t\t\t\t}\r\n\t\t\tend\r\n\t\t\tfor _, client in ipairs(clients) do\r\n\t\t\t\tif client:supports_method(willMethod) then\r\n\t\t\t\t\tlocal resp = client:request_sync(willMethod, changes, 1000)\r\n\t\t\t\t\tif resp and resp.result then\r\n\t\t\t\t\t\tvim.lsp.util.apply_workspace_edit(resp.result, G.offset_encoding)\r\n\t\t\t\t\tend\r\n\t\t\t\tend\r\n\t\t\tend\r\n\t\t\tfor _, client in ipairs(clients) do\r\n\t\t\t\tif client:supports_method(didMethod) then\r\n\t\t\t\t\tclient:notify(didMethod, changes)\r\n\t\t\t\tend\r\n\t\t\tend\r\n\t\tend\r\n\tend,\r\n})\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Hi <a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a>! Sorry for the ping again. I just realized mini.files does not have support for willdeletefiles, willcreatefiles and willrenamefiles requests for lsp. I just implemented this small snippet to make this happen. The issue I am facing here is that before calling didmethods, willmethods should be called and that too before the changes are made, and I needed a way to get the changes done by mini.files before they are done and once they are confirmed. I just tried looking at the autocommands and non of them seem to help. So Is there any way to expose an autocommand which will give all the changes data after the confirmation prompt is confirmed. That should help me implement the functionality perfectly. Also this does not yet support copy and move functionalities which I will add them later.</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local lsp_get_client = function(name, bufnr, all)\n\tlocal clients\n\tlocal buf = nil\n\tif name and bufnr then\n\t\tclients = vim.lsp.get_clients({\n\t\t\tbufnr = buf,\n\t\t\tname = name,\n\t\t})\n\telseif name and not bufnr then\n\t\tclients = vim.lsp.get_clients({\n\t\t\tname = name,\n\t\t})\n\telseif bufnr and not name then\n\t\tclients = vim.lsp.get_clients({\n\t\t\tbufnr = buf,\n\t\t})\n\telse\n\t\tclients = vim.lsp.get_clients()\n\tend\n\tif #clients == 0 then\n\t\tvim.notify(&quot;No &quot; .. name .. &quot; client found&quot;, vim.log.levels.WARN)\n\t\treturn\n\tend\n\tif all then\n\t\treturn clients\n\tend\n\treturn clients[1]\nend\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n\tpattern = {\n\t\t&quot;MiniFilesActionCreate&quot;,\n\t\t&quot;MiniFilesActionDelete&quot;,\n\t\t&quot;MiniFilesActionRename&quot;,\n\t},\n\tcallback = function(args)\n\t\tlocal clients = lsp_get_client(nil, nil, true)\n\t\tlocal willMethod\n\t\tlocal didMethod\n\t\tlocal changes\n\t\tif clients and #clients &gt; 0 then\n\t\t\tif args.data.to and not args.data.from then\n\t\t\t\twillMethod = &quot;workspace/willCreateFiles&quot;\n\t\t\t\tdidMethod = &quot;workspace/didCreateFiles&quot;\n\t\t\t\tchanges = {\n\t\t\t\t\tfiles = {\n\t\t\t\t\t\turi = vim.uri_from_fname(args.data.to),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\telseif args.data.from and not args.data.to then\n\t\t\t\twillMethod = &quot;workspace/willDeleteFiles&quot;\n\t\t\t\tdidMethod = &quot;workspace/didDeleteFiles&quot;\n\t\t\t\tchanges = {\n\t\t\t\t\tfiles = {\n\t\t\t\t\t\turi = vim.uri_from_fname(args.data.from),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\telse\n\t\t\t\twillMethod = &quot;workspace/willRenameFiles&quot;\n\t\t\t\tdidMethod = &quot;workspace/didRenameFiles&quot;\n\t\t\t\tchanges = {\n\t\t\t\t\tfiles = {\n\t\t\t\t\t\toldUri = vim.uri_from_fname(args.data.from),\n\t\t\t\t\t\tnewUri = vim.uri_from_fname(args.data.to),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\tend\n\t\t\tfor _, client in ipairs(clients) do\n\t\t\t\tif client:supports_method(willMethod) then\n\t\t\t\t\tlocal resp = client:request_sync(willMethod, changes, 1000)\n\t\t\t\t\tif resp and resp.result then\n\t\t\t\t\t\tvim.lsp.util.apply_workspace_edit(resp.result, G.offset_encoding)\n\t\t\t\t\tend\n\t\t\t\tend\n\t\t\tend\n\t\t\tfor _, client in ipairs(clients) do\n\t\t\t\tif client:supports_method(didMethod) then\n\t\t\t\t\tclient:notify(didMethod, changes)\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\tend,\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">lsp_get_client</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">bufnr</span>, <span class=\"pl-smi\">all</span>)\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">clients</span>\n\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span>\n\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">name</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">then</span>\n\t\t<span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">get_clients</span>({\n\t\t\t<span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span>,\n\t\t\t<span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">name</span>,\n\t\t})\n\t<span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">name</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">then</span>\n\t\t<span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">get_clients</span>({\n\t\t\t<span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">name</span>,\n\t\t})\n\t<span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">name</span> <span class=\"pl-k\">then</span>\n\t\t<span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">get_clients</span>({\n\t\t\t<span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span>,\n\t\t})\n\t<span class=\"pl-k\">else</span>\n\t\t<span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-c1\">get_clients</span>()\n\t<span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">if</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">clients</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>No <span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">name</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span> client found<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">WARN</span>)\n\t\t<span class=\"pl-k\">return</span>\n\t<span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">all</span> <span class=\"pl-k\">then</span>\n\t\t<span class=\"pl-k\">return</span> <span class=\"pl-smi\">clients</span>\n\t<span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">return</span> <span class=\"pl-smi\">clients</span>[<span class=\"pl-c1\">1</span>]\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n\t<span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> {\n\t\t<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesActionCreate<span class=\"pl-pds\">\"</span></span>,\n\t\t<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesActionDelete<span class=\"pl-pds\">\"</span></span>,\n\t\t<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesActionRename<span class=\"pl-pds\">\"</span></span>,\n\t},\n\t<span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">clients</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">lsp_get_client</span>(<span class=\"pl-c1\">nil</span>, <span class=\"pl-c1\">nil</span>, <span class=\"pl-c1\">true</span>)\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">willMethod</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">didMethod</span>\n\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">changes</span>\n\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">clients</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">clients</span> <span class=\"pl-k\">&gt;</span> <span class=\"pl-c1\">0</span> <span class=\"pl-k\">then</span>\n\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">then</span>\n\t\t\t\t<span class=\"pl-smi\">willMethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/willCreateFiles<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-smi\">didMethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/didCreateFiles<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-smi\">changes</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t<span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t\t<span class=\"pl-smi\">uri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">to</span>),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\t<span class=\"pl-k\">elseif</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">from</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">to</span> <span class=\"pl-k\">then</span>\n\t\t\t\t<span class=\"pl-smi\">willMethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/willDeleteFiles<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-smi\">didMethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/didDeleteFiles<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-smi\">changes</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t<span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t\t<span class=\"pl-smi\">uri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">from</span>),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\t<span class=\"pl-k\">else</span>\n\t\t\t\t<span class=\"pl-smi\">willMethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/willRenameFiles<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-smi\">didMethod</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>workspace/didRenameFiles<span class=\"pl-pds\">\"</span></span>\n\t\t\t\t<span class=\"pl-smi\">changes</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t<span class=\"pl-smi\">files</span> <span class=\"pl-k\">=</span> {\n\t\t\t\t\t\t<span class=\"pl-smi\">oldUri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">from</span>),\n\t\t\t\t\t\t<span class=\"pl-smi\">newUri</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">uri_from_fname</span>(<span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">to</span>),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">client</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">clients</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-en\">client</span>:<span class=\"pl-c1\">supports_method</span>(<span class=\"pl-smi\">willMethod</span>) <span class=\"pl-k\">then</span>\n\t\t\t\t\t<span class=\"pl-k\">local</span> <span class=\"pl-smi\">resp</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">client</span>:<span class=\"pl-c1\">request_sync</span>(<span class=\"pl-smi\">willMethod</span>, <span class=\"pl-smi\">changes</span>, <span class=\"pl-c1\">1000</span>)\n\t\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-smi\">resp</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">resp</span>.<span class=\"pl-e\">result</span> <span class=\"pl-k\">then</span>\n\t\t\t\t\t\t<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">lsp</span>.<span class=\"pl-e\">util</span>.<span class=\"pl-c1\">apply_workspace_edit</span>(<span class=\"pl-smi\">resp</span>.<span class=\"pl-e\">result</span>, <span class=\"pl-smi\">G</span>.<span class=\"pl-e\">offset_encoding</span>)\n\t\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">client</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">clients</span>) <span class=\"pl-k\">do</span>\n\t\t\t\t<span class=\"pl-k\">if</span> <span class=\"pl-en\">client</span>:<span class=\"pl-c1\">supports_method</span>(<span class=\"pl-smi\">didMethod</span>) <span class=\"pl-k\">then</span>\n\t\t\t\t\t<span class=\"pl-en\">client</span>:<span class=\"pl-c1\">notify</span>(<span class=\"pl-smi\">didMethod</span>, <span class=\"pl-smi\">changes</span>)\n\t\t\t\t<span class=\"pl-k\">end</span>\n\t\t\t<span class=\"pl-k\">end</span>\n\t\t<span class=\"pl-k\">end</span>\n\t<span class=\"pl-k\">end</span>,\n})</pre></div>",
+    "bodyText": "Hi @echasnovski! Sorry for the ping again. I just realized mini.files does not have support for willdeletefiles, willcreatefiles and willrenamefiles requests for lsp. I just implemented this small snippet to make this happen. The issue I am facing here is that before calling didmethods, willmethods should be called and that too before the changes are made, and I needed a way to get the changes done by mini.files before they are done and once they are confirmed. I just tried looking at the autocommands and non of them seem to help. So Is there any way to expose an autocommand which will give all the changes data after the confirmation prompt is confirmed. That should help me implement the functionality perfectly. Also this does not yet support copy and move functionalities which I will add them later.\nlocal lsp_get_client = function(name, bufnr, all)\n\tlocal clients\n\tlocal buf = nil\n\tif name and bufnr then\n\t\tclients = vim.lsp.get_clients({\n\t\t\tbufnr = buf,\n\t\t\tname = name,\n\t\t})\n\telseif name and not bufnr then\n\t\tclients = vim.lsp.get_clients({\n\t\t\tname = name,\n\t\t})\n\telseif bufnr and not name then\n\t\tclients = vim.lsp.get_clients({\n\t\t\tbufnr = buf,\n\t\t})\n\telse\n\t\tclients = vim.lsp.get_clients()\n\tend\n\tif #clients == 0 then\n\t\tvim.notify(\"No \" .. name .. \" client found\", vim.log.levels.WARN)\n\t\treturn\n\tend\n\tif all then\n\t\treturn clients\n\tend\n\treturn clients[1]\nend\n\nvim.api.nvim_create_autocmd(\"User\", {\n\tpattern = {\n\t\t\"MiniFilesActionCreate\",\n\t\t\"MiniFilesActionDelete\",\n\t\t\"MiniFilesActionRename\",\n\t},\n\tcallback = function(args)\n\t\tlocal clients = lsp_get_client(nil, nil, true)\n\t\tlocal willMethod\n\t\tlocal didMethod\n\t\tlocal changes\n\t\tif clients and #clients > 0 then\n\t\t\tif args.data.to and not args.data.from then\n\t\t\t\twillMethod = \"workspace/willCreateFiles\"\n\t\t\t\tdidMethod = \"workspace/didCreateFiles\"\n\t\t\t\tchanges = {\n\t\t\t\t\tfiles = {\n\t\t\t\t\t\turi = vim.uri_from_fname(args.data.to),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\telseif args.data.from and not args.data.to then\n\t\t\t\twillMethod = \"workspace/willDeleteFiles\"\n\t\t\t\tdidMethod = \"workspace/didDeleteFiles\"\n\t\t\t\tchanges = {\n\t\t\t\t\tfiles = {\n\t\t\t\t\t\turi = vim.uri_from_fname(args.data.from),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\telse\n\t\t\t\twillMethod = \"workspace/willRenameFiles\"\n\t\t\t\tdidMethod = \"workspace/didRenameFiles\"\n\t\t\t\tchanges = {\n\t\t\t\t\tfiles = {\n\t\t\t\t\t\toldUri = vim.uri_from_fname(args.data.from),\n\t\t\t\t\t\tnewUri = vim.uri_from_fname(args.data.to),\n\t\t\t\t\t},\n\t\t\t\t}\n\t\t\tend\n\t\t\tfor _, client in ipairs(clients) do\n\t\t\t\tif client:supports_method(willMethod) then\n\t\t\t\t\tlocal resp = client:request_sync(willMethod, changes, 1000)\n\t\t\t\t\tif resp and resp.result then\n\t\t\t\t\t\tvim.lsp.util.apply_workspace_edit(resp.result, G.offset_encoding)\n\t\t\t\t\tend\n\t\t\t\tend\n\t\t\tend\n\t\t\tfor _, client in ipairs(clients) do\n\t\t\t\tif client:supports_method(didMethod) then\n\t\t\t\t\tclient:notify(didMethod, changes)\n\t\t\t\tend\n\t\t\tend\n\t\tend\n\tend,\n})",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Chat about anything and everything here",
+        "emoji": ":speech_balloon:",
+        "emojiHTML": "<div>💬</div>",
+        "id": "DIC_kwDOFoksYM4CAgqM",
+        "isAnswerable": false,
+        "name": "General",
+        "slug": "general",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-04-24T16:25:32Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                "login": "231tr0n",
+                "resourcePath": "/231tr0n",
+                "url": "https://github.com/231tr0n"
+            },
+            "authorAssociation": "NONE",
+            "body": "Ok so I just figured out that the best way to do it would be via the MiniFiles.synchronize function.\r\n \r\nBasically apply the willmethods in the ``if confirm_res == 1 then`` condition.\r\nhttps://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L839\r\n\r\nThey we apply the didmethods in the unexposed H.fs_actions_apply function after ``H.trigger_event('MiniFilesAction' .. action_titlecase, data)``\r\nhttps://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L2689C7-L2689C67\r\n\r\nIf you are ok with supporting lsp file actions natively in mini.files, Can I raise a PR to do so?",
+            "bodyHTML": "<p dir=\"auto\">Ok so I just figured out that the best way to do it would be via the MiniFiles.synchronize function.</p>\n<p dir=\"auto\">Basically apply the willmethods in the <code class=\"notranslate\">if confirm_res == 1 then</code> condition.<br>\n<a href=\"https://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L839\">https://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L839</a></p>\n<p dir=\"auto\">They we apply the didmethods in the unexposed H.fs_actions_apply function after <code class=\"notranslate\">H.trigger_event('MiniFilesAction' .. action_titlecase, data)</code><br>\n<a href=\"https://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L2689C7-L2689C67\">https://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L2689C7-L2689C67</a></p>\n<p dir=\"auto\">If you are ok with supporting lsp file actions natively in mini.files, Can I raise a PR to do so?</p>",
+            "bodyText": "Ok so I just figured out that the best way to do it would be via the MiniFiles.synchronize function.\nBasically apply the willmethods in the if confirm_res == 1 then condition.\nhttps://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L839\nThey we apply the didmethods in the unexposed H.fs_actions_apply function after H.trigger_event('MiniFilesAction' .. action_titlecase, data)\nhttps://github.com/nvim-mini/mini.files/blob/2db6db37c37ee5955fe72907e33fa31cd2dd0fd4/lua/mini/files.lua#L2689C7-L2689C67\nIf you are ok with supporting lsp file actions natively in mini.files, Can I raise a PR to do so?",
+            "createdAt": "2025-09-25T19:35:39Z",
+            "createdViaEmail": false,
+            "databaseId": 14514896,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A3XrQ",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-09-25T19:35:39Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14514896",
+            "updatedAt": "2025-09-25T19:35:40Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14514896"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing! This is originally discussed in #400 and another PR in #1586.\r\n\r\n> The issue I am facing here is that before calling didmethods, willmethods should be called and that too before the changes are made, and I needed a way to get the changes done by mini.files before they are done and once they are confirmed. I just tried looking at the autocommands and non of them seem to help. So Is there any way to expose an autocommand which will give all the changes data after the confirmation prompt is confirmed. That should help me implement the functionality perfectly.\r\n\r\nIt was discussed in #1586. General idea is that it is still planned to be built into 'mini.files', but the priority is low-ish at the moment.\r\n\r\n> If you are ok with supporting lsp file actions natively in mini.files, Can I raise a PR to do so?\r\n\r\nThe main concern here is described [here](https://github.com/nvim-mini/mini.nvim/pull/1586#issuecomment-2668963831). The problem is that 'mini.files' can not reasonably guarantee that the actions will *actually* happen. Thus there needs to be a research about the case \"`willXxx` event is triggered but the action is not performed; how to pass this info to the server?\".\r\n\r\nIt is the main blocker here as this requires dealing with several LSP servers while the coverage of how they implement these methods [is limited](https://github.com/nvim-mini/mini.nvim/pull/1586#issuecomment-2669017210).\r\n\r\nThe best way for you to help is to share which LSP server(s) did you use to test this code and maybe try to investigate the described problem with them. The 'mini.files' code itself I'd rather do myself.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing! This is originally discussed in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"5367541\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/400\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/400/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/400\">#400</a> and another PR in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2863433844\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1586\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1586/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/1586\">#1586</a>.</p>\n<blockquote>\n<p dir=\"auto\">The issue I am facing here is that before calling didmethods, willmethods should be called and that too before the changes are made, and I needed a way to get the changes done by mini.files before they are done and once they are confirmed. I just tried looking at the autocommands and non of them seem to help. So Is there any way to expose an autocommand which will give all the changes data after the confirmation prompt is confirmed. That should help me implement the functionality perfectly.</p>\n</blockquote>\n<p dir=\"auto\">It was discussed in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2863433844\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1586\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1586/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/1586\">#1586</a>. General idea is that it is still planned to be built into 'mini.files', but the priority is low-ish at the moment.</p>\n<blockquote>\n<p dir=\"auto\">If you are ok with supporting lsp file actions natively in mini.files, Can I raise a PR to do so?</p>\n</blockquote>\n<p dir=\"auto\">The main concern here is described <a href=\"https://github.com/nvim-mini/mini.nvim/pull/1586#issuecomment-2668963831\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1586/hovercard\">here</a>. The problem is that 'mini.files' can not reasonably guarantee that the actions will <em>actually</em> happen. Thus there needs to be a research about the case \"<code class=\"notranslate\">willXxx</code> event is triggered but the action is not performed; how to pass this info to the server?\".</p>\n<p dir=\"auto\">It is the main blocker here as this requires dealing with several LSP servers while the coverage of how they implement these methods <a href=\"https://github.com/nvim-mini/mini.nvim/pull/1586#issuecomment-2669017210\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1586/hovercard\">is limited</a>.</p>\n<p dir=\"auto\">The best way for you to help is to share which LSP server(s) did you use to test this code and maybe try to investigate the described problem with them. The 'mini.files' code itself I'd rather do myself.</p>",
+            "bodyText": "Thanks for sharing! This is originally discussed in #400 and another PR in #1586.\n\nThe issue I am facing here is that before calling didmethods, willmethods should be called and that too before the changes are made, and I needed a way to get the changes done by mini.files before they are done and once they are confirmed. I just tried looking at the autocommands and non of them seem to help. So Is there any way to expose an autocommand which will give all the changes data after the confirmation prompt is confirmed. That should help me implement the functionality perfectly.\n\nIt was discussed in #1586. General idea is that it is still planned to be built into 'mini.files', but the priority is low-ish at the moment.\n\nIf you are ok with supporting lsp file actions natively in mini.files, Can I raise a PR to do so?\n\nThe main concern here is described here. The problem is that 'mini.files' can not reasonably guarantee that the actions will actually happen. Thus there needs to be a research about the case \"willXxx event is triggered but the action is not performed; how to pass this info to the server?\".\nIt is the main blocker here as this requires dealing with several LSP servers while the coverage of how they implement these methods is limited.\nThe best way for you to help is to share which LSP server(s) did you use to test this code and maybe try to investigate the described problem with them. The 'mini.files' code itself I'd rather do myself.",
+            "createdAt": "2025-09-25T19:54:26Z",
+            "createdViaEmail": false,
+            "databaseId": 14515019,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A3XtL",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-09-25T19:54:26Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> The main concern here is described https://github.com/nvim-mini/mini.nvim/pull/1586#issuecomment-2668963831. The problem is that 'mini.files' can not reasonably guarantee that the actions will actually happen. Thus there needs to be a research about the case \"willXxx event is triggered but the action is not performed; how to pass this info to the server?\".\r\n\r\nI dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.\r\n\r\nAs for which lsp to use, I would suggest gopls for golang. It supports all the methods.\r\nhttps://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">The main concern here is described <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"2863433844\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/1586\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/1586/hovercard?comment_id=2668963831&amp;comment_type=issue_comment\" href=\"https://github.com/nvim-mini/mini.nvim/pull/1586#issuecomment-2668963831\">#1586 (comment)</a>. The problem is that 'mini.files' can not reasonably guarantee that the actions will actually happen. Thus there needs to be a research about the case \"willXxx event is triggered but the action is not performed; how to pass this info to the server?\".</p>\n</blockquote>\n<p dir=\"auto\">I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.</p>\n<p dir=\"auto\">As for which lsp to use, I would suggest gopls for golang. It supports all the methods.<br>\n<a href=\"https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\">https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262</a></p>",
+                    "bodyText": "The main concern here is described #1586 (comment). The problem is that 'mini.files' can not reasonably guarantee that the actions will actually happen. Thus there needs to be a research about the case \"willXxx event is triggered but the action is not performed; how to pass this info to the server?\".\n\nI dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.\nAs for which lsp to use, I would suggest gopls for golang. It supports all the methods.\nhttps://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262",
+                    "createdAt": "2025-09-25T20:36:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14515349,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "id": "DC_kwDOFoksYM4A3XyV",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-25T20:39:42Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-25T20:36:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14515019,
+                        "id": "DC_kwDOFoksYM4A3XtL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515019"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515349",
+                    "updatedAt": "2025-09-25T20:39:42Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515349"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "copy - this will only fail if the directory does not exist or if there is another file with the same name.\r\nrename - it will fail if there is another file with the new name.\r\ndelete - should pass without any issues as long as the file exists.\r\ncreate - should check if the file already exists as that is the only case in which this fails.\r\nmove - should check if the destination file and directory already exists or not.\r\n\nOne more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.\n\r\nProbably making sure these conditions are right and then triggering the willMethods should do the job.\r\nThis is what I would do.",
+                    "bodyHTML": "<p dir=\"auto\">copy - this will only fail if the directory does not exist or if there is another file with the same name.<br>\nrename - it will fail if there is another file with the new name.<br>\ndelete - should pass without any issues as long as the file exists.<br>\ncreate - should check if the file already exists as that is the only case in which this fails.<br>\nmove - should check if the destination file and directory already exists or not.</p>\n<p dir=\"auto\">One more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.</p>\n<p dir=\"auto\">Probably making sure these conditions are right and then triggering the willMethods should do the job.<br>\nThis is what I would do.</p>",
+                    "bodyText": "copy - this will only fail if the directory does not exist or if there is another file with the same name.\nrename - it will fail if there is another file with the new name.\ndelete - should pass without any issues as long as the file exists.\ncreate - should check if the file already exists as that is the only case in which this fails.\nmove - should check if the destination file and directory already exists or not.\nOne more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.\nProbably making sure these conditions are right and then triggering the willMethods should do the job.\nThis is what I would do.",
+                    "createdAt": "2025-09-25T20:43:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14515390,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "id": "DC_kwDOFoksYM4A3Xy-",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2025-09-25T20:50:20Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-25T20:43:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14515019,
+                        "id": "DC_kwDOFoksYM4A3XtL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515019"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515390",
+                    "updatedAt": "2025-09-25T20:50:20Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515390"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.\r\n\r\nI am afraid that this is true, but it is not 100% possible with 'mini.files' because there are a lot weird edge cases of how file manipulation is possible.\r\n\r\n> copy - this will only fail if the directory does not exist or if there is another file with the same name. rename - it will fail if there is another file with the new name. delete - should pass without any issues as long as the file exists. create - should check if the file already exists as that is the only case in which this fails. move - should check if the destination file and directory already exists or not.\r\n> \r\n> One more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.\r\n> \r\n> Probably making sure these conditions are right and then triggering the willMethods should do the job. This is what I would do.\r\n\r\nI am aware of these conditions, thanks. The problem is that verifying them is not as straightforward as one would hope because a batch of possibly conflicting file system actions can be processed at once. So this either requires a lot of dedicated code to do properly or will fail uncontrollably when the action fails. Researching how different popular LSP servers behave in the latter situation and design around it is what's halting this change. It will get there eventually, just not now-ish.\r\n\r\n> As for which lsp to use, I would suggest gopls for golang. It supports all the methods.\r\n> https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\r\n\r\nUnfortunately, this is not the case. It only supports `didCreateFiles`, as [other](https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L37-L39) [methods](https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L45-L47) [are not implemented](https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L117-L127).",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.</p>\n</blockquote>\n<p dir=\"auto\">I am afraid that this is true, but it is not 100% possible with 'mini.files' because there are a lot weird edge cases of how file manipulation is possible.</p>\n<blockquote>\n<p dir=\"auto\">copy - this will only fail if the directory does not exist or if there is another file with the same name. rename - it will fail if there is another file with the new name. delete - should pass without any issues as long as the file exists. create - should check if the file already exists as that is the only case in which this fails. move - should check if the destination file and directory already exists or not.</p>\n<p dir=\"auto\">One more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.</p>\n<p dir=\"auto\">Probably making sure these conditions are right and then triggering the willMethods should do the job. This is what I would do.</p>\n</blockquote>\n<p dir=\"auto\">I am aware of these conditions, thanks. The problem is that verifying them is not as straightforward as one would hope because a batch of possibly conflicting file system actions can be processed at once. So this either requires a lot of dedicated code to do properly or will fail uncontrollably when the action fails. Researching how different popular LSP servers behave in the latter situation and design around it is what's halting this change. It will get there eventually, just not now-ish.</p>\n<blockquote>\n<p dir=\"auto\">As for which lsp to use, I would suggest gopls for golang. It supports all the methods.<br>\n<a href=\"https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\">https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262</a></p>\n</blockquote>\n<p dir=\"auto\">Unfortunately, this is not the case. It only supports <code class=\"notranslate\">didCreateFiles</code>, as <a href=\"https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L37-L39\">other</a> <a href=\"https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L45-L47\">methods</a> <a href=\"https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L117-L127\">are not implemented</a>.</p>",
+                    "bodyText": "I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.\n\nI am afraid that this is true, but it is not 100% possible with 'mini.files' because there are a lot weird edge cases of how file manipulation is possible.\n\ncopy - this will only fail if the directory does not exist or if there is another file with the same name. rename - it will fail if there is another file with the new name. delete - should pass without any issues as long as the file exists. create - should check if the file already exists as that is the only case in which this fails. move - should check if the destination file and directory already exists or not.\nOne more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.\nProbably making sure these conditions are right and then triggering the willMethods should do the job. This is what I would do.\n\nI am aware of these conditions, thanks. The problem is that verifying them is not as straightforward as one would hope because a batch of possibly conflicting file system actions can be processed at once. So this either requires a lot of dedicated code to do properly or will fail uncontrollably when the action fails. Researching how different popular LSP servers behave in the latter situation and design around it is what's halting this change. It will get there eventually, just not now-ish.\n\nAs for which lsp to use, I would suggest gopls for golang. It supports all the methods.\nhttps://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\n\nUnfortunately, this is not the case. It only supports didCreateFiles, as other methods are not implemented.",
+                    "createdAt": "2025-09-26T06:59:06Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14518590,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3Yk-",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-26T06:59:06Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14515019,
+                        "id": "DC_kwDOFoksYM4A3XtL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515019"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14518590",
+                    "updatedAt": "2025-09-26T06:59:07Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14518590"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+                        "login": "231tr0n",
+                        "resourcePath": "/231tr0n",
+                        "url": "https://github.com/231tr0n"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "> > I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.\n> \n> I am afraid that this is true, but it is not 100% possible with 'mini.files' because there are a lot weird edge cases of how file manipulation is possible.\n> \n> > copy - this will only fail if the directory does not exist or if there is another file with the same name. rename - it will fail if there is another file with the new name. delete - should pass without any issues as long as the file exists. create - should check if the file already exists as that is the only case in which this fails. move - should check if the destination file and directory already exists or not.\n> > \n> > One more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.\n> > \n> > Probably making sure these conditions are right and then triggering the willMethods should do the job. This is what I would do.\n> \n> I am aware of these conditions, thanks. The problem is that verifying them is not as straightforward as one would hope because a batch of possibly conflicting file system actions can be processed at once. So this either requires a lot of dedicated code to do properly or will fail uncontrollably when the action fails. Researching how different popular LSP servers behave in the latter situation and design around it is what's halting this change. It will get there eventually, just not now-ish.\n> \n> > As for which lsp to use, I would suggest gopls for golang. It supports all the methods.\n> > https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\n> \n> Unfortunately, this is not the case. It only supports `didCreateFiles`, as [other](https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L37-L39) [methods](https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L45-L47) [are not implemented](https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L117-L127).\n\nLol I thought it was implemented. After going through the source only to find it replies not implemented XD.",
+                    "bodyHTML": "<blockquote>\n<blockquote>\n<p dir=\"auto\">I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.</p>\n</blockquote>\n<p dir=\"auto\">I am afraid that this is true, but it is not 100% possible with 'mini.files' because there are a lot weird edge cases of how file manipulation is possible.</p>\n<blockquote>\n<p dir=\"auto\">copy - this will only fail if the directory does not exist or if there is another file with the same name. rename - it will fail if there is another file with the new name. delete - should pass without any issues as long as the file exists. create - should check if the file already exists as that is the only case in which this fails. move - should check if the destination file and directory already exists or not.</p>\n<p dir=\"auto\">One more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.</p>\n<p dir=\"auto\">Probably making sure these conditions are right and then triggering the willMethods should do the job. This is what I would do.</p>\n</blockquote>\n<p dir=\"auto\">I am aware of these conditions, thanks. The problem is that verifying them is not as straightforward as one would hope because a batch of possibly conflicting file system actions can be processed at once. So this either requires a lot of dedicated code to do properly or will fail uncontrollably when the action fails. Researching how different popular LSP servers behave in the latter situation and design around it is what's halting this change. It will get there eventually, just not now-ish.</p>\n<blockquote>\n<p dir=\"auto\">As for which lsp to use, I would suggest gopls for golang. It supports all the methods.<br>\n<a href=\"https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\">https://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262</a></p>\n</blockquote>\n<p dir=\"auto\">Unfortunately, this is not the case. It only supports <code class=\"notranslate\">didCreateFiles</code>, as <a href=\"https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L37-L39\">other</a> <a href=\"https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L45-L47\">methods</a> <a href=\"https://github.com/golang/tools/blob/d239ca082c873a421aaab5eafa8a47cb0ede525c/gopls/internal/server/unimplemented.go#L117-L127\">are not implemented</a>.</p>\n</blockquote>\n<p dir=\"auto\">Lol I thought it was implemented. After going through the source only to find it replies not implemented XD.</p>",
+                    "bodyText": "I dont think this part is possible atleast according to what I read from lsp spec. The only solution I see here would be to verify if that action will succeed and apply the willMethods for the actions which will be successful.\n\nI am afraid that this is true, but it is not 100% possible with 'mini.files' because there are a lot weird edge cases of how file manipulation is possible.\n\ncopy - this will only fail if the directory does not exist or if there is another file with the same name. rename - it will fail if there is another file with the new name. delete - should pass without any issues as long as the file exists. create - should check if the file already exists as that is the only case in which this fails. move - should check if the destination file and directory already exists or not.\nOne more thing would be to look out for whether the user has write permissions in the destination folder and write permissions on the files being operated in all the cases.\nProbably making sure these conditions are right and then triggering the willMethods should do the job. This is what I would do.\n\nI am aware of these conditions, thanks. The problem is that verifying them is not as straightforward as one would hope because a batch of possibly conflicting file system actions can be processed at once. So this either requires a lot of dedicated code to do properly or will fail uncontrollably when the action fails. Researching how different popular LSP servers behave in the latter situation and design around it is what's halting this change. It will get there eventually, just not now-ish.\n\nAs for which lsp to use, I would suggest gopls for golang. It supports all the methods.\nhttps://github.com/golang/tools/blob/master/gopls/internal/protocol/generate/tables.go#L262\n\nUnfortunately, this is not the case. It only supports didCreateFiles, as other methods are not implemented.\n\nLol I thought it was implemented. After going through the source only to find it replies not implemented XD.",
+                    "createdAt": "2025-09-26T07:08:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14518655,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A3Yl_",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-09-26T07:08:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 14515019,
+                        "id": "DC_kwDOFoksYM4A3XtL",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515019"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14518655",
+                    "updatedAt": "2025-09-26T07:08:10Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14518655"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515019",
+            "updatedAt": "2025-09-25T19:54:27Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-14515019"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "LSP integration is now [part of the `main` branch](https://github.com/nvim-mini/mini.nvim/blob/4f6f84a96b076747b736d100388a8d7844771d7d/doc/mini-files.txt#L320-L332).",
+            "bodyHTML": "<p dir=\"auto\">LSP integration is now <a href=\"https://github.com/nvim-mini/mini.nvim/blob/4f6f84a96b076747b736d100388a8d7844771d7d/doc/mini-files.txt#L320-L332\">part of the <code class=\"notranslate\">main</code> branch</a>.</p>",
+            "bodyText": "LSP integration is now part of the main branch.",
+            "createdAt": "2026-04-24T16:25:31Z",
+            "createdViaEmail": false,
+            "databaseId": 16704172,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A_uKs",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-04-24T16:25:31Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2025#discussioncomment-16704172",
+            "updatedAt": "2026-04-24T16:25:31Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025#discussioncomment-16704172"
+        }
+    ],
+    "createdAt": "2025-09-25T19:17:05Z",
+    "createdViaEmail": false,
+    "databaseId": 8946534,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/56352048?u=982cdf0d5a2e399dadb6e14eb4f90eb1ec55f8cb&v=4",
+        "login": "231tr0n",
+        "resourcePath": "/231tr0n",
+        "url": "https://github.com/231tr0n"
+    },
+    "id": "D_kwDOFoksYM4AiINm",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2025-09-25T19:25:30Z",
+    "locked": false,
+    "number": 2025,
+    "poll": null,
+    "publishedAt": "2025-09-25T19:17:05Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2025",
+    "stateReason": "RESOLVED",
+    "title": "Mini Files lsp integration.",
+    "updatedAt": "2026-04-24T16:25:32Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2025"
+}

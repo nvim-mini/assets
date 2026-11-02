@@ -1,0 +1,781 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "# From grapple.nvim to mini.visits\r\n\r\n\r\nhttps://github.com/user-attachments/assets/7906dda5-b1a7-499c-980b-c08f6ed5c6e0\r\n\r\n\r\n\r\nI always thought it must be possible to use mini.visits in a similar way as `grapple` or `harpoon`\r\n\r\nHowever, two previous implementation attempts failed.\r\n\r\nIn its **default** setup, `visits` has the following incompatible traits:\r\n\r\n- Visits are created and updated automatically. The order is not under user-control.\r\n- All visits are stored in the same file. When working in multiple simultaneous projects, the last project to close often overwrites other relevant visits.\r\n\r\nRelevant line in help regarding simultaneous projects:\r\n\r\n```txt\r\nNotes:\r\n- Storage is implemented in such a way that it doesn't really support more\r\n  than one parallel Neovim processes. Meaning that if there are two or more\r\n  simultaneous Neovim processes with same visit index storage path, the last\r\n  one writing to it will preserve its visit history while others - won't.\r\n```\r\n\r\nRelevant line in help regarding harpoon:\r\n\r\n```txt\r\n... This module implements a more common labeling which does not imply order\r\nwith ability to make it automated depending on the task and/or preference ...\r\n```\r\n\r\nIt took me a while to find the obvious solution: Store one index per project.\r\nHaving this basic approach, the rest of the implementation followed naturally.\r\n\r\n**EDIT 20240822**: The latest version can be found [here](https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/config/editor/mini_visits.lua) \r\n\r\n**EDIT 20240826**: \r\n\r\nI refactored the code into a separate internal plugin: [ak.mini.visits_harpooned](https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned.lua) and [ak.mini.visits_harpooned_line](https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned_line.lua)\r\n\r\n## The setup\r\n\r\n```lua\r\nVisits.setup({\r\n  list = { sort = H.sort }, -- only on recency\r\n  silent = true, -- false,\r\n  store = {\r\n    autowrite = H.autowrite, -- if false, write on action\r\n    normalize = H.gen_normalize(), -- remove visits without labels\r\n    path = H.somewhat_unique_project_name(), -- store per project dir\r\n  },\r\n  track = { event = \"\" }, -- visits are added programmatically as a result of actions\r\n})\r\n```\r\n\r\nThis setup constrains the behaviour of `mini.visits`. I don't think it's possible to have the default experience alongside the functionality described in this post.\r\nThat said, I personally don't need default `mini.visits` functionality, as my workflow leans heavily on `grapple/harpoon` features, in combination with `mini.pick`, `oil` and `tmux`.\r\n\r\n## Core version\r\n\r\n**EDIT 20240819**: Added a standalone version without statusline and extra maintenance options.\r\n\r\n<details>\r\n\r\n<summary>core standalone version</summary>\r\n\r\n```lua\r\n\r\n-- Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.\r\n-- Lacks a UI to add/remove/change files under label, but:\r\n-- 1. Either clear the label from the files using a simple for loop.\r\n-- 2. Add/remove a label on an individual file(toggle)\r\nlocal Visits = require(\"mini.visits\")\r\n\r\n-- Helpers:\r\nlocal H = {}\r\n\r\nH.labels = { \"main\", \"side\", \"test\", \"col\" }\r\nH.label = H.labels[1]\r\nH.autowrite = false\r\n\r\nH.map = function(lhs, rhs, desc) vim.keymap.set(\"n\", lhs, rhs, { desc = desc, silent = true }) end\r\n\r\n-- TODO: Good enough, but not guaranteed to be unique\r\nH.somewhat_unique_project_name = function()\r\n  local result = string.format(\"%s/%s\", vim.fn.stdpath(\"data\"), \"mini-visits-index\")\r\n  local cwd = vim.fn.getcwd()\r\n  local cwd_to_number = 1\r\n  for i = 1, #cwd do -- transform cwd to a number\r\n    cwd_to_number = cwd_to_number + string.byte(cwd, i)\r\n  end\r\n  return string.format(\"%s-%d-%s\", result, cwd_to_number, vim.fn.fnamemodify(cwd, \":t\"))\r\nend\r\n\r\nH.iterate = function(label, index) -- does not track!\r\n  Visits.iterate_paths(\"first\", nil, { filter = label, n_times = index })\r\nend\r\n\r\nH.sort = function(path_data_arr) -- only on recency\r\n  table.sort(path_data_arr, function(a, b) return a.latest < b.latest end)\r\n  return path_data_arr\r\nend\r\n\r\nH.gen_normalize = function() -- keep visits with labels, remove others\r\n  local default = Visits.gen_normalize.default()\r\n  return function(index)\r\n    index = default(index)\r\n    for cwd, paths in pairs(index) do\r\n      for path, data in pairs(paths) do\r\n        if not data.labels then index[cwd][path] = nil end\r\n      end\r\n    end\r\n    return index\r\n  end\r\nend\r\n\r\nH.on_change = function()\r\n  if not H.autowrite then Visits.write_index() end\r\nend\r\n\r\nlocal A = { -- actions:\r\n  ui = function() Visits.select_path(nil, { filter = H.label }) end,\r\n  select = function(index) H.iterate(H.label, index) end,\r\n  switch_context = function() -- alternatively: MiniExtra.pickers.visit_labels\r\n    vim.ui.select(H.labels, { prompt = \"Visits switch context\" }, function(choice)\r\n      if not choice then return end\r\n      H.label = choice\r\n    end)\r\n  end,\r\n  clear = function()\r\n    local visits = Visits.list_paths(nil, { filter = H.label })\r\n    for _, path in ipairs(visits) do\r\n      Visits.remove_label(H.label, path)\r\n    end\r\n    H.on_change()\r\n  end,\r\n  toggle = function(label)\r\n    local full_path = vim.fn.expand(\"%:p\")\r\n    if vim.list_contains(Visits.list_paths(nil, { filter = label }), full_path) then\r\n      Visits.remove_label(label)\r\n    else\r\n      Visits.register_visit() -- must change \"latest\" field\r\n      Visits.add_label(label)\r\n    end\r\n    H.on_change()\r\n  end,\r\n}\r\n\r\nfor _, key in ipairs({\r\n  -- Most important keys:\r\n  { \"<leader>j\", A.ui, desc = \"Visits ui\" },\r\n  { \"<leader>a\", function() A.toggle(H.label) end, desc = \"Visits toggle\" },\r\n  -- Open indexed file in current label:\r\n  { \"<c-j>\", function() A.select(1) end, desc = \"Visit 1\" },\r\n  { \"<c-k>\", function() A.select(2) end, desc = \"Visit 2\" },\r\n  { \"<c-l>\", function() A.select(3) end, desc = \"Visit 3\" },\r\n  { \"<c-h>\", function() A.select(4) end, desc = \"Visit 4\" },\r\n  -- Other actions:\r\n  { \"<leader>oj\", A.switch_context, desc = \"Visits switch context\" },\r\n  { \"<leader>or\", A.clear, desc = \"Visits clear\" },\r\n}) do\r\n  H.map(key[1], key[2], key[\"desc\"])\r\nend\r\n\r\nVisits.setup({\r\n  list = { sort = H.sort }, -- only on recency\r\n  silent = true, -- false,\r\n  store = {\r\n    autowrite = H.autowrite, -- if false, write on action\r\n    normalize = H.gen_normalize(), -- remove visits without labels\r\n    path = H.somewhat_unique_project_name(), -- store per project dir\r\n  },\r\n  track = { event = \"\" }, -- visits are added programmatically as a result of actions\r\n})\r\n```\r\n\r\n</details>\r\n\r\n## The code\r\n\r\nAll links are permalinks to fragments in my `Neovim` config: `https://github.com/abeldekat/nvim_pde`\r\n\r\n[`ak.config.editor.mini_visits`](https://github.com/abeldekat/nvim_pde/blob/242a5eca715262e19b87a6a9c1bd59519b5a13a9/lua/ak/config/editor/mini_visits.lua#L245)\r\n\r\nCovers the main part of the implementation. Contains 250 lines of code. Minus 100 lines for the \"maintain dialogue\" part, the resulting 150 lines compare nicely to the corresponding [grapple config.](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/grapple.lua#L95)\r\n\r\n~~Contains one [hack.](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/mini_visits.lua#L121)\r\nThe hack is needed to change labeled visits in batch mode. By temporarily overriding `os.time`, each `latest` field in the visit will differ one second with the previous visit.~~\r\n\r\n**EDIT 20240819**: Removed the hack. Not needed when using `MiniVisit.get_index()`. Updated permalink.\r\n\r\n[`ak.config.ui.visitsline`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/ui/visitsline.lua#L74)\r\n\r\nShow indicators for visits in the current context/label.\r\nUsed in [`ak.config.ui.mini_statusline.`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/ui/mini_statusline.lua#L174)\r\nCorresponding `grapple` part: [`ak.config.ui.grappleline`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/ui/grappleline.lua#L71)\r\n\r\n[`ak.config.editor.mini_pick`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/mini_pick.lua#L221)\r\n\r\nA customized picker to show all visits for all labels in the exact order per label.\r\nEach line shows a label-path combination.\r\nKey mapping: `<leader>,`\r\n\r\n[`ak.config.editor.mini_pick_labeled`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/mini_pick_labeled.lua#L12)\r\n\r\nSee [this discussion](https://github.com/echasnovski/mini.nvim/discussions/1109)\r\n\r\nProvides fast labels for all pickers(including `vim.ui.select`) that show `visit` information. Labels are just letters, as opposed to `labels` used in the context of `mini.visit`.\r\n\r\n## Related code\r\n\r\n[`ak.util.labels`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/util/labels.lua#L4)\r\n\r\nShared code defining the labels to use\r\n\r\n[`ak.util.init`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/util/init.lua#L35)\r\n\r\nAlso label an `oil` buffer\r\n\r\n[`ak.config.autocmds`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/autocmds.lua#L48)\r\n\r\nUse `q` to close the \"maintain\" dialogue\r\n\r\n[`ak.deps.editor`](https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/deps/editor.lua#L49)\r\n\r\nAdd package `mini.visits`(`mini.deps` code)",
+    "bodyHTML": "<h1 dir=\"auto\">From grapple.nvim to mini.visits</h1>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">mini_visits_like_grapple_and_harpoon.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/358933717-7906dda5-b1a7-499c-980b-c08f6ed5c6e0.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMxMjQsIm5iZiI6MTc5MzU1MjgyNCwicGF0aCI6Ii81ODM3MDQzMy8zNTg5MzM3MTctNzkwNmRkYTUtYjFhNy00OTljLTk4MGItYzA4ZjZlZDVjNmUwLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDcwNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTNmN2Y2ZjljMzExOTM3ZDVmNjVhNWJmMDExNzE2Y2VhM2YzMmQ3ODYxZWMzZjI2MmRhMmFiODY0ODRmZDgwZTcmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.fWISF_AlRz5axlC0gO6_UrritWkfoGtuseOGWEOWR8M\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/358933717-7906dda5-b1a7-499c-980b-c08f6ed5c6e0.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMxMjQsIm5iZiI6MTc5MzU1MjgyNCwicGF0aCI6Ii81ODM3MDQzMy8zNTg5MzM3MTctNzkwNmRkYTUtYjFhNy00OTljLTk4MGItYzA4ZjZlZDVjNmUwLm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDcwNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTNmN2Y2ZjljMzExOTM3ZDVmNjVhNWJmMDExNzE2Y2VhM2YzMmQ3ODYxZWMzZjI2MmRhMmFiODY0ODRmZDgwZTcmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.fWISF_AlRz5axlC0gO6_UrritWkfoGtuseOGWEOWR8M\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">I always thought it must be possible to use mini.visits in a similar way as <code class=\"notranslate\">grapple</code> or <code class=\"notranslate\">harpoon</code></p>\n<p dir=\"auto\">However, two previous implementation attempts failed.</p>\n<p dir=\"auto\">In its <strong>default</strong> setup, <code class=\"notranslate\">visits</code> has the following incompatible traits:</p>\n<ul dir=\"auto\">\n<li>Visits are created and updated automatically. The order is not under user-control.</li>\n<li>All visits are stored in the same file. When working in multiple simultaneous projects, the last project to close often overwrites other relevant visits.</li>\n</ul>\n<p dir=\"auto\">Relevant line in help regarding simultaneous projects:</p>\n<div class=\"highlight highlight-text-adblock notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"Notes:\n- Storage is implemented in such a way that it doesn't really support more\n  than one parallel Neovim processes. Meaning that if there are two or more\n  simultaneous Neovim processes with same visit index storage path, the last\n  one writing to it will preserve its visit history while others - won't.\"><pre class=\"notranslate\">Notes:\n- Storage is implemented in such a way that it doesn't really support more\n  than one parallel Neovim processes. Meaning that if there are two or more\n  simultaneous Neovim processes with same visit index storage path, the last\n  one writing to it will preserve its visit history while others - won't.</pre></div>\n<p dir=\"auto\">Relevant line in help regarding harpoon:</p>\n<div class=\"highlight highlight-text-adblock notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"... This module implements a more common labeling which does not imply order\nwith ability to make it automated depending on the task and/or preference ...\"><pre class=\"notranslate\">... This module implements a more common labeling which does not imply order\nwith ability to make it automated depending on the task and/or preference ...</pre></div>\n<p dir=\"auto\">It took me a while to find the obvious solution: Store one index per project.<br>\nHaving this basic approach, the rest of the implementation followed naturally.</p>\n<p dir=\"auto\"><strong>EDIT 20240822</strong>: The latest version can be found <a href=\"https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/config/editor/mini_visits.lua\">here</a></p>\n<p dir=\"auto\"><strong>EDIT 20240826</strong>:</p>\n<p dir=\"auto\">I refactored the code into a separate internal plugin: <a href=\"https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned.lua\">ak.mini.visits_harpooned</a> and <a href=\"https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned_line.lua\">ak.mini.visits_harpooned_line</a></p>\n<h2 dir=\"auto\">The setup</h2>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"Visits.setup({\n  list = { sort = H.sort }, -- only on recency\n  silent = true, -- false,\n  store = {\n    autowrite = H.autowrite, -- if false, write on action\n    normalize = H.gen_normalize(), -- remove visits without labels\n    path = H.somewhat_unique_project_name(), -- store per project dir\n  },\n  track = { event = &quot;&quot; }, -- visits are added programmatically as a result of actions\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">list</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">sort</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">sort</span> }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> only on recency</span>\n  <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> false,</span>\n  <span class=\"pl-smi\">store</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">autowrite</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> if false, write on action</span>\n    <span class=\"pl-smi\">normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">gen_normalize</span>(), <span class=\"pl-c\"><span class=\"pl-c\">--</span> remove visits without labels</span>\n    <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">somewhat_unique_project_name</span>(), <span class=\"pl-c\"><span class=\"pl-c\">--</span> store per project dir</span>\n  },\n  <span class=\"pl-smi\">track</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">event</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-c\"><span class=\"pl-c\">--</span> visits are added programmatically as a result of actions</span>\n})</pre></div>\n<p dir=\"auto\">This setup constrains the behaviour of <code class=\"notranslate\">mini.visits</code>. I don't think it's possible to have the default experience alongside the functionality described in this post.<br>\nThat said, I personally don't need default <code class=\"notranslate\">mini.visits</code> functionality, as my workflow leans heavily on <code class=\"notranslate\">grapple/harpoon</code> features, in combination with <code class=\"notranslate\">mini.pick</code>, <code class=\"notranslate\">oil</code> and <code class=\"notranslate\">tmux</code>.</p>\n<h2 dir=\"auto\">Core version</h2>\n<p dir=\"auto\"><strong>EDIT 20240819</strong>: Added a standalone version without statusline and extra maintenance options.</p>\n<details>\n<summary>core standalone version</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\n-- Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.\n-- Lacks a UI to add/remove/change files under label, but:\n-- 1. Either clear the label from the files using a simple for loop.\n-- 2. Add/remove a label on an individual file(toggle)\nlocal Visits = require(&quot;mini.visits&quot;)\n\n-- Helpers:\nlocal H = {}\n\nH.labels = { &quot;main&quot;, &quot;side&quot;, &quot;test&quot;, &quot;col&quot; }\nH.label = H.labels[1]\nH.autowrite = false\n\nH.map = function(lhs, rhs, desc) vim.keymap.set(&quot;n&quot;, lhs, rhs, { desc = desc, silent = true }) end\n\n-- TODO: Good enough, but not guaranteed to be unique\nH.somewhat_unique_project_name = function()\n  local result = string.format(&quot;%s/%s&quot;, vim.fn.stdpath(&quot;data&quot;), &quot;mini-visits-index&quot;)\n  local cwd = vim.fn.getcwd()\n  local cwd_to_number = 1\n  for i = 1, #cwd do -- transform cwd to a number\n    cwd_to_number = cwd_to_number + string.byte(cwd, i)\n  end\n  return string.format(&quot;%s-%d-%s&quot;, result, cwd_to_number, vim.fn.fnamemodify(cwd, &quot;:t&quot;))\nend\n\nH.iterate = function(label, index) -- does not track!\n  Visits.iterate_paths(&quot;first&quot;, nil, { filter = label, n_times = index })\nend\n\nH.sort = function(path_data_arr) -- only on recency\n  table.sort(path_data_arr, function(a, b) return a.latest &lt; b.latest end)\n  return path_data_arr\nend\n\nH.gen_normalize = function() -- keep visits with labels, remove others\n  local default = Visits.gen_normalize.default()\n  return function(index)\n    index = default(index)\n    for cwd, paths in pairs(index) do\n      for path, data in pairs(paths) do\n        if not data.labels then index[cwd][path] = nil end\n      end\n    end\n    return index\n  end\nend\n\nH.on_change = function()\n  if not H.autowrite then Visits.write_index() end\nend\n\nlocal A = { -- actions:\n  ui = function() Visits.select_path(nil, { filter = H.label }) end,\n  select = function(index) H.iterate(H.label, index) end,\n  switch_context = function() -- alternatively: MiniExtra.pickers.visit_labels\n    vim.ui.select(H.labels, { prompt = &quot;Visits switch context&quot; }, function(choice)\n      if not choice then return end\n      H.label = choice\n    end)\n  end,\n  clear = function()\n    local visits = Visits.list_paths(nil, { filter = H.label })\n    for _, path in ipairs(visits) do\n      Visits.remove_label(H.label, path)\n    end\n    H.on_change()\n  end,\n  toggle = function(label)\n    local full_path = vim.fn.expand(&quot;%:p&quot;)\n    if vim.list_contains(Visits.list_paths(nil, { filter = label }), full_path) then\n      Visits.remove_label(label)\n    else\n      Visits.register_visit() -- must change &quot;latest&quot; field\n      Visits.add_label(label)\n    end\n    H.on_change()\n  end,\n}\n\nfor _, key in ipairs({\n  -- Most important keys:\n  { &quot;&lt;leader&gt;j&quot;, A.ui, desc = &quot;Visits ui&quot; },\n  { &quot;&lt;leader&gt;a&quot;, function() A.toggle(H.label) end, desc = &quot;Visits toggle&quot; },\n  -- Open indexed file in current label:\n  { &quot;&lt;c-j&gt;&quot;, function() A.select(1) end, desc = &quot;Visit 1&quot; },\n  { &quot;&lt;c-k&gt;&quot;, function() A.select(2) end, desc = &quot;Visit 2&quot; },\n  { &quot;&lt;c-l&gt;&quot;, function() A.select(3) end, desc = &quot;Visit 3&quot; },\n  { &quot;&lt;c-h&gt;&quot;, function() A.select(4) end, desc = &quot;Visit 4&quot; },\n  -- Other actions:\n  { &quot;&lt;leader&gt;oj&quot;, A.switch_context, desc = &quot;Visits switch context&quot; },\n  { &quot;&lt;leader&gt;or&quot;, A.clear, desc = &quot;Visits clear&quot; },\n}) do\n  H.map(key[1], key[2], key[&quot;desc&quot;])\nend\n\nVisits.setup({\n  list = { sort = H.sort }, -- only on recency\n  silent = true, -- false,\n  store = {\n    autowrite = H.autowrite, -- if false, write on action\n    normalize = H.gen_normalize(), -- remove visits without labels\n    path = H.somewhat_unique_project_name(), -- store per project dir\n  },\n  track = { event = &quot;&quot; }, -- visits are added programmatically as a result of actions\n})\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Lacks a UI to add/remove/change files under label, but:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> 1. Either clear the label from the files using a simple for loop.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> 2. Add/remove a label on an individual file(toggle)</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">Visits</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.visits<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Helpers:</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">labels</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>main<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>side<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>test<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>col<span class=\"pl-pds\">\" </span></span>}\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">labels</span>[<span class=\"pl-c1\">1</span>]\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">map</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">lhs</span>, <span class=\"pl-smi\">rhs</span>, <span class=\"pl-smi\">desc</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">lhs</span>, <span class=\"pl-smi\">rhs</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">desc</span>, <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> TODO: Good enough, but not guaranteed to be unique</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">somewhat_unique_project_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s/%s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini-visits-index<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd_to_number</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">do</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> transform cwd to a number</span>\n    <span class=\"pl-smi\">cwd_to_number</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd_to_number</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">string.byte</span>(<span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">i</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s-%d-%s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">result</span>, <span class=\"pl-smi\">cwd_to_number</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">cwd</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:t<span class=\"pl-pds\">\"</span></span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">iterate</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">label</span>, <span class=\"pl-smi\">index</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> does not track!</span>\n  <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">iterate_paths</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>first<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">label</span>, <span class=\"pl-smi\">n_times</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">index</span> })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">sort</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">path_data_arr</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> only on recency</span>\n  <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">path_data_arr</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">a</span>.<span class=\"pl-e\">latest</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-smi\">b</span>.<span class=\"pl-e\">latest</span> <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">path_data_arr</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">gen_normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> keep visits with labels, remove others</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">default</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Visits</span>.<span class=\"pl-e\">gen_normalize</span>.<span class=\"pl-c1\">default</span>()\n  <span class=\"pl-k\">return</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">index</span>)\n    <span class=\"pl-smi\">index</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">default</span>(<span class=\"pl-smi\">index</span>)\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">paths</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">index</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">for</span> <span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">data</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">paths</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">labels</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">index</span>[<span class=\"pl-smi\">cwd</span>][<span class=\"pl-smi\">path</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">index</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">on_change</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">write_index</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">A</span> <span class=\"pl-k\">=</span> { <span class=\"pl-c\"><span class=\"pl-c\">--</span> actions:</span>\n  <span class=\"pl-en\">ui</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">select_path</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> }) <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">select</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">index</span>) <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">iterate</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span>, <span class=\"pl-smi\">index</span>) <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">switch_context</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> alternatively: MiniExtra.pickers.visit_labels</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">ui</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">labels</span>, { <span class=\"pl-smi\">prompt</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits switch context<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">choice</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">choice</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n      <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choice</span>\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">visits</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">list_paths</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> })\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">visits</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">remove_label</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span>, <span class=\"pl-smi\">path</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">on_change</span>()\n  <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">toggle</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">full_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%:p<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_contains</span>(<span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">list_paths</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">label</span> }), <span class=\"pl-smi\">full_path</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">remove_label</span>(<span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">register_visit</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> must change \"latest\" field</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">add_label</span>(<span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">on_change</span>()\n  <span class=\"pl-k\">end</span>,\n}\n\n<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">key</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>({\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Most important keys:</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;j<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">A</span>.<span class=\"pl-e\">ui</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits ui<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;a<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">toggle</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits toggle<span class=\"pl-pds\">\" </span></span>},\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Open indexed file in current label:</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-j&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">1</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 1<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-k&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">2</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 2<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-l&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">3</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 3<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-h&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">4</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 4<span class=\"pl-pds\">\" </span></span>},\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Other actions:</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;oj<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">A</span>.<span class=\"pl-e\">switch_context</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits switch context<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;or<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">A</span>.<span class=\"pl-e\">clear</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits clear<span class=\"pl-pds\">\" </span></span>},\n}) <span class=\"pl-k\">do</span>\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">map</span>(<span class=\"pl-smi\">key</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">key</span>[<span class=\"pl-c1\">2</span>], <span class=\"pl-smi\">key</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>desc<span class=\"pl-pds\">\"</span></span>])\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">list</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">sort</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">sort</span> }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> only on recency</span>\n  <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> false,</span>\n  <span class=\"pl-smi\">store</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">autowrite</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> if false, write on action</span>\n    <span class=\"pl-smi\">normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">gen_normalize</span>(), <span class=\"pl-c\"><span class=\"pl-c\">--</span> remove visits without labels</span>\n    <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">somewhat_unique_project_name</span>(), <span class=\"pl-c\"><span class=\"pl-c\">--</span> store per project dir</span>\n  },\n  <span class=\"pl-smi\">track</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">event</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-c\"><span class=\"pl-c\">--</span> visits are added programmatically as a result of actions</span>\n})</pre></div>\n</details>\n<h2 dir=\"auto\">The code</h2>\n<p dir=\"auto\">All links are permalinks to fragments in my <code class=\"notranslate\">Neovim</code> config: <code class=\"notranslate\">https://github.com/abeldekat/nvim_pde</code></p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/242a5eca715262e19b87a6a9c1bd59519b5a13a9/lua/ak/config/editor/mini_visits.lua#L245\"><code class=\"notranslate\">ak.config.editor.mini_visits</code></a></p>\n<p dir=\"auto\">Covers the main part of the implementation. Contains 250 lines of code. Minus 100 lines for the \"maintain dialogue\" part, the resulting 150 lines compare nicely to the corresponding <a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/grapple.lua#L95\">grapple config.</a></p>\n<p dir=\"auto\"><del>Contains one <a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/mini_visits.lua#L121\">hack.</a><br>\nThe hack is needed to change labeled visits in batch mode. By temporarily overriding <code class=\"notranslate\">os.time</code>, each <code class=\"notranslate\">latest</code> field in the visit will differ one second with the previous visit.</del></p>\n<p dir=\"auto\"><strong>EDIT 20240819</strong>: Removed the hack. Not needed when using <code class=\"notranslate\">MiniVisit.get_index()</code>. Updated permalink.</p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/ui/visitsline.lua#L74\"><code class=\"notranslate\">ak.config.ui.visitsline</code></a></p>\n<p dir=\"auto\">Show indicators for visits in the current context/label.<br>\nUsed in <a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/ui/mini_statusline.lua#L174\"><code class=\"notranslate\">ak.config.ui.mini_statusline.</code></a><br>\nCorresponding <code class=\"notranslate\">grapple</code> part: <a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/ui/grappleline.lua#L71\"><code class=\"notranslate\">ak.config.ui.grappleline</code></a></p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/mini_pick.lua#L221\"><code class=\"notranslate\">ak.config.editor.mini_pick</code></a></p>\n<p dir=\"auto\">A customized picker to show all visits for all labels in the exact order per label.<br>\nEach line shows a label-path combination.<br>\nKey mapping: <code class=\"notranslate\">&lt;leader&gt;,</code></p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/editor/mini_pick_labeled.lua#L12\"><code class=\"notranslate\">ak.config.editor.mini_pick_labeled</code></a></p>\n<p dir=\"auto\">See <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1109\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1109/hovercard\">this discussion</a></p>\n<p dir=\"auto\">Provides fast labels for all pickers(including <code class=\"notranslate\">vim.ui.select</code>) that show <code class=\"notranslate\">visit</code> information. Labels are just letters, as opposed to <code class=\"notranslate\">labels</code> used in the context of <code class=\"notranslate\">mini.visit</code>.</p>\n<h2 dir=\"auto\">Related code</h2>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/util/labels.lua#L4\"><code class=\"notranslate\">ak.util.labels</code></a></p>\n<p dir=\"auto\">Shared code defining the labels to use</p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/util/init.lua#L35\"><code class=\"notranslate\">ak.util.init</code></a></p>\n<p dir=\"auto\">Also label an <code class=\"notranslate\">oil</code> buffer</p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/config/autocmds.lua#L48\"><code class=\"notranslate\">ak.config.autocmds</code></a></p>\n<p dir=\"auto\">Use <code class=\"notranslate\">q</code> to close the \"maintain\" dialogue</p>\n<p dir=\"auto\"><a href=\"https://github.com/abeldekat/nvim_pde/blob/df2a692a65badcac432aa60c8a082178f40207e3/lua/ak/deps/editor.lua#L49\"><code class=\"notranslate\">ak.deps.editor</code></a></p>\n<p dir=\"auto\">Add package <code class=\"notranslate\">mini.visits</code>(<code class=\"notranslate\">mini.deps</code> code)</p>",
+    "bodyText": "From grapple.nvim to mini.visits\n\n  \n    \n    \n\n    mini_visits_like_grapple_and_harpoon.mp4\n    \n  \n\n  \n\n  \n\n\nI always thought it must be possible to use mini.visits in a similar way as grapple or harpoon\nHowever, two previous implementation attempts failed.\nIn its default setup, visits has the following incompatible traits:\n\nVisits are created and updated automatically. The order is not under user-control.\nAll visits are stored in the same file. When working in multiple simultaneous projects, the last project to close often overwrites other relevant visits.\n\nRelevant line in help regarding simultaneous projects:\nNotes:\n- Storage is implemented in such a way that it doesn't really support more\n  than one parallel Neovim processes. Meaning that if there are two or more\n  simultaneous Neovim processes with same visit index storage path, the last\n  one writing to it will preserve its visit history while others - won't.\nRelevant line in help regarding harpoon:\n... This module implements a more common labeling which does not imply order\nwith ability to make it automated depending on the task and/or preference ...\nIt took me a while to find the obvious solution: Store one index per project.\nHaving this basic approach, the rest of the implementation followed naturally.\nEDIT 20240822: The latest version can be found here\nEDIT 20240826:\nI refactored the code into a separate internal plugin: ak.mini.visits_harpooned and ak.mini.visits_harpooned_line\nThe setup\nVisits.setup({\n  list = { sort = H.sort }, -- only on recency\n  silent = true, -- false,\n  store = {\n    autowrite = H.autowrite, -- if false, write on action\n    normalize = H.gen_normalize(), -- remove visits without labels\n    path = H.somewhat_unique_project_name(), -- store per project dir\n  },\n  track = { event = \"\" }, -- visits are added programmatically as a result of actions\n})\nThis setup constrains the behaviour of mini.visits. I don't think it's possible to have the default experience alongside the functionality described in this post.\nThat said, I personally don't need default mini.visits functionality, as my workflow leans heavily on grapple/harpoon features, in combination with mini.pick, oil and tmux.\nCore version\nEDIT 20240819: Added a standalone version without statusline and extra maintenance options.\n\ncore standalone version\n-- Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.\n-- Lacks a UI to add/remove/change files under label, but:\n-- 1. Either clear the label from the files using a simple for loop.\n-- 2. Add/remove a label on an individual file(toggle)\nlocal Visits = require(\"mini.visits\")\n\n-- Helpers:\nlocal H = {}\n\nH.labels = { \"main\", \"side\", \"test\", \"col\" }\nH.label = H.labels[1]\nH.autowrite = false\n\nH.map = function(lhs, rhs, desc) vim.keymap.set(\"n\", lhs, rhs, { desc = desc, silent = true }) end\n\n-- TODO: Good enough, but not guaranteed to be unique\nH.somewhat_unique_project_name = function()\n  local result = string.format(\"%s/%s\", vim.fn.stdpath(\"data\"), \"mini-visits-index\")\n  local cwd = vim.fn.getcwd()\n  local cwd_to_number = 1\n  for i = 1, #cwd do -- transform cwd to a number\n    cwd_to_number = cwd_to_number + string.byte(cwd, i)\n  end\n  return string.format(\"%s-%d-%s\", result, cwd_to_number, vim.fn.fnamemodify(cwd, \":t\"))\nend\n\nH.iterate = function(label, index) -- does not track!\n  Visits.iterate_paths(\"first\", nil, { filter = label, n_times = index })\nend\n\nH.sort = function(path_data_arr) -- only on recency\n  table.sort(path_data_arr, function(a, b) return a.latest < b.latest end)\n  return path_data_arr\nend\n\nH.gen_normalize = function() -- keep visits with labels, remove others\n  local default = Visits.gen_normalize.default()\n  return function(index)\n    index = default(index)\n    for cwd, paths in pairs(index) do\n      for path, data in pairs(paths) do\n        if not data.labels then index[cwd][path] = nil end\n      end\n    end\n    return index\n  end\nend\n\nH.on_change = function()\n  if not H.autowrite then Visits.write_index() end\nend\n\nlocal A = { -- actions:\n  ui = function() Visits.select_path(nil, { filter = H.label }) end,\n  select = function(index) H.iterate(H.label, index) end,\n  switch_context = function() -- alternatively: MiniExtra.pickers.visit_labels\n    vim.ui.select(H.labels, { prompt = \"Visits switch context\" }, function(choice)\n      if not choice then return end\n      H.label = choice\n    end)\n  end,\n  clear = function()\n    local visits = Visits.list_paths(nil, { filter = H.label })\n    for _, path in ipairs(visits) do\n      Visits.remove_label(H.label, path)\n    end\n    H.on_change()\n  end,\n  toggle = function(label)\n    local full_path = vim.fn.expand(\"%:p\")\n    if vim.list_contains(Visits.list_paths(nil, { filter = label }), full_path) then\n      Visits.remove_label(label)\n    else\n      Visits.register_visit() -- must change \"latest\" field\n      Visits.add_label(label)\n    end\n    H.on_change()\n  end,\n}\n\nfor _, key in ipairs({\n  -- Most important keys:\n  { \"<leader>j\", A.ui, desc = \"Visits ui\" },\n  { \"<leader>a\", function() A.toggle(H.label) end, desc = \"Visits toggle\" },\n  -- Open indexed file in current label:\n  { \"<c-j>\", function() A.select(1) end, desc = \"Visit 1\" },\n  { \"<c-k>\", function() A.select(2) end, desc = \"Visit 2\" },\n  { \"<c-l>\", function() A.select(3) end, desc = \"Visit 3\" },\n  { \"<c-h>\", function() A.select(4) end, desc = \"Visit 4\" },\n  -- Other actions:\n  { \"<leader>oj\", A.switch_context, desc = \"Visits switch context\" },\n  { \"<leader>or\", A.clear, desc = \"Visits clear\" },\n}) do\n  H.map(key[1], key[2], key[\"desc\"])\nend\n\nVisits.setup({\n  list = { sort = H.sort }, -- only on recency\n  silent = true, -- false,\n  store = {\n    autowrite = H.autowrite, -- if false, write on action\n    normalize = H.gen_normalize(), -- remove visits without labels\n    path = H.somewhat_unique_project_name(), -- store per project dir\n  },\n  track = { event = \"\" }, -- visits are added programmatically as a result of actions\n})\n\nThe code\nAll links are permalinks to fragments in my Neovim config: https://github.com/abeldekat/nvim_pde\nak.config.editor.mini_visits\nCovers the main part of the implementation. Contains 250 lines of code. Minus 100 lines for the \"maintain dialogue\" part, the resulting 150 lines compare nicely to the corresponding grapple config.\nContains one hack.\nThe hack is needed to change labeled visits in batch mode. By temporarily overriding os.time, each latest field in the visit will differ one second with the previous visit.\nEDIT 20240819: Removed the hack. Not needed when using MiniVisit.get_index(). Updated permalink.\nak.config.ui.visitsline\nShow indicators for visits in the current context/label.\nUsed in ak.config.ui.mini_statusline.\nCorresponding grapple part: ak.config.ui.grappleline\nak.config.editor.mini_pick\nA customized picker to show all visits for all labels in the exact order per label.\nEach line shows a label-path combination.\nKey mapping: <leader>,\nak.config.editor.mini_pick_labeled\nSee this discussion\nProvides fast labels for all pickers(including vim.ui.select) that show visit information. Labels are just letters, as opposed to labels used in the context of mini.visit.\nRelated code\nak.util.labels\nShared code defining the labels to use\nak.util.init\nAlso label an oil buffer\nak.config.autocmds\nUse q to close the \"maintain\" dialogue\nak.deps.editor\nAdd package mini.visits(mini.deps code)",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": false,
+    "closedAt": null,
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "That's a nice project to craft what best suits your workflow!\r\n\r\nAt this level of complexity and incompatibility, though, maybe it would be better to write something own from scratch instead of forcing and hacking 'mini.visits'?",
+            "bodyHTML": "<p dir=\"auto\">That's a nice project to craft what best suits your workflow!</p>\n<p dir=\"auto\">At this level of complexity and incompatibility, though, maybe it would be better to write something own from scratch instead of forcing and hacking 'mini.visits'?</p>",
+            "bodyText": "That's a nice project to craft what best suits your workflow!\nAt this level of complexity and incompatibility, though, maybe it would be better to write something own from scratch instead of forcing and hacking 'mini.visits'?",
+            "createdAt": "2024-08-19T08:17:01Z",
+            "createdViaEmail": false,
+            "databaseId": 10380297,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AnmQJ",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-19T08:17:01Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 3,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> At this level of complexity and incompatibility, though, maybe it would be better to write something own from scratch instead of forcing and hacking 'mini.visits'?\r\n\r\nThat's interesting...\r\nAt the same time you wrote the comment, I removed the hack. I updated the post accordingly.\r\n\r\nYes, the code I provided is complex. I removed the custom maintenance part and the statusline integration in order to show the core setup. This results in 100 lines of configuration, only using the options `mini.visits`( as part of the `mini` toolbox ) provides. \r\nDo you still think the following code snippet is complex and incompatible?\r\n\r\n<details>\r\n<summary>core version</summary>\r\n\r\n```lua\r\n\r\n-- Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.\r\n-- Lacks a UI to add/remove/change files under label, but:\r\n-- 1. Either clear the label from the files using a simple for loop.\r\n-- 2. Add/remove a label on an individual file(toggle)\r\nlocal Visits = require(\"mini.visits\")\r\n\r\n-- Helpers:\r\nlocal H = {}\r\n\r\nH.labels = { \"main\", \"side\", \"test\", \"col\" }\r\nH.label = H.labels[1]\r\nH.autowrite = false\r\n\r\nH.map = function(lhs, rhs, desc) vim.keymap.set(\"n\", lhs, rhs, { desc = desc, silent = true }) end\r\n\r\n-- TODO: Good enough, but not guaranteed to be unique\r\nH.somewhat_unique_project_name = function()\r\n  local result = string.format(\"%s/%s\", vim.fn.stdpath(\"data\"), \"mini-visits-index\")\r\n  local cwd = vim.fn.getcwd()\r\n  local cwd_to_number = 1\r\n  for i = 1, #cwd do -- transform cwd to a number\r\n    cwd_to_number = cwd_to_number + string.byte(cwd, i)\r\n  end\r\n  return string.format(\"%s-%d-%s\", result, cwd_to_number, vim.fn.fnamemodify(cwd, \":t\"))\r\nend\r\n\r\nH.iterate = function(label, index) -- does not track!\r\n  Visits.iterate_paths(\"first\", nil, { filter = label, n_times = index })\r\nend\r\n\r\nH.sort = function(path_data_arr) -- only on recency\r\n  table.sort(path_data_arr, function(a, b) return a.latest < b.latest end)\r\n  return path_data_arr\r\nend\r\n\r\nH.gen_normalize = function() -- keep visits with labels, remove others\r\n  local default = Visits.gen_normalize.default()\r\n  return function(index)\r\n    index = default(index)\r\n    for cwd, paths in pairs(index) do\r\n      for path, data in pairs(paths) do\r\n        if not data.labels then index[cwd][path] = nil end\r\n      end\r\n    end\r\n    return index\r\n  end\r\nend\r\n\r\nH.on_change = function()\r\n  if not H.autowrite then Visits.write_index() end\r\nend\r\n\r\nlocal A = { -- actions:\r\n  ui = function() Visits.select_path(nil, { filter = H.label }) end,\r\n  select = function(index) H.iterate(H.label, index) end,\r\n  switch_context = function() -- alternatively: MiniExtra.pickers.visit_labels\r\n    vim.ui.select(H.labels, { prompt = \"Visits switch context\" }, function(choice)\r\n      if not choice then return end\r\n      H.label = choice\r\n    end)\r\n  end,\r\n  clear = function()\r\n    local visits = Visits.list_paths(nil, { filter = H.label })\r\n    for _, path in ipairs(visits) do\r\n      Visits.remove_label(H.label, path)\r\n    end\r\n    H.on_change()\r\n  end,\r\n  toggle = function(label)\r\n    local full_path = vim.fn.expand(\"%:p\")\r\n    if vim.list_contains(Visits.list_paths(nil, { filter = label }), full_path) then\r\n      Visits.remove_label(label)\r\n    else\r\n      Visits.register_visit() -- must change \"latest\" field\r\n      Visits.add_label(label)\r\n    end\r\n    H.on_change()\r\n  end,\r\n}\r\n\r\nfor _, key in ipairs({\r\n  -- Most important keys:\r\n  { \"<leader>j\", A.ui, desc = \"Visits ui\" },\r\n  { \"<leader>a\", function() A.toggle(H.label) end, desc = \"Visits toggle\" },\r\n  -- Open indexed file in current label:\r\n  { \"<c-j>\", function() A.select(1) end, desc = \"Visit 1\" },\r\n  { \"<c-k>\", function() A.select(2) end, desc = \"Visit 2\" },\r\n  { \"<c-l>\", function() A.select(3) end, desc = \"Visit 3\" },\r\n  { \"<c-h>\", function() A.select(4) end, desc = \"Visit 4\" },\r\n  -- Other actions:\r\n  { \"<leader>oj\", A.switch_context, desc = \"Visits switch context\" },\r\n  { \"<leader>or\", A.clear, desc = \"Visits clear\" },\r\n}) do\r\n  H.map(key[1], key[2], key[\"desc\"])\r\nend\r\n\r\nVisits.setup({\r\n  list = { sort = H.sort }, -- only on recency\r\n  silent = true, -- false,\r\n  store = {\r\n    autowrite = H.autowrite, -- if false, write on action\r\n    normalize = H.gen_normalize(), -- remove visits without labels\r\n    path = H.somewhat_unique_project_name(), -- store per project dir\r\n  },\r\n  track = { event = \"\" }, -- visits are added programmatically as a result of actions\r\n})\r\n\r\n```\r\n\r\n</details>\r\n\r\nI included the above fragment in the post as a separate chapter.\r\n\r\nThe statusline integration is handcrafted. The code started as a plugin for `harpoon`: [harpoonline](https://github.com/abeldekat/harpoonline).\r\nWhen I moved to `grapple`, I archived `harpoonline` and simplified the code to be used in my config. It was trivial to copy the code to hook `mini.visits` into the `mini.statusline` component.\r\n\r\nNaturally, there is a \"fun\" part at play. I could just as well keep using `grapple.nvim`.\r\nHowever, when using `mini`, I get `mini.visits` for free. As in all components `mini` provides, the plugin is concise, stable, configurable and well tested. The plugin does a lot of the work I would otherwise need to code myself. I hope this is a valid argument against writing my own code from scratch...;)",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">At this level of complexity and incompatibility, though, maybe it would be better to write something own from scratch instead of forcing and hacking 'mini.visits'?</p>\n</blockquote>\n<p dir=\"auto\">That's interesting...<br>\nAt the same time you wrote the comment, I removed the hack. I updated the post accordingly.</p>\n<p dir=\"auto\">Yes, the code I provided is complex. I removed the custom maintenance part and the statusline integration in order to show the core setup. This results in 100 lines of configuration, only using the options <code class=\"notranslate\">mini.visits</code>( as part of the <code class=\"notranslate\">mini</code> toolbox ) provides.<br>\nDo you still think the following code snippet is complex and incompatible?</p>\n<details>\n<summary>core version</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\n-- Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.\n-- Lacks a UI to add/remove/change files under label, but:\n-- 1. Either clear the label from the files using a simple for loop.\n-- 2. Add/remove a label on an individual file(toggle)\nlocal Visits = require(&quot;mini.visits&quot;)\n\n-- Helpers:\nlocal H = {}\n\nH.labels = { &quot;main&quot;, &quot;side&quot;, &quot;test&quot;, &quot;col&quot; }\nH.label = H.labels[1]\nH.autowrite = false\n\nH.map = function(lhs, rhs, desc) vim.keymap.set(&quot;n&quot;, lhs, rhs, { desc = desc, silent = true }) end\n\n-- TODO: Good enough, but not guaranteed to be unique\nH.somewhat_unique_project_name = function()\n  local result = string.format(&quot;%s/%s&quot;, vim.fn.stdpath(&quot;data&quot;), &quot;mini-visits-index&quot;)\n  local cwd = vim.fn.getcwd()\n  local cwd_to_number = 1\n  for i = 1, #cwd do -- transform cwd to a number\n    cwd_to_number = cwd_to_number + string.byte(cwd, i)\n  end\n  return string.format(&quot;%s-%d-%s&quot;, result, cwd_to_number, vim.fn.fnamemodify(cwd, &quot;:t&quot;))\nend\n\nH.iterate = function(label, index) -- does not track!\n  Visits.iterate_paths(&quot;first&quot;, nil, { filter = label, n_times = index })\nend\n\nH.sort = function(path_data_arr) -- only on recency\n  table.sort(path_data_arr, function(a, b) return a.latest &lt; b.latest end)\n  return path_data_arr\nend\n\nH.gen_normalize = function() -- keep visits with labels, remove others\n  local default = Visits.gen_normalize.default()\n  return function(index)\n    index = default(index)\n    for cwd, paths in pairs(index) do\n      for path, data in pairs(paths) do\n        if not data.labels then index[cwd][path] = nil end\n      end\n    end\n    return index\n  end\nend\n\nH.on_change = function()\n  if not H.autowrite then Visits.write_index() end\nend\n\nlocal A = { -- actions:\n  ui = function() Visits.select_path(nil, { filter = H.label }) end,\n  select = function(index) H.iterate(H.label, index) end,\n  switch_context = function() -- alternatively: MiniExtra.pickers.visit_labels\n    vim.ui.select(H.labels, { prompt = &quot;Visits switch context&quot; }, function(choice)\n      if not choice then return end\n      H.label = choice\n    end)\n  end,\n  clear = function()\n    local visits = Visits.list_paths(nil, { filter = H.label })\n    for _, path in ipairs(visits) do\n      Visits.remove_label(H.label, path)\n    end\n    H.on_change()\n  end,\n  toggle = function(label)\n    local full_path = vim.fn.expand(&quot;%:p&quot;)\n    if vim.list_contains(Visits.list_paths(nil, { filter = label }), full_path) then\n      Visits.remove_label(label)\n    else\n      Visits.register_visit() -- must change &quot;latest&quot; field\n      Visits.add_label(label)\n    end\n    H.on_change()\n  end,\n}\n\nfor _, key in ipairs({\n  -- Most important keys:\n  { &quot;&lt;leader&gt;j&quot;, A.ui, desc = &quot;Visits ui&quot; },\n  { &quot;&lt;leader&gt;a&quot;, function() A.toggle(H.label) end, desc = &quot;Visits toggle&quot; },\n  -- Open indexed file in current label:\n  { &quot;&lt;c-j&gt;&quot;, function() A.select(1) end, desc = &quot;Visit 1&quot; },\n  { &quot;&lt;c-k&gt;&quot;, function() A.select(2) end, desc = &quot;Visit 2&quot; },\n  { &quot;&lt;c-l&gt;&quot;, function() A.select(3) end, desc = &quot;Visit 3&quot; },\n  { &quot;&lt;c-h&gt;&quot;, function() A.select(4) end, desc = &quot;Visit 4&quot; },\n  -- Other actions:\n  { &quot;&lt;leader&gt;oj&quot;, A.switch_context, desc = &quot;Visits switch context&quot; },\n  { &quot;&lt;leader&gt;or&quot;, A.clear, desc = &quot;Visits clear&quot; },\n}) do\n  H.map(key[1], key[2], key[&quot;desc&quot;])\nend\n\nVisits.setup({\n  list = { sort = H.sort }, -- only on recency\n  silent = true, -- false,\n  store = {\n    autowrite = H.autowrite, -- if false, write on action\n    normalize = H.gen_normalize(), -- remove visits without labels\n    path = H.somewhat_unique_project_name(), -- store per project dir\n  },\n  track = { event = &quot;&quot; }, -- visits are added programmatically as a result of actions\n})\n\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Lacks a UI to add/remove/change files under label, but:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> 1. Either clear the label from the files using a simple for loop.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> 2. Add/remove a label on an individual file(toggle)</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">Visits</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.visits<span class=\"pl-pds\">\"</span></span>)\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Helpers:</span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">H</span> <span class=\"pl-k\">=</span> {}\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">labels</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>main<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>side<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>test<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>col<span class=\"pl-pds\">\" </span></span>}\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">labels</span>[<span class=\"pl-c1\">1</span>]\n<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">false</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">map</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">lhs</span>, <span class=\"pl-smi\">rhs</span>, <span class=\"pl-smi\">desc</span>) <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">lhs</span>, <span class=\"pl-smi\">rhs</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">desc</span>, <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }) <span class=\"pl-k\">end</span>\n\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> TODO: Good enough, but not guaranteed to be unique</span>\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">somewhat_unique_project_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">result</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s/%s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>data<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini-visits-index<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">getcwd</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cwd_to_number</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>\n  <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">cwd</span> <span class=\"pl-k\">do</span> <span class=\"pl-c\"><span class=\"pl-c\">--</span> transform cwd to a number</span>\n    <span class=\"pl-smi\">cwd_to_number</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cwd_to_number</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">string.byte</span>(<span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">i</span>)\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s-%d-%s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">result</span>, <span class=\"pl-smi\">cwd_to_number</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">cwd</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>:t<span class=\"pl-pds\">\"</span></span>))\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">iterate</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">label</span>, <span class=\"pl-smi\">index</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> does not track!</span>\n  <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">iterate_paths</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>first<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">label</span>, <span class=\"pl-smi\">n_times</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">index</span> })\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">sort</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">path_data_arr</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> only on recency</span>\n  <span class=\"pl-c1\">table.sort</span>(<span class=\"pl-smi\">path_data_arr</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">a</span>, <span class=\"pl-smi\">b</span>) <span class=\"pl-k\">return</span> <span class=\"pl-smi\">a</span>.<span class=\"pl-e\">latest</span> <span class=\"pl-k\">&lt;</span> <span class=\"pl-smi\">b</span>.<span class=\"pl-e\">latest</span> <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">path_data_arr</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">gen_normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> keep visits with labels, remove others</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">default</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Visits</span>.<span class=\"pl-e\">gen_normalize</span>.<span class=\"pl-c1\">default</span>()\n  <span class=\"pl-k\">return</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">index</span>)\n    <span class=\"pl-smi\">index</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">default</span>(<span class=\"pl-smi\">index</span>)\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">cwd</span>, <span class=\"pl-smi\">paths</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">index</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">for</span> <span class=\"pl-smi\">path</span>, <span class=\"pl-smi\">data</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">pairs</span>(<span class=\"pl-smi\">paths</span>) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">data</span>.<span class=\"pl-e\">labels</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">index</span>[<span class=\"pl-smi\">cwd</span>][<span class=\"pl-smi\">path</span>] <span class=\"pl-k\">=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">end</span>\n      <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">index</span>\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">H</span>.<span class=\"pl-en\">on_change</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">write_index</span>() <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">A</span> <span class=\"pl-k\">=</span> { <span class=\"pl-c\"><span class=\"pl-c\">--</span> actions:</span>\n  <span class=\"pl-en\">ui</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">select_path</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> }) <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">select</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">index</span>) <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">iterate</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span>, <span class=\"pl-smi\">index</span>) <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">switch_context</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> alternatively: MiniExtra.pickers.visit_labels</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">ui</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">labels</span>, { <span class=\"pl-smi\">prompt</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits switch context<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">choice</span>)\n      <span class=\"pl-k\">if</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">choice</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n      <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choice</span>\n    <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">visits</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">list_paths</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span> })\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">path</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">visits</span>) <span class=\"pl-k\">do</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">remove_label</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span>, <span class=\"pl-smi\">path</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">on_change</span>()\n  <span class=\"pl-k\">end</span>,\n  <span class=\"pl-en\">toggle</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">full_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">expand</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%:p<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">list_contains</span>(<span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">list_paths</span>(<span class=\"pl-c1\">nil</span>, { <span class=\"pl-smi\">filter</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">label</span> }), <span class=\"pl-smi\">full_path</span>) <span class=\"pl-k\">then</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">remove_label</span>(<span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">else</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">register_visit</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> must change \"latest\" field</span>\n      <span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">add_label</span>(<span class=\"pl-smi\">label</span>)\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">on_change</span>()\n  <span class=\"pl-k\">end</span>,\n}\n\n<span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">key</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>({\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Most important keys:</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;j<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">A</span>.<span class=\"pl-e\">ui</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits ui<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;a<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">toggle</span>(<span class=\"pl-smi\">H</span>.<span class=\"pl-e\">label</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits toggle<span class=\"pl-pds\">\" </span></span>},\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Open indexed file in current label:</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-j&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">1</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 1<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-k&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">2</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 2<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-l&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">3</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 3<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;c-h&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>() <span class=\"pl-smi\">A</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-c1\">4</span>) <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visit 4<span class=\"pl-pds\">\" </span></span>},\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Other actions:</span>\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;oj<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">A</span>.<span class=\"pl-e\">switch_context</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits switch context<span class=\"pl-pds\">\" </span></span>},\n  { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;or<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">A</span>.<span class=\"pl-e\">clear</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Visits clear<span class=\"pl-pds\">\" </span></span>},\n}) <span class=\"pl-k\">do</span>\n  <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">map</span>(<span class=\"pl-smi\">key</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">key</span>[<span class=\"pl-c1\">2</span>], <span class=\"pl-smi\">key</span>[<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>desc<span class=\"pl-pds\">\"</span></span>])\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">Visits</span>.<span class=\"pl-c1\">setup</span>({\n  <span class=\"pl-smi\">list</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">sort</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">sort</span> }, <span class=\"pl-c\"><span class=\"pl-c\">--</span> only on recency</span>\n  <span class=\"pl-smi\">silent</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> false,</span>\n  <span class=\"pl-smi\">store</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">autowrite</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-e\">autowrite</span>, <span class=\"pl-c\"><span class=\"pl-c\">--</span> if false, write on action</span>\n    <span class=\"pl-smi\">normalize</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">gen_normalize</span>(), <span class=\"pl-c\"><span class=\"pl-c\">--</span> remove visits without labels</span>\n    <span class=\"pl-smi\">path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">somewhat_unique_project_name</span>(), <span class=\"pl-c\"><span class=\"pl-c\">--</span> store per project dir</span>\n  },\n  <span class=\"pl-smi\">track</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">event</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-c\"><span class=\"pl-c\">--</span> visits are added programmatically as a result of actions</span>\n})\n</pre></div>\n</details>\n<p dir=\"auto\">I included the above fragment in the post as a separate chapter.</p>\n<p dir=\"auto\">The statusline integration is handcrafted. The code started as a plugin for <code class=\"notranslate\">harpoon</code>: <a href=\"https://github.com/abeldekat/harpoonline\">harpoonline</a>.<br>\nWhen I moved to <code class=\"notranslate\">grapple</code>, I archived <code class=\"notranslate\">harpoonline</code> and simplified the code to be used in my config. It was trivial to copy the code to hook <code class=\"notranslate\">mini.visits</code> into the <code class=\"notranslate\">mini.statusline</code> component.</p>\n<p dir=\"auto\">Naturally, there is a \"fun\" part at play. I could just as well keep using <code class=\"notranslate\">grapple.nvim</code>.<br>\nHowever, when using <code class=\"notranslate\">mini</code>, I get <code class=\"notranslate\">mini.visits</code> for free. As in all components <code class=\"notranslate\">mini</code> provides, the plugin is concise, stable, configurable and well tested. The plugin does a lot of the work I would otherwise need to code myself. I hope this is a valid argument against writing my own code from scratch...;)</p>",
+                    "bodyText": "At this level of complexity and incompatibility, though, maybe it would be better to write something own from scratch instead of forcing and hacking 'mini.visits'?\n\nThat's interesting...\nAt the same time you wrote the comment, I removed the hack. I updated the post accordingly.\nYes, the code I provided is complex. I removed the custom maintenance part and the statusline integration in order to show the core setup. This results in 100 lines of configuration, only using the options mini.visits( as part of the mini toolbox ) provides.\nDo you still think the following code snippet is complex and incompatible?\n\ncore version\n-- Just a POC, showing the core setup needed to use mini.visits like grapple/harpoon.\n-- Lacks a UI to add/remove/change files under label, but:\n-- 1. Either clear the label from the files using a simple for loop.\n-- 2. Add/remove a label on an individual file(toggle)\nlocal Visits = require(\"mini.visits\")\n\n-- Helpers:\nlocal H = {}\n\nH.labels = { \"main\", \"side\", \"test\", \"col\" }\nH.label = H.labels[1]\nH.autowrite = false\n\nH.map = function(lhs, rhs, desc) vim.keymap.set(\"n\", lhs, rhs, { desc = desc, silent = true }) end\n\n-- TODO: Good enough, but not guaranteed to be unique\nH.somewhat_unique_project_name = function()\n  local result = string.format(\"%s/%s\", vim.fn.stdpath(\"data\"), \"mini-visits-index\")\n  local cwd = vim.fn.getcwd()\n  local cwd_to_number = 1\n  for i = 1, #cwd do -- transform cwd to a number\n    cwd_to_number = cwd_to_number + string.byte(cwd, i)\n  end\n  return string.format(\"%s-%d-%s\", result, cwd_to_number, vim.fn.fnamemodify(cwd, \":t\"))\nend\n\nH.iterate = function(label, index) -- does not track!\n  Visits.iterate_paths(\"first\", nil, { filter = label, n_times = index })\nend\n\nH.sort = function(path_data_arr) -- only on recency\n  table.sort(path_data_arr, function(a, b) return a.latest < b.latest end)\n  return path_data_arr\nend\n\nH.gen_normalize = function() -- keep visits with labels, remove others\n  local default = Visits.gen_normalize.default()\n  return function(index)\n    index = default(index)\n    for cwd, paths in pairs(index) do\n      for path, data in pairs(paths) do\n        if not data.labels then index[cwd][path] = nil end\n      end\n    end\n    return index\n  end\nend\n\nH.on_change = function()\n  if not H.autowrite then Visits.write_index() end\nend\n\nlocal A = { -- actions:\n  ui = function() Visits.select_path(nil, { filter = H.label }) end,\n  select = function(index) H.iterate(H.label, index) end,\n  switch_context = function() -- alternatively: MiniExtra.pickers.visit_labels\n    vim.ui.select(H.labels, { prompt = \"Visits switch context\" }, function(choice)\n      if not choice then return end\n      H.label = choice\n    end)\n  end,\n  clear = function()\n    local visits = Visits.list_paths(nil, { filter = H.label })\n    for _, path in ipairs(visits) do\n      Visits.remove_label(H.label, path)\n    end\n    H.on_change()\n  end,\n  toggle = function(label)\n    local full_path = vim.fn.expand(\"%:p\")\n    if vim.list_contains(Visits.list_paths(nil, { filter = label }), full_path) then\n      Visits.remove_label(label)\n    else\n      Visits.register_visit() -- must change \"latest\" field\n      Visits.add_label(label)\n    end\n    H.on_change()\n  end,\n}\n\nfor _, key in ipairs({\n  -- Most important keys:\n  { \"<leader>j\", A.ui, desc = \"Visits ui\" },\n  { \"<leader>a\", function() A.toggle(H.label) end, desc = \"Visits toggle\" },\n  -- Open indexed file in current label:\n  { \"<c-j>\", function() A.select(1) end, desc = \"Visit 1\" },\n  { \"<c-k>\", function() A.select(2) end, desc = \"Visit 2\" },\n  { \"<c-l>\", function() A.select(3) end, desc = \"Visit 3\" },\n  { \"<c-h>\", function() A.select(4) end, desc = \"Visit 4\" },\n  -- Other actions:\n  { \"<leader>oj\", A.switch_context, desc = \"Visits switch context\" },\n  { \"<leader>or\", A.clear, desc = \"Visits clear\" },\n}) do\n  H.map(key[1], key[2], key[\"desc\"])\nend\n\nVisits.setup({\n  list = { sort = H.sort }, -- only on recency\n  silent = true, -- false,\n  store = {\n    autowrite = H.autowrite, -- if false, write on action\n    normalize = H.gen_normalize(), -- remove visits without labels\n    path = H.somewhat_unique_project_name(), -- store per project dir\n  },\n  track = { event = \"\" }, -- visits are added programmatically as a result of actions\n})\n\n\nI included the above fragment in the post as a separate chapter.\nThe statusline integration is handcrafted. The code started as a plugin for harpoon: harpoonline.\nWhen I moved to grapple, I archived harpoonline and simplified the code to be used in my config. It was trivial to copy the code to hook mini.visits into the mini.statusline component.\nNaturally, there is a \"fun\" part at play. I could just as well keep using grapple.nvim.\nHowever, when using mini, I get mini.visits for free. As in all components mini provides, the plugin is concise, stable, configurable and well tested. The plugin does a lot of the work I would otherwise need to code myself. I hope this is a valid argument against writing my own code from scratch...;)",
+                    "createdAt": "2024-08-19T10:14:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10381795,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "id": "DC_kwDOFoksYM4Anmnj",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2024-08-19T10:20:33Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-19T10:14:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10380297,
+                        "id": "DC_kwDOFoksYM4AnmQJ",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10380297"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10381795",
+                    "updatedAt": "2024-08-19T10:20:33Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10381795"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "You don't have to justify not wanting to write from scratch :) It was just an observation that came to mind while skimming through implementation. I am of course happy to see the proof that design of 'mini.nvim' modules is versatile enough to help implementing even vastly different workflows.\r\n\r\nOne thing I wanted to say several times, though. The core idea behind using `H` helper table is to be able to have code in \"from top to bottom\" order. Meaning that \"main\" functions go on top and helper go on bottom. This would be not possible with `local function ...` approach as they need to be defined before they are used in code. If you prefer using \"from bottom to top\" organization (which is totally fine), then using `local function` (or `local a = function()`) is a more convenient approach.",
+                    "bodyHTML": "<p dir=\"auto\">You don't have to justify not wanting to write from scratch :) It was just an observation that came to mind while skimming through implementation. I am of course happy to see the proof that design of 'mini.nvim' modules is versatile enough to help implementing even vastly different workflows.</p>\n<p dir=\"auto\">One thing I wanted to say several times, though. The core idea behind using <code class=\"notranslate\">H</code> helper table is to be able to have code in \"from top to bottom\" order. Meaning that \"main\" functions go on top and helper go on bottom. This would be not possible with <code class=\"notranslate\">local function ...</code> approach as they need to be defined before they are used in code. If you prefer using \"from bottom to top\" organization (which is totally fine), then using <code class=\"notranslate\">local function</code> (or <code class=\"notranslate\">local a = function()</code>) is a more convenient approach.</p>",
+                    "bodyText": "You don't have to justify not wanting to write from scratch :) It was just an observation that came to mind while skimming through implementation. I am of course happy to see the proof that design of 'mini.nvim' modules is versatile enough to help implementing even vastly different workflows.\nOne thing I wanted to say several times, though. The core idea behind using H helper table is to be able to have code in \"from top to bottom\" order. Meaning that \"main\" functions go on top and helper go on bottom. This would be not possible with local function ... approach as they need to be defined before they are used in code. If you prefer using \"from bottom to top\" organization (which is totally fine), then using local function (or local a = function()) is a more convenient approach.",
+                    "createdAt": "2024-08-19T10:54:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10382213,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnmuF",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-19T10:54:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10380297,
+                        "id": "DC_kwDOFoksYM4AnmQJ",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10380297"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10382213",
+                    "updatedAt": "2024-08-19T10:54:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10382213"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> ... The core idea behind using H helper table is to be able to have code in \"from top to bottom\" order...\r\n\r\nIndeed. I do use this when there are lots of functions. There is another benefit, related to laziness: The order of the functions assigned to \"H\" does not matter...;). I am also thinking about code organization. I sometimes use an extra table, `A`, having functions related to actions.\r\n\r\nThanks for having a look at this post!\r\n \r\nIt's rewarding to be able to use a `mini` plugin for an important part in my workflow.\r\nAlso, the [pick_with_labels](https://github.com/echasnovski/mini.nvim/discussions/1109) functionality is very useful in this part. Thanks again for helping me to create an implementation without hacks...;) \r\n\r\n",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">... The core idea behind using H helper table is to be able to have code in \"from top to bottom\" order...</p>\n</blockquote>\n<p dir=\"auto\">Indeed. I do use this when there are lots of functions. There is another benefit, related to laziness: The order of the functions assigned to \"H\" does not matter...;). I am also thinking about code organization. I sometimes use an extra table, <code class=\"notranslate\">A</code>, having functions related to actions.</p>\n<p dir=\"auto\">Thanks for having a look at this post!</p>\n<p dir=\"auto\">It's rewarding to be able to use a <code class=\"notranslate\">mini</code> plugin for an important part in my workflow.<br>\nAlso, the <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1109\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1109/hovercard\">pick_with_labels</a> functionality is very useful in this part. Thanks again for helping me to create an implementation without hacks...;)</p>",
+                    "bodyText": "... The core idea behind using H helper table is to be able to have code in \"from top to bottom\" order...\n\nIndeed. I do use this when there are lots of functions. There is another benefit, related to laziness: The order of the functions assigned to \"H\" does not matter...;). I am also thinking about code organization. I sometimes use an extra table, A, having functions related to actions.\nThanks for having a look at this post!\nIt's rewarding to be able to use a mini plugin for an important part in my workflow.\nAlso, the pick_with_labels functionality is very useful in this part. Thanks again for helping me to create an implementation without hacks...;)",
+                    "createdAt": "2024-08-19T15:21:16Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10385410,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnngC",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-19T15:21:16Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10380297,
+                        "id": "DC_kwDOFoksYM4AnmQJ",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10380297"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10385410",
+                    "updatedAt": "2024-08-19T15:21:17Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10385410"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10380297",
+            "updatedAt": "2024-08-19T08:17:02Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10380297"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I refactored the code into a separate internal plugin: [ak.mini.visits_harpooned](https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned.lua) and [ak.mini.visits_harpooned_line](https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned_line.lua)",
+            "bodyHTML": "<p dir=\"auto\">I refactored the code into a separate internal plugin: <a href=\"https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned.lua\">ak.mini.visits_harpooned</a> and <a href=\"https://github.com/abeldekat/nvim_pde/blob/main/lua/ak/mini/visits_harpooned_line.lua\">ak.mini.visits_harpooned_line</a></p>",
+            "bodyText": "I refactored the code into a separate internal plugin: ak.mini.visits_harpooned and ak.mini.visits_harpooned_line",
+            "createdAt": "2024-08-26T21:07:36Z",
+            "createdViaEmail": false,
+            "databaseId": 10456275,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4An4zT",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-08-26T21:07:36Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10456275",
+            "updatedAt": "2024-08-26T21:07:37Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-10456275"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                "login": "abeldekat",
+                "resourcePath": "/abeldekat",
+                "url": "https://github.com/abeldekat"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "\r\n\r\nhttps://github.com/user-attachments/assets/060b69a9-9095-4a1a-8bf0-df44772ed526\r\n\r\n\r\n\r\n\r\nRecently, I replaced `oil.nvim` with `mini.files`.\r\n\r\nIt took some effort to [integrate](https://github.com/abeldekat/nvim_pde/blob/d8fd33f5ee80a639a13120049529d245673e3aa5/lua/ak/mini/visits_harpooned.lua#L64) `mini.files` into my `visits_harpooned`.\r\n\r\nI can now use `mini.files` with almost the same functionality `oil` provided.",
+            "bodyHTML": "<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">visits_harpooned_and_files.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/421250332-060b69a9-9095-4a1a-8bf0-df44772ed526.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMxMjQsIm5iZiI6MTc5MzU1MjgyNCwicGF0aCI6Ii81ODM3MDQzMy80MjEyNTAzMzItMDYwYjY5YTktOTA5NS00YTFhLThiZjAtZGY0NDc3MmVkNTI2Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDcwNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWYxMmRjYzY5NTNiZjY2YTA0NTExNDZjYmZkY2YyMTA0MmE3ZDJjOGQ1NjgwYWM3ODA4OTQ1OWYzMTE3OWVkYTUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.mZEyZSUzxBg9nUp9ZwxuymPo7ZyoFYctZW4rpptAsBE\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/421250332-060b69a9-9095-4a1a-8bf0-df44772ed526.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMxMjQsIm5iZiI6MTc5MzU1MjgyNCwicGF0aCI6Ii81ODM3MDQzMy80MjEyNTAzMzItMDYwYjY5YTktOTA5NS00YTFhLThiZjAtZGY0NDc3MmVkNTI2Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDcwNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWYxMmRjYzY5NTNiZjY2YTA0NTExNDZjYmZkY2YyMTA0MmE3ZDJjOGQ1NjgwYWM3ODA4OTQ1OWYzMTE3OWVkYTUmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.mZEyZSUzxBg9nUp9ZwxuymPo7ZyoFYctZW4rpptAsBE\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">Recently, I replaced <code class=\"notranslate\">oil.nvim</code> with <code class=\"notranslate\">mini.files</code>.</p>\n<p dir=\"auto\">It took some effort to <a href=\"https://github.com/abeldekat/nvim_pde/blob/d8fd33f5ee80a639a13120049529d245673e3aa5/lua/ak/mini/visits_harpooned.lua#L64\">integrate</a> <code class=\"notranslate\">mini.files</code> into my <code class=\"notranslate\">visits_harpooned</code>.</p>\n<p dir=\"auto\">I can now use <code class=\"notranslate\">mini.files</code> with almost the same functionality <code class=\"notranslate\">oil</code> provided.</p>",
+            "bodyText": "visits_harpooned_and_files.mp4\n    \n  \n\n  \n\n  \n\n\nRecently, I replaced oil.nvim with mini.files.\nIt took some effort to integrate mini.files into my visits_harpooned.\nI can now use mini.files with almost the same functionality oil provided.",
+            "createdAt": "2025-03-11T07:54:41Z",
+            "createdViaEmail": false,
+            "databaseId": 12458598,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Avhpm",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-03-11T07:54:41Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "> I can now use `mini.files` with almost the same functionality `oil` provided.\r\n\r\nWhat is missing?",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">I can now use <code class=\"notranslate\">mini.files</code> with almost the same functionality <code class=\"notranslate\">oil</code> provided.</p>\n</blockquote>\n<p dir=\"auto\">What is missing?</p>",
+                    "bodyText": "I can now use mini.files with almost the same functionality oil provided.\n\nWhat is missing?",
+                    "createdAt": "2025-03-11T08:39:35Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12459001,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Avhv5",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-11T08:39:35Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12458598,
+                        "id": "DC_kwDOFoksYM4Avhpm",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12458598"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12459001",
+                    "updatedAt": "2025-03-11T08:39:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12459001"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Nothing, after giving that a second thought. I should have expected that question...)\r\nThat sentence was formulated a bit too carefully. Apologies.\r\n",
+                    "bodyHTML": "<p dir=\"auto\">Nothing, after giving that a second thought. I should have expected that question...)<br>\nThat sentence was formulated a bit too carefully. Apologies.</p>",
+                    "bodyText": "Nothing, after giving that a second thought. I should have expected that question...)\nThat sentence was formulated a bit too carefully. Apologies.",
+                    "createdAt": "2025-03-11T09:01:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12459221,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AvhzV",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-03-11T09:01:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12458598,
+                        "id": "DC_kwDOFoksYM4Avhpm",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12458598"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12459221",
+                    "updatedAt": "2025-03-11T09:01:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12459221"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12458598",
+            "updatedAt": "2025-03-11T07:54:41Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158#discussioncomment-12458598"
+        }
+    ],
+    "createdAt": "2024-08-18T20:11:59Z",
+    "createdViaEmail": false,
+    "databaseId": 7068259,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "id": "D_kwDOFoksYM4Aa9pj",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABdUY7Ow",
+                "name": "mini.visits"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-08-26T21:06:51Z",
+    "locked": false,
+    "number": 1158,
+    "poll": null,
+    "publishedAt": "2024-08-18T20:11:59Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1158",
+    "stateReason": null,
+    "title": "[mini.visits] Visits tweaked to operate like grapple or harpoon",
+    "updatedAt": "2025-03-11T09:01:36Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1158"
+}

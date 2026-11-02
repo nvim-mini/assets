@@ -1,0 +1,296 @@
+{
+    "activeLockReason": null,
+    "answer": {
+        "databaseId": 15754266,
+        "id": "DC_kwDOFoksYM4A8GQa",
+        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2263#discussioncomment-15754266"
+    },
+    "answerChosenAt": "2026-02-10T09:28:21Z",
+    "answerChosenBy": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/121571396?u=9d4790009d80d7fbd396cf3b795a9293ac70360f&v=4",
+        "login": "nathanzeng",
+        "resourcePath": "/nathanzeng",
+        "url": "https://github.com/nathanzeng"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nall of the above\r\n\r\n### Question\r\n\r\nI'm a new Neovim user who is also a mini user via kickstart!\r\n\r\nFrom the mini help docs, I can see that calling setup on a module creates a global camel-cased Lua object. My question is whether there is a best practice for removing the undefined global warning that I believe Lua LSP is giving me on that object. (e.g. line 2 diagnostic below says `Undefined global 'MiniIcons'.`)\r\n\r\n```lua\r\nrequire('mini.icons').setup() \r\nMiniIcons.mock_nvim_web_devicons()\r\n```\r\n\r\nI'm installing mini with lazy (kickstart default) if that is relevant. Thank you in advance.",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/nvim-mini/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">all of the above</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I'm a new Neovim user who is also a mini user via kickstart!</p>\n<p dir=\"auto\">From the mini help docs, I can see that calling setup on a module creates a global camel-cased Lua object. My question is whether there is a best practice for removing the undefined global warning that I believe Lua LSP is giving me on that object. (e.g. line 2 diagnostic below says <code class=\"notranslate\">Undefined global 'MiniIcons'.</code>)</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"require('mini.icons').setup() \nMiniIcons.mock_nvim_web_devicons()\"><pre class=\"notranslate\"><span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>mini.icons<span class=\"pl-pds\">'</span></span>).<span class=\"pl-c1\">setup</span>() \n<span class=\"pl-smi\">MiniIcons</span>.<span class=\"pl-c1\">mock_nvim_web_devicons</span>()</pre></div>\n<p dir=\"auto\">I'm installing mini with lazy (kickstart default) if that is relevant. Thank you in advance.</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nall of the above\nQuestion\nI'm a new Neovim user who is also a mini user via kickstart!\nFrom the mini help docs, I can see that calling setup on a module creates a global camel-cased Lua object. My question is whether there is a best practice for removing the undefined global warning that I believe Lua LSP is giving me on that object. (e.g. line 2 diagnostic below says Undefined global 'MiniIcons'.)\nrequire('mini.icons').setup() \nMiniIcons.mock_nvim_web_devicons()\nI'm installing mini with lazy (kickstart default) if that is relevant. Thank you in advance.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-02-10T09:28:19Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "There are couple of ways to address this (none of which is \"standard\" per se):\r\n\r\n- Create '.luarc.json' in the config root and tell it to address this specific diagnostic warning. Either by completely ignoring all such cases, ignoring specific variables, or downgrading the severity from a warning to a hint. The file's structure can be seen [here](https://luals.github.io/wiki/configuration/#luarcjson-file) with full schema [here](https://github.com/LuaLS/vscode-lua/blob/master/setting/schema.json).\r\n\r\n    A more automated approach here would be to put cursor on the \"undefined variable\" and ask for code actions. In 'kickstart.nvim' it is done by [typing `gra`](https://github.com/nvim-lua/kickstart.nvim/blob/e79572c9e6978787af2bca164a85ab6821caeb7b/init.lua#L541). It will suggest ways to solve this issue.\r\n\r\n    This is a relatively okay thing to do since [lua-language-server itself ignores some diagnostics](https://github.com/LuaLS/lua-language-server/blob/master/.luarc.json).\r\n\r\n- Universally use `require('mini.xxx')` instead of `MiniXxx` global variable. These two deliver the same result. The first is in practice almost as fast as the second (`require()` caches its output), but more verbose.\r\n- Ignore it. Which is what I do and, frankly, recommend.",
+            "bodyHTML": "<p dir=\"auto\">There are couple of ways to address this (none of which is \"standard\" per se):</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Create '.luarc.json' in the config root and tell it to address this specific diagnostic warning. Either by completely ignoring all such cases, ignoring specific variables, or downgrading the severity from a warning to a hint. The file's structure can be seen <a href=\"https://luals.github.io/wiki/configuration/#luarcjson-file\" rel=\"nofollow\">here</a> with full schema <a href=\"https://github.com/LuaLS/vscode-lua/blob/master/setting/schema.json\">here</a>.</p>\n<p dir=\"auto\">A more automated approach here would be to put cursor on the \"undefined variable\" and ask for code actions. In 'kickstart.nvim' it is done by <a href=\"https://github.com/nvim-lua/kickstart.nvim/blob/e79572c9e6978787af2bca164a85ab6821caeb7b/init.lua#L541\">typing <code class=\"notranslate\">gra</code></a>. It will suggest ways to solve this issue.</p>\n<p dir=\"auto\">This is a relatively okay thing to do since <a href=\"https://github.com/LuaLS/lua-language-server/blob/master/.luarc.json\">lua-language-server itself ignores some diagnostics</a>.</p>\n</li>\n<li>\n<p dir=\"auto\">Universally use <code class=\"notranslate\">require('mini.xxx')</code> instead of <code class=\"notranslate\">MiniXxx</code> global variable. These two deliver the same result. The first is in practice almost as fast as the second (<code class=\"notranslate\">require()</code> caches its output), but more verbose.</p>\n</li>\n<li>\n<p dir=\"auto\">Ignore it. Which is what I do and, frankly, recommend.</p>\n</li>\n</ul>",
+            "bodyText": "There are couple of ways to address this (none of which is \"standard\" per se):\n\n\nCreate '.luarc.json' in the config root and tell it to address this specific diagnostic warning. Either by completely ignoring all such cases, ignoring specific variables, or downgrading the severity from a warning to a hint. The file's structure can be seen here with full schema here.\nA more automated approach here would be to put cursor on the \"undefined variable\" and ask for code actions. In 'kickstart.nvim' it is done by typing gra. It will suggest ways to solve this issue.\nThis is a relatively okay thing to do since lua-language-server itself ignores some diagnostics.\n\n\nUniversally use require('mini.xxx') instead of MiniXxx global variable. These two deliver the same result. The first is in practice almost as fast as the second (require() caches its output), but more verbose.\n\n\nIgnore it. Which is what I do and, frankly, recommend.",
+            "createdAt": "2026-02-10T09:28:18Z",
+            "createdViaEmail": false,
+            "databaseId": 15754266,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A8GQa",
+            "includesCreatedEdit": false,
+            "isAnswer": true,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-02-10T09:28:18Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/121571396?u=9d4790009d80d7fbd396cf3b795a9293ac70360f&v=4",
+                        "login": "nathanzeng",
+                        "resourcePath": "/nathanzeng",
+                        "url": "https://github.com/nathanzeng"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Super helpful, and I even learned a new trick. Thanks!",
+                    "bodyHTML": "<p dir=\"auto\">Super helpful, and I even learned a new trick. Thanks!</p>",
+                    "bodyText": "Super helpful, and I even learned a new trick. Thanks!",
+                    "createdAt": "2026-02-12T05:59:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15778078,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A8MEe",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-02-12T05:59:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15754266,
+                        "id": "DC_kwDOFoksYM4A8GQa",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2263#discussioncomment-15754266"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2263#discussioncomment-15778078",
+                    "updatedAt": "2026-02-12T05:59:58Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2263#discussioncomment-15778078"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2263#discussioncomment-15754266",
+            "updatedAt": "2026-02-10T09:28:18Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2263#discussioncomment-15754266"
+        }
+    ],
+    "createdAt": "2026-02-10T06:58:06Z",
+    "createdViaEmail": false,
+    "databaseId": 9452759,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+        "login": "echasnovski",
+        "resourcePath": "/echasnovski",
+        "url": "https://github.com/echasnovski"
+    },
+    "id": "D_kwDOFoksYM4AkDzX",
+    "includesCreatedEdit": true,
+    "isAnswered": true,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "This is related to all present modules",
+                "id": "LA_kwDOFoksYM8AAAABwzHsyw",
+                "name": "ALL"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-02-10T09:15:06Z",
+    "locked": false,
+    "number": 2263,
+    "poll": null,
+    "publishedAt": "2026-02-10T06:58:06Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2263",
+    "stateReason": "RESOLVED",
+    "title": "Standard method for removing undefined global warning",
+    "updatedAt": "2026-02-12T05:59:58Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2263"
+}

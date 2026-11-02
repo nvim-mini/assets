@@ -1,0 +1,529 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "authorAssociation": "MEMBER",
+    "body": "https://github.com/user-attachments/assets/14f9596a-c18d-4970-8770-252a87085839\r\n\r\nMy workflow regarding buffer navigation is centered around [grapple.nvim](https://github.com/cbochs/grapple.nvim). I do use `Pick buffers` often. Usually, its `query` contains more than one character, followed by `enter`. It would be nice to only type one single \"hotkey\", in `Jump2d` fashion.\r\n\r\nTrying my hand on this requirement has been on my `todo-list` for some time. Recently, plugin [snipe.nvim](https://github.com/leath-dub/snipe.nvim) was announced on reddit, reminding me on that \"todo\".\r\n\r\nI tried to incorporate `Jump2d` into `Pick` in various ways. No cigar unfortunately. The main `Pick` window disappears before `Jump2d` has a chance to kick-in.\r\n\r\nIn my opinion, there exists a sweet spot between the amount of opened buffers and the benefit accomplished by using a \"hotkey\". When the amount of buffers is considerable, the best approach is to narrow down the list using default `Pick buffers`. Plugin `snipe.nvim` uses multiple pages in that situation, a less optimal approach.\r\n\r\nI took the code from [Pick buffers](https://github.com/echasnovski/mini.nvim/blob/10426fc5bd38397c9a74d80cd4a6c55243fc78de/lua/mini/pick.lua#L1427) and implemented [Pick labeled_buffers](https://github.com/abeldekat/nvim_pde/blob/5ac3e75aeb7331bb8674b9d58d5845c0876ac86f/lua/ak/config/editor/mini_pick.lua#L63)\r\n\r\nAlgorithm:\r\n\r\nIf the amount of labels can be used to add \"hotkeys\" to **all** buffer items, the labels are highlighted. Otherwise, the labels are dimmed, but they are still available for faster navigation. `Pick` operates as usual in that case.\r\n\r\nThe straightforward matching algorithm provided by `Pick` simplified the implementation.\r\nJust add a unique letter before the text representing the buffer, and done.\r\nFor now, I centered the `pick` window, to more closely resemble the centered `grapple` window. Also, as the text representing the buffer can be lengthy, I _surrounded_ the text with the labels.\r\n\r\nThe code:\r\n\r\n```lua\r\nPick.registry.labeled_buffers = function(_, _) -- local_opts, opts\r\n  local letters = \"abcdefghijklmnopqrstuvwxyz\" -- more items than letters: no hotkey\r\n  local buffer_items = (function() -- see Pick.builtin.buffers\r\n    local add_label = function(text, idx)\r\n      local letter = string.sub(letters, idx, idx)\r\n      local label = letter == \"\" and \"[ ]\" or (\"[\" .. letter .. \"]\")\r\n      return string.format(\"%s %s %s\", label, text, label) -- the first label does the trick!\r\n    end\r\n    local buffers_output = vim.api.nvim_exec2(\"buffers\", { output = true }).output\r\n    local buffer_items, cur_buf_id, include_current = {}, vim.api.nvim_get_current_buf(), false\r\n    for i, l in ipairs(vim.split(buffers_output, \"\\n\")) do\r\n      local buf_str, name = l:match(\"^%s*%d+\"), l:match('\"(.*)\"')\r\n      local buf_id = tonumber(buf_str)\r\n      local item = { text = add_label(name, i), bufnr = buf_id } -- additionally add label\r\n      if buf_id ~= cur_buf_id or include_current then table.insert(buffer_items, item) end\r\n    end\r\n    return buffer_items\r\n  end)()\r\n  local window = true\r\n      and { -- centered window for consistency with grapple\r\n        config = function() -- copied from :h MiniPick\r\n          local height = math.floor(0.618 * vim.o.lines)\r\n          local width = math.floor(0.618 * vim.o.columns)\r\n          return {\r\n            anchor = \"NW\",\r\n            height = height,\r\n            width = width,\r\n            row = math.floor(0.5 * (vim.o.lines - height)),\r\n            col = math.floor(0.5 * (vim.o.columns - width)),\r\n          }\r\n        end,\r\n      }\r\n    or nil\r\n  local show_icons = true\r\n  local icon_length = show_icons and 5 or 0\r\n  local use_hotkey = #buffer_items <= string.len(letters)\r\n  local hl = use_hotkey and \"MiniPickMatchRanges\" or \"Comment\"\r\n\r\n  local show = function(buf_id, items, query)\r\n    local find_label = function(item, find_pos)\r\n      local start, _ = string.find(item.text, \"[\", find_pos, true)\r\n      start = start and (start - 1) + icon_length or start\r\n      return start\r\n    end\r\n    MiniPick.default_show(buf_id, items, query, { show_icons = show_icons })\r\n\r\n    if use_hotkey and query and #query == 1 then\r\n      local submit = vim.api.nvim_replace_termcodes(\"<cr>\", true, false, true)\r\n      vim.api.nvim_feedkeys(submit, \"n\", false) -- hotkey\r\n    end\r\n    for i = 1, #items do\r\n      local start = find_label(items[i], 1) -- first label occurrence\r\n      if start then vim.api.nvim_buf_add_highlight(buf_id, 0, hl, i - 1, start, start + 3) end\r\n      start = find_label(items[i], 2) -- second label occurrence\r\n      if start then vim.api.nvim_buf_add_highlight(buf_id, 0, hl, i - 1, start, -1) end\r\n    end\r\n  end\r\n  return MiniPick.start({ window = window, source = { name = \"Labeled_buffers\", items = buffer_items, show = show } })\r\nend\r\n```",
+    "bodyHTML": "<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">pick_labeled_buffers.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/58370433/353528529-14f9596a-c18d-4970-8770-252a87085839.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzMzIsIm5iZiI6MTc5MzU1MzAzMiwicGF0aCI6Ii81ODM3MDQzMy8zNTM1Mjg1MjktMTRmOTU5NmEtYzE4ZC00OTcwLTg3NzAtMjUyYTg3MDg1ODM5Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTAzMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWExNmM5NmVkY2YwZDcwNzg5MTgwZjg1YzM0MTRjNjViMzg4Njk1ZWU1YTg0ZDhjOGY3YzFiOTI0YTVkMjY1MWMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.9PWsdIB7bvuAeuoSUL0h5-SEU7TsfyhWB5oXmEKzYt0\" data-canonical-src=\"https://private-user-images.githubusercontent.com/58370433/353528529-14f9596a-c18d-4970-8770-252a87085839.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTMzMzIsIm5iZiI6MTc5MzU1MzAzMiwicGF0aCI6Ii81ODM3MDQzMy8zNTM1Mjg1MjktMTRmOTU5NmEtYzE4ZC00OTcwLTg3NzAtMjUyYTg3MDg1ODM5Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MTAzMlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWExNmM5NmVkY2YwZDcwNzg5MTgwZjg1YzM0MTRjNjViMzg4Njk1ZWU1YTg0ZDhjOGY3YzFiOTI0YTVkMjY1MWMmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.9PWsdIB7bvuAeuoSUL0h5-SEU7TsfyhWB5oXmEKzYt0\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">My workflow regarding buffer navigation is centered around <a href=\"https://github.com/cbochs/grapple.nvim\">grapple.nvim</a>. I do use <code class=\"notranslate\">Pick buffers</code> often. Usually, its <code class=\"notranslate\">query</code> contains more than one character, followed by <code class=\"notranslate\">enter</code>. It would be nice to only type one single \"hotkey\", in <code class=\"notranslate\">Jump2d</code> fashion.</p>\n<p dir=\"auto\">Trying my hand on this requirement has been on my <code class=\"notranslate\">todo-list</code> for some time. Recently, plugin <a href=\"https://github.com/leath-dub/snipe.nvim\">snipe.nvim</a> was announced on reddit, reminding me on that \"todo\".</p>\n<p dir=\"auto\">I tried to incorporate <code class=\"notranslate\">Jump2d</code> into <code class=\"notranslate\">Pick</code> in various ways. No cigar unfortunately. The main <code class=\"notranslate\">Pick</code> window disappears before <code class=\"notranslate\">Jump2d</code> has a chance to kick-in.</p>\n<p dir=\"auto\">In my opinion, there exists a sweet spot between the amount of opened buffers and the benefit accomplished by using a \"hotkey\". When the amount of buffers is considerable, the best approach is to narrow down the list using default <code class=\"notranslate\">Pick buffers</code>. Plugin <code class=\"notranslate\">snipe.nvim</code> uses multiple pages in that situation, a less optimal approach.</p>\n<p dir=\"auto\">I took the code from <a href=\"https://github.com/echasnovski/mini.nvim/blob/10426fc5bd38397c9a74d80cd4a6c55243fc78de/lua/mini/pick.lua#L1427\">Pick buffers</a> and implemented <a href=\"https://github.com/abeldekat/nvim_pde/blob/5ac3e75aeb7331bb8674b9d58d5845c0876ac86f/lua/ak/config/editor/mini_pick.lua#L63\">Pick labeled_buffers</a></p>\n<p dir=\"auto\">Algorithm:</p>\n<p dir=\"auto\">If the amount of labels can be used to add \"hotkeys\" to <strong>all</strong> buffer items, the labels are highlighted. Otherwise, the labels are dimmed, but they are still available for faster navigation. <code class=\"notranslate\">Pick</code> operates as usual in that case.</p>\n<p dir=\"auto\">The straightforward matching algorithm provided by <code class=\"notranslate\">Pick</code> simplified the implementation.<br>\nJust add a unique letter before the text representing the buffer, and done.<br>\nFor now, I centered the <code class=\"notranslate\">pick</code> window, to more closely resemble the centered <code class=\"notranslate\">grapple</code> window. Also, as the text representing the buffer can be lengthy, I <em>surrounded</em> the text with the labels.</p>\n<p dir=\"auto\">The code:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"Pick.registry.labeled_buffers = function(_, _) -- local_opts, opts\n  local letters = &quot;abcdefghijklmnopqrstuvwxyz&quot; -- more items than letters: no hotkey\n  local buffer_items = (function() -- see Pick.builtin.buffers\n    local add_label = function(text, idx)\n      local letter = string.sub(letters, idx, idx)\n      local label = letter == &quot;&quot; and &quot;[ ]&quot; or (&quot;[&quot; .. letter .. &quot;]&quot;)\n      return string.format(&quot;%s %s %s&quot;, label, text, label) -- the first label does the trick!\n    end\n    local buffers_output = vim.api.nvim_exec2(&quot;buffers&quot;, { output = true }).output\n    local buffer_items, cur_buf_id, include_current = {}, vim.api.nvim_get_current_buf(), false\n    for i, l in ipairs(vim.split(buffers_output, &quot;\\n&quot;)) do\n      local buf_str, name = l:match(&quot;^%s*%d+&quot;), l:match('&quot;(.*)&quot;')\n      local buf_id = tonumber(buf_str)\n      local item = { text = add_label(name, i), bufnr = buf_id } -- additionally add label\n      if buf_id ~= cur_buf_id or include_current then table.insert(buffer_items, item) end\n    end\n    return buffer_items\n  end)()\n  local window = true\n      and { -- centered window for consistency with grapple\n        config = function() -- copied from :h MiniPick\n          local height = math.floor(0.618 * vim.o.lines)\n          local width = math.floor(0.618 * vim.o.columns)\n          return {\n            anchor = &quot;NW&quot;,\n            height = height,\n            width = width,\n            row = math.floor(0.5 * (vim.o.lines - height)),\n            col = math.floor(0.5 * (vim.o.columns - width)),\n          }\n        end,\n      }\n    or nil\n  local show_icons = true\n  local icon_length = show_icons and 5 or 0\n  local use_hotkey = #buffer_items &lt;= string.len(letters)\n  local hl = use_hotkey and &quot;MiniPickMatchRanges&quot; or &quot;Comment&quot;\n\n  local show = function(buf_id, items, query)\n    local find_label = function(item, find_pos)\n      local start, _ = string.find(item.text, &quot;[&quot;, find_pos, true)\n      start = start and (start - 1) + icon_length or start\n      return start\n    end\n    MiniPick.default_show(buf_id, items, query, { show_icons = show_icons })\n\n    if use_hotkey and query and #query == 1 then\n      local submit = vim.api.nvim_replace_termcodes(&quot;&lt;cr&gt;&quot;, true, false, true)\n      vim.api.nvim_feedkeys(submit, &quot;n&quot;, false) -- hotkey\n    end\n    for i = 1, #items do\n      local start = find_label(items[i], 1) -- first label occurrence\n      if start then vim.api.nvim_buf_add_highlight(buf_id, 0, hl, i - 1, start, start + 3) end\n      start = find_label(items[i], 2) -- second label occurrence\n      if start then vim.api.nvim_buf_add_highlight(buf_id, 0, hl, i - 1, start, -1) end\n    end\n  end\n  return MiniPick.start({ window = window, source = { name = &quot;Labeled_buffers&quot;, items = buffer_items, show = show } })\nend\"><pre class=\"notranslate\"><span class=\"pl-smi\">Pick</span>.<span class=\"pl-e\">registry</span>.<span class=\"pl-en\">labeled_buffers</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">_</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> local_opts, opts</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">letters</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>abcdefghijklmnopqrstuvwxyz<span class=\"pl-pds\">\" </span></span><span class=\"pl-c\"><span class=\"pl-c\">--</span> more items than letters: no hotkey</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buffer_items</span> <span class=\"pl-k\">=</span> (<span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> see Pick.builtin.buffers</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">add_label</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">text</span>, <span class=\"pl-smi\">idx</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">letter</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.sub</span>(<span class=\"pl-smi\">letters</span>, <span class=\"pl-smi\">idx</span>, <span class=\"pl-smi\">idx</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">label</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">letter</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[ ]<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> (<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">letter</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>]<span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>%s %s %s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">label</span>, <span class=\"pl-smi\">text</span>, <span class=\"pl-smi\">label</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> the first label does the trick!</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buffers_output</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_exec2</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>buffers<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">output</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }).<span class=\"pl-e\">output</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buffer_items</span>, <span class=\"pl-smi\">cur_buf_id</span>, <span class=\"pl-smi\">include_current</span> <span class=\"pl-k\">=</span> {}, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_buf</span>(), <span class=\"pl-c1\">false</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span>, <span class=\"pl-smi\">l</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">buffers_output</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">\"</span></span>)) <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_str</span>, <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%s*%d+<span class=\"pl-pds\">\"</span></span>), <span class=\"pl-en\">l</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"(.*)\"<span class=\"pl-pds\">'</span></span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">tonumber</span>(<span class=\"pl-smi\">buf_str</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">add_label</span>(<span class=\"pl-smi\">name</span>, <span class=\"pl-smi\">i</span>), <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_id</span> } <span class=\"pl-c\"><span class=\"pl-c\">--</span> additionally add label</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">buf_id</span> <span class=\"pl-k\">~=</span> <span class=\"pl-smi\">cur_buf_id</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">include_current</span> <span class=\"pl-k\">then</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">buffer_items</span>, <span class=\"pl-smi\">item</span>) <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> <span class=\"pl-smi\">buffer_items</span>\n  <span class=\"pl-k\">end</span>)()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">window</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n      <span class=\"pl-k\">and</span> { <span class=\"pl-c\"><span class=\"pl-c\">--</span> centered window for consistency with grapple</span>\n        <span class=\"pl-en\">config</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>() <span class=\"pl-c\"><span class=\"pl-c\">--</span> copied from :h MiniPick</span>\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.618</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span>)\n          <span class=\"pl-k\">local</span> <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.618</span> <span class=\"pl-k\">*</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span>)\n          <span class=\"pl-k\">return</span> {\n            <span class=\"pl-smi\">anchor</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>NW<span class=\"pl-pds\">\"</span></span>,\n            <span class=\"pl-smi\">height</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">height</span>,\n            <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">width</span>,\n            <span class=\"pl-smi\">row</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">lines</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">height</span>)),\n            <span class=\"pl-smi\">col</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">math.floor</span>(<span class=\"pl-c1\">0.5</span> <span class=\"pl-k\">*</span> (<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">o</span>.<span class=\"pl-e\">columns</span> <span class=\"pl-k\">-</span> <span class=\"pl-smi\">width</span>)),\n          }\n        <span class=\"pl-k\">end</span>,\n      }\n    <span class=\"pl-k\">or</span> <span class=\"pl-c1\">nil</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">show_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">icon_length</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_icons</span> <span class=\"pl-k\">and</span> <span class=\"pl-c1\">5</span> <span class=\"pl-k\">or</span> <span class=\"pl-c1\">0</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">use_hotkey</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">buffer_items</span> <span class=\"pl-k\">&lt;=</span> <span class=\"pl-c1\">string.len</span>(<span class=\"pl-smi\">letters</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">hl</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">use_hotkey</span> <span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniPickMatchRanges<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Comment<span class=\"pl-pds\">\"</span></span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">find_label</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">find_pos</span>)\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">start</span>, <span class=\"pl-smi\">_</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">string.find</span>(<span class=\"pl-smi\">item</span>.<span class=\"pl-e\">text</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">find_pos</span>, <span class=\"pl-c1\">true</span>)\n      <span class=\"pl-smi\">start</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">start</span> <span class=\"pl-k\">and</span> (<span class=\"pl-smi\">start</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>) <span class=\"pl-k\">+</span> <span class=\"pl-smi\">icon_length</span> <span class=\"pl-k\">or</span> <span class=\"pl-smi\">start</span>\n      <span class=\"pl-k\">return</span> <span class=\"pl-smi\">start</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">default_show</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">query</span>, { <span class=\"pl-smi\">show_icons</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show_icons</span> })\n\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">use_hotkey</span> <span class=\"pl-k\">and</span> <span class=\"pl-smi\">query</span> <span class=\"pl-k\">and</span> <span class=\"pl-k\">#</span><span class=\"pl-smi\">query</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">submit</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_replace_termcodes</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;cr&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">true</span>, <span class=\"pl-c1\">false</span>, <span class=\"pl-c1\">true</span>)\n      <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_feedkeys</span>(<span class=\"pl-smi\">submit</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-c1\">false</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> hotkey</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">i</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-k\">#</span><span class=\"pl-smi\">items</span> <span class=\"pl-k\">do</span>\n      <span class=\"pl-k\">local</span> <span class=\"pl-smi\">start</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">find_label</span>(<span class=\"pl-smi\">items</span>[<span class=\"pl-smi\">i</span>], <span class=\"pl-c1\">1</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> first label occurrence</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">start</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_add_highlight</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">hl</span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">start</span>, <span class=\"pl-smi\">start</span> <span class=\"pl-k\">+</span> <span class=\"pl-c1\">3</span>) <span class=\"pl-k\">end</span>\n      <span class=\"pl-smi\">start</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">find_label</span>(<span class=\"pl-smi\">items</span>[<span class=\"pl-smi\">i</span>], <span class=\"pl-c1\">2</span>) <span class=\"pl-c\"><span class=\"pl-c\">--</span> second label occurrence</span>\n      <span class=\"pl-k\">if</span> <span class=\"pl-smi\">start</span> <span class=\"pl-k\">then</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_add_highlight</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">hl</span>, <span class=\"pl-smi\">i</span> <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">start</span>, <span class=\"pl-k\">-</span><span class=\"pl-c1\">1</span>) <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({ <span class=\"pl-smi\">window</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">window</span>, <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Labeled_buffers<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buffer_items</span>, <span class=\"pl-smi\">show</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">show</span> } })\n<span class=\"pl-k\">end</span></pre></div>",
+    "bodyText": "pick_labeled_buffers.mp4\n    \n  \n\n  \n\n  \n\n\nMy workflow regarding buffer navigation is centered around grapple.nvim. I do use Pick buffers often. Usually, its query contains more than one character, followed by enter. It would be nice to only type one single \"hotkey\", in Jump2d fashion.\nTrying my hand on this requirement has been on my todo-list for some time. Recently, plugin snipe.nvim was announced on reddit, reminding me on that \"todo\".\nI tried to incorporate Jump2d into Pick in various ways. No cigar unfortunately. The main Pick window disappears before Jump2d has a chance to kick-in.\nIn my opinion, there exists a sweet spot between the amount of opened buffers and the benefit accomplished by using a \"hotkey\". When the amount of buffers is considerable, the best approach is to narrow down the list using default Pick buffers. Plugin snipe.nvim uses multiple pages in that situation, a less optimal approach.\nI took the code from Pick buffers and implemented Pick labeled_buffers\nAlgorithm:\nIf the amount of labels can be used to add \"hotkeys\" to all buffer items, the labels are highlighted. Otherwise, the labels are dimmed, but they are still available for faster navigation. Pick operates as usual in that case.\nThe straightforward matching algorithm provided by Pick simplified the implementation.\nJust add a unique letter before the text representing the buffer, and done.\nFor now, I centered the pick window, to more closely resemble the centered grapple window. Also, as the text representing the buffer can be lengthy, I surrounded the text with the labels.\nThe code:\nPick.registry.labeled_buffers = function(_, _) -- local_opts, opts\n  local letters = \"abcdefghijklmnopqrstuvwxyz\" -- more items than letters: no hotkey\n  local buffer_items = (function() -- see Pick.builtin.buffers\n    local add_label = function(text, idx)\n      local letter = string.sub(letters, idx, idx)\n      local label = letter == \"\" and \"[ ]\" or (\"[\" .. letter .. \"]\")\n      return string.format(\"%s %s %s\", label, text, label) -- the first label does the trick!\n    end\n    local buffers_output = vim.api.nvim_exec2(\"buffers\", { output = true }).output\n    local buffer_items, cur_buf_id, include_current = {}, vim.api.nvim_get_current_buf(), false\n    for i, l in ipairs(vim.split(buffers_output, \"\\n\")) do\n      local buf_str, name = l:match(\"^%s*%d+\"), l:match('\"(.*)\"')\n      local buf_id = tonumber(buf_str)\n      local item = { text = add_label(name, i), bufnr = buf_id } -- additionally add label\n      if buf_id ~= cur_buf_id or include_current then table.insert(buffer_items, item) end\n    end\n    return buffer_items\n  end)()\n  local window = true\n      and { -- centered window for consistency with grapple\n        config = function() -- copied from :h MiniPick\n          local height = math.floor(0.618 * vim.o.lines)\n          local width = math.floor(0.618 * vim.o.columns)\n          return {\n            anchor = \"NW\",\n            height = height,\n            width = width,\n            row = math.floor(0.5 * (vim.o.lines - height)),\n            col = math.floor(0.5 * (vim.o.columns - width)),\n          }\n        end,\n      }\n    or nil\n  local show_icons = true\n  local icon_length = show_icons and 5 or 0\n  local use_hotkey = #buffer_items <= string.len(letters)\n  local hl = use_hotkey and \"MiniPickMatchRanges\" or \"Comment\"\n\n  local show = function(buf_id, items, query)\n    local find_label = function(item, find_pos)\n      local start, _ = string.find(item.text, \"[\", find_pos, true)\n      start = start and (start - 1) + icon_length or start\n      return start\n    end\n    MiniPick.default_show(buf_id, items, query, { show_icons = show_icons })\n\n    if use_hotkey and query and #query == 1 then\n      local submit = vim.api.nvim_replace_termcodes(\"<cr>\", true, false, true)\n      vim.api.nvim_feedkeys(submit, \"n\", false) -- hotkey\n    end\n    for i = 1, #items do\n      local start = find_label(items[i], 1) -- first label occurrence\n      if start then vim.api.nvim_buf_add_highlight(buf_id, 0, hl, i - 1, start, start + 3) end\n      start = find_label(items[i], 2) -- second label occurrence\n      if start then vim.api.nvim_buf_add_highlight(buf_id, 0, hl, i - 1, start, -1) end\n    end\n  end\n  return MiniPick.start({ window = window, source = { name = \"Labeled_buffers\", items = buffer_items, show = show } })\nend",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-08-06T16:38:04Z",
+    "comment_count": 2,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "That's a nice idea!\r\n\r\nTo be perfectly honest, I'd say that code look a bit too complex for what it eventually achieves. I especially wouldn't recommend the `x = (function() ... end)()` approach as it is not as straightforward to read as without it (or with `do ... end` if absolutely necessary).\r\n\r\nMy mind immediately went in the direction of making a more general `make_labeled_picker()`. Which takes a picker source and modifies it to be \"labeled\":\r\n- Wraps each item (directly or callable's output) in a table with a dedicated `label`, `item`, and `text` fields.\r\n- Overrides `match` to perform a single (or several until necessary) key match.\r\n- Possibly overrides `show` to have labels a special highlight (not sure if necessary).",
+            "bodyHTML": "<p dir=\"auto\">That's a nice idea!</p>\n<p dir=\"auto\">To be perfectly honest, I'd say that code look a bit too complex for what it eventually achieves. I especially wouldn't recommend the <code class=\"notranslate\">x = (function() ... end)()</code> approach as it is not as straightforward to read as without it (or with <code class=\"notranslate\">do ... end</code> if absolutely necessary).</p>\n<p dir=\"auto\">My mind immediately went in the direction of making a more general <code class=\"notranslate\">make_labeled_picker()</code>. Which takes a picker source and modifies it to be \"labeled\":</p>\n<ul dir=\"auto\">\n<li>Wraps each item (directly or callable's output) in a table with a dedicated <code class=\"notranslate\">label</code>, <code class=\"notranslate\">item</code>, and <code class=\"notranslate\">text</code> fields.</li>\n<li>Overrides <code class=\"notranslate\">match</code> to perform a single (or several until necessary) key match.</li>\n<li>Possibly overrides <code class=\"notranslate\">show</code> to have labels a special highlight (not sure if necessary).</li>\n</ul>",
+            "bodyText": "That's a nice idea!\nTo be perfectly honest, I'd say that code look a bit too complex for what it eventually achieves. I especially wouldn't recommend the x = (function() ... end)() approach as it is not as straightforward to read as without it (or with do ... end if absolutely necessary).\nMy mind immediately went in the direction of making a more general make_labeled_picker(). Which takes a picker source and modifies it to be \"labeled\":\n\nWraps each item (directly or callable's output) in a table with a dedicated label, item, and text fields.\nOverrides match to perform a single (or several until necessary) key match.\nPossibly overrides show to have labels a special highlight (not sure if necessary).",
+            "createdAt": "2024-07-30T16:15:05Z",
+            "createdViaEmail": false,
+            "databaseId": 10192763,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Am4d7",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-07-30T16:15:05Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks for the feedback! I am working on the changes.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the feedback! I am working on the changes.</p>",
+                    "bodyText": "Thanks for the feedback! I am working on the changes.",
+                    "createdAt": "2024-07-30T18:26:36Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10193765,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Am4tl",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-07-30T18:26:36Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10192763,
+                        "id": "DC_kwDOFoksYM4Am4d7",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10192763"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10193765",
+                    "updatedAt": "2024-07-30T18:26:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10193765"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "See [this](https://github.com/echasnovski/mini.nvim/discussions/1109) discussion",
+                    "bodyHTML": "<p dir=\"auto\">See <a href=\"https://github.com/echasnovski/mini.nvim/discussions/1109\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/1109/hovercard\">this</a> discussion</p>",
+                    "bodyText": "See this discussion",
+                    "createdAt": "2024-08-02T19:59:37Z",
+                    "createdViaEmail": false,
+                    "databaseId": 10227157,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AnA3V",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-08-02T19:59:37Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 10192763,
+                        "id": "DC_kwDOFoksYM4Am4d7",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10192763"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10227157",
+                    "updatedAt": "2024-08-02T19:59:37Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10227157"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10192763",
+            "updatedAt": "2024-07-30T16:15:06Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-10192763"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/77889270?u=3a07fe5396d7374e376988d0bb8386cde3bbcdc9&v=4",
+                "login": "leath-dub",
+                "resourcePath": "/leath-dub",
+                "url": "https://github.com/leath-dub"
+            },
+            "authorAssociation": "NONE",
+            "body": "Good work on this, I do think a hybrid would be interesting to investigate although i personally never really exceed 20 buffers",
+            "bodyHTML": "<p dir=\"auto\">Good work on this, I do think a hybrid would be interesting to investigate although i personally never really exceed 20 buffers</p>",
+            "bodyText": "Good work on this, I do think a hybrid would be interesting to investigate although i personally never really exceed 20 buffers",
+            "createdAt": "2024-11-09T21:41:21Z",
+            "createdViaEmail": false,
+            "databaseId": 11200052,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AquY0",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-11-09T21:41:21Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 1
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+                        "login": "abeldekat",
+                        "resourcePath": "/abeldekat",
+                        "url": "https://github.com/abeldekat"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Thanks!",
+                    "bodyHTML": "<p dir=\"auto\">Thanks!</p>",
+                    "bodyText": "Thanks!",
+                    "createdAt": "2024-11-11T20:02:13Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11218504,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4Aqy5I",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-11-11T20:02:13Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11200052,
+                        "id": "DC_kwDOFoksYM4AquY0",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-11200052"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1096#discussioncomment-11218504",
+                    "updatedAt": "2024-11-11T20:02:13Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-11218504"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1096#discussioncomment-11200052",
+            "updatedAt": "2024-11-09T21:41:22Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096#discussioncomment-11200052"
+        }
+    ],
+    "createdAt": "2024-07-30T15:52:11Z",
+    "createdViaEmail": false,
+    "databaseId": 6995407,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58370433?u=f27c5d8743e4a42fc8bc9fe3bd6484f6571061cb&v=4",
+        "login": "abeldekat",
+        "resourcePath": "/abeldekat",
+        "url": "https://github.com/abeldekat"
+    },
+    "id": "D_kwDOFoksYM4Aar3P",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": "2024-07-30T16:06:04Z",
+    "locked": false,
+    "number": 1096,
+    "poll": null,
+    "publishedAt": "2024-07-30T15:52:11Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 1
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1096",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pick] Augment `Pick buffers` with hotkeys",
+    "updatedAt": "2024-11-11T20:02:13Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1096"
+}

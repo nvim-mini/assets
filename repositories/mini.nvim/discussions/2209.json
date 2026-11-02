@@ -1,0 +1,1065 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+        "login": "Dook97",
+        "resourcePath": "/Dook97",
+        "url": "https://github.com/Dook97"
+    },
+    "authorAssociation": "CONTRIBUTOR",
+    "body": "Related: #2208\r\n\r\nI wrote a manpages picker for mini.pick. Here it is in action:\r\n\r\nhttps://github.com/user-attachments/assets/32866873-d91e-43a7-9aea-8ab6e42721e7\r\n\r\nCode:\r\n\r\n```lua\r\n--- Man pages picker\r\n---\r\n--- Pick from system manpages.\r\n---\r\n---@param local_opts __extra_pickers_local_opts\r\n---   Possible fields:\r\n---   - <scope> `(string)` - one of \"all\" (all man sections) or section string.\r\n---     Default: \"all\".\r\n---@param opts __extra_pickers_opts\r\nMiniExtra.pickers.man = function(local_opts, opts)\r\n  local pick = H.validate_pick(\"man\")\r\n  local_opts = vim.tbl_deep_extend(\"force\", { scope = \"all\" }, local_opts or {})\r\n\r\n  local load_man = function(item)\r\n    local keyword, cmd, section, desc = item:match(\"^((.-)%s*%(([^)]+)%).-)%s+%-%s+(.*)$\")\r\n    local width = vim.api.nvim_win_get_width(0)\r\n    cmd = vim.split(cmd, \",\")[1]\r\n    vim.cmd(string.format(\"silent re! 2>&- MANWIDTH=%s man %s %s\", width, section, cmd))\r\n    vim.cmd(\"Man!\")\r\n    vim.cmd(\"norm gg0\")\r\n  end\r\n\r\n  local choose = function(item, splitmode)\r\n    vim.cmd(splitmode or \"new\")\r\n    load_man(item)\r\n    local win = vim.api.nvim_get_current_win()\r\n    vim.schedule(function() vim.api.nvim_set_current_win(win) end)\r\n  end\r\n\r\n  local preview = function(buf_id, item)\r\n    vim.api.nvim_buf_call(buf_id, function() load_man(item) end)\r\n  end\r\n\r\n  local map_custom = function(char, splitmode)\r\n    local f = function()\r\n      choose(pick.get_picker_matches().current, splitmode)\r\n      return true\r\n    end\r\n    return { char = char, func = f }\r\n  end\r\n\r\n  local conf_maps = pick.config.mappings\r\n  local mappings = {\r\n    choose_in_split   = \"\", show_man_in_split   = map_custom(conf_maps.choose_in_split, \"new\"),\r\n    choose_in_vsplit  = \"\", show_man_in_vsplit  = map_custom(conf_maps.choose_in_vsplit, \"vnew\"),\r\n    choose_in_tabpage = \"\", show_man_in_tabpage = map_custom(conf_maps.choose_in_tabpage, \"tabnew\"),\r\n  }\r\n\r\n  local cmd = { \"man\", \"-kls\", local_opts.scope == \"all\" and \"\" or local_opts.scope, \"\" }\r\n  local source = { name = \"Manpages\", choose = choose, preview = preview }\r\n  opts = vim.tbl_deep_extend(\"force\", { source = source, mappings = mappings }, opts or {})\r\n  return pick.builtin.cli({ command = cmd }, opts)\r\nend\r\n```\r\n\r\n~~It is currently written as a `builtin` picker, which was made clear in #2208 that it won't be. If it is decided, that it would be accepted into mini.extra, I would rewrite it for that purpouse.~~ Rewritten as mini.extra picker. That wasn't hard at all lol.\r\n",
+    "bodyHTML": "<p dir=\"auto\">Related: <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3779288228\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/2208\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/2208/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/2208\">#2208</a></p>\n<p dir=\"auto\">I wrote a manpages picker for mini.pick. Here it is in action:</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">out.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/30779172/532095391-32866873-d91e-43a7-9aea-8ab6e42721e7.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3OTQsIm5iZiI6MTc5MzU1MjQ5NCwicGF0aCI6Ii8zMDc3OTE3Mi81MzIwOTUzOTEtMzI4NjY4NzMtZDkxZS00M2E3LTlhZWEtOGFiNmU0MjcyMWU3Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDEzNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWY3NzNhZjE3ZGJmNGY3OTc4MjU3MGUwOTA4MTExOTg1OWM2MzM0ZjE4M2YzMzMyMDhkMTQwYzAzNzY4NDE2YTEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.zLlXz3PhiGRxnppkIWSRVCk6lIh3j2zd2SSqYS99soU\" data-canonical-src=\"https://private-user-images.githubusercontent.com/30779172/532095391-32866873-d91e-43a7-9aea-8ab6e42721e7.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3OTQsIm5iZiI6MTc5MzU1MjQ5NCwicGF0aCI6Ii8zMDc3OTE3Mi81MzIwOTUzOTEtMzI4NjY4NzMtZDkxZS00M2E3LTlhZWEtOGFiNmU0MjcyMWU3Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDEzNFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWY3NzNhZjE3ZGJmNGY3OTc4MjU3MGUwOTA4MTExOTg1OWM2MzM0ZjE4M2YzMzMyMDhkMTQwYzAzNzY4NDE2YTEmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.zLlXz3PhiGRxnppkIWSRVCk6lIh3j2zd2SSqYS99soU\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n\n<p dir=\"auto\">Code:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"--- Man pages picker\n---\n--- Pick from system manpages.\n---\n---@param local_opts __extra_pickers_local_opts\n---   Possible fields:\n---   - &lt;scope&gt; `(string)` - one of &quot;all&quot; (all man sections) or section string.\n---     Default: &quot;all&quot;.\n---@param opts __extra_pickers_opts\nMiniExtra.pickers.man = function(local_opts, opts)\n  local pick = H.validate_pick(&quot;man&quot;)\n  local_opts = vim.tbl_deep_extend(&quot;force&quot;, { scope = &quot;all&quot; }, local_opts or {})\n\n  local load_man = function(item)\n    local keyword, cmd, section, desc = item:match(&quot;^((.-)%s*%(([^)]+)%).-)%s+%-%s+(.*)$&quot;)\n    local width = vim.api.nvim_win_get_width(0)\n    cmd = vim.split(cmd, &quot;,&quot;)[1]\n    vim.cmd(string.format(&quot;silent re! 2&gt;&amp;- MANWIDTH=%s man %s %s&quot;, width, section, cmd))\n    vim.cmd(&quot;Man!&quot;)\n    vim.cmd(&quot;norm gg0&quot;)\n  end\n\n  local choose = function(item, splitmode)\n    vim.cmd(splitmode or &quot;new&quot;)\n    load_man(item)\n    local win = vim.api.nvim_get_current_win()\n    vim.schedule(function() vim.api.nvim_set_current_win(win) end)\n  end\n\n  local preview = function(buf_id, item)\n    vim.api.nvim_buf_call(buf_id, function() load_man(item) end)\n  end\n\n  local map_custom = function(char, splitmode)\n    local f = function()\n      choose(pick.get_picker_matches().current, splitmode)\n      return true\n    end\n    return { char = char, func = f }\n  end\n\n  local conf_maps = pick.config.mappings\n  local mappings = {\n    choose_in_split   = &quot;&quot;, show_man_in_split   = map_custom(conf_maps.choose_in_split, &quot;new&quot;),\n    choose_in_vsplit  = &quot;&quot;, show_man_in_vsplit  = map_custom(conf_maps.choose_in_vsplit, &quot;vnew&quot;),\n    choose_in_tabpage = &quot;&quot;, show_man_in_tabpage = map_custom(conf_maps.choose_in_tabpage, &quot;tabnew&quot;),\n  }\n\n  local cmd = { &quot;man&quot;, &quot;-kls&quot;, local_opts.scope == &quot;all&quot; and &quot;&quot; or local_opts.scope, &quot;&quot; }\n  local source = { name = &quot;Manpages&quot;, choose = choose, preview = preview }\n  opts = vim.tbl_deep_extend(&quot;force&quot;, { source = source, mappings = mappings }, opts or {})\n  return pick.builtin.cli({ command = cmd }, opts)\nend\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">---</span> Man pages picker</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span> Pick from system manpages.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">local_opts</span> <span class=\"pl-c1\">__extra_pickers_local_opts</span></span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   Possible fields:</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>   - &lt;scope&gt; `(string)` - one of \"all\" (all man sections) or section string.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span>     Default: \"all\".</span>\n<span class=\"pl-c\"><span class=\"pl-c\">---</span><span class=\"pl-k\">@param</span> <span class=\"pl-en\">opts</span> <span class=\"pl-c1\">__extra_pickers_opts</span></span>\n<span class=\"pl-smi\">MiniExtra</span>.<span class=\"pl-e\">pickers</span>.<span class=\"pl-en\">man</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">local_opts</span>, <span class=\"pl-smi\">opts</span>)\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pick</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">H</span>.<span class=\"pl-c1\">validate_pick</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>man<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">scope</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>all<span class=\"pl-pds\">\" </span></span>}, <span class=\"pl-smi\">local_opts</span> <span class=\"pl-k\">or</span> {})\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">load_man</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">keyword</span>, <span class=\"pl-smi\">cmd</span>, <span class=\"pl-smi\">section</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">item</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^((.-)%s*%(([^)]+)%).-)%s+%-%s+(.*)$<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">width</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_width</span>(<span class=\"pl-c1\">0</span>)\n    <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">cmd</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>,<span class=\"pl-pds\">\"</span></span>)[<span class=\"pl-c1\">1</span>]\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>silent re! 2&gt;&amp;- MANWIDTH=%s man %s %s<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">width</span>, <span class=\"pl-smi\">section</span>, <span class=\"pl-smi\">cmd</span>))\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Man!<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>norm gg0<span class=\"pl-pds\">\"</span></span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">splitmode</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">cmd</span>(<span class=\"pl-smi\">splitmode</span> <span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>new<span class=\"pl-pds\">\"</span></span>)\n    <span class=\"pl-c1\">load_man</span>(<span class=\"pl-smi\">item</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">win</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_get_current_win</span>()\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule</span>(<span class=\"pl-k\">function</span>() <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_set_current_win</span>(<span class=\"pl-smi\">win</span>) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">item</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_call</span>(<span class=\"pl-smi\">buf_id</span>, <span class=\"pl-k\">function</span>() <span class=\"pl-c1\">load_man</span>(<span class=\"pl-smi\">item</span>) <span class=\"pl-k\">end</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">map_custom</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">char</span>, <span class=\"pl-smi\">splitmode</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-en\">f</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n      <span class=\"pl-c1\">choose</span>(<span class=\"pl-smi\">pick</span>.<span class=\"pl-c1\">get_picker_matches</span>().<span class=\"pl-e\">current</span>, <span class=\"pl-smi\">splitmode</span>)\n      <span class=\"pl-k\">return</span> <span class=\"pl-c1\">true</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">char</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">char</span>, <span class=\"pl-smi\">func</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">f</span> }\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">conf_maps</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">pick</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">mappings</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> {\n    <span class=\"pl-smi\">choose_in_split</span>   <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">show_man_in_split</span>   <span class=\"pl-k\">=</span> <span class=\"pl-c1\">map_custom</span>(<span class=\"pl-smi\">conf_maps</span>.<span class=\"pl-e\">choose_in_split</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>new<span class=\"pl-pds\">\"</span></span>),\n    <span class=\"pl-smi\">choose_in_vsplit</span>  <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">show_man_in_vsplit</span>  <span class=\"pl-k\">=</span> <span class=\"pl-c1\">map_custom</span>(<span class=\"pl-smi\">conf_maps</span>.<span class=\"pl-e\">choose_in_vsplit</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>vnew<span class=\"pl-pds\">\"</span></span>),\n    <span class=\"pl-smi\">choose_in_tabpage</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">show_man_in_tabpage</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">map_custom</span>(<span class=\"pl-smi\">conf_maps</span>.<span class=\"pl-e\">choose_in_tabpage</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>tabnew<span class=\"pl-pds\">\"</span></span>),\n  }\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cmd</span> <span class=\"pl-k\">=</span> { <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>man<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>-kls<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">scope</span> <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>all<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">or</span> <span class=\"pl-smi\">local_opts</span>.<span class=\"pl-e\">scope</span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-pds\">\" </span></span>}\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Manpages<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">choose</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">choose</span>, <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">preview</span> }\n  <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_deep_extend</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>force<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">source</span>, <span class=\"pl-smi\">mappings</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">mappings</span> }, <span class=\"pl-smi\">opts</span> <span class=\"pl-k\">or</span> {})\n  <span class=\"pl-k\">return</span> <span class=\"pl-smi\">pick</span>.<span class=\"pl-e\">builtin</span>.<span class=\"pl-c1\">cli</span>({ <span class=\"pl-smi\">command</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">cmd</span> }, <span class=\"pl-smi\">opts</span>)\n<span class=\"pl-k\">end</span></pre></div>\n<p dir=\"auto\"><del>It is currently written as a <code class=\"notranslate\">builtin</code> picker, which was made clear in <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3779288228\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/2208\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/2208/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/2208\">#2208</a> that it won't be. If it is decided, that it would be accepted into mini.extra, I would rewrite it for that purpouse.</del> Rewritten as mini.extra picker. That wasn't hard at all lol.</p>",
+    "bodyText": "Related: #2208\nI wrote a manpages picker for mini.pick. Here it is in action:\n\n  \n    \n    \n\n    out.mp4\n    \n  \n\n  \n\n  \n\n\nCode:\n--- Man pages picker\n---\n--- Pick from system manpages.\n---\n---@param local_opts __extra_pickers_local_opts\n---   Possible fields:\n---   - <scope> `(string)` - one of \"all\" (all man sections) or section string.\n---     Default: \"all\".\n---@param opts __extra_pickers_opts\nMiniExtra.pickers.man = function(local_opts, opts)\n  local pick = H.validate_pick(\"man\")\n  local_opts = vim.tbl_deep_extend(\"force\", { scope = \"all\" }, local_opts or {})\n\n  local load_man = function(item)\n    local keyword, cmd, section, desc = item:match(\"^((.-)%s*%(([^)]+)%).-)%s+%-%s+(.*)$\")\n    local width = vim.api.nvim_win_get_width(0)\n    cmd = vim.split(cmd, \",\")[1]\n    vim.cmd(string.format(\"silent re! 2>&- MANWIDTH=%s man %s %s\", width, section, cmd))\n    vim.cmd(\"Man!\")\n    vim.cmd(\"norm gg0\")\n  end\n\n  local choose = function(item, splitmode)\n    vim.cmd(splitmode or \"new\")\n    load_man(item)\n    local win = vim.api.nvim_get_current_win()\n    vim.schedule(function() vim.api.nvim_set_current_win(win) end)\n  end\n\n  local preview = function(buf_id, item)\n    vim.api.nvim_buf_call(buf_id, function() load_man(item) end)\n  end\n\n  local map_custom = function(char, splitmode)\n    local f = function()\n      choose(pick.get_picker_matches().current, splitmode)\n      return true\n    end\n    return { char = char, func = f }\n  end\n\n  local conf_maps = pick.config.mappings\n  local mappings = {\n    choose_in_split   = \"\", show_man_in_split   = map_custom(conf_maps.choose_in_split, \"new\"),\n    choose_in_vsplit  = \"\", show_man_in_vsplit  = map_custom(conf_maps.choose_in_vsplit, \"vnew\"),\n    choose_in_tabpage = \"\", show_man_in_tabpage = map_custom(conf_maps.choose_in_tabpage, \"tabnew\"),\n  }\n\n  local cmd = { \"man\", \"-kls\", local_opts.scope == \"all\" and \"\" or local_opts.scope, \"\" }\n  local source = { name = \"Manpages\", choose = choose, preview = preview }\n  opts = vim.tbl_deep_extend(\"force\", { source = source, mappings = mappings }, opts or {})\n  return pick.builtin.cli({ command = cmd }, opts)\nend\nIt is currently written as a builtin picker, which was made clear in #2208 that it won't be. If it is decided, that it would be accepted into mini.extra, I would rewrite it for that purpouse. Rewritten as mini.extra picker. That wasn't hard at all lol.",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Show off something you've made",
+        "emoji": ":raised_hands:",
+        "emojiHTML": "<div>🙌</div>",
+        "id": "DIC_kwDOFoksYM4CAgqP",
+        "isAnswerable": false,
+        "name": "Show and tell",
+        "slug": "show-and-tell",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-01-07T09:45:21Z",
+    "comment_count": 4,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I like the idea, thanks for sharing. Is there a reason not to use `MiniPick.builtin.cli` in this case?",
+            "bodyHTML": "<p dir=\"auto\">I like the idea, thanks for sharing. Is there a reason not to use <code class=\"notranslate\">MiniPick.builtin.cli</code> in this case?</p>",
+            "bodyText": "I like the idea, thanks for sharing. Is there a reason not to use MiniPick.builtin.cli in this case?",
+            "createdAt": "2026-01-04T20:04:24Z",
+            "createdViaEmail": false,
+            "databaseId": 15408100,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A6xvk",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-01-05T12:05:39Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-01-04T20:04:24Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Frankly I'm not well oriented in mini's APIs. I'll look into it tomorrow.",
+                    "bodyHTML": "<p dir=\"auto\">Frankly I'm not well oriented in mini's APIs. I'll look into it tomorrow.</p>",
+                    "bodyText": "Frankly I'm not well oriented in mini's APIs. I'll look into it tomorrow.",
+                    "createdAt": "2026-01-04T20:12:40Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15408156,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "id": "DC_kwDOFoksYM4A6xwc",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-01-04T20:12:53Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-04T20:12:40Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15408100,
+                        "id": "DC_kwDOFoksYM4A6xvk",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408100"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408156",
+                    "updatedAt": "2026-01-04T20:12:53Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408156"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thanks for the suggestion. Edited in the main post.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion. Edited in the main post.</p>",
+                    "bodyText": "Thanks for the suggestion. Edited in the main post.",
+                    "createdAt": "2026-01-04T23:29:46Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15409679,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6yIP",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-04T23:29:46Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15408100,
+                        "id": "DC_kwDOFoksYM4A6xvk",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408100"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15409679",
+                    "updatedAt": "2026-01-04T23:29:46Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15409679"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408100",
+            "updatedAt": "2026-01-05T12:05:39Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408100"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for sharing!\r\n\r\nMy first suggestion would be to indeed try to follow the advice from [this comment](https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408100) and see how much [`MiniPick.builtin.cli()`](https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick.builtin.cli) can simplify the code. It would certainly not need an `io.popen()` approach.",
+            "bodyHTML": "<p dir=\"auto\">Thanks for sharing!</p>\n<p dir=\"auto\">My first suggestion would be to indeed try to follow the advice from <a href=\"https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408100\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2209/hovercard?comment_id=15408100\">this comment</a> and see how much <a href=\"https://nvim-mini.org/mini.nvim/doc/mini-pick.html#minipick.builtin.cli\" rel=\"nofollow\"><code class=\"notranslate\">MiniPick.builtin.cli()</code></a> can simplify the code. It would certainly not need an <code class=\"notranslate\">io.popen()</code> approach.</p>",
+            "bodyText": "Thanks for sharing!\nMy first suggestion would be to indeed try to follow the advice from this comment and see how much MiniPick.builtin.cli() can simplify the code. It would certainly not need an io.popen() approach.",
+            "createdAt": "2026-01-04T20:37:55Z",
+            "createdViaEmail": false,
+            "databaseId": 15408549,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A6x2l",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-01-04T20:37:55Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Thanks for the suggestion. Edited in the main post.",
+                    "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion. Edited in the main post.</p>",
+                    "bodyText": "Thanks for the suggestion. Edited in the main post.",
+                    "createdAt": "2026-01-04T23:29:52Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15409681,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4A6yIR",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-04T23:29:52Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15408549,
+                        "id": "DC_kwDOFoksYM4A6x2l",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408549"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15409681",
+                    "updatedAt": "2026-01-04T23:29:52Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15409681"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408549",
+            "updatedAt": "2026-01-04T20:37:55Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15408549"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "authorAssociation": "CONTRIBUTOR",
+            "body": "I ran into so many problems with man pages while trying to rewrite your code using the `:Man` command directly:\r\n\r\n1. ~~Man pages are not restored between sessions, even though the window keeps its name.~~ Does work as expected from time to time.\r\n2. Opening a man page in a small window prints escape sequences and occasionally produces errors.\r\n3. Using `:hide Man {page} {name}` reuses an existing buffer with all the artifacts and the same wrapping (`vim.g.man_hardwrap = 1` by default), even if the buffer is empty (see p.1). Soft wrapping doesn’t really help because of p.2, and some pages look bad anyway (for example, `Tcl`).\r\n\r\nSo, running `man` as an external command makes sense to me.\r\n\r\n<img width=\"1911\" height=\"1022\" alt=\"image\" src=\"https://github.com/user-attachments/assets/5e379598-29e3-4c38-acbe-ba3cc01e3e8a\" />\r\n\r\nOther:\r\n- Man pages are very slow to open, especially large ones like `tmux` (which is relevant for the preview).\r\n- Personally, I would use `man -k`, since it is easier for me to understand.",
+            "bodyHTML": "<p dir=\"auto\">I ran into so many problems with man pages while trying to rewrite your code using the <code class=\"notranslate\">:Man</code> command directly:</p>\n<ol dir=\"auto\">\n<li><del>Man pages are not restored between sessions, even though the window keeps its name.</del> Does work as expected from time to time.</li>\n<li>Opening a man page in a small window prints escape sequences and occasionally produces errors.</li>\n<li>Using <code class=\"notranslate\">:hide Man {page} {name}</code> reuses an existing buffer with all the artifacts and the same wrapping (<code class=\"notranslate\">vim.g.man_hardwrap = 1</code> by default), even if the buffer is empty (see p.1). Soft wrapping doesn’t really help because of p.2, and some pages look bad anyway (for example, <code class=\"notranslate\">Tcl</code>).</li>\n</ol>\n<p dir=\"auto\">So, running <code class=\"notranslate\">man</code> as an external command makes sense to me.</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/531927852-5e379598-29e3-4c38-acbe-ba3cc01e3e8a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3OTUsIm5iZiI6MTc5MzU1MjQ5NSwicGF0aCI6Ii8xMTk4NDUwNDUvNTMxOTI3ODUyLTVlMzc5NTk4LTI5ZTMtNGMzOC1hY2JlLWJhM2NjMDFlM2U4YS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxMzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03ZjA3YmFiMmI3N2FiNjE5NjUzMjBlM2ZlYmJmMDE3ZDY5ZTQ3OGQyOTA3YWNmZjY4ZGYxYTA1OWM3YWEyMWQzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.EeOKpgfxJlLMCplzE_HJ79f2dv0XGtAB0fkwN-_hOcA\"><img width=\"1911\" height=\"1022\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/531927852-5e379598-29e3-4c38-acbe-ba3cc01e3e8a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3OTUsIm5iZiI6MTc5MzU1MjQ5NSwicGF0aCI6Ii8xMTk4NDUwNDUvNTMxOTI3ODUyLTVlMzc5NTk4LTI5ZTMtNGMzOC1hY2JlLWJhM2NjMDFlM2U4YS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxMzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT03ZjA3YmFiMmI3N2FiNjE5NjUzMjBlM2ZlYmJmMDE3ZDY5ZTQ3OGQyOTA3YWNmZjY4ZGYxYTA1OWM3YWEyMWQzJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.EeOKpgfxJlLMCplzE_HJ79f2dv0XGtAB0fkwN-_hOcA\" style=\"max-width: 100%; height: auto; max-height: 1022px;; aspect-ratio: 1911 / 1022; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<p dir=\"auto\">Other:</p>\n<ul dir=\"auto\">\n<li>Man pages are very slow to open, especially large ones like <code class=\"notranslate\">tmux</code> (which is relevant for the preview).</li>\n<li>Personally, I would use <code class=\"notranslate\">man -k</code>, since it is easier for me to understand.</li>\n</ul>",
+            "bodyText": "I ran into so many problems with man pages while trying to rewrite your code using the :Man command directly:\n\nMan pages are not restored between sessions, even though the window keeps its name. Does work as expected from time to time.\nOpening a man page in a small window prints escape sequences and occasionally produces errors.\nUsing :hide Man {page} {name} reuses an existing buffer with all the artifacts and the same wrapping (vim.g.man_hardwrap = 1 by default), even if the buffer is empty (see p.1). Soft wrapping doesn’t really help because of p.2, and some pages look bad anyway (for example, Tcl).\n\nSo, running man as an external command makes sense to me.\n\nOther:\n\nMan pages are very slow to open, especially large ones like tmux (which is relevant for the preview).\nPersonally, I would use man -k, since it is easier for me to understand.",
+            "createdAt": "2026-01-05T12:04:26Z",
+            "createdViaEmail": false,
+            "databaseId": 15413999,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                "login": "drowning-cat",
+                "resourcePath": "/drowning-cat",
+                "url": "https://github.com/drowning-cat"
+            },
+            "id": "DC_kwDOFoksYM4A6zLv",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2026-01-05T14:23:42Z",
+            "minimizedReason": null,
+            "publishedAt": "2026-01-05T12:04:26Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 4,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "There is also an additional problem, default conceal:\r\n\r\n<img width=\"472\" height=\"86\" alt=\"image\" src=\"https://github.com/user-attachments/assets/5c540a15-a90c-43a1-8244-ba02e831f40a\" />\r\n\r\nTo prevent this, use `man -l -k .` or `apropos -l -k .`",
+                    "bodyHTML": "<p dir=\"auto\">There is also an additional problem, default conceal:</p>\n<a target=\"_blank\" rel=\"noopener noreferrer\" href=\"https://private-user-images.githubusercontent.com/119845045/531961977-5c540a15-a90c-43a1-8244-ba02e831f40a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3OTUsIm5iZiI6MTc5MzU1MjQ5NSwicGF0aCI6Ii8xMTk4NDUwNDUvNTMxOTYxOTc3LTVjNTQwYTE1LWE5MGMtNDNhMS04MjQ0LWJhMDJlODMxZjQwYS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxMzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00OWRlZjc3ZGJjM2NhZTBjNTU4YzY4ODA0MjJjYjkxNWQ0YTA5ZWNkYTI2ZTUyMDljNGIwYzE2MjUyOTBhNjlkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.cRK-ocZqEI8t4MLrE2cDwmeKD0xf2EXqjhtAldZRrSg\"><img width=\"472\" height=\"86\" alt=\"image\" src=\"https://private-user-images.githubusercontent.com/119845045/531961977-5c540a15-a90c-43a1-8244-ba02e831f40a.png?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI3OTUsIm5iZiI6MTc5MzU1MjQ5NSwicGF0aCI6Ii8xMTk4NDUwNDUvNTMxOTYxOTc3LTVjNTQwYTE1LWE5MGMtNDNhMS04MjQ0LWJhMDJlODMxZjQwYS5wbmc_WC1BbXotQWxnb3JpdGhtPUFXUzQtSE1BQy1TSEEyNTYmWC1BbXotQ3JlZGVudGlhbD1BS0lBVkNPRFlMU0E1M1BRSzRaQSUyRjIwMjYxMTAxJTJGdXMtZWFzdC0xJTJGczMlMkZhd3M0X3JlcXVlc3QmWC1BbXotRGF0ZT0yMDI2MTEwMVQxNzAxMzVaJlgtQW16LUV4cGlyZXM9MzAwJlgtQW16LVNpZ25hdHVyZT00OWRlZjc3ZGJjM2NhZTBjNTU4YzY4ODA0MjJjYjkxNWQ0YTA5ZWNkYTI2ZTUyMDljNGIwYzE2MjUyOTBhNjlkJlgtQW16LVNpZ25lZEhlYWRlcnM9aG9zdCZyZXNwb25zZS1jb250ZW50LXR5cGU9aW1hZ2UlMkZwbmcifQ.cRK-ocZqEI8t4MLrE2cDwmeKD0xf2EXqjhtAldZRrSg\" style=\"max-width: 100%; height: auto; max-height: 86px;; aspect-ratio: 472 / 86; background-color: var(--bgColor-muted); border-radius: 6px\" class=\"js-gh-image-fallback\"></a>\n<p dir=\"auto\">To prevent this, use <code class=\"notranslate\">man -l -k .</code> or <code class=\"notranslate\">apropos -l -k .</code></p>",
+                    "bodyText": "There is also an additional problem, default conceal:\n\nTo prevent this, use man -l -k . or apropos -l -k .",
+                    "createdAt": "2026-01-05T12:50:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15414296,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A6zQY",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-01-05T13:26:36Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-05T12:50:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15413999,
+                        "id": "DC_kwDOFoksYM4A6zLv",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15413999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15414296",
+                    "updatedAt": "2026-01-05T13:26:36Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15414296"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "> So, running man as an external command makes sense to me.\r\n\r\nYep, I tried using the Man plugin directly too and came to the same conclusion.\r\n\r\n> slow\r\n\r\nEven extremely large manpages like gcc's open in less than half a second for me. I don't know what's causing the issue for you. Have you tried comparing just regular `man tmux` and the picker preview?\r\n\r\n> session\r\n\r\nYes, you're right that does appear to be broken. I'll try fiddling with `sessionopts`, see if that fixes it.\r\n\r\nI edited the function to use `man -k` and the `-l` option. Thanks for spotting that.",
+                    "bodyHTML": "<blockquote>\n<p dir=\"auto\">So, running man as an external command makes sense to me.</p>\n</blockquote>\n<p dir=\"auto\">Yep, I tried using the Man plugin directly too and came to the same conclusion.</p>\n<blockquote>\n<p dir=\"auto\">slow</p>\n</blockquote>\n<p dir=\"auto\">Even extremely large manpages like gcc's open in less than half a second for me. I don't know what's causing the issue for you. Have you tried comparing just regular <code class=\"notranslate\">man tmux</code> and the picker preview?</p>\n<blockquote>\n<p dir=\"auto\">session</p>\n</blockquote>\n<p dir=\"auto\">Yes, you're right that does appear to be broken. I'll try fiddling with <code class=\"notranslate\">sessionopts</code>, see if that fixes it.</p>\n<p dir=\"auto\">I edited the function to use <code class=\"notranslate\">man -k</code> and the <code class=\"notranslate\">-l</code> option. Thanks for spotting that.</p>",
+                    "bodyText": "So, running man as an external command makes sense to me.\n\nYep, I tried using the Man plugin directly too and came to the same conclusion.\n\nslow\n\nEven extremely large manpages like gcc's open in less than half a second for me. I don't know what's causing the issue for you. Have you tried comparing just regular man tmux and the picker preview?\n\nsession\n\nYes, you're right that does appear to be broken. I'll try fiddling with sessionopts, see if that fixes it.\nI edited the function to use man -k and the -l option. Thanks for spotting that.",
+                    "createdAt": "2026-01-05T15:39:09Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15415869,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "id": "DC_kwDOFoksYM4A6zo9",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-01-05T15:45:21Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-05T15:39:09Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15413999,
+                        "id": "DC_kwDOFoksYM4A6zLv",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15413999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15415869",
+                    "updatedAt": "2026-01-05T15:45:22Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15415869"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "The issue of Man buffers not being preserved on session load seems to be orthogonal to the picker. Maybe worth reporting to upstream.",
+                    "bodyHTML": "<p dir=\"auto\">The issue of Man buffers not being preserved on session load seems to be orthogonal to the picker. Maybe worth reporting to upstream.</p>",
+                    "bodyText": "The issue of Man buffers not being preserved on session load seems to be orthogonal to the picker. Maybe worth reporting to upstream.",
+                    "createdAt": "2026-01-05T18:48:58Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15417624,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+                        "login": "Dook97",
+                        "resourcePath": "/Dook97",
+                        "url": "https://github.com/Dook97"
+                    },
+                    "id": "DC_kwDOFoksYM4A60EY",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-01-05T19:13:05Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-05T18:48:58Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15413999,
+                        "id": "DC_kwDOFoksYM4A6zLv",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15413999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15417624",
+                    "updatedAt": "2026-01-05T19:13:06Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15417624"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "I agree that it could be a feature request, but I'm hesitant to create an issue myself for now without taking a closer look.",
+                    "bodyHTML": "<p dir=\"auto\">I agree that it could be a feature request, but I'm hesitant to create an issue myself for now without taking a closer look.</p>",
+                    "bodyText": "I agree that it could be a feature request, but I'm hesitant to create an issue myself for now without taking a closer look.",
+                    "createdAt": "2026-01-05T19:12:28Z",
+                    "createdViaEmail": false,
+                    "databaseId": 15417789,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A60G9",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-01-06T09:57:55Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-01-05T19:12:28Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 15413999,
+                        "id": "DC_kwDOFoksYM4A6zLv",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15413999"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15417789",
+                    "updatedAt": "2026-01-06T09:57:55Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15417789"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15413999",
+            "updatedAt": "2026-01-05T14:23:42Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15413999"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I'll close this in favor of #2212.",
+            "bodyHTML": "<p dir=\"auto\">I'll close this in favor of <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"3782955211\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/issues/2212\" data-hovercard-type=\"pull_request\" data-hovercard-url=\"/nvim-mini/mini.nvim/pull/2212/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/pull/2212\">#2212</a>.</p>",
+            "bodyText": "I'll close this in favor of #2212.",
+            "createdAt": "2026-01-07T09:45:21Z",
+            "createdViaEmail": false,
+            "databaseId": 15432658,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4A63vS",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-01-07T09:45:21Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15432658",
+            "updatedAt": "2026-01-07T09:45:21Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209#discussioncomment-15432658"
+        }
+    ],
+    "createdAt": "2026-01-04T14:39:45Z",
+    "createdViaEmail": false,
+    "databaseId": 9306970,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/30779172?u=2a9f8252724787511bb70eb557f2c46a092d0f15&v=4",
+        "login": "Dook97",
+        "resourcePath": "/Dook97",
+        "url": "https://github.com/Dook97"
+    },
+    "id": "D_kwDOFoksYM4AjgNa",
+    "includesCreatedEdit": true,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABbzoN9g",
+                "name": "mini.extra"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2026-01-05T21:47:13Z",
+    "locked": false,
+    "number": 2209,
+    "poll": null,
+    "publishedAt": "2026-01-04T14:39:45Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2209",
+    "stateReason": "RESOLVED",
+    "title": "[mini.extra] a manpages picker",
+    "updatedAt": "2026-01-07T09:45:21Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2209"
+}

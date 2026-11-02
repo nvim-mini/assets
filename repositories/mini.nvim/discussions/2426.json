@@ -1,0 +1,192 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/59413576?u=7fd761a4e2daa2f2873064c8ebb2ecbc6fa09774&v=4",
+        "login": "gx089",
+        "resourcePath": "/gx089",
+        "url": "https://github.com/gx089"
+    },
+    "authorAssociation": "NONE",
+    "body": "Hi,\r\n\r\nI'm using mini.pick also for switching quickly between the current and the last buffer.\r\nThere are nvim builtin methods for doing that `[b` or `]b` but my muscle memory has gotten used to `<Space><Space><CR>`, because it's easier to type for me and I don't like and use the tablist. \r\n\r\nTo archive that, the previous buffer must be the first item in the list of the opened buffers.\r\nI think it could be an improvement in mini.pick core. Last buffer first item in the list, current buffer last item in the list. (second is less important to me)\r\n\r\nIf you like this idea, here is how I do this the quick 'n dirty way.\r\nMaybe filter out the quickfix list... \r\n\r\n```lua\r\nvim.keymap.set({ 'n' }, \"<leader><leader>\", function()\r\n    local current_buffer\r\n    local last_buffer\r\n    local items = {}\r\n    for _, b in ipairs(vim.split(vim.api.nvim_exec('buffers', true), '\\n')) do\r\n        local buf_id, buf_type, buf_name = b:match('^%s*%d+'), b:match('^%s*%d+%s+([^%s]+)'), b:match('\"(.*)\"')\r\n\r\n        if buf_name ~= \"[Quickfix List]\" then\r\n            local item = { text = buf_name, bufnr = tonumber(buf_id) }\r\n            if buf_type:match(\"^%%\")    then current_buffer = item     end\r\n            if buf_type:match(\"^%#\")    then last_buffer = item        end\r\n            if buf_type:match(\"^[a-z]\") then table.insert(items, item) end\r\n        end\r\n    end\r\n    if last_buffer ~= nil    then table.insert(items, 1, last_buffer) end\r\n    if current_buffer ~= nil then table.insert(items, current_buffer) end\r\n    MiniPick.start({ source = { items = items, name = \"Buffers\" } })\r\nend)\r\n```",
+    "bodyHTML": "<p dir=\"auto\">Hi,</p>\n<p dir=\"auto\">I'm using mini.pick also for switching quickly between the current and the last buffer.<br>\nThere are nvim builtin methods for doing that <code class=\"notranslate\">[b</code> or <code class=\"notranslate\">]b</code> but my muscle memory has gotten used to <code class=\"notranslate\">&lt;Space&gt;&lt;Space&gt;&lt;CR&gt;</code>, because it's easier to type for me and I don't like and use the tablist.</p>\n<p dir=\"auto\">To archive that, the previous buffer must be the first item in the list of the opened buffers.<br>\nI think it could be an improvement in mini.pick core. Last buffer first item in the list, current buffer last item in the list. (second is less important to me)</p>\n<p dir=\"auto\">If you like this idea, here is how I do this the quick 'n dirty way.<br>\nMaybe filter out the quickfix list...</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.keymap.set({ 'n' }, &quot;&lt;leader&gt;&lt;leader&gt;&quot;, function()\n    local current_buffer\n    local last_buffer\n    local items = {}\n    for _, b in ipairs(vim.split(vim.api.nvim_exec('buffers', true), '\\n')) do\n        local buf_id, buf_type, buf_name = b:match('^%s*%d+'), b:match('^%s*%d+%s+([^%s]+)'), b:match('&quot;(.*)&quot;')\n\n        if buf_name ~= &quot;[Quickfix List]&quot; then\n            local item = { text = buf_name, bufnr = tonumber(buf_id) }\n            if buf_type:match(&quot;^%%&quot;)    then current_buffer = item     end\n            if buf_type:match(&quot;^%#&quot;)    then last_buffer = item        end\n            if buf_type:match(&quot;^[a-z]&quot;) then table.insert(items, item) end\n        end\n    end\n    if last_buffer ~= nil    then table.insert(items, 1, last_buffer) end\n    if current_buffer ~= nil then table.insert(items, current_buffer) end\n    MiniPick.start({ source = { items = items, name = &quot;Buffers&quot; } })\nend)\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>({ <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">' </span></span>}, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;leader&gt;&lt;leader&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">current_buffer</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">last_buffer</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">for</span> <span class=\"pl-smi\">_</span>, <span class=\"pl-smi\">b</span> <span class=\"pl-k\">in</span> <span class=\"pl-c1\">ipairs</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">split</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_exec</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>buffers<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">true</span>), <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">'</span></span>)) <span class=\"pl-k\">do</span>\n        <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf_id</span>, <span class=\"pl-smi\">buf_type</span>, <span class=\"pl-smi\">buf_name</span> <span class=\"pl-k\">=</span> <span class=\"pl-en\">b</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^%s*%d+<span class=\"pl-pds\">'</span></span>), <span class=\"pl-en\">b</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>^%s*%d+%s+([^%s]+)<span class=\"pl-pds\">'</span></span>), <span class=\"pl-en\">b</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>\"(.*)\"<span class=\"pl-pds\">'</span></span>)\n\n        <span class=\"pl-k\">if</span> <span class=\"pl-smi\">buf_name</span> <span class=\"pl-k\">~=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>[Quickfix List]<span class=\"pl-pds\">\" </span></span><span class=\"pl-k\">then</span>\n            <span class=\"pl-k\">local</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">text</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf_name</span>, <span class=\"pl-smi\">bufnr</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">tonumber</span>(<span class=\"pl-smi\">buf_id</span>) }\n            <span class=\"pl-k\">if</span> <span class=\"pl-en\">buf_type</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%%<span class=\"pl-pds\">\"</span></span>)    <span class=\"pl-k\">then</span> <span class=\"pl-smi\">current_buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>     <span class=\"pl-k\">end</span>\n            <span class=\"pl-k\">if</span> <span class=\"pl-en\">buf_type</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^%#<span class=\"pl-pds\">\"</span></span>)    <span class=\"pl-k\">then</span> <span class=\"pl-smi\">last_buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">item</span>        <span class=\"pl-k\">end</span>\n            <span class=\"pl-k\">if</span> <span class=\"pl-en\">buf_type</span>:<span class=\"pl-c1\">match</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>^[a-z]<span class=\"pl-pds\">\"</span></span>) <span class=\"pl-k\">then</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">item</span>) <span class=\"pl-k\">end</span>\n        <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">last_buffer</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span>    <span class=\"pl-k\">then</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">last_buffer</span>) <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">current_buffer</span> <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">current_buffer</span>) <span class=\"pl-k\">end</span>\n    <span class=\"pl-smi\">MiniPick</span>.<span class=\"pl-c1\">start</span>({ <span class=\"pl-smi\">source</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">items</span>, <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Buffers<span class=\"pl-pds\">\" </span></span>} })\n<span class=\"pl-k\">end</span>)</pre></div>",
+    "bodyText": "Hi,\nI'm using mini.pick also for switching quickly between the current and the last buffer.\nThere are nvim builtin methods for doing that [b or ]b but my muscle memory has gotten used to <Space><Space><CR>, because it's easier to type for me and I don't like and use the tablist.\nTo archive that, the previous buffer must be the first item in the list of the opened buffers.\nI think it could be an improvement in mini.pick core. Last buffer first item in the list, current buffer last item in the list. (second is less important to me)\nIf you like this idea, here is how I do this the quick 'n dirty way.\nMaybe filter out the quickfix list...\nvim.keymap.set({ 'n' }, \"<leader><leader>\", function()\n    local current_buffer\n    local last_buffer\n    local items = {}\n    for _, b in ipairs(vim.split(vim.api.nvim_exec('buffers', true), '\\n')) do\n        local buf_id, buf_type, buf_name = b:match('^%s*%d+'), b:match('^%s*%d+%s+([^%s]+)'), b:match('\"(.*)\"')\n\n        if buf_name ~= \"[Quickfix List]\" then\n            local item = { text = buf_name, bufnr = tonumber(buf_id) }\n            if buf_type:match(\"^%%\")    then current_buffer = item     end\n            if buf_type:match(\"^%#\")    then last_buffer = item        end\n            if buf_type:match(\"^[a-z]\") then table.insert(items, item) end\n        end\n    end\n    if last_buffer ~= nil    then table.insert(items, 1, last_buffer) end\n    if current_buffer ~= nil then table.insert(items, current_buffer) end\n    MiniPick.start({ source = { items = items, name = \"Buffers\" } })\nend)",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2026-05-21T09:03:58Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "Thanks for the suggestion!\r\n\r\n> I'm using mini.pick also for switching quickly between the current and the last buffer.\r\n\r\nThe Neovim already has the notion of the \"last buffer\" which is called \"alternate buffer/file\" (`:h alternate-file`). It can be navigated to with `:b#` which is very handy inside a custom mapping. I [prefer `<Leader>ba`](https://github.com/nvim-mini/MiniMax/blob/96250d672b67b296f11f7bbaf4932bddd0b3a551/configs/nvim-0.12/plugin/20_keymaps.lua#L88) and indeed use it all the time.\r\n\r\nI don't think alternating the order of buffers in a picker aligns well with how the buffer list is treated everywhere else: the order is always by buffer identifier (as in `:ls` and as in 'mini.tabline').",
+            "bodyHTML": "<p dir=\"auto\">Thanks for the suggestion!</p>\n<blockquote>\n<p dir=\"auto\">I'm using mini.pick also for switching quickly between the current and the last buffer.</p>\n</blockquote>\n<p dir=\"auto\">The Neovim already has the notion of the \"last buffer\" which is called \"alternate buffer/file\" (<code class=\"notranslate\">:h alternate-file</code>). It can be navigated to with <code class=\"notranslate\">:b#</code> which is very handy inside a custom mapping. I <a href=\"https://github.com/nvim-mini/MiniMax/blob/96250d672b67b296f11f7bbaf4932bddd0b3a551/configs/nvim-0.12/plugin/20_keymaps.lua#L88\">prefer <code class=\"notranslate\">&lt;Leader&gt;ba</code></a> and indeed use it all the time.</p>\n<p dir=\"auto\">I don't think alternating the order of buffers in a picker aligns well with how the buffer list is treated everywhere else: the order is always by buffer identifier (as in <code class=\"notranslate\">:ls</code> and as in 'mini.tabline').</p>",
+            "bodyText": "Thanks for the suggestion!\n\nI'm using mini.pick also for switching quickly between the current and the last buffer.\n\nThe Neovim already has the notion of the \"last buffer\" which is called \"alternate buffer/file\" (:h alternate-file). It can be navigated to with :b# which is very handy inside a custom mapping. I prefer <Leader>ba and indeed use it all the time.\nI don't think alternating the order of buffers in a picker aligns well with how the buffer list is treated everywhere else: the order is always by buffer identifier (as in :ls and as in 'mini.tabline').",
+            "createdAt": "2026-05-21T09:03:58Z",
+            "createdViaEmail": false,
+            "databaseId": 17002008,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BA24Y",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-05-21T09:03:58Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2426#discussioncomment-17002008",
+            "updatedAt": "2026-05-21T09:03:58Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2426#discussioncomment-17002008"
+        }
+    ],
+    "createdAt": "2026-05-21T08:28:08Z",
+    "createdViaEmail": false,
+    "databaseId": 10105232,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AmjGQ",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABamfqWQ",
+                "name": "mini.pick"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 2426,
+    "poll": null,
+    "publishedAt": "2026-05-21T08:28:08Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/2426",
+    "stateReason": "RESOLVED",
+    "title": "[mini.pick]  buffers, set the previous buffer as first item in the list",
+    "updatedAt": "2026-05-21T09:03:58Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2426"
+}

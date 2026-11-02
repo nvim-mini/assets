@@ -1,0 +1,287 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58996617?u=dcf15a26d2d5ceac30e29b96369951affa4d883a&v=4",
+        "login": "hownioni",
+        "resourcePath": "/hownioni",
+        "url": "https://github.com/hownioni"
+    },
+    "authorAssociation": "NONE",
+    "body": "### Contributing guidelines\r\n\r\n- [X] I have read [CODE_OF_CONDUCT.md](https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md)\r\n\r\n### Module(s)\r\n\r\nmini.snippets\r\n\r\n### Question\r\n\r\nI've been using mini.snippets for a while and I love it. The only issue I'm having is with variable transformations.\r\nI've read the docs so I know it's not easy to implement them.\r\nMy issue is that whenever I type the \"begin\" snippet from latex it expands like so\r\n```lua\r\n\\begin{env}\r\n    env\r\n\\end{env}\r\n```\r\nIt's supposed to make a variable transform of the \"env\" in the middle to \"\\item\" if the word is itemize or enumerate, the problem is it doesn't do anything so I end up with some text that I have to delete before I can write the actual content of the document.\r\nWhat alternatives or solutions could there be for this? I tried going back to luasnip to test it out but mini.snippets really spoiled me hahah\r\n\r\nEdit: I didn't know how to format the latex codeblock!",
+    "bodyHTML": "<h3 dir=\"auto\">Contributing guidelines</h3>\n<ul class=\"contains-task-list\">\n<li class=\"task-list-item\"><input type=\"checkbox\" id=\"\" disabled=\"\" class=\"task-list-item-checkbox\" aria-label=\"Completed task\" checked=\"\"> I have read <a href=\"https://github.com/echasnovski/mini.nvim/blob/main/CODE_OF_CONDUCT.md\">CODE_OF_CONDUCT.md</a></li>\n</ul>\n<h3 dir=\"auto\">Module(s)</h3>\n<p dir=\"auto\">mini.snippets</p>\n<h3 dir=\"auto\">Question</h3>\n<p dir=\"auto\">I've been using mini.snippets for a while and I love it. The only issue I'm having is with variable transformations.<br>\nI've read the docs so I know it's not easy to implement them.<br>\nMy issue is that whenever I type the \"begin\" snippet from latex it expands like so</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\\begin{env}\n    env\n\\end{env}\"><pre class=\"notranslate\">\\<span class=\"pl-c1\">begin</span>{<span class=\"pl-smi\">env</span>}\n    <span class=\"pl-smi\">env</span>\n\\<span class=\"pl-k\">end</span>{<span class=\"pl-smi\">env</span>}</pre></div>\n<p dir=\"auto\">It's supposed to make a variable transform of the \"env\" in the middle to \"\\item\" if the word is itemize or enumerate, the problem is it doesn't do anything so I end up with some text that I have to delete before I can write the actual content of the document.<br>\nWhat alternatives or solutions could there be for this? I tried going back to luasnip to test it out but mini.snippets really spoiled me hahah</p>\n<p dir=\"auto\">Edit: I didn't know how to format the latex codeblock!</p>",
+    "bodyText": "Contributing guidelines\n\n I have read CODE_OF_CONDUCT.md\n\nModule(s)\nmini.snippets\nQuestion\nI've been using mini.snippets for a while and I love it. The only issue I'm having is with variable transformations.\nI've read the docs so I know it's not easy to implement them.\nMy issue is that whenever I type the \"begin\" snippet from latex it expands like so\n\\begin{env}\n    env\n\\end{env}\nIt's supposed to make a variable transform of the \"env\" in the middle to \"\\item\" if the word is itemize or enumerate, the problem is it doesn't do anything so I end up with some text that I have to delete before I can write the actual content of the document.\nWhat alternatives or solutions could there be for this? I tried going back to luasnip to test it out but mini.snippets really spoiled me hahah\nEdit: I didn't know how to format the latex codeblock!",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Ask the community for help",
+        "emoji": ":pray:",
+        "emojiHTML": "<div>🙏</div>",
+        "id": "DIC_kwDOFoksYM4CAgqN",
+        "isAnswerable": true,
+        "name": "Q&A",
+        "slug": "q-a",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2025-06-11T19:44:26Z",
+    "comment_count": 1,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "It looks like this comes from [this snippet](https://github.com/rafamadriz/friendly-snippets/blob/572f5660cf05f8cd8834e096d7b4c921ba18e175/snippets/latex/latex-snippets.json#L269-L277). It indeed uses tabstop transformations (which is not even in LSP specification), which are not (hopefully yet) supported in 'mini.snippets'.\r\n\r\nSo couple of issues to address here:\r\n\r\n- It should expand as *literal* `$1:env`, like in the code example. For me it expands initially like this (with all `env` highlighted as current tabstop), which is expected:\r\n\r\n    ```lua\r\n    \\begin{env}\r\n      env\r\n    \\end{env}\r\n    ```\r\n\r\n- The best solution here I'd say is to override this snippet with your own. Something like this:\r\n    - Create a file '~/.config/nvim/after/snippets/latex.json'. This file should be recognized if you have [setup from the help file](https://github.com/echasnovski/mini.nvim/blob/35e1767f4cd7dde51256eabae7349a5283a43cba/doc/mini-snippets.txt#L826-L831) and will be used to override relevant snippets from 'friendly-snippets' (if they have the same `prefix`) because it is part of 'after/snippets' directory (which should be processed last).\r\n    - Populate it with the variant of the snippet that you find best suits the workflow. For example, like this:\r\n    \r\n        ```json\r\n        {\r\n          \"\\\\begin{}…\\\\end{}\": {\r\n            \"prefix\": \"begin\",\r\n            \"body\": [\r\n              \"\\\\\\\\begin{${1:env}}\",\r\n              \"\\t${2:$1}$0\",\r\n              \"\\\\\\\\end{${1:env}}\"\r\n            ],\r\n            \"description\": \"Begin - End\"\r\n          }\r\n        }\r\n        ```\r\n\r\n        This will expand as before, with all three places showing `env` and synchronized when typing inside `\\begin{}`. But the inner one is a separate tabstop that only has `$1` tabstop as default, so when navigating through tabstops you can choose to adjust it or not.\r\n\r\n        Instead of `\"\\t${2:$1}$0\"` it can also be `\"\\t${0:$1}\"`. This will stop snippet session after typing inside inner part. This approach might be more suitable if all you want is `\\begin{} ... \\end{}` followed by typing environment and then considerable amount of typing inside.\r\n\r\nDoes this answer your question?",
+            "bodyHTML": "<p dir=\"auto\">It looks like this comes from <a href=\"https://github.com/rafamadriz/friendly-snippets/blob/572f5660cf05f8cd8834e096d7b4c921ba18e175/snippets/latex/latex-snippets.json#L269-L277\">this snippet</a>. It indeed uses tabstop transformations (which is not even in LSP specification), which are not (hopefully yet) supported in 'mini.snippets'.</p>\n<p dir=\"auto\">So couple of issues to address here:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">It should expand as <em>literal</em> <code class=\"notranslate\">$1:env</code>, like in the code example. For me it expands initially like this (with all <code class=\"notranslate\">env</code> highlighted as current tabstop), which is expected:</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"\\begin{env}\n  env\n\\end{env}\"><pre class=\"notranslate\">\\<span class=\"pl-c1\">begin</span>{<span class=\"pl-smi\">env</span>}\n  <span class=\"pl-smi\">env</span>\n\\<span class=\"pl-k\">end</span>{<span class=\"pl-smi\">env</span>}</pre></div>\n</li>\n<li>\n<p dir=\"auto\">The best solution here I'd say is to override this snippet with your own. Something like this:</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">Create a file '~/.config/nvim/after/snippets/latex.json'. This file should be recognized if you have <a href=\"https://github.com/echasnovski/mini.nvim/blob/35e1767f4cd7dde51256eabae7349a5283a43cba/doc/mini-snippets.txt#L826-L831\">setup from the help file</a> and will be used to override relevant snippets from 'friendly-snippets' (if they have the same <code class=\"notranslate\">prefix</code>) because it is part of 'after/snippets' directory (which should be processed last).</p>\n</li>\n<li>\n<p dir=\"auto\">Populate it with the variant of the snippet that you find best suits the workflow. For example, like this:</p>\n<div class=\"highlight highlight-source-json notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"{\n  &quot;\\\\begin{}…\\\\end{}&quot;: {\n    &quot;prefix&quot;: &quot;begin&quot;,\n    &quot;body&quot;: [\n      &quot;\\\\\\\\begin{${1:env}}&quot;,\n      &quot;\\t${2:$1}$0&quot;,\n      &quot;\\\\\\\\end{${1:env}}&quot;\n    ],\n    &quot;description&quot;: &quot;Begin - End&quot;\n  }\n}\"><pre class=\"notranslate\">{\n  <span class=\"pl-ent\">\"<span class=\"pl-cce\">\\\\</span>begin{}…<span class=\"pl-cce\">\\\\</span>end{}\"</span>: {\n    <span class=\"pl-ent\">\"prefix\"</span>: <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>begin<span class=\"pl-pds\">\"</span></span>,\n    <span class=\"pl-ent\">\"body\"</span>: [\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\\\\\\</span>begin{${1:env}}<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\t</span>${2:$1}$0<span class=\"pl-pds\">\"</span></span>,\n      <span class=\"pl-s\"><span class=\"pl-pds\">\"</span><span class=\"pl-cce\">\\\\\\\\</span>end{${1:env}}<span class=\"pl-pds\">\"</span></span>\n    ],\n    <span class=\"pl-ent\">\"description\"</span>: <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Begin - End<span class=\"pl-pds\">\"</span></span>\n  }\n}</pre></div>\n<p dir=\"auto\">This will expand as before, with all three places showing <code class=\"notranslate\">env</code> and synchronized when typing inside <code class=\"notranslate\">\\begin{}</code>. But the inner one is a separate tabstop that only has <code class=\"notranslate\">$1</code> tabstop as default, so when navigating through tabstops you can choose to adjust it or not.</p>\n<p dir=\"auto\">Instead of <code class=\"notranslate\">\"\\t${2:$1}$0\"</code> it can also be <code class=\"notranslate\">\"\\t${0:$1}\"</code>. This will stop snippet session after typing inside inner part. This approach might be more suitable if all you want is <code class=\"notranslate\">\\begin{} ... \\end{}</code> followed by typing environment and then considerable amount of typing inside.</p>\n</li>\n</ul>\n</li>\n</ul>\n<p dir=\"auto\">Does this answer your question?</p>",
+            "bodyText": "It looks like this comes from this snippet. It indeed uses tabstop transformations (which is not even in LSP specification), which are not (hopefully yet) supported in 'mini.snippets'.\nSo couple of issues to address here:\n\n\nIt should expand as literal $1:env, like in the code example. For me it expands initially like this (with all env highlighted as current tabstop), which is expected:\n\\begin{env}\n  env\n\\end{env}\n\n\nThe best solution here I'd say is to override this snippet with your own. Something like this:\n\n\nCreate a file '~/.config/nvim/after/snippets/latex.json'. This file should be recognized if you have setup from the help file and will be used to override relevant snippets from 'friendly-snippets' (if they have the same prefix) because it is part of 'after/snippets' directory (which should be processed last).\n\n\nPopulate it with the variant of the snippet that you find best suits the workflow. For example, like this:\n{\n  \"\\\\begin{}…\\\\end{}\": {\n    \"prefix\": \"begin\",\n    \"body\": [\n      \"\\\\\\\\begin{${1:env}}\",\n      \"\\t${2:$1}$0\",\n      \"\\\\\\\\end{${1:env}}\"\n    ],\n    \"description\": \"Begin - End\"\n  }\n}\nThis will expand as before, with all three places showing env and synchronized when typing inside \\begin{}. But the inner one is a separate tabstop that only has $1 tabstop as default, so when navigating through tabstops you can choose to adjust it or not.\nInstead of \"\\t${2:$1}$0\" it can also be \"\\t${0:$1}\". This will stop snippet session after typing inside inner part. This approach might be more suitable if all you want is \\begin{} ... \\end{} followed by typing environment and then considerable amount of typing inside.\n\n\n\n\nDoes this answer your question?",
+            "createdAt": "2025-06-11T08:18:25Z",
+            "createdViaEmail": false,
+            "databaseId": 13430267,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4AzO37",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-06-11T08:18:25Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/58996617?u=dcf15a26d2d5ceac30e29b96369951affa4d883a&v=4",
+                        "login": "hownioni",
+                        "resourcePath": "/hownioni",
+                        "url": "https://github.com/hownioni"
+                    },
+                    "authorAssociation": "NONE",
+                    "body": "Yes! Thank you, I didn't know I could just override the snippet! Thanks a lot and I hope the development is going well :D",
+                    "bodyHTML": "<p dir=\"auto\">Yes! Thank you, I didn't know I could just override the snippet! Thanks a lot and I hope the development is going well :D</p>",
+                    "bodyText": "Yes! Thank you, I didn't know I could just override the snippet! Thanks a lot and I hope the development is going well :D",
+                    "createdAt": "2025-06-11T19:41:40Z",
+                    "createdViaEmail": false,
+                    "databaseId": 13437586,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AzQqS",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-06-11T19:41:40Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 13430267,
+                        "id": "DC_kwDOFoksYM4AzO37",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/1851#discussioncomment-13430267"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/1851#discussioncomment-13437586",
+                    "updatedAt": "2025-06-11T19:41:41Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1851#discussioncomment-13437586"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/1851#discussioncomment-13430267",
+            "updatedAt": "2025-06-11T08:18:26Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/1851#discussioncomment-13430267"
+        }
+    ],
+    "createdAt": "2025-06-11T04:04:39Z",
+    "createdViaEmail": false,
+    "databaseId": 8439792,
+    "editor": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/58996617?u=dcf15a26d2d5ceac30e29b96369951affa4d883a&v=4",
+        "login": "hownioni",
+        "resourcePath": "/hownioni",
+        "url": "https://github.com/hownioni"
+    },
+    "id": "D_kwDOFoksYM4AgMfw",
+    "includesCreatedEdit": true,
+    "isAnswered": false,
+    "labels": {
+        "nodes": [
+            {
+                "color": "d876e3",
+                "description": "Further information is requested",
+                "id": "MDU6TGFiZWwzMDk2OTY5OTg0",
+                "name": "question"
+            },
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAAB2Ax8cA",
+                "name": "mini.snippets"
+            }
+        ],
+        "totalCount": 2
+    },
+    "lastEditedAt": "2025-06-11T19:40:25Z",
+    "locked": false,
+    "number": 1851,
+    "poll": null,
+    "publishedAt": "2025-06-11T04:04:39Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/1851",
+    "stateReason": "RESOLVED",
+    "title": "Issue with latex snippets from friendly-snippets",
+    "updatedAt": "2025-06-12T08:54:10Z",
+    "upvoteCount": 1,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/1851"
+}

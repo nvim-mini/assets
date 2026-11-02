@@ -1,0 +1,615 @@
+{
+    "activeLockReason": null,
+    "answer": null,
+    "answerChosenAt": null,
+    "answerChosenBy": null,
+    "author": {
+        "avatarUrl": "https://avatars.githubusercontent.com/u/1178459?u=91f4821165868ba6af3842259714621eadb79c0f&v=4",
+        "login": "carlesba",
+        "resourcePath": "/carlesba",
+        "url": "https://github.com/carlesba"
+    },
+    "authorAssociation": "NONE",
+    "body": "Would you consider adding a command to toggle preview panel?\r\n\r\n",
+    "bodyHTML": "<p dir=\"auto\">Would you consider adding a command to toggle preview panel?</p>",
+    "bodyText": "Would you consider adding a command to toggle preview panel?",
+    "category": {
+        "createdAt": "2022-01-02T14:24:09Z",
+        "description": "Share ideas for new features",
+        "emoji": ":bulb:",
+        "emojiHTML": "<div>💡</div>",
+        "id": "DIC_kwDOFoksYM4CAgqO",
+        "isAnswerable": false,
+        "name": "Ideas",
+        "slug": "ideas",
+        "updatedAt": "2022-01-02T14:24:09Z"
+    },
+    "closed": true,
+    "closedAt": "2024-06-02T18:34:08Z",
+    "comment_count": 3,
+    "comment_data": [
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "This is already possible with `MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview` command. It will take effect on the next refresh (usually when moving up/down/in/out).",
+            "bodyHTML": "<p dir=\"auto\">This is already possible with <code class=\"notranslate\">MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview</code> command. It will take effect on the next refresh (usually when moving up/down/in/out).</p>",
+            "bodyText": "This is already possible with MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview command. It will take effect on the next refresh (usually when moving up/down/in/out).",
+            "createdAt": "2024-06-02T18:34:08Z",
+            "createdViaEmail": false,
+            "databaseId": 9640297,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Akxlp",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2024-06-02T18:34:08Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 0,
+            "reply_data": [],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/936#discussioncomment-9640297",
+            "updatedAt": "2024-06-02T18:34:08Z",
+            "upvoteCount": 2,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-9640297"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/77717132?v=4",
+                "login": "mau-mauricelim",
+                "resourcePath": "/mau-mauricelim",
+                "url": "https://github.com/mau-mauricelim"
+            },
+            "authorAssociation": "NONE",
+            "body": "@echasnovski I did notice that it takes effect only on the next refresh as well.\r\n@carlesba this is what I have currently that might help you! Not sure if that is the \"right\" way as I am still trying to learn lua but it works for my use-case.\r\n\r\nI tried ``` vim.api.nvim_feedkeys('mzjkkj`z', 'n', false)``` but it did not work so well.\r\n\r\n```\r\n-- Create mapping to toggle preview\r\nlocal show_preview = MiniFiles.config.windows.preview\r\nlocal vert_move = function(is_top) return is_top and 'j' or 'k' end\r\nlocal toggle_preview = function()\r\n  show_preview = not show_preview\r\n  MiniFiles.refresh({ windows = { preview = show_preview } })\r\n  -- HACK: to force window to refresh, does not work with single dir/file items\r\n  local is_top = vim.api.nvim_win_get_cursor(0)[1] == 1\r\n  local first_move = vert_move(is_top)\r\n  local last_move = vert_move(not is_top)\r\n  vim.api.nvim_feedkeys(first_move, 'n', false)\r\n  vim.defer_fn(function() vim.api.nvim_feedkeys(last_move, 'n', false) end, 0)\r\nend\r\nvim.api.nvim_create_autocmd('FileType', {\r\n  pattern = { 'minifiles' },\r\n  callback = function()\r\n    vim.keymap.set('n', '<C-p>', toggle_preview, { buffer = true })\r\n  end,\r\n})\r\n\r\n```",
+            "bodyHTML": "<p dir=\"auto\"><a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/echasnovski/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/echasnovski\">@echasnovski</a> I did notice that it takes effect only on the next refresh as well.<br>\n<a class=\"user-mention notranslate\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/carlesba/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" href=\"https://github.com/carlesba\">@carlesba</a> this is what I have currently that might help you! Not sure if that is the \"right\" way as I am still trying to learn lua but it works for my use-case.</p>\n<p dir=\"auto\">I tried <code class=\"notranslate\"> vim.api.nvim_feedkeys('mzjkkj`z', 'n', false)</code> but it did not work so well.</p>\n<div class=\"snippet-clipboard-content notranslate position-relative overflow-auto\" data-snippet-clipboard-copy-content=\"-- Create mapping to toggle preview\nlocal show_preview = MiniFiles.config.windows.preview\nlocal vert_move = function(is_top) return is_top and 'j' or 'k' end\nlocal toggle_preview = function()\n  show_preview = not show_preview\n  MiniFiles.refresh({ windows = { preview = show_preview } })\n  -- HACK: to force window to refresh, does not work with single dir/file items\n  local is_top = vim.api.nvim_win_get_cursor(0)[1] == 1\n  local first_move = vert_move(is_top)\n  local last_move = vert_move(not is_top)\n  vim.api.nvim_feedkeys(first_move, 'n', false)\n  vim.defer_fn(function() vim.api.nvim_feedkeys(last_move, 'n', false) end, 0)\nend\nvim.api.nvim_create_autocmd('FileType', {\n  pattern = { 'minifiles' },\n  callback = function()\n    vim.keymap.set('n', '&lt;C-p&gt;', toggle_preview, { buffer = true })\n  end,\n})\n\"><pre class=\"notranslate\"><code class=\"notranslate\">-- Create mapping to toggle preview\nlocal show_preview = MiniFiles.config.windows.preview\nlocal vert_move = function(is_top) return is_top and 'j' or 'k' end\nlocal toggle_preview = function()\n  show_preview = not show_preview\n  MiniFiles.refresh({ windows = { preview = show_preview } })\n  -- HACK: to force window to refresh, does not work with single dir/file items\n  local is_top = vim.api.nvim_win_get_cursor(0)[1] == 1\n  local first_move = vert_move(is_top)\n  local last_move = vert_move(not is_top)\n  vim.api.nvim_feedkeys(first_move, 'n', false)\n  vim.defer_fn(function() vim.api.nvim_feedkeys(last_move, 'n', false) end, 0)\nend\nvim.api.nvim_create_autocmd('FileType', {\n  pattern = { 'minifiles' },\n  callback = function()\n    vim.keymap.set('n', '&lt;C-p&gt;', toggle_preview, { buffer = true })\n  end,\n})\n\n</code></pre></div>",
+            "bodyText": "@echasnovski I did notice that it takes effect only on the next refresh as well.\n@carlesba this is what I have currently that might help you! Not sure if that is the \"right\" way as I am still trying to learn lua but it works for my use-case.\nI tried  vim.api.nvim_feedkeys('mzjkkj`z', 'n', false) but it did not work so well.\n-- Create mapping to toggle preview\nlocal show_preview = MiniFiles.config.windows.preview\nlocal vert_move = function(is_top) return is_top and 'j' or 'k' end\nlocal toggle_preview = function()\n  show_preview = not show_preview\n  MiniFiles.refresh({ windows = { preview = show_preview } })\n  -- HACK: to force window to refresh, does not work with single dir/file items\n  local is_top = vim.api.nvim_win_get_cursor(0)[1] == 1\n  local first_move = vert_move(is_top)\n  local last_move = vert_move(not is_top)\n  vim.api.nvim_feedkeys(first_move, 'n', false)\n  vim.defer_fn(function() vim.api.nvim_feedkeys(last_move, 'n', false) end, 0)\nend\nvim.api.nvim_create_autocmd('FileType', {\n  pattern = { 'minifiles' },\n  callback = function()\n    vim.keymap.set('n', '<C-p>', toggle_preview, { buffer = true })\n  end,\n})",
+            "createdAt": "2024-11-07T02:20:54Z",
+            "createdViaEmail": false,
+            "databaseId": 11172584,
+            "deletedAt": null,
+            "editor": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/77717132?v=4",
+                "login": "mau-mauricelim",
+                "resourcePath": "/mau-mauricelim",
+                "url": "https://github.com/mau-mauricelim"
+            },
+            "id": "DC_kwDOFoksYM4Aqnro",
+            "includesCreatedEdit": true,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": "2024-11-07T02:22:37Z",
+            "minimizedReason": null,
+            "publishedAt": "2024-11-07T02:20:54Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "I'd suggest to not have all that, as it might introduce some unexpected behavior. My suggestion would be to just toggle with the `MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview` and then manually move cursor. I don't think it should be a frequent occasion to toggle preview, so this should be fine.",
+                    "bodyHTML": "<p dir=\"auto\">I'd suggest to not have all that, as it might introduce some unexpected behavior. My suggestion would be to just toggle with the <code class=\"notranslate\">MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview</code> and then manually move cursor. I don't think it should be a frequent occasion to toggle preview, so this should be fine.</p>",
+                    "bodyText": "I'd suggest to not have all that, as it might introduce some unexpected behavior. My suggestion would be to just toggle with the MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview and then manually move cursor. I don't think it should be a frequent occasion to toggle preview, so this should be fine.",
+                    "createdAt": "2024-11-07T13:34:12Z",
+                    "createdViaEmail": false,
+                    "databaseId": 11178002,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AqpAS",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2024-11-07T13:34:12Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 2
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 11172584,
+                        "id": "DC_kwDOFoksYM4Aqnro",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-11172584"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/936#discussioncomment-11178002",
+                    "updatedAt": "2024-11-07T13:34:13Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-11178002"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/936#discussioncomment-11172584",
+            "updatedAt": "2024-11-07T02:22:37Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-11172584"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/19793591?v=4",
+                "login": "rbhanot4739",
+                "resourcePath": "/rbhanot4739",
+                "url": "https://github.com/rbhanot4739"
+            },
+            "authorAssociation": "NONE",
+            "body": "I stumbled upon this thread and have something very similar in my config\r\n\r\n```lua\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesBufferCreate\",\r\n  callback = function(args)\r\n    vim.keymap.set(\"n\", \"<C-p>\", function()\r\n      MiniFiles = require(\"mini.files\")\r\n      MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview\r\n      MiniFiles.refresh({ windows = { preview = MiniFiles.config.windows.preview } })\r\n    end, { desc = \"toggle preview\" })\r\n  end,\r\n})\r\n```\r\n\r\nThis works but the only issue I see is that when preview is turned off the `MiniFiles.refresh` does not completely close the preview window until I press a key.\r\n\r\n\r\nhttps://github.com/user-attachments/assets/c46747cf-688a-4467-867e-84fd2088cf76\r\n\r\n",
+            "bodyHTML": "<p dir=\"auto\">I stumbled upon this thread and have something very similar in my config</p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"vim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesBufferCreate&quot;,\n  callback = function(args)\n    vim.keymap.set(&quot;n&quot;, &quot;&lt;C-p&gt;&quot;, function()\n      MiniFiles = require(&quot;mini.files&quot;)\n      MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview\n      MiniFiles.refresh({ windows = { preview = MiniFiles.config.windows.preview } })\n    end, { desc = &quot;toggle preview&quot; })\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesBufferCreate<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;C-p&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-k\">function</span>()\n      <span class=\"pl-smi\">MiniFiles</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">require</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>mini.files<span class=\"pl-pds\">\"</span></span>)\n      <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span>\n      <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">refresh</span>({ <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span> } })\n    <span class=\"pl-k\">end</span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>toggle preview<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-k\">end</span>,\n})</pre></div>\n<p dir=\"auto\">This works but the only issue I see is that when preview is turned off the <code class=\"notranslate\">MiniFiles.refresh</code> does not completely close the preview window until I press a key.</p>\n<details open=\"\" class=\"details-reset border rounded-2\">\n  <summary class=\"tmp-px-3 py-2\">\n    <svg aria-hidden=\"true\" data-component=\"Octicon\" height=\"16\" viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" data-view-component=\"true\" class=\"octicon octicon-device-camera-video\">\n    <path d=\"M16 3.75v8.5a.75.75 0 0 1-1.136.643L11 10.575v.675A1.75 1.75 0 0 1 9.25 13h-7.5A1.75 1.75 0 0 1 0 11.25v-6.5C0 3.784.784 3 1.75 3h7.5c.966 0 1.75.784 1.75 1.75v.675l3.864-2.318A.75.75 0 0 1 16 3.75Zm-6.5 1a.25.25 0 0 0-.25-.25h-7.5a.25.25 0 0 0-.25.25v6.5c0 .138.112.25.25.25h7.5a.25.25 0 0 0 .25-.25v-6.5ZM11 8.825l3.5 2.1v-5.85l-3.5 2.1Z\"></path>\n</svg>\n    <span class=\"m-1\">mini.mp4</span>\n    <span class=\"dropdown-caret\"></span>\n  </summary>\n\n  <video src=\"https://private-user-images.githubusercontent.com/19793591/438744110-c46747cf-688a-4467-867e-84fd2088cf76.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MDAsIm5iZiI6MTc5MzU1MjYwMCwicGF0aCI6Ii8xOTc5MzU5MS80Mzg3NDQxMTAtYzQ2NzQ3Y2YtNjg4YS00NDY3LTg2N2UtODRmZDIwODhjZjc2Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDMyMFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVhODAxOTkxZjk1ZDQyM2YwOTFmODRhNjliNTZiMTc0NDk0MTdhMDViMWVlYmNlNTAwNzFkY2JiZTI1OWNhNWImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.49hTGT7G6voiksXFKOGEOpafKekoDKOn6tX75JF-6dw\" data-canonical-src=\"https://private-user-images.githubusercontent.com/19793591/438744110-c46747cf-688a-4467-867e-84fd2088cf76.mp4?jwt=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3OTM1NTI5MDAsIm5iZiI6MTc5MzU1MjYwMCwicGF0aCI6Ii8xOTc5MzU5MS80Mzg3NDQxMTAtYzQ2NzQ3Y2YtNjg4YS00NDY3LTg2N2UtODRmZDIwODhjZjc2Lm1wND9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNjExMDElMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjYxMTAxVDE3MDMyMFomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTVhODAxOTkxZjk1ZDQyM2YwOTFmODRhNjliNTZiMTc0NDk0MTdhMDViMWVlYmNlNTAwNzFkY2JiZTI1OWNhNWImWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JnJlc3BvbnNlLWNvbnRlbnQtdHlwZT12aWRlbyUyRm1wNCJ9.49hTGT7G6voiksXFKOGEOpafKekoDKOn6tX75JF-6dw\" controls=\"controls\" muted=\"muted\" class=\"d-block rounded-bottom-2 border-top width-fit\" style=\"max-height:640px; min-height: 200px\">\n\n  </video>\n</details>\n",
+            "bodyText": "I stumbled upon this thread and have something very similar in my config\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesBufferCreate\",\n  callback = function(args)\n    vim.keymap.set(\"n\", \"<C-p>\", function()\n      MiniFiles = require(\"mini.files\")\n      MiniFiles.config.windows.preview = not MiniFiles.config.windows.preview\n      MiniFiles.refresh({ windows = { preview = MiniFiles.config.windows.preview } })\n    end, { desc = \"toggle preview\" })\n  end,\n})\nThis works but the only issue I see is that when preview is turned off the MiniFiles.refresh does not completely close the preview window until I press a key.\n\n  \n    \n    \n\n    mini.mp4",
+            "createdAt": "2025-04-29T12:11:05Z",
+            "createdViaEmail": false,
+            "databaseId": 12980187,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4Axg_b",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2025-04-29T12:11:05Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 2,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                        "login": "echasnovski",
+                        "resourcePath": "/echasnovski",
+                        "url": "https://github.com/echasnovski"
+                    },
+                    "authorAssociation": "MEMBER",
+                    "body": "Yes, it is mentioned in [this comment](https://github.com/echasnovski/mini.nvim/discussions/936#discussioncomment-9640297). Preview is expected to be either always on or always off during a single \"explorer session\". Being able to toggle it with a small caveat of having to press another key is considered a bonus, but not an intended use case.",
+                    "bodyHTML": "<p dir=\"auto\">Yes, it is mentioned in <a href=\"https://github.com/echasnovski/mini.nvim/discussions/936#discussioncomment-9640297\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/936/hovercard?comment_id=9640297\">this comment</a>. Preview is expected to be either always on or always off during a single \"explorer session\". Being able to toggle it with a small caveat of having to press another key is considered a bonus, but not an intended use case.</p>",
+                    "bodyText": "Yes, it is mentioned in this comment. Preview is expected to be either always on or always off during a single \"explorer session\". Being able to toggle it with a small caveat of having to press another key is considered a bonus, but not an intended use case.",
+                    "createdAt": "2025-04-29T12:26:48Z",
+                    "createdViaEmail": false,
+                    "databaseId": 12980358,
+                    "deletedAt": null,
+                    "editor": null,
+                    "id": "DC_kwDOFoksYM4AxhCG",
+                    "includesCreatedEdit": false,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": null,
+                    "minimizedReason": null,
+                    "publishedAt": "2025-04-29T12:26:48Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12980187,
+                        "id": "DC_kwDOFoksYM4Axg_b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-12980187"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/936#discussioncomment-12980358",
+                    "updatedAt": "2025-04-29T12:26:49Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-12980358"
+                },
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "See https://github.com/nvim-mini/mini.nvim/discussions/2238\r\n\r\n```lua\r\nlocal toggle_preview = function()\r\n  local is_enabled = MiniFiles.config.windows.preview\r\n  local enable = not is_enabled\r\n  MiniFiles.config.windows.preview = enable\r\n  MiniFiles.trim_right()\r\n  MiniFiles.refresh({ windows = { preview = enable } })\r\n  MiniFiles.refresh()\r\n  if is_enabled then\r\n    local branch = MiniFiles.get_explorer_state().branch\r\n    table.remove(branch)\r\n    MiniFiles.set_branch(branch)\r\n  end\r\nend\r\n\r\nvim.api.nvim_create_autocmd(\"User\", {\r\n  pattern = \"MiniFilesBufferCreate\",\r\n  group = vim.api.nvim_create_augroup(\"minifiles.keymaps\", { clear = true }),\r\n  callback = function(args)\r\n    local buf = args.data.buf_id\r\n    vim.keymap.set(\"n\", \"<M-p>\", toggle_preview, { buffer = buf, desc = \"Toggle preview\" })\r\n  end,\r\n})\r\n```",
+                    "bodyHTML": "<p dir=\"auto\">See <a class=\"issue-link js-issue-link\" data-error-text=\"Failed to load title\" data-id=\"9376013\" data-permission-text=\"Title is private\" data-url=\"https://github.com/nvim-mini/mini.nvim/discussions/2238\" data-hovercard-type=\"discussion\" data-hovercard-url=\"/nvim-mini/mini.nvim/discussions/2238/hovercard\" href=\"https://github.com/nvim-mini/mini.nvim/discussions/2238\">#2238</a></p>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"local toggle_preview = function()\n  local is_enabled = MiniFiles.config.windows.preview\n  local enable = not is_enabled\n  MiniFiles.config.windows.preview = enable\n  MiniFiles.trim_right()\n  MiniFiles.refresh({ windows = { preview = enable } })\n  MiniFiles.refresh()\n  if is_enabled then\n    local branch = MiniFiles.get_explorer_state().branch\n    table.remove(branch)\n    MiniFiles.set_branch(branch)\n  end\nend\n\nvim.api.nvim_create_autocmd(&quot;User&quot;, {\n  pattern = &quot;MiniFilesBufferCreate&quot;,\n  group = vim.api.nvim_create_augroup(&quot;minifiles.keymaps&quot;, { clear = true }),\n  callback = function(args)\n    local buf = args.data.buf_id\n    vim.keymap.set(&quot;n&quot;, &quot;&lt;M-p&gt;&quot;, toggle_preview, { buffer = buf, desc = &quot;Toggle preview&quot; })\n  end,\n})\"><pre class=\"notranslate\"><span class=\"pl-k\">local</span> <span class=\"pl-en\">toggle_preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">is_enabled</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">enable</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">not</span> <span class=\"pl-smi\">is_enabled</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-e\">config</span>.<span class=\"pl-e\">windows</span>.<span class=\"pl-e\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">enable</span>\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">trim_right</span>()\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">refresh</span>({ <span class=\"pl-smi\">windows</span> <span class=\"pl-k\">=</span> { <span class=\"pl-smi\">preview</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">enable</span> } })\n  <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">refresh</span>()\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">is_enabled</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">branch</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">get_explorer_state</span>().<span class=\"pl-e\">branch</span>\n    <span class=\"pl-c1\">table.remove</span>(<span class=\"pl-smi\">branch</span>)\n    <span class=\"pl-smi\">MiniFiles</span>.<span class=\"pl-c1\">set_branch</span>(<span class=\"pl-smi\">branch</span>)\n  <span class=\"pl-k\">end</span>\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_autocmd</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>User<span class=\"pl-pds\">\"</span></span>, {\n  <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>MiniFilesBufferCreate<span class=\"pl-pds\">\"</span></span>,\n  <span class=\"pl-smi\">group</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_create_augroup</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>minifiles.keymaps<span class=\"pl-pds\">\"</span></span>, { <span class=\"pl-smi\">clear</span> <span class=\"pl-k\">=</span> <span class=\"pl-c1\">true</span> }),\n  <span class=\"pl-en\">callback</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">args</span>)\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">buf</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">args</span>.<span class=\"pl-e\">data</span>.<span class=\"pl-e\">buf_id</span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">\"</span>n<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>&lt;M-p&gt;<span class=\"pl-pds\">\"</span></span>, <span class=\"pl-smi\">toggle_preview</span>, { <span class=\"pl-smi\">buffer</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">buf</span>, <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">\"</span>Toggle preview<span class=\"pl-pds\">\" </span></span>})\n  <span class=\"pl-k\">end</span>,\n})</pre></div>",
+                    "bodyText": "See #2238\nlocal toggle_preview = function()\n  local is_enabled = MiniFiles.config.windows.preview\n  local enable = not is_enabled\n  MiniFiles.config.windows.preview = enable\n  MiniFiles.trim_right()\n  MiniFiles.refresh({ windows = { preview = enable } })\n  MiniFiles.refresh()\n  if is_enabled then\n    local branch = MiniFiles.get_explorer_state().branch\n    table.remove(branch)\n    MiniFiles.set_branch(branch)\n  end\nend\n\nvim.api.nvim_create_autocmd(\"User\", {\n  pattern = \"MiniFilesBufferCreate\",\n  group = vim.api.nvim_create_augroup(\"minifiles.keymaps\", { clear = true }),\n  callback = function(args)\n    local buf = args.data.buf_id\n    vim.keymap.set(\"n\", \"<M-p>\", toggle_preview, { buffer = buf, desc = \"Toggle preview\" })\n  end,\n})",
+                    "createdAt": "2025-10-13T16:42:12Z",
+                    "createdViaEmail": false,
+                    "databaseId": 14667620,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4A389k",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-08-18T10:14:57Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2025-10-13T16:42:12Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 1
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 12980187,
+                        "id": "DC_kwDOFoksYM4Axg_b",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-12980187"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/936#discussioncomment-14667620",
+                    "updatedAt": "2026-08-18T10:14:57Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-14667620"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/936#discussioncomment-12980187",
+            "updatedAt": "2025-04-29T12:11:07Z",
+            "upvoteCount": 1,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/936#discussioncomment-12980187"
+        }
+    ],
+    "createdAt": "2024-06-02T17:46:27Z",
+    "createdViaEmail": false,
+    "databaseId": 6766544,
+    "editor": null,
+    "id": "D_kwDOFoksYM4AZz_Q",
+    "includesCreatedEdit": false,
+    "isAnswered": null,
+    "labels": {
+        "nodes": [
+            {
+                "color": "FBCA04",
+                "description": "",
+                "id": "LA_kwDOFoksYM8AAAABUNj_qg",
+                "name": "mini.files"
+            }
+        ],
+        "totalCount": 1
+    },
+    "lastEditedAt": null,
+    "locked": false,
+    "number": 936,
+    "poll": null,
+    "publishedAt": "2024-06-02T17:46:27Z",
+    "reactionGroups": [
+        {
+            "content": "THUMBS_UP",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "THUMBS_DOWN",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "LAUGH",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HOORAY",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "CONFUSED",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "HEART",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "ROCKET",
+            "reactors": {
+                "totalCount": 0
+            }
+        },
+        {
+            "content": "EYES",
+            "reactors": {
+                "totalCount": 0
+            }
+        }
+    ],
+    "resourcePath": "/nvim-mini/mini.nvim/discussions/936",
+    "stateReason": "RESOLVED",
+    "title": "Mini.files to toggle preview on demand",
+    "updatedAt": "2025-10-13T16:42:13Z",
+    "upvoteCount": 2,
+    "url": "https://github.com/nvim-mini/mini.nvim/discussions/936"
+}
