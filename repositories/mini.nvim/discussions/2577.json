@@ -26,7 +26,7 @@
     },
     "closed": false,
     "closedAt": null,
-    "comment_count": 1,
+    "comment_count": 2,
     "comment_data": [
         {
             "author": {
@@ -275,6 +275,176 @@
             "updatedAt": "2026-10-10T19:13:36Z",
             "upvoteCount": 1,
             "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-18854658"
+        },
+        {
+            "author": {
+                "avatarUrl": "https://avatars.githubusercontent.com/u/24854248?u=d09fd974c6720eba3039db6beb2f1c1efecdb51d&v=4",
+                "login": "echasnovski",
+                "resourcePath": "/echasnovski",
+                "url": "https://github.com/echasnovski"
+            },
+            "authorAssociation": "MEMBER",
+            "body": "I was entertaining an idea of adding an `emoji` picker to 'mini.extra'. Even went ahead and implemented it, but two things currently keep me from adding it (besides the usual \"'mini.extra' is already very big\"):\r\n\r\n- It follows the \"established\" route of downloading emoji data from the web. This would have set the precedence in 'mini.nvim', since this (downloading from a third party web source suggested by the 'mini.nvim') is not something that is being done currently. Granted, the source I used is from official unicode.org website, but still doesn't feel right.\r\n\r\n    I've also entertained the idea of vendoring the emoji list in something like 'mini.emoji' (similar to how 'mini.icons' does it), which can also provide more emoji related functionality (like changing skin tone, gender, hair style, etc.). This would have solved this issue, but the next one makes it less appealing.\r\n\r\n- I was told that system wide emoji picker and \"inserted\" is not an uncommon thing. This is present on MacOS and Windows 11, while also seems to be present in several Linux desktop environments. As they seem to work with Neovim and terminal emulator in general, a dedicated Neovim native emoji picker is less \"urgent\".\r\n\r\n---\r\n\r\nTo prevent my previous efforts from being completely wasted, I simplified the 'mini.extra' picker into a more general script that uses `vim.ui.select()`. Here it is for posterity:\r\n\r\n<details><summary>Emoji `vim.ui.select()` picker</summary>\r\n\r\n```lua\r\n-- Picker ---------------------------------------------------------------------\r\n-- Emoji picker that downloads emoji data on the first run after confirmation.\r\n-- Uses `vim.ui.select` to work with any picker. Most current pickers work only\r\n-- in Normal mode. Built-in and 'mini.pick' can be used in Insert mode.\r\n-- Requires Neovim>=0.12 for `vim.net.request`.\r\n\r\nlocal source_url = 'https://www.unicode.org/Public/emoji/latest/emoji-test.txt'\r\nlocal store_path = vim.fn.stdpath('data') .. '/mini-extra-emoji.json'\r\nlocal emoji_items\r\n\r\nlocal emoji_download = function()\r\n  local msg = 'There is no local data at ' .. store_path .. '\\nDownload emoji data from this URL?\\n' .. source_url\r\n  if vim.fn.confirm(msg, '&Yes\\n&No', 1, 'Question') ~= 1 then return end\r\n  vim.notify('Downloading emoji data. Wait until finished and retry.', vim.log.levels.INFO)\r\n\r\n  local on_response = vim.schedule_wrap(function(err, res)\r\n    if err then return vim.notify('Error downloading emoji data: ' .. tostring(err), vim.log.levels.ERROR) end\r\n    local parsed = {}\r\n    local pattern = ';%s+fully%-qualified%s+#%s+(%S+)%s+E[0-9.]+%s+(.-)\\n'\r\n    res.body:gsub(pattern, function(em, name) table.insert(parsed, { em, name }) end)\r\n\r\n    vim.fn.mkdir(vim.fn.fnamemodify(store_path, ':h'), 'p')\r\n    vim.fn.writefile(vim.json.encode(parsed, { indent = '  ' }), store_path)\r\n    vim.notify('Downloaded emoji data at ' .. store_path, vim.log.levels.INFO)\r\n  end)\r\n  vim.net.request(source_url, {}, on_response)\r\nend\r\n\r\n_G.pick_emoji = function()\r\n  -- Get items: download on first run ever, read from file on first session run\r\n  if vim.uv.fs_stat(store_path) == nil then return emoji_download() end\r\n  if emoji_items == nil then\r\n    local emoji_json = vim.json.decode(vim.fn.readblob(store_path))\r\n    emoji_items = vim.tbl_map(function(em) return { emoji = em[1], name = em[2] } end, emoji_json)\r\n  end\r\n\r\n  -- Start picker\r\n  local format_item = function(item) return string.format('%s │ %s', item.emoji, item.name) end\r\n  local on_choice = function(item, _)\r\n    if item == nil then return end\r\n    local cur = vim.api.nvim_win_get_cursor(0)\r\n    vim.api.nvim_buf_set_text(0, cur[1] - 1, cur[2], cur[1] - 1, cur[2], { item.emoji })\r\n    local key = vim.fn.mode() == 'i' and '<Right>' or '<Left>'\r\n    vim.fn.feedkeys(vim.keycode(key), 'n')\r\n  end\r\n\r\n  vim.ui.select(emoji_items, { prompt = 'Emoji', format_item = format_item }, on_choice)\r\nend\r\n\r\nvim.keymap.set('n', '<Leader>fe', '<Cmd>lua pick_emoji()<CR>', { desc = 'Pick and insert emoji' })\r\nvim.keymap.set('i', '<C-.>', '<Cmd>lua pick_emoji()<CR>', { desc = 'Pick and insert emoji' })\r\n```\r\n\r\n</details>",
+            "bodyHTML": "<p dir=\"auto\">I was entertaining an idea of adding an <code class=\"notranslate\">emoji</code> picker to 'mini.extra'. Even went ahead and implemented it, but two things currently keep me from adding it (besides the usual \"'mini.extra' is already very big\"):</p>\n<ul dir=\"auto\">\n<li>\n<p dir=\"auto\">It follows the \"established\" route of downloading emoji data from the web. This would have set the precedence in 'mini.nvim', since this (downloading from a third party web source suggested by the 'mini.nvim') is not something that is being done currently. Granted, the source I used is from official unicode.org website, but still doesn't feel right.</p>\n<p dir=\"auto\">I've also entertained the idea of vendoring the emoji list in something like 'mini.emoji' (similar to how 'mini.icons' does it), which can also provide more emoji related functionality (like changing skin tone, gender, hair style, etc.). This would have solved this issue, but the next one makes it less appealing.</p>\n</li>\n<li>\n<p dir=\"auto\">I was told that system wide emoji picker and \"inserted\" is not an uncommon thing. This is present on MacOS and Windows 11, while also seems to be present in several Linux desktop environments. As they seem to work with Neovim and terminal emulator in general, a dedicated Neovim native emoji picker is less \"urgent\".</p>\n</li>\n</ul>\n<hr>\n<p dir=\"auto\">To prevent my previous efforts from being completely wasted, I simplified the 'mini.extra' picker into a more general script that uses <code class=\"notranslate\">vim.ui.select()</code>. Here it is for posterity:</p>\n<details><summary>Emoji `vim.ui.select()` picker</summary>\n<div class=\"highlight highlight-source-lua notranslate position-relative overflow-auto\" dir=\"auto\" data-snippet-clipboard-copy-content=\"-- Picker ---------------------------------------------------------------------\n-- Emoji picker that downloads emoji data on the first run after confirmation.\n-- Uses `vim.ui.select` to work with any picker. Most current pickers work only\n-- in Normal mode. Built-in and 'mini.pick' can be used in Insert mode.\n-- Requires Neovim&gt;=0.12 for `vim.net.request`.\n\nlocal source_url = 'https://www.unicode.org/Public/emoji/latest/emoji-test.txt'\nlocal store_path = vim.fn.stdpath('data') .. '/mini-extra-emoji.json'\nlocal emoji_items\n\nlocal emoji_download = function()\n  local msg = 'There is no local data at ' .. store_path .. '\\nDownload emoji data from this URL?\\n' .. source_url\n  if vim.fn.confirm(msg, '&amp;Yes\\n&amp;No', 1, 'Question') ~= 1 then return end\n  vim.notify('Downloading emoji data. Wait until finished and retry.', vim.log.levels.INFO)\n\n  local on_response = vim.schedule_wrap(function(err, res)\n    if err then return vim.notify('Error downloading emoji data: ' .. tostring(err), vim.log.levels.ERROR) end\n    local parsed = {}\n    local pattern = ';%s+fully%-qualified%s+#%s+(%S+)%s+E[0-9.]+%s+(.-)\\n'\n    res.body:gsub(pattern, function(em, name) table.insert(parsed, { em, name }) end)\n\n    vim.fn.mkdir(vim.fn.fnamemodify(store_path, ':h'), 'p')\n    vim.fn.writefile(vim.json.encode(parsed, { indent = '  ' }), store_path)\n    vim.notify('Downloaded emoji data at ' .. store_path, vim.log.levels.INFO)\n  end)\n  vim.net.request(source_url, {}, on_response)\nend\n\n_G.pick_emoji = function()\n  -- Get items: download on first run ever, read from file on first session run\n  if vim.uv.fs_stat(store_path) == nil then return emoji_download() end\n  if emoji_items == nil then\n    local emoji_json = vim.json.decode(vim.fn.readblob(store_path))\n    emoji_items = vim.tbl_map(function(em) return { emoji = em[1], name = em[2] } end, emoji_json)\n  end\n\n  -- Start picker\n  local format_item = function(item) return string.format('%s │ %s', item.emoji, item.name) end\n  local on_choice = function(item, _)\n    if item == nil then return end\n    local cur = vim.api.nvim_win_get_cursor(0)\n    vim.api.nvim_buf_set_text(0, cur[1] - 1, cur[2], cur[1] - 1, cur[2], { item.emoji })\n    local key = vim.fn.mode() == 'i' and '&lt;Right&gt;' or '&lt;Left&gt;'\n    vim.fn.feedkeys(vim.keycode(key), 'n')\n  end\n\n  vim.ui.select(emoji_items, { prompt = 'Emoji', format_item = format_item }, on_choice)\nend\n\nvim.keymap.set('n', '&lt;Leader&gt;fe', '&lt;Cmd&gt;lua pick_emoji()&lt;CR&gt;', { desc = 'Pick and insert emoji' })\nvim.keymap.set('i', '&lt;C-.&gt;', '&lt;Cmd&gt;lua pick_emoji()&lt;CR&gt;', { desc = 'Pick and insert emoji' })\"><pre class=\"notranslate\"><span class=\"pl-c\"><span class=\"pl-c\">--</span> Picker ---------------------------------------------------------------------</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Emoji picker that downloads emoji data on the first run after confirmation.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Uses `vim.ui.select` to work with any picker. Most current pickers work only</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> in Normal mode. Built-in and 'mini.pick' can be used in Insert mode.</span>\n<span class=\"pl-c\"><span class=\"pl-c\">--</span> Requires Neovim&gt;=0.12 for `vim.net.request`.</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">source_url</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>https://www.unicode.org/Public/emoji/latest/emoji-test.txt<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">store_path</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">stdpath</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>data<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>/mini-extra-emoji.json<span class=\"pl-pds\">'</span></span>\n<span class=\"pl-k\">local</span> <span class=\"pl-smi\">emoji_items</span>\n\n<span class=\"pl-k\">local</span> <span class=\"pl-en\">emoji_download</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">msg</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>There is no local data at <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">store_path</span> <span class=\"pl-k\">..</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span><span class=\"pl-cce\">\\n</span>Download emoji data from this URL?<span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">source_url</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">confirm</span>(<span class=\"pl-smi\">msg</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&amp;Yes<span class=\"pl-cce\">\\n</span>&amp;No<span class=\"pl-pds\">'</span></span>, <span class=\"pl-c1\">1</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Question<span class=\"pl-pds\">'</span></span>) <span class=\"pl-k\">~=</span> <span class=\"pl-c1\">1</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Downloading emoji data. Wait until finished and retry.<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n\n  <span class=\"pl-k\">local</span> <span class=\"pl-smi\">on_response</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">schedule_wrap</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">err</span>, <span class=\"pl-smi\">res</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">err</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Error downloading emoji data: <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-c1\">tostring</span>(<span class=\"pl-smi\">err</span>), <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">ERROR</span>) <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">parsed</span> <span class=\"pl-k\">=</span> {}\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">pattern</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>;%s+fully%-qualified%s+#%s+(%S+)%s+E[0-9.]+%s+(.-)<span class=\"pl-cce\">\\n</span><span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-smi\">res</span>.<span class=\"pl-en\">body</span>:<span class=\"pl-c1\">gsub</span>(<span class=\"pl-smi\">pattern</span>, <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">em</span>, <span class=\"pl-smi\">name</span>) <span class=\"pl-c1\">table.insert</span>(<span class=\"pl-smi\">parsed</span>, { <span class=\"pl-smi\">em</span>, <span class=\"pl-smi\">name</span> }) <span class=\"pl-k\">end</span>)\n\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">mkdir</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">fnamemodify</span>(<span class=\"pl-smi\">store_path</span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>:h<span class=\"pl-pds\">'</span></span>), <span class=\"pl-s\"><span class=\"pl-pds\">'</span>p<span class=\"pl-pds\">'</span></span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">writefile</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">json</span>.<span class=\"pl-c1\">encode</span>(<span class=\"pl-smi\">parsed</span>, { <span class=\"pl-smi\">indent</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>  <span class=\"pl-pds\">' </span></span>}), <span class=\"pl-smi\">store_path</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">notify</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>Downloaded emoji data at <span class=\"pl-pds\">' </span></span><span class=\"pl-k\">..</span> <span class=\"pl-smi\">store_path</span>, <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">log</span>.<span class=\"pl-e\">levels</span>.<span class=\"pl-e\">INFO</span>)\n  <span class=\"pl-k\">end</span>)\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">net</span>.<span class=\"pl-c1\">request</span>(<span class=\"pl-smi\">source_url</span>, {}, <span class=\"pl-smi\">on_response</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-c1\">_G</span>.<span class=\"pl-en\">pick_emoji</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>()\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Get items: download on first run ever, read from file on first session run</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">uv</span>.<span class=\"pl-c1\">fs_stat</span>(<span class=\"pl-smi\">store_path</span>) <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-c1\">emoji_download</span>() <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">if</span> <span class=\"pl-smi\">emoji_items</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">emoji_json</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">json</span>.<span class=\"pl-c1\">decode</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">readblob</span>(<span class=\"pl-smi\">store_path</span>))\n    <span class=\"pl-smi\">emoji_items</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">tbl_map</span>(<span class=\"pl-k\">function</span>(<span class=\"pl-smi\">em</span>) <span class=\"pl-k\">return</span> { <span class=\"pl-smi\">emoji</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">em</span>[<span class=\"pl-c1\">1</span>], <span class=\"pl-smi\">name</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">em</span>[<span class=\"pl-c1\">2</span>] } <span class=\"pl-k\">end</span>, <span class=\"pl-smi\">emoji_json</span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-c\"><span class=\"pl-c\">--</span> Start picker</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">format_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>) <span class=\"pl-k\">return</span> <span class=\"pl-c1\">string.format</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>%s │ %s<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">emoji</span>, <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">name</span>) <span class=\"pl-k\">end</span>\n  <span class=\"pl-k\">local</span> <span class=\"pl-en\">on_choice</span> <span class=\"pl-k\">=</span> <span class=\"pl-k\">function</span>(<span class=\"pl-smi\">item</span>, <span class=\"pl-smi\">_</span>)\n    <span class=\"pl-k\">if</span> <span class=\"pl-smi\">item</span> <span class=\"pl-k\">==</span> <span class=\"pl-c1\">nil</span> <span class=\"pl-k\">then</span> <span class=\"pl-k\">return</span> <span class=\"pl-k\">end</span>\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">cur</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_win_get_cursor</span>(<span class=\"pl-c1\">0</span>)\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">api</span>.<span class=\"pl-c1\">nvim_buf_set_text</span>(<span class=\"pl-c1\">0</span>, <span class=\"pl-smi\">cur</span>[<span class=\"pl-c1\">1</span>] <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">cur</span>[<span class=\"pl-c1\">2</span>], <span class=\"pl-smi\">cur</span>[<span class=\"pl-c1\">1</span>] <span class=\"pl-k\">-</span> <span class=\"pl-c1\">1</span>, <span class=\"pl-smi\">cur</span>[<span class=\"pl-c1\">2</span>], { <span class=\"pl-smi\">item</span>.<span class=\"pl-e\">emoji</span> })\n    <span class=\"pl-k\">local</span> <span class=\"pl-smi\">key</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">mode</span>() <span class=\"pl-k\">==</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">and</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Right&gt;<span class=\"pl-pds\">' </span></span><span class=\"pl-k\">or</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Left&gt;<span class=\"pl-pds\">'</span></span>\n    <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">fn</span>.<span class=\"pl-c1\">feedkeys</span>(<span class=\"pl-smi\">vim</span>.<span class=\"pl-c1\">keycode</span>(<span class=\"pl-smi\">key</span>), <span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>)\n  <span class=\"pl-k\">end</span>\n\n  <span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">ui</span>.<span class=\"pl-c1\">select</span>(<span class=\"pl-smi\">emoji_items</span>, { <span class=\"pl-smi\">prompt</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Emoji<span class=\"pl-pds\">'</span></span>, <span class=\"pl-smi\">format_item</span> <span class=\"pl-k\">=</span> <span class=\"pl-smi\">format_item</span> }, <span class=\"pl-smi\">on_choice</span>)\n<span class=\"pl-k\">end</span>\n\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>n<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Leader&gt;fe<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Cmd&gt;lua pick_emoji()&lt;CR&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Pick and insert emoji<span class=\"pl-pds\">' </span></span>})\n<span class=\"pl-smi\">vim</span>.<span class=\"pl-e\">keymap</span>.<span class=\"pl-c1\">set</span>(<span class=\"pl-s\"><span class=\"pl-pds\">'</span>i<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;C-.&gt;<span class=\"pl-pds\">'</span></span>, <span class=\"pl-s\"><span class=\"pl-pds\">'</span>&lt;Cmd&gt;lua pick_emoji()&lt;CR&gt;<span class=\"pl-pds\">'</span></span>, { <span class=\"pl-smi\">desc</span> <span class=\"pl-k\">=</span> <span class=\"pl-s\"><span class=\"pl-pds\">'</span>Pick and insert emoji<span class=\"pl-pds\">' </span></span>})</pre></div>\n</details>",
+            "bodyText": "I was entertaining an idea of adding an emoji picker to 'mini.extra'. Even went ahead and implemented it, but two things currently keep me from adding it (besides the usual \"'mini.extra' is already very big\"):\n\n\nIt follows the \"established\" route of downloading emoji data from the web. This would have set the precedence in 'mini.nvim', since this (downloading from a third party web source suggested by the 'mini.nvim') is not something that is being done currently. Granted, the source I used is from official unicode.org website, but still doesn't feel right.\nI've also entertained the idea of vendoring the emoji list in something like 'mini.emoji' (similar to how 'mini.icons' does it), which can also provide more emoji related functionality (like changing skin tone, gender, hair style, etc.). This would have solved this issue, but the next one makes it less appealing.\n\n\nI was told that system wide emoji picker and \"inserted\" is not an uncommon thing. This is present on MacOS and Windows 11, while also seems to be present in several Linux desktop environments. As they seem to work with Neovim and terminal emulator in general, a dedicated Neovim native emoji picker is less \"urgent\".\n\n\n\nTo prevent my previous efforts from being completely wasted, I simplified the 'mini.extra' picker into a more general script that uses vim.ui.select(). Here it is for posterity:\nEmoji `vim.ui.select()` picker\n-- Picker ---------------------------------------------------------------------\n-- Emoji picker that downloads emoji data on the first run after confirmation.\n-- Uses `vim.ui.select` to work with any picker. Most current pickers work only\n-- in Normal mode. Built-in and 'mini.pick' can be used in Insert mode.\n-- Requires Neovim>=0.12 for `vim.net.request`.\n\nlocal source_url = 'https://www.unicode.org/Public/emoji/latest/emoji-test.txt'\nlocal store_path = vim.fn.stdpath('data') .. '/mini-extra-emoji.json'\nlocal emoji_items\n\nlocal emoji_download = function()\n  local msg = 'There is no local data at ' .. store_path .. '\\nDownload emoji data from this URL?\\n' .. source_url\n  if vim.fn.confirm(msg, '&Yes\\n&No', 1, 'Question') ~= 1 then return end\n  vim.notify('Downloading emoji data. Wait until finished and retry.', vim.log.levels.INFO)\n\n  local on_response = vim.schedule_wrap(function(err, res)\n    if err then return vim.notify('Error downloading emoji data: ' .. tostring(err), vim.log.levels.ERROR) end\n    local parsed = {}\n    local pattern = ';%s+fully%-qualified%s+#%s+(%S+)%s+E[0-9.]+%s+(.-)\\n'\n    res.body:gsub(pattern, function(em, name) table.insert(parsed, { em, name }) end)\n\n    vim.fn.mkdir(vim.fn.fnamemodify(store_path, ':h'), 'p')\n    vim.fn.writefile(vim.json.encode(parsed, { indent = '  ' }), store_path)\n    vim.notify('Downloaded emoji data at ' .. store_path, vim.log.levels.INFO)\n  end)\n  vim.net.request(source_url, {}, on_response)\nend\n\n_G.pick_emoji = function()\n  -- Get items: download on first run ever, read from file on first session run\n  if vim.uv.fs_stat(store_path) == nil then return emoji_download() end\n  if emoji_items == nil then\n    local emoji_json = vim.json.decode(vim.fn.readblob(store_path))\n    emoji_items = vim.tbl_map(function(em) return { emoji = em[1], name = em[2] } end, emoji_json)\n  end\n\n  -- Start picker\n  local format_item = function(item) return string.format('%s │ %s', item.emoji, item.name) end\n  local on_choice = function(item, _)\n    if item == nil then return end\n    local cur = vim.api.nvim_win_get_cursor(0)\n    vim.api.nvim_buf_set_text(0, cur[1] - 1, cur[2], cur[1] - 1, cur[2], { item.emoji })\n    local key = vim.fn.mode() == 'i' and '<Right>' or '<Left>'\n    vim.fn.feedkeys(vim.keycode(key), 'n')\n  end\n\n  vim.ui.select(emoji_items, { prompt = 'Emoji', format_item = format_item }, on_choice)\nend\n\nvim.keymap.set('n', '<Leader>fe', '<Cmd>lua pick_emoji()<CR>', { desc = 'Pick and insert emoji' })\nvim.keymap.set('i', '<C-.>', '<Cmd>lua pick_emoji()<CR>', { desc = 'Pick and insert emoji' })",
+            "createdAt": "2026-11-13T10:40:58Z",
+            "createdViaEmail": false,
+            "databaseId": 19588030,
+            "deletedAt": null,
+            "editor": null,
+            "id": "DC_kwDOFoksYM4BKuO-",
+            "includesCreatedEdit": false,
+            "isAnswer": false,
+            "isMinimized": false,
+            "lastEditedAt": null,
+            "minimizedReason": null,
+            "publishedAt": "2026-11-13T10:40:58Z",
+            "reactionGroups": [
+                {
+                    "content": "THUMBS_UP",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "THUMBS_DOWN",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "LAUGH",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HOORAY",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "CONFUSED",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "HEART",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "ROCKET",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                },
+                {
+                    "content": "EYES",
+                    "reactors": {
+                        "totalCount": 0
+                    }
+                }
+            ],
+            "replyTo": null,
+            "reply_count": 1,
+            "reply_data": [
+                {
+                    "author": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "authorAssociation": "CONTRIBUTOR",
+                    "body": "Finally, commits can have a proper look.\r\n\r\nI don't use emojis, but there may be several possible icon sources. For reference:\r\n- https://github.com/nvim-telescope/telescope-symbols.nvim\r\n- https://github.com/folke/snacks.nvim/blob/main/docs/picker.md#icons",
+                    "bodyHTML": "<p dir=\"auto\">Finally, commits can have a proper look.</p>\n<p dir=\"auto\">I don't use emojis, but there may be several possible icon sources. For reference:</p>\n<ul dir=\"auto\">\n<li><a href=\"https://github.com/nvim-telescope/telescope-symbols.nvim\">https://github.com/nvim-telescope/telescope-symbols.nvim</a></li>\n<li><a href=\"https://github.com/folke/snacks.nvim/blob/main/docs/picker.md#icons\">https://github.com/folke/snacks.nvim/blob/main/docs/picker.md#icons</a></li>\n</ul>",
+                    "bodyText": "Finally, commits can have a proper look.\nI don't use emojis, but there may be several possible icon sources. For reference:\n\nhttps://github.com/nvim-telescope/telescope-symbols.nvim\nhttps://github.com/folke/snacks.nvim/blob/main/docs/picker.md#icons",
+                    "createdAt": "2026-11-13T16:55:51Z",
+                    "createdViaEmail": false,
+                    "databaseId": 19595464,
+                    "deletedAt": null,
+                    "editor": {
+                        "avatarUrl": "https://avatars.githubusercontent.com/u/119845045?u=9e2489487d1e983158fa9026e290027a273bd2be&v=4",
+                        "login": "drowning-cat",
+                        "resourcePath": "/drowning-cat",
+                        "url": "https://github.com/drowning-cat"
+                    },
+                    "id": "DC_kwDOFoksYM4BKwDI",
+                    "includesCreatedEdit": true,
+                    "isAnswer": false,
+                    "isMinimized": false,
+                    "lastEditedAt": "2026-11-13T16:56:24Z",
+                    "minimizedReason": null,
+                    "publishedAt": "2026-11-13T16:55:51Z",
+                    "reactionGroups": [
+                        {
+                            "content": "THUMBS_UP",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "THUMBS_DOWN",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "LAUGH",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HOORAY",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "CONFUSED",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "HEART",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "ROCKET",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        },
+                        {
+                            "content": "EYES",
+                            "reactors": {
+                                "totalCount": 0
+                            }
+                        }
+                    ],
+                    "replyTo": {
+                        "databaseId": 19588030,
+                        "id": "DC_kwDOFoksYM4BKuO-",
+                        "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-19588030"
+                    },
+                    "resourcePath": "/nvim-mini/mini.nvim/discussions/2577#discussioncomment-19595464",
+                    "updatedAt": "2026-11-13T16:56:24Z",
+                    "upvoteCount": 0,
+                    "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-19595464"
+                }
+            ],
+            "resourcePath": "/nvim-mini/mini.nvim/discussions/2577#discussioncomment-19588030",
+            "updatedAt": "2026-11-13T10:40:58Z",
+            "upvoteCount": 3,
+            "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577#discussioncomment-19588030"
         }
     ],
     "createdAt": "2026-10-10T17:48:38Z",
@@ -353,7 +523,7 @@
     "resourcePath": "/nvim-mini/mini.nvim/discussions/2577",
     "stateReason": null,
     "title": "Emoji picker for mini.pick",
-    "updatedAt": "2026-10-14T18:01:42Z",
+    "updatedAt": "2026-11-13T16:55:51Z",
     "upvoteCount": 2,
     "url": "https://github.com/nvim-mini/mini.nvim/discussions/2577"
 }
